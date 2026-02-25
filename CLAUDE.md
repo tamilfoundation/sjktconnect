@@ -11,8 +11,8 @@
 ## Project Status
 
 - **Current Phase**: Phase 0 — Parliament Watch
-- **Current Sprint**: 0.1 DONE. Next: 0.2
-- **Tests**: 26 passing
+- **Current Sprint**: 0.2 DONE. Next: 0.3
+- **Tests**: 70 passing
 
 ## Apps
 
@@ -28,14 +28,17 @@
 ```bash
 # Development
 cd backend
-python manage.py runserver                                    # Start dev server
-python manage.py test                                         # Run tests
-pytest                                                        # Run tests (pytest)
+python manage.py runserver                    # Start dev server
+pytest                                        # Run tests (70 passing)
 
 # Data Import
-python manage.py import_constituencies                        # Load constituencies from CSV
-python manage.py import_schools ../SenaraiSekolahWeb_Januari2026.xlsx  # Load 528 schools
-python manage.py import_schools --dry-run <file>              # Preview without saving
+python manage.py import_constituencies        # Load constituencies from CSV
+python manage.py import_schools ../SenaraiSekolahWeb_Januari2026.xlsx
+
+# Hansard Pipeline
+python manage.py process_hansard <url>                        # Full pipeline
+python manage.py process_hansard <url> --sitting-date YYYY-MM-DD
+python manage.py process_hansard <url> --catalogue-variants   # Print variant catalogue
 
 # Deployment (verify account first!)
 gcloud config set account tamiliam@gmail.com
@@ -75,13 +78,22 @@ gcloud run deploy sjktconnect-api --source . --region asia-southeast1 --allow-un
 | Sprint | Status | Summary |
 |--------|--------|---------|
 | 0.1 | Done | Scaffold + 528 schools + 222 constituencies + 613 DUNs imported. 26 tests. |
+| 0.2 | Done | Hansard pipeline: download, extract, normalise, keyword search. 44 new tests (70 total). Tested on 3 real PDFs — 5 mentions found. |
 
 ## Next Sprint
 
-Sprint 0.2 — Hansard Download + Text Extraction + Keyword Search
-- Create `hansard` app with HansardSitting, HansardMention models
-- Pipeline: downloader, pdfplumber extractor, text normaliser, keyword searcher
-- `process_hansard <url>` management command
-- Catalogue real name variants from 2-3 Hansard PDFs
+Sprint 0.3 — School Name Matching
+- Add SchoolAlias, MentionedSchool models to hansard app
+- Enable pg_trgm extension (needs Neon PostgreSQL)
+- `seed_aliases` command — auto-generate aliases per school
+- `stop_words.py` — high-frequency words to exclude from fuzzy matching
+- `matcher.py` — Pass 1: exact match on alias_normalized, Pass 2: trigram similarity
+- Integrate matcher into process_hansard pipeline
 - DUN model uses auto PK with unique_together(code, constituency) — remember this when creating FKs
-- MOE PARLIMEN/DUN columns have names only (no codes) — school import uses name-based lookup
+
+## Hansard Pipeline Notes
+- parlimen.gov.my has invalid SSL cert — downloader uses verify=False for that domain
+- PDF date format: DR-DDMMYYYY.pdf (e.g. DR-26012026.pdf = 26 Jan 2026)
+- Real variants found so far: "sjk(t)", "sekolah jenis kebangsaan tamil"
+- Not every sitting mentions Tamil schools — the Jan-Mar 2026 session had 2/15 sittings with mentions
+- Normaliser handles: SJK(T), SJKT, S.J.K.(T), S.J.K(T), non-breaking spaces, whitespace collapse

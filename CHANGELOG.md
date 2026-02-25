@@ -1,5 +1,32 @@
 # Changelog
 
+## Sprint 0.2 — Hansard Download + Text Extraction + Keyword Search (2026-02-25)
+
+### Added
+- `hansard` app with HansardSitting and HansardMention models
+- Pipeline modules in `hansard/pipeline/`:
+  - `downloader.py` — HTTP download with retries, Content-Disposition support, parlimen.gov.my SSL workaround
+  - `extractor.py` — pdfplumber text extraction (page by page)
+  - `normalizer.py` — text normalisation: Unicode NFKC, lowercase, whitespace collapse, SJK(T) variant canonicalisation
+  - `searcher.py` — keyword search with ±500 chars context extraction and verbatim quote mapping
+  - `keywords.py` — primary (12) and secondary (7) keyword lists, DB school name loader
+- `process_hansard <url>` management command with `--sitting-date`, `--catalogue-variants`, `--dest-dir` options
+- Date extraction from Hansard filename pattern (DR-DDMMYYYY.pdf)
+- Admin registration for HansardSitting and HansardMention
+- 44 new tests: normaliser (13), searcher (12), downloader (10), pipeline integration (6), models (3)
+- pdfplumber and requests added to requirements.txt
+
+### Tested against real data
+- 3 real Hansard PDFs processed (26 Jan, 28 Jan, 23 Feb 2026)
+- 5 mentions found across 2 sittings (1 sitting had zero mentions — expected)
+- Variant catalogue: "sjk(t)" (3 occurrences), "sekolah jenis kebangsaan tamil" (2 occurrences)
+- Normaliser correctly handles: SJK(T), SJKT, S.J.K.(T), S.J.K(T), non-breaking spaces
+
+### Test totals
+- 70 tests passing (26 from Sprint 0.1 + 44 new)
+
+---
+
 ## Sprint 0.1 — Project Scaffold + Reference Data Import (2026-02-25)
 
 ### Added

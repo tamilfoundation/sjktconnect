@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     # Local apps
     "core",
     "schools",
+    "hansard",
 ]
 
 MIDDLEWARE = [
@@ -99,4 +100,6 @@ AUDIT_LOG_MODELS = [
     "schools.School",
     "schools.Constituency",
     "schools.DUN",
+    "hansard.HansardSitting",
+    "hansard.HansardMention",
 ]

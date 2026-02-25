@@ -159,30 +159,7 @@ SJK(T) Connect is an intelligence and advocacy platform for Malaysia's 528 Tamil
 
 ---
 
-### Sprint 0.2: Hansard Download + Text Extraction + Keyword Search
-
-**Goal**: Pipeline that downloads a Hansard PDF, extracts text, and finds Tamil school mentions with context.
-
-**Tasks**:
-1. Create `hansard` app with `HansardSitting`, `HansardMention` models
-2. Create pipeline modules:
-   - `downloader.py`: `download_hansard(url, dest_dir)` — HTTP download with retries
-   - `extractor.py`: `extract_text(pdf_path)` — pdfplumber, returns `[(page_number, text)]`
-   - `normalizer.py`: `normalize_text(raw)` — lowercase, normalize variants (sjk(t), sjkt, s.j.k.(t), sekolah tamil)
-   - `searcher.py`: `search_keywords(pages, keywords)` — find matches, extract verbatim quote + +/-500 chars context
-   - `keywords.py`: keyword list + school names from DB
-3. Create `process_hansard <url>` management command — orchestrates full pipeline
-4. Create sample text fixtures for testing
-5. Add `pdfplumber` to requirements
-
-**Files** (~18): `hansard/` (models, admin, pipeline/ with 5 modules, management command, 4 test files, fixture)
-
-**Tests**:
-- Normalizer: "SJK(T)", "SJKT", "S.J.K.(T)" all normalize correctly
-- Searcher: finds matches, extracts context, handles multiple/zero matches
-- `process_hansard`: mock download, use fixture, verify Sitting + Mention records created
-
-**Acceptance**: Run against 2-3 real Hansard PDFs. Mentions extracted with verbatim quotes and page numbers. Catalogue of real name variants printed.
+### Sprint 0.2: COMPLETED (2026-02-25) — see docs/retrospective-sprint0.2.md
 
 ---
 
