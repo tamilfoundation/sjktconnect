@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     "core",
     "schools",
     "hansard",
+    "parliament",
 ]
 
 MIDDLEWARE = [
@@ -104,4 +105,6 @@ AUDIT_LOG_MODELS = [
     "hansard.HansardMention",
     "hansard.SchoolAlias",
     "hansard.MentionedSchool",
+    "parliament.MPScorecard",
+    "parliament.SittingBrief",
 ]

@@ -1,5 +1,31 @@
 # Changelog
 
+## Sprint 0.4 — Gemini AI Analysis + MP Scorecard (2026-02-25)
+
+### Added
+- `parliament` app with `MPScorecard` and `SittingBrief` models
+- Service modules in `parliament/services/`:
+  - `gemini_client.py` — Gemini Flash API wrapper using `google.genai` SDK, structured JSON output, token budgeting (~1500 chars per call), response validation with enum clamping
+  - `scorecard.py` — aggregates all analysed mentions per MP: total, substantive (significance >= 3), questions, commitments. Caches school count and enrolment from constituency. Idempotent recalculation with stale scorecard cleanup.
+  - `brief_generator.py` — generates markdown sitting brief, renders to HTML, creates social post (<= 280 chars). Falls back to all analysed mentions if none approved yet.
+- `analyse_mentions` management command — processes unanalysed mentions via Gemini, with `--dry-run`, `--limit`, `--sitting-date` options
+- `update_scorecards` management command — full recalculation of all MP scorecards
+- Admin registration for MPScorecard and SittingBrief
+- 38 new tests: gemini_client (12), scorecard (13), brief_generator (13) — all Gemini calls mocked
+- `google-genai` and `markdown` added to requirements.txt
+
+### Design decisions
+- Used `google.genai` SDK (not deprecated `google.generativeai`) — client pattern instead of global configuration
+- Response validation: enum fields clamped to valid values, significance clamped 1-5, missing fields get sensible defaults
+- Cross-platform date formatting helper (Windows lacks `%-d` strftime flag)
+- Scorecard `update_or_create` pattern: full recalculation each run, stale records deleted
+- Brief generator prefers APPROVED mentions but falls back to all analysed for early-stage use (before Sprint 0.5 review queue)
+
+### Test totals
+- 149 tests passing (111 from Sprint 0.3 + 38 new)
+
+---
+
 ## Sprint 0.3 — School Name Matching (2026-02-25)
 
 ### Improved (code simplification pass)

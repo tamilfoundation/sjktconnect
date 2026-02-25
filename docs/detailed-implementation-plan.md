@@ -167,27 +167,9 @@ SJK(T) Connect is an intelligence and advocacy platform for Malaysia's 528 Tamil
 
 ---
 
-### Sprint 0.4: Gemini AI Analysis + MP Scorecard
+### Sprint 0.4: COMPLETED (2026-02-25) — Gemini AI Analysis + MP Scorecard
 
-**Goal**: AI classifies each mention; scorecard tracks MP engagement over time.
-
-**Tasks**:
-1. Create `parliament` app with `MPScorecard`, `SittingBrief` models
-2. Create `gemini_client.py` — wrapper calling Gemini Flash, structured prompt requesting JSON output (mp_name, constituency, party, mention_type, significance, sentiment, change_indicator, summary). Token budgeting: mention + context only (~1500 chars).
-3. Create `scorecard.py` — aggregate all mentions per MP, count substantive (significance >= 3), questions (type == QUESTION)
-4. Create `brief_generator.py` — generate markdown sitting brief, render to HTML. Also generate social post text.
-5. Create `analyse_mentions` command — process unanalysed mentions via Gemini
-6. Create `update_scorecards` command — full recalculation
-7. Add `google-generativeai`, `markdown` to requirements
-
-**Files** (~15): `parliament/` (models, admin, services/ with 3 modules, 2 management commands, 3 test files)
-
-**Tests** (all Gemini calls mocked):
-- `gemini_client`: mock API response, verify fields populated, test error handling
-- `scorecard`: 5 mentions for 2 MPs → correct aggregation, substantive count only >= 3
-- `brief_generator`: 3 approved mentions → markdown with all summaries, social text <= 280 chars
-
-**Acceptance**: AI analysis stored. Scorecard aggregated correctly. Brief renders cleanly.
+38 new tests (149 total). parliament app with MPScorecard + SittingBrief models, gemini_client (google.genai SDK), scorecard aggregation, brief generator, 2 management commands.
 
 ---
 

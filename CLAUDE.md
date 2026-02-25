@@ -11,8 +11,8 @@
 ## Project Status
 
 - **Current Phase**: Phase 0 — Parliament Watch
-- **Current Sprint**: 0.3 DONE. Next: 0.4
-- **Tests**: 111 passing
+- **Current Sprint**: 0.4 DONE. Next: 0.5
+- **Tests**: 149 passing
 
 ## Apps
 
@@ -29,7 +29,13 @@
 # Development
 cd backend
 python manage.py runserver                    # Start dev server
-pytest                                        # Run tests (111 passing)
+pytest                                        # Run tests (149 passing)
+
+# AI Analysis (requires GEMINI_API_KEY env var)
+python manage.py analyse_mentions              # Analyse unprocessed mentions with Gemini
+python manage.py analyse_mentions --dry-run    # Preview what would be processed
+python manage.py analyse_mentions --limit 5    # Process max 5 mentions
+python manage.py update_scorecards             # Recalculate all MP scorecards
 
 # Data Import
 python manage.py import_constituencies        # Load constituencies from CSV
@@ -85,16 +91,24 @@ gcloud run deploy sjktconnect-api --source . --region asia-southeast1 --allow-un
 | 0.1 | Done | Scaffold + 528 schools + 222 constituencies + 613 DUNs imported. 26 tests. |
 | 0.2 | Done | Hansard pipeline: download, extract, normalise, keyword search. 44 new tests (70 total). Tested on 3 real PDFs — 5 mentions found. |
 | 0.3 | Done | School name matching: SchoolAlias + MentionedSchool models, seed_aliases command, matcher (exact + trigram), stop words. 41 new tests (111 total). |
+| 0.4 | Done | Gemini AI analysis + MP Scorecard: parliament app, gemini_client (google.genai SDK), scorecard aggregation, brief generator, 2 management commands. 38 new tests (149 total). |
 
 ## Next Sprint
 
-Sprint 0.4 — Gemini AI Analysis + MP Scorecard
-- Create `parliament` app with MPScorecard, SittingBrief models
-- `gemini_client.py` wrapper for Gemini Flash (structured JSON output)
-- `scorecard.py` — aggregate mentions per MP
-- `brief_generator.py` — sitting brief in markdown + social post
-- `analyse_mentions` and `update_scorecards` commands
+Sprint 0.5 — Admin Review Queue + Content Publishing
+- Django views: ReviewQueueView, MentionDetailView, approve/reject flows
+- Public views: /parliament-watch/ with published briefs
+- Templates, CSS, login, URL wiring
 - DUN model uses auto PK with unique_together(code, constituency) — remember when creating FKs
+
+## Gemini AI Notes
+- Uses `google.genai` SDK (not deprecated `google.generativeai`)
+- Model: `gemini-2.0-flash` with JSON response mode and temperature 0.1
+- Token budgeting: sends mention + context only (~1500 chars), never full Hansard
+- Structured output: mp_name, constituency, party, mention_type, significance (1-5), sentiment, change_indicator, summary
+- All Gemini calls are mocked in tests — no API key needed for test suite
+- Scorecard recalculation is idempotent — safe to run multiple times
+- Brief generator falls back to all analysed mentions if none are approved yet
 
 ## Hansard Pipeline Notes
 - parlimen.gov.my has invalid SSL cert — downloader uses verify=False for that domain

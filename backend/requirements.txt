@@ -19,6 +19,10 @@ pdfplumber>=0.10
 # HTTP requests
 requests>=2.31
 
+# AI analysis
+google-genai>=1.0
+markdown>=3.6
+
 # Testing
 pytest>=8.0
 pytest-django>=4.7
