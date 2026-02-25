@@ -1,5 +1,6 @@
 """Tests for matcher module — school name matching from Hansard mentions."""
 
+import re
 from datetime import date
 
 from django.test import TestCase
@@ -102,7 +103,6 @@ class MatcherSetupMixin:
                 alias_type=SchoolAlias.AliasType.SHORT,
             )
             # Strip SJK(T) prefix
-            import re
             stripped = re.sub(r"^sjk\(t\)\s+", "", short_lower)
             if stripped != short_lower:
                 SchoolAlias.objects.create(

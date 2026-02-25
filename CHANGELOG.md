@@ -2,6 +2,14 @@
 
 ## Sprint 0.3 — School Name Matching (2026-02-25)
 
+### Improved (code simplification pass)
+- Hoisted `_BOUNDARY_WORDS` set and prefix regex to module-level constants in `matcher.py` (were recreated per call)
+- Cached `_get_tracked_models()` in `signals.py` — was resolving on every Django signal
+- Changed tracked models from `list` to `set` for O(1) membership checks
+- Consolidated duplicate regex patterns for `s.j.k.(t)` / `s.j.k(t)` in `normalizer.py`
+- Removed unused imports (`STOP_WORDS`, `re`) and unused variables (`all_alias_keys`, `quote`)
+- Fixed f-string logging to use `%s` lazy formatting in `signals.py`
+
 ### Added
 - `SchoolAlias` model — stores multiple name variants per school (official, short, common, SJKT, Hansard-discovered)
 - `MentionedSchool` bridge model — links HansardMention to School with confidence score and match method

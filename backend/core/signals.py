@@ -38,16 +38,27 @@ def clear_request_context():
     _thread_locals.ip_address = None
 
 
+_tracked_models_cache = None
+
+
 def _get_tracked_models():
-    """Resolve model strings from settings.AUDIT_LOG_MODELS to actual model classes."""
-    tracked = []
+    """Resolve model strings from settings.AUDIT_LOG_MODELS to actual model classes.
+
+    Results are cached after first call since AUDIT_LOG_MODELS does not
+    change at runtime.
+    """
+    global _tracked_models_cache
+    if _tracked_models_cache is not None:
+        return _tracked_models_cache
+
+    tracked = set()
     for model_path in getattr(settings, "AUDIT_LOG_MODELS", []):
         try:
-            model = apps.get_model(model_path)
-            tracked.append(model)
+            tracked.add(apps.get_model(model_path))
         except LookupError:
-            logger.warning(f"AuditLog: model {model_path} not found, skipping")
-    return tracked
+            logger.warning("AuditLog: model %s not found, skipping", model_path)
+    _tracked_models_cache = tracked
+    return _tracked_models_cache
 
 
 def _should_track(sender):

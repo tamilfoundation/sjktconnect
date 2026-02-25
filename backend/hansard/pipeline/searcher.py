@@ -8,7 +8,6 @@ For each match, extracts:
 """
 
 import logging
-import re
 
 from .normalizer import normalize_text
 
@@ -103,7 +102,7 @@ def _extract_verbatim(
     for delim in [". ", "\n", ".\n"]:
         last_delim = normalised.rfind(delim, lookback, match_pos)
         if last_delim != -1:
-            sent_start = min(sent_start, last_delim + len(delim))
+            sent_start = last_delim + len(delim)
             break
     else:
         sent_start = lookback
@@ -113,7 +112,7 @@ def _extract_verbatim(
     for delim in [". ", "\n", ".\n"]:
         next_delim = normalised.find(delim, match_pos + len(keyword), lookahead)
         if next_delim != -1:
-            sent_end = max(sent_end, next_delim + 1)
+            sent_end = next_delim + 1
             break
     else:
         sent_end = lookahead

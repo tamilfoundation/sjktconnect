@@ -19,7 +19,7 @@ from difflib import SequenceMatcher
 from django.db import connection
 
 from hansard.models import HansardMention, MentionedSchool, SchoolAlias
-from hansard.pipeline.stop_words import STOP_WORDS, remove_stop_words
+from hansard.pipeline.stop_words import remove_stop_words
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,20 @@ TRIGRAM_THRESHOLD = 0.3
 
 # Confidence below this → needs_review = True
 REVIEW_THRESHOLD = 80
+
+# Conjunctions/prepositions/verbs that signal end of a school name
+_BOUNDARY_WORDS = {
+    "dan", "and", "serta", "atau", "di", "yang", "untuk",
+    "ini", "itu", "telah", "perlu", "akan", "dengan",
+    "memerlukan", "mempunyai", "menghadapi", "termasuk",
+    "adalah", "sebanyak", "seramai", "dalam",
+}
+
+# Regex to find school prefix patterns in lowercased text
+_PREFIX_RE = re.compile(
+    r"(?:sjk\s*\(t\)|sjkt|s\.j\.k\.?\s*\(t\)|"
+    r"sekolah(?:\s+jenis\s+kebangsaan)?\s+(?:\(tamil\)|tamil))"
+)
 
 
 def _extract_school_name_candidates(text: str) -> list[str]:
@@ -43,29 +57,14 @@ def _extract_school_name_candidates(text: str) -> list[str]:
     candidates = []
     lower = text.lower()
 
-    # Find all school prefix positions
-    prefix_re = re.compile(
-        r"(?:sjk\s*\(t\)|sjkt|s\.j\.k\.?\s*\(t\)|"
-        r"sekolah(?:\s+jenis\s+kebangsaan)?\s+(?:\(tamil\)|tamil))"
-    )
-
-    for m in prefix_re.finditer(lower):
+    for m in _PREFIX_RE.finditer(lower):
         prefix = m.group().strip()
         rest = lower[m.end():].strip()
 
-        # Extract word tokens after the prefix.
-        # Stop at conjunctions/prepositions/verbs that signal end of name.
-        _BOUNDARY_WORDS = {
-            "dan", "and", "serta", "atau", "di", "yang", "untuk",
-            "ini", "itu", "telah", "perlu", "akan", "dengan",
-            "memerlukan", "mempunyai", "menghadapi", "termasuk",
-            "adalah", "sebanyak", "seramai", "dalam",
-        }
         name_words = []
         for word in rest.split():
             if word in _BOUNDARY_WORDS:
                 break
-            # Stop at currency amounts
             if word.startswith("rm") and len(word) > 2:
                 break
             name_words.append(word)
@@ -155,8 +154,6 @@ def match_single_mention(mention: HansardMention) -> list[dict]:
     alias_map = {}  # alias_normalized → (school_id, alias)
     for sa in SchoolAlias.objects.select_related("school").all():
         alias_map[sa.alias_normalized] = (sa.school_id, sa.alias)
-
-    all_alias_keys = list(alias_map.keys())
 
     for candidate in candidates:
         normalized = candidate.lower().strip()

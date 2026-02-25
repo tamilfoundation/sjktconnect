@@ -40,7 +40,7 @@ def get_all_keywords():
 
 def get_primary_keywords():
     """Return only high-confidence keywords."""
-    return list(PRIMARY_KEYWORDS)
+    return PRIMARY_KEYWORDS.copy()
 
 
 def get_school_names_from_db():

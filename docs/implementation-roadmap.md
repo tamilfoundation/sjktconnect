@@ -93,28 +93,6 @@ These must be completed by the user before any coding begins:
 
 ---
 
-### Sprint 3: School Name Matching (E2a)
-
-**Goal**: Link Hansard mentions to specific School records using alias table + trigram matching.
-
-**Scope**:
-- Models: `SchoolAlias`, `MentionedSchool`
-- Enable `pg_trgm` extension in Neon for fuzzy text matching
-- Management command: `seed_aliases` — auto-generate aliases from school names (official name, short form without "SJK(T)", Malay variants)
-- **Stop word list**: filter out high-frequency words ("Sekolah", "Tamil", "Jalan", "Lorong", "Ladang") before fuzzy matching to prevent false positives — these appear in nearly every school name/address and would otherwise match everything.
-- Matching logic:
-  - Pass 1: exact match against SchoolAlias table
-  - Pass 2: PostgreSQL trigram similarity (threshold 0.3), with stop words excluded
-  - Confidence below 80%: flag for human review
-- Integrate matching into the Hansard processing pipeline
-- Tests: exact match, fuzzy match, no-match, and multi-school mention scenarios
-
-**Acceptance**: Mentions from Sprint 2 are linked to schools. High-confidence matches auto-linked. Low-confidence flagged for review.
-
-**Complexity**: Medium (~10 files)
-
----
-
 ### Sprint 4: Gemini AI Analysis + MP Scorecard
 
 **Goal**: AI classifies each mention and scorecard tracks MP engagement over time.

@@ -198,8 +198,6 @@ class Command(BaseCommand):
 
         variant_counts = Counter()
         for match in matches:
-            # Get the raw text around the keyword match
-            quote = match["verbatim_quote"]
             variant_counts[match["keyword_matched"]] += 1
 
         for variant, count in variant_counts.most_common():

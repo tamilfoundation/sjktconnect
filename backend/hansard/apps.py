@@ -2,5 +2,5 @@ from django.apps import AppConfig
 
 
 class HansardConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'hansard'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "hansard"

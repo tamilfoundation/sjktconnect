@@ -43,8 +43,7 @@ def normalize_text(raw: str) -> str:
 
     # Step 4: Normalise SJK(T) variants
     # "s.j.k.(t)" or "s.j.k(t)" → "sjk(t)"
-    text = re.sub(r"s\.j\.k\.\s*\(t\)", "sjk(t)", text)
-    text = re.sub(r"s\.j\.k\s*\(t\)", "sjk(t)", text)
+    text = re.sub(r"s\.j\.k\.?\s*\(t\)", "sjk(t)", text)
     # "sjkt" (no brackets) → "sjk(t)"
     # Use word boundary to avoid matching inside longer words
     text = re.sub(r"\bsjkt\b", "sjk(t)", text)
