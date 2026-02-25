@@ -155,42 +155,7 @@ SJK(T) Connect is an intelligence and advocacy platform for Malaysia's 528 Tamil
 
 ## Phase 0: Parliament Watch (6 Sprints)
 
-### Sprint 0.1: Project Scaffold + Reference Data Import
-
-**Goal**: Django project running locally with 528 schools and constituency data in Neon PostgreSQL.
-
-**Tasks**:
-1. Create `.gitignore` (exclude `*.xlsx`, `*.csv`, `*.kml`, `.env`, `__pycache__`, `db.sqlite3`, `staticfiles/`, scratch scripts)
-2. Create `README.md`, `CLAUDE.md` (following MySkills pattern)
-3. Create Django project `sjktconnect` inside `SJKTConnect/backend/`
-4. Split settings: `base.py` (en-gb, Asia/Kuala_Lumpur, JSON logging), `development.py` (SQLite fallback), `production.py` (WhiteNoise, dj-database-url, Cloud Run SSL)
-5. Create `core` app with `AuditLog` model + AuditLog middleware (post_save/post_delete signals)
-6. Create `schools` app with `School`, `Constituency`, `DUN` models
-7. Create `import_schools` management command:
-   - Read `SenaraiSekolahWeb_Januari2026.xlsx`, filter SJK(T) by JENIS/LABEL
-   - Read `school_pin_verification.csv` for verified GPS (override MOE where confirmed)
-   - Compute `short_name` by replacing "SEKOLAH JENIS KEBANGSAAN (TAMIL)" with "SJK(T)"
-   - Parse PARLIMEN/DUN columns (e.g. "P140 Segamat" -> code + name) to link FKs
-   - `--dry-run`, `update_or_create`, `transaction.atomic()`, stats tracking
-8. Create `import_constituencies` management command:
-   - Read `Political Constituencies.csv` (note: header has typo "Parliment")
-   - Parse DUN code/name, Parliament code/name from each row
-   - Store MP/ADUN names, party, coalition, demographics
-   - Skip WKT column (deferred to Phase 1)
-   - Parse "Indians %" ranges and currency amounts ("RM6,399" -> 6399)
-   - `--dry-run`, idempotent
-9. Create Neon project (free tier), configure `.env`
-10. Create `requirements.txt`, `Dockerfile`, `pytest.ini`, `.env.example`
-11. Run migrations, import data, verify counts in Django admin
-
-**Files** (~30): `.gitignore`, `README.md`, `CLAUDE.md`, `manage.py`, `sjktconnect/` (5 settings files + urls + wsgi), `core/` (models, middleware, admin), `schools/` (models, admin, 2 management commands), `tests/` (3 test files), `requirements.txt`, `Dockerfile`, `pytest.ini`, `.env.example`
-
-**Tests**:
-- School creation, short_name computation, Constituency/DUN FK relationship
-- `import_schools`: mock Excel fixture, assert 528 created, GPS override, `--dry-run` no-op, idempotent re-run
-- `import_constituencies`: CSV fixture, Constituency + DUN created, demographics parsed, `--dry-run`
-
-**Acceptance**: 528 schools loaded. Constituency + DUN records linked. All tests pass. Data visible in Django admin.
+### Sprint 0.1: COMPLETED (2026-02-25) — see docs/retrospective-sprint0.1.md
 
 ---
 

@@ -11,8 +11,8 @@
 ## Project Status
 
 - **Current Phase**: Phase 0 — Parliament Watch
-- **Current Sprint**: 0.1 — Project Scaffold + Reference Data Import
-- **Tests**: 0 (building)
+- **Current Sprint**: 0.1 DONE. Next: 0.2
+- **Tests**: 26 passing
 
 ## Apps
 
@@ -72,10 +72,16 @@ gcloud run deploy sjktconnect-api --source . --region asia-southeast1 --allow-un
 
 ## Sprint History
 
-### Sprint 0.1 — Project Scaffold + Reference Data Import
-- Status: IN PROGRESS
-- Goal: Django project running locally with 528 schools and constituency data
+| Sprint | Status | Summary |
+|--------|--------|---------|
+| 0.1 | Done | Scaffold + 528 schools + 222 constituencies + 613 DUNs imported. 26 tests. |
 
 ## Next Sprint
 
 Sprint 0.2 — Hansard Download + Text Extraction + Keyword Search
+- Create `hansard` app with HansardSitting, HansardMention models
+- Pipeline: downloader, pdfplumber extractor, text normaliser, keyword searcher
+- `process_hansard <url>` management command
+- Catalogue real name variants from 2-3 Hansard PDFs
+- DUN model uses auto PK with unique_together(code, constituency) — remember this when creating FKs
+- MOE PARLIMEN/DUN columns have names only (no codes) — school import uses name-based lookup
