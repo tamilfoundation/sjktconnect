@@ -1,5 +1,7 @@
 from django.db import models
 
+from schools.models import School
+
 
 class HansardSitting(models.Model):
     """A single day's parliamentary Hansard session."""
@@ -72,3 +74,76 @@ class HansardMention(models.Model):
     def __str__(self):
         keyword = self.keyword_matched or "unknown"
         return f"Mention: '{keyword}' on p.{self.page_number}"
+
+
+class SchoolAlias(models.Model):
+    """An alias for a School used in Hansard matching.
+
+    Each school can have multiple aliases (official name, short name,
+    Malay translation, common abbreviation, Hansard-specific variant).
+    The normalised form is used for exact matching; the raw alias is
+    preserved for display.
+    """
+
+    class AliasType(models.TextChoices):
+        OFFICIAL = "OFFICIAL", "Official MOE name"
+        SHORT = "SHORT", "Short name"
+        MALAY = "MALAY", "Malay translation"
+        COMMON = "COMMON", "Common variant"
+        HANSARD = "HANSARD", "Found in Hansard"
+
+    school = models.ForeignKey(
+        School, on_delete=models.CASCADE, related_name="aliases"
+    )
+    alias = models.CharField(max_length=200, db_index=True)
+    alias_normalized = models.CharField(max_length=200, db_index=True)
+    alias_type = models.CharField(
+        max_length=20, choices=AliasType.choices, default=AliasType.COMMON
+    )
+
+    class Meta:
+        unique_together = [("school", "alias_normalized")]
+        verbose_name_plural = "school aliases"
+
+    def __str__(self):
+        return f"{self.alias} → {self.school.short_name}"
+
+
+class MentionedSchool(models.Model):
+    """Bridge table linking a HansardMention to a matched School.
+
+    Created by the matcher pipeline (Sprint 0.3). A single mention
+    can reference multiple schools; a single school can appear in
+    multiple mentions.
+    """
+
+    class MatchMethod(models.TextChoices):
+        EXACT = "EXACT", "Exact alias match"
+        TRIGRAM = "TRIGRAM", "Trigram similarity"
+        MANUAL = "MANUAL", "Manual review"
+
+    mention = models.ForeignKey(
+        HansardMention, on_delete=models.CASCADE, related_name="matched_schools"
+    )
+    school = models.ForeignKey(
+        School, on_delete=models.CASCADE, related_name="hansard_matches"
+    )
+    confidence_score = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0,
+        help_text="0-100 confidence score",
+    )
+    matched_by = models.CharField(
+        max_length=20, choices=MatchMethod.choices, default=MatchMethod.EXACT
+    )
+    matched_text = models.CharField(
+        max_length=200, blank=True, default="",
+        help_text="The text fragment that was matched",
+    )
+    needs_review = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("mention", "school")]
+
+    def __str__(self):
+        return f"{self.school.short_name} ({self.get_matched_by_display()}, {self.confidence_score}%)"

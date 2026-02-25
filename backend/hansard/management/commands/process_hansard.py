@@ -11,6 +11,7 @@ The pipeline:
 3. Normalise text
 4. Search for Tamil school keywords
 5. Store HansardSitting + HansardMention records
+6. Match mentions to schools (alias table + trigram similarity)
 """
 
 import re
@@ -21,10 +22,11 @@ from datetime import date
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
-from hansard.models import HansardMention, HansardSitting
+from hansard.models import HansardMention, HansardSitting, SchoolAlias
 from hansard.pipeline.downloader import download_hansard
 from hansard.pipeline.extractor import extract_text
 from hansard.pipeline.keywords import get_all_keywords
+from hansard.pipeline.matcher import match_mentions
 from hansard.pipeline.searcher import search_keywords
 
 
@@ -48,6 +50,11 @@ class Command(BaseCommand):
             type=str,
             default="",
             help="Directory to save downloaded PDF. Defaults to temp directory.",
+        )
+        parser.add_argument(
+            "--skip-matching",
+            action="store_true",
+            help="Skip school name matching (useful if no aliases seeded yet).",
         )
 
     def handle(self, *args, **options):
@@ -123,7 +130,22 @@ class Command(BaseCommand):
                 f"Done! {len(mentions)} mentions stored for sitting {sitting_date}."
             ))
 
-            # Step 7: Catalogue variants (optional)
+            # Step 7: Match mentions to schools
+            if not options["skip_matching"] and SchoolAlias.objects.exists():
+                self.stdout.write("Matching mentions to schools...")
+                mention_qs = HansardMention.objects.filter(sitting=sitting)
+                result = match_mentions(mention_qs)
+                self.stdout.write(
+                    f"  Matched: {result['matched']}/{result['total']}, "
+                    f"needs review: {result['needs_review']}"
+                )
+            elif not options["skip_matching"]:
+                self.stdout.write(self.style.WARNING(
+                    "No school aliases found. Run 'seed_aliases' first, "
+                    "or use --skip-matching."
+                ))
+
+            # Step 8: Catalogue variants (optional)
             if catalogue:
                 self._print_variant_catalogue(matches)
 

@@ -163,25 +163,7 @@ SJK(T) Connect is an intelligence and advocacy platform for Malaysia's 528 Tamil
 
 ---
 
-### Sprint 0.3: School Name Matching
-
-**Goal**: Link Hansard mentions to specific School records using alias table + trigram matching.
-
-**Tasks**:
-1. Add `SchoolAlias`, `MentionedSchool` models to `hansard/models.py`
-2. Migration to enable `pg_trgm` extension (TrigramExtension)
-3. Create `seed_aliases` command — auto-generate aliases per school (official, short, without prefix, SJKT variant)
-4. Create `stop_words.py` — high-frequency words to exclude ("sekolah", "tamil", "jalan", "ladang", etc.)
-5. Create `matcher.py` — Pass 1: exact match on `alias_normalized`. Pass 2: trigram similarity (threshold 0.3) with stop words excluded. Confidence < 80% → `needs_review = True`
-6. Integrate matcher into `process_hansard` pipeline
-
-**Files** (~9): Modified `models.py`, 2 migrations, `seed_aliases` command, `stop_words.py`, `matcher.py`, modified `process_hansard.py`, 2 test files
-
-**Tests**:
-- `seed_aliases`: 3 test schools → correct alias types and normalized forms
-- `matcher`: exact match, fuzzy match, no match, multi-school mention, low-confidence flagged
-
-**Acceptance**: Aliases for 528 schools. Mentions linked to schools. High-confidence auto-linked, low-confidence flagged.
+### Sprint 0.3: COMPLETED (2026-02-25) — see docs/retrospective-sprint0.3.md
 
 ---
 

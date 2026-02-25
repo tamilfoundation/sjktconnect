@@ -11,8 +11,8 @@
 ## Project Status
 
 - **Current Phase**: Phase 0 — Parliament Watch
-- **Current Sprint**: 0.2 DONE. Next: 0.3
-- **Tests**: 70 passing
+- **Current Sprint**: 0.3 DONE. Next: 0.4
+- **Tests**: 111 passing
 
 ## Apps
 
@@ -29,7 +29,7 @@
 # Development
 cd backend
 python manage.py runserver                    # Start dev server
-pytest                                        # Run tests (70 passing)
+pytest                                        # Run tests (111 passing)
 
 # Data Import
 python manage.py import_constituencies        # Load constituencies from CSV
@@ -39,6 +39,11 @@ python manage.py import_schools ../SenaraiSekolahWeb_Januari2026.xlsx
 python manage.py process_hansard <url>                        # Full pipeline
 python manage.py process_hansard <url> --sitting-date YYYY-MM-DD
 python manage.py process_hansard <url> --catalogue-variants   # Print variant catalogue
+python manage.py process_hansard <url> --skip-matching        # Skip school matching step
+
+# School Name Matching
+python manage.py seed_aliases                 # Generate aliases for all 528 schools
+python manage.py seed_aliases --clear         # Re-seed (delete non-HANSARD aliases first)
 
 # Deployment (verify account first!)
 gcloud config set account tamiliam@gmail.com
@@ -79,17 +84,17 @@ gcloud run deploy sjktconnect-api --source . --region asia-southeast1 --allow-un
 |--------|--------|---------|
 | 0.1 | Done | Scaffold + 528 schools + 222 constituencies + 613 DUNs imported. 26 tests. |
 | 0.2 | Done | Hansard pipeline: download, extract, normalise, keyword search. 44 new tests (70 total). Tested on 3 real PDFs — 5 mentions found. |
+| 0.3 | Done | School name matching: SchoolAlias + MentionedSchool models, seed_aliases command, matcher (exact + trigram), stop words. 41 new tests (111 total). |
 
 ## Next Sprint
 
-Sprint 0.3 — School Name Matching
-- Add SchoolAlias, MentionedSchool models to hansard app
-- Enable pg_trgm extension (needs Neon PostgreSQL)
-- `seed_aliases` command — auto-generate aliases per school
-- `stop_words.py` — high-frequency words to exclude from fuzzy matching
-- `matcher.py` — Pass 1: exact match on alias_normalized, Pass 2: trigram similarity
-- Integrate matcher into process_hansard pipeline
-- DUN model uses auto PK with unique_together(code, constituency) — remember this when creating FKs
+Sprint 0.4 — Gemini AI Analysis + MP Scorecard
+- Create `parliament` app with MPScorecard, SittingBrief models
+- `gemini_client.py` wrapper for Gemini Flash (structured JSON output)
+- `scorecard.py` — aggregate mentions per MP
+- `brief_generator.py` — sitting brief in markdown + social post
+- `analyse_mentions` and `update_scorecards` commands
+- DUN model uses auto PK with unique_together(code, constituency) — remember when creating FKs
 
 ## Hansard Pipeline Notes
 - parlimen.gov.my has invalid SSL cert — downloader uses verify=False for that domain
@@ -97,3 +102,11 @@ Sprint 0.3 — School Name Matching
 - Real variants found so far: "sjk(t)", "sekolah jenis kebangsaan tamil"
 - Not every sitting mentions Tamil schools — the Jan-Mar 2026 session had 2/15 sittings with mentions
 - Normaliser handles: SJK(T), SJKT, S.J.K.(T), S.J.K(T), non-breaking spaces, whitespace collapse
+
+## School Matching Notes
+- Matcher uses two passes: exact alias match (100% confidence), then trigram similarity (Python fallback on SQLite)
+- pg_trgm migration is conditional — skips on SQLite, applies on PostgreSQL
+- `seed_aliases` generates ~4 aliases per school: official, short, stripped prefix, SJKT variant
+- Candidate extractor stops at Malay boundary words (dan, di, yang, untuk, memerlukan, etc.)
+- Progressive shortening: candidates trimmed word-by-word from right to find exact matches
+- Confidence < 80% → needs_review = True. Exact matches always 100%.

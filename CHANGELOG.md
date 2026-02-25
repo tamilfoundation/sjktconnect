@@ -1,5 +1,30 @@
 # Changelog
 
+## Sprint 0.3 — School Name Matching (2026-02-25)
+
+### Added
+- `SchoolAlias` model — stores multiple name variants per school (official, short, common, SJKT, Hansard-discovered)
+- `MentionedSchool` bridge model — links HansardMention to School with confidence score and match method
+- `seed_aliases` management command — auto-generates ~4 aliases per school from official/short names
+- Pipeline modules in `hansard/pipeline/`:
+  - `matcher.py` — two-pass matching: exact alias lookup (100% confidence) then trigram similarity with difflib fallback
+  - `stop_words.py` — 20 high-frequency words excluded from fuzzy matching (school prefixes + location words)
+- pg_trgm extension migration (conditional — skips on SQLite, applies on PostgreSQL)
+- Matcher integrated into `process_hansard` pipeline (Step 7, with `--skip-matching` flag)
+- Admin registration for SchoolAlias and MentionedSchool
+- 41 new tests: matcher (19), seed_aliases (11), stop_words (7), models (4)
+
+### Design decisions
+- Candidate extractor uses Malay boundary words (dan, di, yang, untuk, etc.) to stop capturing after the school name
+- Progressive shortening: candidates trimmed word-by-word from right for exact match boundary detection
+- Confidence < 80% auto-flagged as needs_review for human verification
+- HANSARD alias type preserved during `--clear` re-seeding
+
+### Test totals
+- 111 tests passing (70 from Sprint 0.2 + 41 new)
+
+---
+
 ## Sprint 0.2 — Hansard Download + Text Extraction + Keyword Search (2026-02-25)
 
 ### Added

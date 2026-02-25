@@ -102,4 +102,6 @@ AUDIT_LOG_MODELS = [
     "schools.DUN",
     "hansard.HansardSitting",
     "hansard.HansardMention",
+    "hansard.SchoolAlias",
+    "hansard.MentionedSchool",
 ]
