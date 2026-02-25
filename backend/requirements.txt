@@ -1,0 +1,18 @@
+# Django core
+Django>=5.0,<6.0
+gunicorn>=21.0
+python-dotenv>=1.0
+
+# Database
+psycopg2-binary>=2.9
+dj-database-url>=2.1
+
+# Static files
+whitenoise>=6.6
+
+# Excel import
+openpyxl>=3.1
+
+# Testing
+pytest>=8.0
+pytest-django>=4.7
