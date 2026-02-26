@@ -1,0 +1,23 @@
+import "@testing-library/jest-dom";
+import { render, screen } from "@testing-library/react";
+import Footer from "@/components/Footer";
+
+describe("Footer", () => {
+  it("renders copyright text", () => {
+    render(<Footer />);
+    expect(screen.getByText(/Tamil Foundation Malaysia/)).toBeInTheDocument();
+  });
+
+  it("includes current year", () => {
+    render(<Footer />);
+    const year = new Date().getFullYear().toString();
+    expect(screen.getByText(new RegExp(year))).toBeInTheDocument();
+  });
+
+  it("mentions data sources", () => {
+    render(<Footer />);
+    expect(
+      screen.getByText(/MOE.*Parliament of Malaysia/)
+    ).toBeInTheDocument();
+  });
+});

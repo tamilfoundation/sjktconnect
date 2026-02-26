@@ -13,3 +13,6 @@ Cross-cutting lessons from SJK(T) Connect development. Project-specific decision
 - Database passwords with `?`, `+`, `@`, `#` break `DATABASE_URL` URI parsing — always URL-encode special characters (`%3F`, `%2B`, `%40`, `%23`) in the password portion (Sprint 0.6)
 - Test CSV encoding must match what the import command reads — `utf-8-sig` BOM corrupts the first column header when read with `cp1252`. Always use the same encoding in test fixtures as in production code (Sprint 1.1)
 - Django ORM `.annotate()` drops the model's Meta.ordering — always chain `.order_by()` after annotate to avoid DRF's UnorderedObjectListWarning (Sprint 1.2)
+- Jest `setupFiles` runs BEFORE test framework globals (`expect`, `test`) are available — import `@testing-library/jest-dom` directly in each test file, not via setupFiles (Sprint 1.3)
+- Next.js tsconfig uses `jsx: "preserve"` (framework handles transform), but ts-jest needs `jsx: "react-jsx"` — pass inline tsconfig object to ts-jest instead of referencing tsconfig.json (Sprint 1.3)
+- Jest config options: `testPathPattern` is CLI-only, use `testMatch` in config; `setupFilesAfterSetup` doesn't exist, use `setupFiles` (Sprint 1.3)

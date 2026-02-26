@@ -1,5 +1,31 @@
 # Changelog
 
+## Sprint 1.3 — Next.js Frontend + School Map (2026-02-27)
+
+### Added
+- Next.js 14 project in `frontend/` (App Router, Tailwind CSS, TypeScript)
+- Layout: responsive Header with mobile menu, Footer with copyright
+- Google Maps integration via `@vis.gl/react-google-maps` + `@googlemaps/markerclusterer`
+- Full-width map page at `/` showing 528 school pins with automatic clustering
+- Info window on marker click: school name, code, state, enrolment, teachers, constituency
+- State filter dropdown — narrows map pins by state, shows count
+- Search box with 300ms debounced typeahead — searches schools and constituencies via API
+- API client (`lib/api.ts`) with automatic pagination through all school pages
+- TypeScript types for School, Constituency, PaginatedResponse, SearchResults
+- Dockerfile for Cloud Run deployment (standalone output, port 8080)
+- `.env.local.example` for Google Maps API key and API URL configuration
+- 26 frontend tests: API client (8), Header (4), Footer (3), StateFilter (5), SearchBox (6)
+
+### Changed
+- `.gitignore` updated with Node.js / Next.js entries (node_modules, .next, out)
+
+### Test totals
+- Frontend: 26 passing (new)
+- Backend: 276 passing (unchanged)
+- **Total: 302**
+
+---
+
 ## Sprint 1.2 — Django REST API for Schools + Constituencies (2026-02-26)
 
 ### Added

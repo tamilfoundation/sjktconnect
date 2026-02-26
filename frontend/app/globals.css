@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Map container needs explicit height */
+.map-container {
+  width: 100%;
+  height: calc(100vh - 64px);
+}
+
+/* Info window styling */
+.info-window h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.info-window p {
+  font-size: 0.8rem;
+  color: #4b5563;
+  margin: 0.15rem 0;
+}
+
+.info-window a {
+  color: #2563eb;
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.info-window a:hover {
+  text-decoration: underline;
+}

@@ -242,23 +242,7 @@ REST API: 12 endpoints (School/Constituency/DUN/Scorecard/Brief/Search), CORS, p
 
 ---
 
-### Sprint 1.3: Next.js Frontend + School Map
-
-**Goal**: Interactive Google Maps showing 528 school pins with clustering, filters, and search.
-
-**Tasks**:
-1. Create Next.js 14 project in `SJKTConnect/frontend/` (App Router, Tailwind CSS)
-2. Layout with header, footer, navigation
-3. Map page at `/` — full-width Google Maps
-4. Fetch 528 schools from API, render as markers with clustering
-5. Marker click → info window (name, code, enrolment, link to school page)
-6. State filter sidebar (11 states)
-7. Search box with typeahead
-8. Dockerfile for Next.js
-
-**Files** (~17): `frontend/` — package.json, next.config.js, tailwind.config.js, app/ (layout, page, globals.css), components/ (map, markers, filter, search, header, footer), lib/ (api client, types), Dockerfile
-
-**Acceptance**: Map loads, shows 528 pins, clustering works, state filter narrows pins, search finds schools.
+### Sprint 1.3: Next.js Frontend + School Map — DONE (2026-02-27, 25 files, 26 tests)
 
 ---
 

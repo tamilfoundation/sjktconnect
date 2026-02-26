@@ -3,6 +3,7 @@
 ## Architecture
 
 - **Backend**: Django 5.x (backend/)
+- **Frontend**: Next.js 14 + App Router + Tailwind CSS (frontend/)
 - **Database**: Supabase PostgreSQL (Tamil Foundation org, free tier)
 - **AI**: Gemini Flash API (Hansard analysis, Sprint 0.4+)
 - **Hosting**: Google Cloud Run (GCP project: `gen-lang-client-0871147736`)
@@ -11,8 +12,8 @@
 ## Project Status
 
 - **Current Phase**: Phase 1 — The Seed
-- **Current Sprint**: 1.2 DONE. Next: 1.3
-- **Tests**: 276 passing
+- **Current Sprint**: 1.3 DONE. Next: 1.4
+- **Tests**: 302 passing (276 backend + 26 frontend)
 - **Live URL**: https://sjktconnect-api-90344691621.asia-southeast1.run.app
 
 ## Apps
@@ -30,7 +31,13 @@
 # Development
 cd backend
 python manage.py runserver                    # Start dev server
-pytest                                        # Run tests (276 passing)
+pytest                                        # Run backend tests (276 passing)
+
+# Frontend
+cd frontend
+npm run dev                                    # Start dev server (port 3000)
+npm test                                       # Run frontend tests (26 passing)
+npm run build                                  # Production build
 
 # AI Analysis (requires GEMINI_API_KEY env var)
 python manage.py analyse_mentions              # Analyse unprocessed mentions with Gemini
@@ -78,6 +85,9 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | `ALLOWED_HOSTS` | Prod | Comma-separated hostnames |
 | `CSRF_TRUSTED_ORIGINS` | Prod | Comma-separated origins |
 | `CORS_ALLOWED_ORIGINS` | Sprint 1.2+ | Comma-separated origins for CORS (default: `http://localhost:3000`) |
+| `NEXT_PUBLIC_API_URL` | Frontend | Backend API URL (default: `http://localhost:8000`) |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Frontend | Google Maps JavaScript API key |
+| `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` | Frontend | Google Maps Map ID (for AdvancedMarker styling) |
 
 ## Data Files (not in git — too large)
 
@@ -108,6 +118,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 0.6 | Done | Deployment: Cloud Run + Supabase PostgreSQL, check_new_hansards discovery command, Cloud Scheduler (daily 8am MYT), health check, README. 22 new tests (220 total). |
 | 1.1 | Done | WKT boundary import + GeoJSON API: boundary_wkt on Constituency/DUN, shapely + DRF, 4 GeoJSON endpoints. 19 new tests (239 total). |
 | 1.2 | Done | REST API: School/Constituency/DUN/Scorecard/Brief endpoints, search, CORS, pagination. 37 new tests (276 total). |
+| 1.3 | Done | Next.js frontend: Google Maps + 528 school pins + clustering, state filter, search typeahead, Dockerfile. 26 new tests (302 total). |
 
 ## Production Infrastructure (Sprint 0.6)
 
@@ -121,15 +132,22 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-Sprint 1.3 — Next.js Frontend + School Map
-- Create Next.js 14 project in `frontend/` (App Router, Tailwind CSS)
-- Layout with header, footer, navigation
-- Map page at `/` — full-width Google Maps with 528 school pins + clustering
-- Fetch schools from `/api/v1/schools/` API
-- State filter sidebar, search box with typeahead
-- Dockerfile for Next.js deployment
-- API base URL: use `NEXT_PUBLIC_API_URL` env var (defaults to localhost:8000)
-- CORS already configured — `CORS_ALLOWED_ORIGINS` env var on backend
+Sprint 1.4 — School Profile Pages (SSR)
+- Dynamic route `app/school/[moe_code]/page.tsx` with SSG for 528 schools
+- Profile layout: name, code, address, enrolment, teachers, constituency, DUN, embedded map, grade, SKM status
+- "Claim This Page" CTA button (prominent, above fold)
+- SEO metadata (title, description, Open Graph)
+- Breadcrumbs, "Schools in this constituency" sidebar
+- Parliament Watch mentions section (if any)
+
+## Frontend (Sprint 1.3)
+- **Stack**: Next.js 14, App Router, Tailwind CSS, TypeScript
+- **Map**: `@vis.gl/react-google-maps` + `@googlemaps/markerclusterer`
+- **API client**: `lib/api.ts` — auto-paginates through all schools (50/page)
+- **Tests**: Jest + React Testing Library (26 tests)
+- **Build**: Standalone output, 107 kB first load JS
+- **Dockerfile**: Multi-stage (deps → build → runner), port 8080
+- **Env vars**: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID`
 
 ## REST API (Sprint 1.2)
 - All endpoints under `/api/v1/` — paginated (50/page via `?page=N`)
