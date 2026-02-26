@@ -1,5 +1,35 @@
 # Changelog
 
+## Sprint 0.5 — Admin Review Queue + Content Publishing (2026-02-25)
+
+### Added
+- `MentionReviewForm` — ModelForm for editing AI analysis fields (mp_name, constituency, party, mention_type, significance, sentiment, change_indicator, ai_summary, review_notes)
+- 8 Django views in `parliament/views.py`:
+  - Admin (login required): ReviewQueueView, SittingReviewView, MentionDetailView, ApproveMentionView, RejectMentionView, PublishBriefView
+  - Public: ParliamentWatchView, BriefDetailView
+- 8 URL patterns in `parliament/urls.py` with `app_name = "parliament"`
+- Root URL wiring: Django built-in LoginView/LogoutView at `/accounts/login/` and `/accounts/logout/`
+- `highlight_keywords` template filter — wraps SJK(T) variants (6 regex patterns) in `<mark>` tags
+- 7 templates: base.html (navbar + footer), queue, sitting_review, detail (split-screen), watch, brief, login
+- `static/css/style.css` — full stylesheet with CSS variables, responsive split-screen grid, mention cards with status-coloured borders, keyword highlight styling
+- 49 new tests: test_views (33), test_highlight (12), test_forms (4)
+
+### Fixed
+- Approve/reject redirect bug — was pointing to `mention-detail` with sitting ID (wrong lookup), fixed to redirect to `sitting-review`
+- Empty significance field crash — IntegerField received `''` from blank ChoiceField. Fixed with `TypedChoiceField(coerce=int, empty_value=None)`
+
+### Design decisions
+- Split-screen review: left panel shows verbatim quote with keyword highlights + context; right panel shows editable AI analysis form
+- Approve saves form edits + sets status in one POST; reject only saves review_notes + status
+- PublishBriefView delegates to `generate_brief()` then sets `is_published=True`
+- Public views have no auth requirement; admin views use `LoginRequiredMixin`
+- ChoiceFields include blank option `("", "---")` so reviewers can clear AI-set values
+
+### Test totals
+- 198 tests passing (149 from Sprint 0.4 + 49 new)
+
+---
+
 ## Sprint 0.4 — Gemini AI Analysis + MP Scorecard (2026-02-25)
 
 ### Added

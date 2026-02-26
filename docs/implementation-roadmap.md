@@ -115,27 +115,9 @@ These must be completed by the user before any coding begins:
 
 ---
 
-### Sprint 5: Admin Review Queue + Content Publishing
+### Sprint 5: Admin Review Queue + Content Publishing — DONE
 
-**Goal**: TF Admin can review AI-drafted content and approve/reject. Approved content published to a public `/parliament-watch/` page.
-
-**Scope**:
-- Django views + templates for review UI (admin-facing):
-  - **Queue page**: list pending mentions sorted by sitting date, with counts
-  - **Detail page**: left panel shows the **verbatim quote + ±500 chars context** with keyword highlights (not the full Hansard — rendering 50 pages of PDF text with highlights is unnecessarily complex). Link to the original PDF for deep dives. Right panel shows AI-drafted analysis (editable).
-  - **Actions**: Approve, Edit (save edits then approve), Reject
-- **Public-facing page**: `/parliament-watch/` — Django template listing approved sitting briefs. Simple, shareable URL. No Next.js needed. This answers PRD Open Question #4: published content lives here in Phase 0.
-- Content generation on approval:
-  - Per-sitting brief (1-page summary, published to `/parliament-watch/`)
-  - Social media quote card text (for manual posting)
-  - Broadcast email draft
-- Simple Django auth (admin login — 1 user for Phase 0)
-- Static files via WhiteNoise
-- Tests: review workflow (approve, edit, reject), content generation, public page renders approved briefs
-
-**Acceptance**: Admin logs in, sees pending queue, reviews split-screen, approves. Approved content appears on public `/parliament-watch/` page. Social post draft generated.
-
-**Complexity**: Medium (~15 files)
+8 views, MentionReviewForm, highlight_keywords templatetag, 7 templates, CSS, login/logout. 49 new tests (198 total).
 
 ---
 

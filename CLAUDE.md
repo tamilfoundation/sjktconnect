@@ -11,8 +11,8 @@
 ## Project Status
 
 - **Current Phase**: Phase 0 — Parliament Watch
-- **Current Sprint**: 0.4 DONE. Next: 0.5
-- **Tests**: 149 passing
+- **Current Sprint**: 0.5 DONE. Next: 0.6
+- **Tests**: 198 passing
 
 ## Apps
 
@@ -29,7 +29,7 @@
 # Development
 cd backend
 python manage.py runserver                    # Start dev server
-pytest                                        # Run tests (149 passing)
+pytest                                        # Run tests (198 passing)
 
 # AI Analysis (requires GEMINI_API_KEY env var)
 python manage.py analyse_mentions              # Analyse unprocessed mentions with Gemini
@@ -92,14 +92,24 @@ gcloud run deploy sjktconnect-api --source . --region asia-southeast1 --allow-un
 | 0.2 | Done | Hansard pipeline: download, extract, normalise, keyword search. 44 new tests (70 total). Tested on 3 real PDFs — 5 mentions found. |
 | 0.3 | Done | School name matching: SchoolAlias + MentionedSchool models, seed_aliases command, matcher (exact + trigram), stop words. 41 new tests (111 total). |
 | 0.4 | Done | Gemini AI analysis + MP Scorecard: parliament app, gemini_client (google.genai SDK), scorecard aggregation, brief generator, 2 management commands. 38 new tests (149 total). |
+| 0.5 | Done | Admin Review Queue + Content Publishing: 8 views, MentionReviewForm, highlight_keywords templatetag, 7 templates, CSS, URL wiring, login/logout. 49 new tests (198 total). |
 
 ## Next Sprint
 
-Sprint 0.5 — Admin Review Queue + Content Publishing
-- Django views: ReviewQueueView, MentionDetailView, approve/reject flows
-- Public views: /parliament-watch/ with published briefs
-- Templates, CSS, login, URL wiring
+Sprint 0.6 — Deployment + Cloud Scheduler + Documentation
+- Dockerfile, Cloud Run deployment, environment setup
+- Cloud Scheduler for periodic Hansard processing
+- User documentation, admin guide
 - DUN model uses auto PK with unique_together(code, constituency) — remember when creating FKs
+
+## Review UI & URL Structure (Sprint 0.5)
+- Admin review at `/review/` (login required): queue → sitting → mention detail → approve/reject
+- Public at `/parliament-watch/` and `/parliament-watch/<sitting_date>/`
+- Login/logout at `/accounts/login/` and `/accounts/logout/` (Django built-in)
+- `highlight_keywords` templatetag wraps SJK(T) variants in `<mark>` tags
+- MentionReviewForm uses TypedChoiceField for significance (IntegerField → coerce=int, empty_value=None)
+- Approve saves form edits + sets APPROVED; reject just sets REJECTED + review_notes
+- PublishBriefView calls `generate_brief()` then sets `is_published=True`
 
 ## Gemini AI Notes
 - Uses `google.genai` SDK (not deprecated `google.generativeai`)
