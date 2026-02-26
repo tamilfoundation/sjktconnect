@@ -1,6 +1,6 @@
 """
 Production settings for SJK(T) Connect.
-Deployed on Google Cloud Run with Neon PostgreSQL.
+Deployed on Google Cloud Run with Supabase PostgreSQL.
 """
 
 import os
@@ -31,7 +31,7 @@ CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
-# Database — Neon PostgreSQL
+# Database — Supabase PostgreSQL
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if DATABASE_URL:
     DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)}
