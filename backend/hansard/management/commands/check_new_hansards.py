@@ -10,7 +10,7 @@ Usage:
 from datetime import date, timedelta
 
 from django.core.management import call_command
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from hansard.models import HansardSitting
 from hansard.pipeline.scraper import discover_new_pdfs
@@ -44,13 +44,22 @@ class Command(BaseCommand):
             help="Automatically run process_hansard for each new PDF found.",
         )
 
+    def _parse_date(self, value: str, label: str) -> date:
+        """Parse a YYYY-MM-DD string, raising CommandError on bad input."""
+        try:
+            return date.fromisoformat(value)
+        except ValueError:
+            raise CommandError(
+                f"Invalid {label} date '{value}'. Expected format: YYYY-MM-DD."
+            )
+
     def handle(self, *args, **options):
         end_date = (
-            date.fromisoformat(options["end"]) if options["end"]
+            self._parse_date(options["end"], "end") if options["end"]
             else date.today()
         )
         start_date = (
-            date.fromisoformat(options["start"]) if options["start"]
+            self._parse_date(options["start"], "start") if options["start"]
             else end_date - timedelta(days=options["days"])
         )
 
@@ -99,7 +108,7 @@ class Command(BaseCommand):
                 call_command(
                     "process_hansard",
                     pdf["pdf_url"],
-                    f"--sitting-date={pdf['sitting_date'].isoformat()}",
+                    sitting_date=pdf["sitting_date"].isoformat(),
                     stdout=self.stdout,
                     stderr=self.stderr,
                 )

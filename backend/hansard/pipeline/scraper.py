@@ -69,12 +69,10 @@ def _build_filename(sitting_date: date) -> str:
 
 
 def _pdf_exists(url: str) -> bool:
-    """Check if a PDF exists at the URL via HEAD request.
-
-    Uses verify=False because parlimen.gov.my has an invalid SSL cert.
-    """
+    """Check if a PDF exists at the URL via HEAD request."""
+    verify_ssl = "parlimen.gov.my" not in url
     try:
-        response = requests.head(url, timeout=HEAD_TIMEOUT, verify=False)
+        response = requests.head(url, timeout=HEAD_TIMEOUT, verify=verify_ssl)
         exists = response.status_code == 200
         if exists:
             logger.info("Found: %s", url)
