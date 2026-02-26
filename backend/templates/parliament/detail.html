@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load highlight %}
+{% block title %}Review Mention — SJK(T) Connect{% endblock %}
+
+{% block content %}
+<div class="review-header">
+    <h1>Review Mention</h1>
+    <a href="{% url 'parliament:sitting-review' mention.sitting_id %}" class="btn btn-secondary">&larr; Back to Sitting</a>
+</div>
+
+<div class="split-screen">
+    <!-- Left: Verbatim quote + context -->
+    <div class="split-left">
+        <h2>Hansard Excerpt</h2>
+        <p class="meta-item">
+            {{ mention.sitting.sitting_date }} &middot; Page {{ mention.page_number|default:"?" }}
+            &middot; <a href="{{ mention.sitting.pdf_url }}" target="_blank" rel="noopener">PDF</a>
+        </p>
+
+        {% if mention.context_before %}
+        <div class="context context-before">{{ mention.context_before }}</div>
+        {% endif %}
+
+        <blockquote class="mention-quote highlight-box">
+            {{ mention.verbatim_quote|highlight_keywords }}
+        </blockquote>
+
+        {% if mention.context_after %}
+        <div class="context context-after">{{ mention.context_after }}</div>
+        {% endif %}
+
+        <p class="meta-item">Keyword matched: <strong>{{ mention.keyword_matched }}</strong></p>
+
+        {% if mention.matched_schools.exists %}
+        <h3>Matched Schools</h3>
+        <ul>
+            {% for ms in mention.matched_schools.all %}
+            <li>{{ ms.school.short_name }} ({{ ms.matched_by }}, {{ ms.confidence_score }}%)</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+
+    <!-- Right: AI analysis (editable) -->
+    <div class="split-right">
+        <h2>AI Analysis
+            <span class="badge badge-{{ mention.review_status|lower }}">{{ mention.review_status }}</span>
+        </h2>
+
+        <form method="post" action="{% url 'parliament:mention-approve' mention.pk %}">
+            {% csrf_token %}
+
+            {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                <div class="form-error">{{ field.errors.0 }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success">Approve</button>
+            </div>
+        </form>
+
+        <form method="post" action="{% url 'parliament:mention-reject' mention.pk %}" class="reject-form">
+            {% csrf_token %}
+            <input type="hidden" name="review_notes" value="">
+            <button type="submit" class="btn btn-danger">Reject</button>
+        </form>
+    </div>
+</div>
+
+<!-- Navigation between mentions -->
+{% if siblings %}
+<div class="mention-nav">
+    <h3>Other mentions in this sitting</h3>
+    <div class="mention-nav-list">
+        {% for sib_pk, sib_page, sib_status in siblings %}
+        <a href="{% url 'parliament:mention-detail' sib_pk %}"
+           class="mention-nav-item {% if sib_pk == mention.pk %}active{% endif %} nav-{{ sib_status|lower }}">
+            p.{{ sib_page|default:"?" }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

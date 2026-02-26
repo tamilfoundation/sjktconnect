@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load highlight %}
+{% block title %}Review: {{ sitting.sitting_date }} — SJK(T) Connect{% endblock %}
+
+{% block content %}
+<div class="review-header">
+    <h1>{{ sitting.sitting_date }}</h1>
+    <div class="review-actions">
+        <a href="{% url 'parliament:review-queue' %}" class="btn btn-secondary">&larr; Back to Queue</a>
+        <form method="post" action="{% url 'parliament:publish-brief' sitting.pk %}" class="inline-form">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">Publish Brief</button>
+        </form>
+    </div>
+</div>
+
+<p>
+    <a href="{{ sitting.pdf_url }}" target="_blank" rel="noopener">View original PDF</a>
+    &middot; {{ mentions|length }} mention(s)
+</p>
+
+{% if mentions %}
+<div class="mention-list">
+    {% for mention in mentions %}
+    <div class="mention-card mention-{{ mention.review_status|lower }}">
+        <div class="mention-meta">
+            <span class="badge badge-{{ mention.review_status|lower }}">{{ mention.review_status }}</span>
+            {% if mention.page_number %}
+            <span class="meta-item">Page {{ mention.page_number }}</span>
+            {% endif %}
+            {% if mention.mp_name %}
+            <span class="meta-item">{{ mention.mp_name }}</span>
+            {% endif %}
+            {% if mention.mention_type %}
+            <span class="meta-item">{{ mention.mention_type }}</span>
+            {% endif %}
+        </div>
+
+        <blockquote class="mention-quote">
+            {{ mention.verbatim_quote|highlight_keywords }}
+        </blockquote>
+
+        {% if mention.ai_summary %}
+        <p class="mention-summary">{{ mention.ai_summary }}</p>
+        {% endif %}
+
+        <div class="mention-actions">
+            <a href="{% url 'parliament:mention-detail' mention.pk %}" class="btn btn-sm">Review Detail</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p class="empty-state">No mentions found for this sitting.</p>
+{% endif %}
+{% endblock %}

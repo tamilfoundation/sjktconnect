@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ brief.title }} — SJK(T) Connect{% endblock %}
+
+{% block content %}
+<article class="brief-detail">
+    <a href="{% url 'parliament:watch' %}" class="btn btn-secondary">&larr; All Briefs</a>
+
+    <h1>{{ brief.title }}</h1>
+    <time>{{ brief.sitting.sitting_date }}</time>
+
+    <div class="brief-content">
+        {{ brief.summary_html|safe }}
+    </div>
+
+    {% if brief.social_post_text %}
+    <div class="social-post">
+        <h3>Share</h3>
+        <p class="social-text">{{ brief.social_post_text }}</p>
+    </div>
+    {% endif %}
+
+    <p class="meta-item">
+        <a href="{{ brief.sitting.pdf_url }}" target="_blank" rel="noopener">View original Hansard PDF</a>
+    </p>
+</article>
+{% endblock %}

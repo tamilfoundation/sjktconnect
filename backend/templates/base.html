@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}SJK(T) Connect{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="{% url 'parliament:watch' %}" class="nav-brand">SJK(T) Connect</a>
+        <div class="nav-links">
+            <a href="{% url 'parliament:watch' %}">Parliament Watch</a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'parliament:review-queue' %}">Review Queue</a>
+                <a href="{% url 'logout' %}">Log out</a>
+            {% else %}
+                <a href="{% url 'login' %}">Log in</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="message message-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <p>SJK(T) Connect &mdash; Tamil Foundation Malaysia</p>
+    </footer>
+</body>
+</html>

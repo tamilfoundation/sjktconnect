@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Review Queue — SJK(T) Connect{% endblock %}
+
+{% block content %}
+<h1>Review Queue</h1>
+<p>Hansard sittings with Tamil school mentions awaiting review.</p>
+
+{% if sittings %}
+<table class="table">
+    <thead>
+        <tr>
+            <th>Sitting Date</th>
+            <th>Pending</th>
+            <th>Approved</th>
+            <th>Rejected</th>
+            <th>Total</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for sitting in sittings %}
+        <tr>
+            <td>{{ sitting.sitting_date }}</td>
+            <td>
+                {% if sitting.pending_count > 0 %}
+                    <span class="badge badge-warning">{{ sitting.pending_count }}</span>
+                {% else %}
+                    0
+                {% endif %}
+            </td>
+            <td>{{ sitting.approved_count }}</td>
+            <td>{{ sitting.rejected_count }}</td>
+            <td>{{ sitting.total_mention_count }}</td>
+            <td>
+                <a href="{% url 'parliament:sitting-review' sitting.pk %}" class="btn btn-sm">Review</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="empty-state">No sittings with mentions found. Run the Hansard pipeline first.</p>
+{% endif %}
+{% endblock %}

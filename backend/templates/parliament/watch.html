@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Parliament Watch — SJK(T) Connect{% endblock %}
+
+{% block content %}
+<h1>Parliament Watch</h1>
+<p>Tracking how Tamil schools are discussed in the Malaysian Parliament.</p>
+
+{% if briefs %}
+<div class="brief-grid">
+    {% for brief in briefs %}
+    <a href="{% url 'parliament:brief-detail' brief.sitting.sitting_date %}" class="brief-card">
+        <h2>{{ brief.title }}</h2>
+        <time>{{ brief.sitting.sitting_date }}</time>
+        {% if brief.social_post_text %}
+        <p>{{ brief.social_post_text|truncatewords:30 }}</p>
+        {% endif %}
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<p class="empty-state">No published briefs yet. Check back after the next parliamentary sitting.</p>
+{% endif %}
+{% endblock %}
