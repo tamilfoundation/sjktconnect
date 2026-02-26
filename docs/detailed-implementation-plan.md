@@ -6,7 +6,7 @@ SJK(T) Connect is an intelligence and advocacy platform for Malaysia's 528 Tamil
 
 **This plan provides**: Sprint-by-sprint task breakdowns for Phase 0 (6 sprints) and Phase 1 (8 sprints), with model definitions, file lists, test cases, and acceptance criteria. Total: 14 sprints, ~186 files.
 
-**Stack**: Django + Neon PostgreSQL (free tier) + Gemini Flash API on Cloud Run. Phase 0 is Django-only (templates for review UI). Phase 1 adds Next.js for the public-facing map/pages.
+**Stack**: Django + Supabase PostgreSQL (free tier) + Gemini Flash API on Cloud Run. Phase 0 is Django-only (templates for review UI). Phase 1 adds Next.js for the public-facing map/pages.
 
 **Pre-requisites** (user's manual tasks, in progress):
 - GPS cleanup: 25 offset + 28 missing pins
@@ -230,23 +230,9 @@ SJK(T) Connect is an intelligence and advocacy platform for Malaysia's 528 Tamil
 
 ## Phase 1: The Seed (8 Sprints)
 
-### Sprint 1.1: WKT Boundary Import + GeoJSON API
+### Sprint 1.1: COMPLETED (2026-02-26) — see docs/retrospective-sprint1.1.md
 
-**Goal**: Import constituency boundary polygons and serve as GeoJSON for the map.
-
-**Risk**: Neon free tier may not support PostGIS. **Fallback**: Store WKT as text, convert to GeoJSON with `shapely` in Python. Frontend renders either way.
-
-**Tasks**:
-1. Test PostGIS availability on Neon free tier
-2. If available: add GeoDjango, switch DB engine, add `boundary` MultiPolygonField to Constituency, update Dockerfile with GDAL
-3. If not: add `boundary_wkt` TextField to Constituency, use `shapely` for WKT→GeoJSON conversion
-4. Update `import_constituencies` to parse WKT column
-5. Create GeoJSON API endpoint: `GET /api/v1/constituencies/geojson/`
-6. Add `djangorestframework` to requirements
-
-**Files** (~10): Modified `schools/models.py`, modified import command, API serializers/views/urls, modified Dockerfile, tests
-
-**Acceptance**: 613 DUN boundaries stored. GeoJSON endpoint returns valid FeatureCollection.
+boundary_wkt on Constituency/DUN, shapely + DRF, 4 GeoJSON endpoints. 19 new tests (239 total).
 
 ---
 
@@ -417,7 +403,7 @@ PHASE 1 (Partially parallel after 1.2):
 ## Risks
 
 1. **Sprint 0.1 density** (30 files): Densest sprint. If MOE Excel parsing is tricky, constituency import can shift to Sprint 0.2 start without blocking.
-2. **Neon PostGIS** (Sprint 1.1): Free tier may not support PostGIS. Fallback: store WKT as text, convert with shapely. Map works either way.
+2. **~~Neon PostGIS~~ RESOLVED** (Sprint 1.1): Supabase supports PostGIS. Using shapely + TextField approach anyway — avoids GDAL/GEOS dependency on Windows dev + Docker. Upgrade to GeoDjango later if spatial queries needed.
 3. **Parlimen.gov.my scraping** (Sprint 0.6): Page structure may change. Build scraper defensively with configurable selectors.
 4. **Brevo deliverability** (Sprint 1.6/1.8): Send from tamilschool.org.my (DKIM/SPF/DMARC configured). Batch at 50/day to build reputation.
 

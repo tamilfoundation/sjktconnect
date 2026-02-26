@@ -8,6 +8,7 @@ Usage:
 """
 
 import csv
+import logging
 import re
 from pathlib import Path
 
@@ -15,6 +16,8 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from schools.models import Constituency, DUN
+
+logger = logging.getLogger(__name__)
 
 # Default CSV path: two levels up from backend/
 DEFAULT_CSV = Path(__file__).resolve().parent.parent.parent.parent.parent / "Political Constituencies.csv"
@@ -180,6 +183,7 @@ class Command(BaseCommand):
 
                 # Create/update DUN (keyed on code + constituency, since
                 # DUN codes like N01 repeat across states)
+                wkt = row.get("WKT", "").strip()
                 dun_data = {
                     "name": dun_name,
                     "state": state,
@@ -188,6 +192,7 @@ class Command(BaseCommand):
                     "adun_coalition": clean_party(row.get("Coalition", "")),
                     "indian_population": parse_integer(row.get("Indians", "")),
                     "indian_percentage": parse_indian_percentage(row.get("Indians %", "")),
+                    "boundary_wkt": wkt,
                 }
 
                 if not dry_run:
@@ -207,6 +212,7 @@ class Command(BaseCommand):
             # Now update constituency-level demographics by aggregating DUN data
             if not dry_run:
                 self._update_constituency_demographics(rows)
+                self._compute_constituency_boundaries()
 
             if dry_run:
                 # Roll back the transaction
@@ -280,3 +286,30 @@ class Command(BaseCommand):
                 update_fields["unemployment_rate"] = round(sum(data["unemployment_rates"]) / len(data["unemployment_rates"]), 2)
 
             Constituency.objects.filter(code=code).update(**update_fields)
+
+    def _compute_constituency_boundaries(self):
+        """Compute constituency boundaries by unioning their DUN polygons."""
+        from shapely import wkt as shapely_wkt
+        from shapely.ops import unary_union
+
+        updated = 0
+        for constituency in Constituency.objects.prefetch_related("duns").all():
+            dun_geometries = []
+            for dun in constituency.duns.all():
+                if dun.boundary_wkt:
+                    try:
+                        geom = shapely_wkt.loads(dun.boundary_wkt)
+                        dun_geometries.append(geom)
+                    except Exception:
+                        logger.warning(
+                            "Invalid WKT for DUN %s %s, skipping",
+                            dun.code, dun.name,
+                        )
+
+            if dun_geometries:
+                merged = unary_union(dun_geometries)
+                constituency.boundary_wkt = merged.wkt
+                constituency.save(update_fields=["boundary_wkt"])
+                updated += 1
+
+        self.stdout.write(f"Computed boundaries for {updated} constituencies.")

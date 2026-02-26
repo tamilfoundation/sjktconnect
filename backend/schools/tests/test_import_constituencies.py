@@ -48,7 +48,7 @@ class ImportConstituenciesTest(TestCase):
     def _create_test_csv(self, rows):
         """Create a temp CSV file with constituency data."""
         tmp = tempfile.NamedTemporaryFile(
-            mode="w", suffix=".csv", delete=False, encoding="utf-8-sig", newline=""
+            mode="w", suffix=".csv", delete=False, encoding="cp1252", newline=""
         )
         import csv
 
@@ -112,6 +112,14 @@ class ImportConstituenciesTest(TestCase):
         assert d.constituency == c
         assert d.adun_name == "Zahari Sarip"
         assert d.indian_population == 2615
+
+        # Check WKT boundary is stored on DUN
+        assert d.boundary_wkt.startswith("POLYGON")
+
+        # Check constituency boundary is computed (union of DUN boundaries)
+        c.refresh_from_db()
+        assert c.boundary_wkt != ""
+        assert "POLYGON" in c.boundary_wkt
 
         Path(path).unlink()
 

@@ -1,5 +1,30 @@
 # Changelog
 
+## Sprint 1.1 — WKT Boundary Import + GeoJSON API (2026-02-26)
+
+### Added
+- `boundary_wkt` TextField on Constituency and DUN models — stores OGC WKT polygon boundaries
+- GeoJSON API endpoints (4 new):
+  - `GET /api/v1/constituencies/geojson/` — all constituency boundaries as FeatureCollection
+  - `GET /api/v1/constituencies/<code>/geojson/` — single constituency boundary
+  - `GET /api/v1/duns/geojson/` — all DUN boundaries (filters: `?state=`, `?constituency=`)
+  - `GET /api/v1/duns/<pk>/geojson/` — single DUN boundary
+- `schools/api/` package: `geojson.py` (WKT-to-GeoJSON via shapely), `views.py` (4 DRF views), `urls.py`
+- `shapely>=2.0` and `djangorestframework>=3.15` dependencies
+- 19 new tests: test_geojson_api (13), test_geojson_helpers (6)
+
+### Changed
+- `import_constituencies` now parses WKT column from CSV and stores on DUN records
+- `import_constituencies` computes constituency boundaries by unioning DUN polygons via `shapely.ops.unary_union`
+- `rest_framework` added to INSTALLED_APPS
+- Test CSV encoding fixed from `utf-8-sig` to `cp1252` (matches real CSV)
+- Implementation plan and roadmap updated: Neon references replaced with Supabase, PostGIS risk resolved
+
+### Test totals
+- 239 tests passing (220 from Sprint 0.6 + 19 new)
+
+---
+
 ## Sprint 0.6 — Deployment + Cloud Scheduler + Documentation (2026-02-26)
 
 ### Added

@@ -10,9 +10,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 0 — Parliament Watch
-- **Current Sprint**: 0.6 DONE. Next: 0.7
-- **Tests**: 220 passing
+- **Current Phase**: Phase 1 — The Seed
+- **Current Sprint**: 1.1 DONE. Next: 1.2
+- **Tests**: 239 passing
 - **Live URL**: https://sjktconnect-api-90344691621.asia-southeast1.run.app
 
 ## Apps
@@ -30,7 +30,7 @@
 # Development
 cd backend
 python manage.py runserver                    # Start dev server
-pytest                                        # Run tests (220 passing)
+pytest                                        # Run tests (239 passing)
 
 # AI Analysis (requires GEMINI_API_KEY env var)
 python manage.py analyse_mentions              # Analyse unprocessed mentions with Gemini
@@ -105,6 +105,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 0.4 | Done | Gemini AI analysis + MP Scorecard: parliament app, gemini_client (google.genai SDK), scorecard aggregation, brief generator, 2 management commands. 38 new tests (149 total). |
 | 0.5 | Done | Admin Review Queue + Content Publishing: 8 views, MentionReviewForm, highlight_keywords templatetag, 7 templates, CSS, URL wiring, login/logout. 49 new tests (198 total). |
 | 0.6 | Done | Deployment: Cloud Run + Supabase PostgreSQL, check_new_hansards discovery command, Cloud Scheduler (daily 8am MYT), health check, README. 22 new tests (220 total). |
+| 1.1 | Done | WKT boundary import + GeoJSON API: boundary_wkt on Constituency/DUN, shapely + DRF, 4 GeoJSON endpoints. 19 new tests (239 total). |
 
 ## Production Infrastructure (Sprint 0.6)
 
@@ -118,11 +119,22 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-Sprint 0.7 — First Real Data + Polish
-- Process real Hansard sessions from Jan-Mar 2026
-- Add GEMINI_API_KEY to Cloud Run env vars for AI analysis
-- Review and publish first batch of briefs
+Sprint 1.2 — Django REST API for Schools + Constituencies
+- School API: list (filterable by state, ppd, constituency), retrieve by moe_code
+- Constituency API: list (filterable by state), retrieve with nested schools + scorecard
+- DUN API: list, retrieve
+- MPScorecard API, SittingBrief API (published only)
+- Search endpoint: `GET /api/v1/search/?q=<query>`
+- CORS configuration for Next.js origin
 - DUN model uses auto PK with unique_together(code, constituency) — remember when creating FKs
+
+## GeoJSON API (Sprint 1.1)
+- `GET /api/v1/constituencies/geojson/` — all constituency boundaries as FeatureCollection
+- `GET /api/v1/constituencies/<code>/geojson/` — single constituency
+- `GET /api/v1/duns/geojson/` — all DUN boundaries (filters: `?state=`, `?constituency=`)
+- `GET /api/v1/duns/<pk>/geojson/` — single DUN
+- Uses shapely for WKT→GeoJSON conversion (not GeoDjango — avoids GDAL/GEOS dependency)
+- Constituency boundaries computed by unioning DUN polygons via `shapely.ops.unary_union`
 
 ## Review UI & URL Structure (Sprint 0.5)
 - Admin review at `/review/` (login required): queue → sitting → mention detail → approve/reject

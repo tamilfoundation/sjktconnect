@@ -132,7 +132,7 @@ Cloud Run + Supabase PostgreSQL, check_new_hansards discovery command, Cloud Sch
 These are outlined for visibility, not commitment. Each phase will get its own sprint decomposition when we reach it. The roadmap is a living document — re-plan remaining phases at each phase boundary.
 
 ### Phase 1: The Seed (~6-8 sprints)
-- Import WKT boundary polygons from `Political Constituencies.csv` (deferred from Phase 0 Sprint 1 — requires GeoDjango + PostGIS, only needed when the map is built)
+- Import WKT boundary polygons from `Political Constituencies.csv` (deferred from Phase 0 — using shapely + TextField, not GeoDjango, to avoid GDAL complexity)
 - Next.js frontend setup + public school map (Google Maps JS API, 528 pins)
 - School profile pages (SSR for SEO) + constituency pages (122 + 222 DUN)
 - Magic Link authentication (MOE email to passwordless verification)

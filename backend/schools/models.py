@@ -16,6 +16,10 @@ class Constituency(models.Model):
     poverty_rate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     gini = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True)
     unemployment_rate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    boundary_wkt = models.TextField(
+        blank=True, default="",
+        help_text="Boundary polygon in OGC WKT format. Computed by unioning DUN boundaries.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -45,6 +49,10 @@ class DUN(models.Model):
     adun_coalition = models.CharField(max_length=50, blank=True, default="")
     indian_population = models.IntegerField(null=True, blank=True)
     indian_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    boundary_wkt = models.TextField(
+        blank=True, default="",
+        help_text="Boundary polygon in OGC WKT format from Political Constituencies CSV.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
