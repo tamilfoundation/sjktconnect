@@ -1,10 +1,159 @@
-"""GeoJSON API views for constituency and DUN boundaries."""
+"""API views for schools, constituencies, DUNs, and GeoJSON boundaries."""
 
+from django.db.models import Count, Q
+
+from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from schools.api.geojson import to_feature, to_feature_collection
-from schools.models import Constituency, DUN
+from schools.api.serializers import (
+    ConstituencyDetailSerializer,
+    ConstituencyListSerializer,
+    DUNDetailSerializer,
+    DUNListSerializer,
+    SchoolDetailSerializer,
+    SchoolListSerializer,
+)
+from schools.models import Constituency, DUN, School
+
+
+# --- School API ---
+
+
+class SchoolListView(ListAPIView):
+    """List schools with optional filters.
+
+    Filters: ?state=, ?ppd=, ?constituency=, ?skm=true, ?min_enrolment=, ?max_enrolment=
+    """
+
+    serializer_class = SchoolListSerializer
+
+    def get_queryset(self):
+        qs = School.objects.select_related("constituency").filter(is_active=True)
+        state = self.request.query_params.get("state")
+        ppd = self.request.query_params.get("ppd")
+        constituency = self.request.query_params.get("constituency")
+        skm = self.request.query_params.get("skm")
+        min_enrolment = self.request.query_params.get("min_enrolment")
+        max_enrolment = self.request.query_params.get("max_enrolment")
+
+        if state:
+            qs = qs.filter(state__iexact=state)
+        if ppd:
+            qs = qs.filter(ppd__iexact=ppd)
+        if constituency:
+            qs = qs.filter(constituency__code=constituency)
+        if skm and skm.lower() == "true":
+            qs = qs.filter(skm_eligible=True)
+        if min_enrolment:
+            qs = qs.filter(enrolment__gte=int(min_enrolment))
+        if max_enrolment:
+            qs = qs.filter(enrolment__lte=int(max_enrolment))
+        return qs
+
+
+class SchoolDetailView(RetrieveAPIView):
+    """Retrieve a single school by MOE code."""
+
+    serializer_class = SchoolDetailSerializer
+    queryset = School.objects.select_related("constituency", "dun")
+    lookup_field = "moe_code"
+
+
+# --- Constituency API ---
+
+
+class ConstituencyListView(ListAPIView):
+    """List constituencies with optional state filter.
+
+    Filters: ?state=
+    """
+
+    serializer_class = ConstituencyListSerializer
+
+    def get_queryset(self):
+        qs = Constituency.objects.annotate(
+            school_count=Count("schools", filter=Q(schools__is_active=True))
+        ).order_by("code")
+        state = self.request.query_params.get("state")
+        if state:
+            qs = qs.filter(state__iexact=state)
+        return qs
+
+
+class ConstituencyDetailView(RetrieveAPIView):
+    """Retrieve a single constituency with nested schools and scorecard."""
+
+    serializer_class = ConstituencyDetailSerializer
+    queryset = Constituency.objects.prefetch_related(
+        "schools", "scorecards",
+    )
+    lookup_field = "code"
+
+
+# --- DUN API ---
+
+
+class DUNListView(ListAPIView):
+    """List DUNs with optional filters.
+
+    Filters: ?state=, ?constituency=
+    """
+
+    serializer_class = DUNListSerializer
+
+    def get_queryset(self):
+        qs = DUN.objects.select_related("constituency")
+        state = self.request.query_params.get("state")
+        constituency = self.request.query_params.get("constituency")
+        if state:
+            qs = qs.filter(state__iexact=state)
+        if constituency:
+            qs = qs.filter(constituency__code=constituency)
+        return qs
+
+
+class DUNDetailView(RetrieveAPIView):
+    """Retrieve a single DUN with nested schools."""
+
+    serializer_class = DUNDetailSerializer
+    queryset = DUN.objects.select_related("constituency").prefetch_related("schools")
+
+
+# --- Search API ---
+
+
+class SearchView(APIView):
+    """Search across schools, constituencies, and MPs.
+
+    Query: ?q=<search term>
+    Returns up to 10 results per category.
+    """
+
+    def get(self, request):
+        q = request.query_params.get("q", "").strip()
+        if len(q) < 2:
+            return Response({"error": "Query must be at least 2 characters"}, status=400)
+
+        schools = School.objects.filter(
+            Q(name__icontains=q) | Q(short_name__icontains=q) | Q(moe_code__icontains=q),
+            is_active=True,
+        ).select_related("constituency")[:10]
+
+        constituencies = Constituency.objects.filter(
+            Q(name__icontains=q) | Q(code__icontains=q) | Q(mp_name__icontains=q)
+        )[:10]
+
+        return Response({
+            "schools": SchoolListSerializer(schools, many=True).data,
+            "constituencies": ConstituencyListSerializer(
+                constituencies.annotate(
+                    school_count=Count("schools", filter=Q(schools__is_active=True))
+                ),
+                many=True,
+            ).data,
+        })
 
 
 class ConstituencyGeoJSONView(APIView):

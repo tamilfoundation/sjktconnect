@@ -12,3 +12,4 @@ Cross-cutting lessons from SJK(T) Connect development. Project-specific decision
 - Setting env vars from bash→PowerShell is unreliable (`$env:VAR` escaping fails). For management commands needing env vars, write a temp Python script that reads `.env` and calls `django.setup()` + `call_command()` — delete after use (Sprint 0.6)
 - Database passwords with `?`, `+`, `@`, `#` break `DATABASE_URL` URI parsing — always URL-encode special characters (`%3F`, `%2B`, `%40`, `%23`) in the password portion (Sprint 0.6)
 - Test CSV encoding must match what the import command reads — `utf-8-sig` BOM corrupts the first column header when read with `cp1252`. Always use the same encoding in test fixtures as in production code (Sprint 1.1)
+- Django ORM `.annotate()` drops the model's Meta.ordering — always chain `.order_by()` after annotate to avoid DRF's UnorderedObjectListWarning (Sprint 1.2)

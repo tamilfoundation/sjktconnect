@@ -11,8 +11,8 @@
 ## Project Status
 
 - **Current Phase**: Phase 1 — The Seed
-- **Current Sprint**: 1.1 DONE. Next: 1.2
-- **Tests**: 239 passing
+- **Current Sprint**: 1.2 DONE. Next: 1.3
+- **Tests**: 276 passing
 - **Live URL**: https://sjktconnect-api-90344691621.asia-southeast1.run.app
 
 ## Apps
@@ -30,7 +30,7 @@
 # Development
 cd backend
 python manage.py runserver                    # Start dev server
-pytest                                        # Run tests (239 passing)
+pytest                                        # Run tests (276 passing)
 
 # AI Analysis (requires GEMINI_API_KEY env var)
 python manage.py analyse_mentions              # Analyse unprocessed mentions with Gemini
@@ -77,6 +77,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | `GEMINI_API_KEY` | Sprint 0.4+ | Google AI Studio API key |
 | `ALLOWED_HOSTS` | Prod | Comma-separated hostnames |
 | `CSRF_TRUSTED_ORIGINS` | Prod | Comma-separated origins |
+| `CORS_ALLOWED_ORIGINS` | Sprint 1.2+ | Comma-separated origins for CORS (default: `http://localhost:3000`) |
 
 ## Data Files (not in git — too large)
 
@@ -106,6 +107,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 0.5 | Done | Admin Review Queue + Content Publishing: 8 views, MentionReviewForm, highlight_keywords templatetag, 7 templates, CSS, URL wiring, login/logout. 49 new tests (198 total). |
 | 0.6 | Done | Deployment: Cloud Run + Supabase PostgreSQL, check_new_hansards discovery command, Cloud Scheduler (daily 8am MYT), health check, README. 22 new tests (220 total). |
 | 1.1 | Done | WKT boundary import + GeoJSON API: boundary_wkt on Constituency/DUN, shapely + DRF, 4 GeoJSON endpoints. 19 new tests (239 total). |
+| 1.2 | Done | REST API: School/Constituency/DUN/Scorecard/Brief endpoints, search, CORS, pagination. 37 new tests (276 total). |
 
 ## Production Infrastructure (Sprint 0.6)
 
@@ -119,14 +121,26 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-Sprint 1.2 — Django REST API for Schools + Constituencies
-- School API: list (filterable by state, ppd, constituency), retrieve by moe_code
-- Constituency API: list (filterable by state), retrieve with nested schools + scorecard
-- DUN API: list, retrieve
-- MPScorecard API, SittingBrief API (published only)
-- Search endpoint: `GET /api/v1/search/?q=<query>`
-- CORS configuration for Next.js origin
-- DUN model uses auto PK with unique_together(code, constituency) — remember when creating FKs
+Sprint 1.3 — Next.js Frontend + School Map
+- Create Next.js 14 project in `frontend/` (App Router, Tailwind CSS)
+- Layout with header, footer, navigation
+- Map page at `/` — full-width Google Maps with 528 school pins + clustering
+- Fetch schools from `/api/v1/schools/` API
+- State filter sidebar, search box with typeahead
+- Dockerfile for Next.js deployment
+- API base URL: use `NEXT_PUBLIC_API_URL` env var (defaults to localhost:8000)
+- CORS already configured — `CORS_ALLOWED_ORIGINS` env var on backend
+
+## REST API (Sprint 1.2)
+- All endpoints under `/api/v1/` — paginated (50/page via `?page=N`)
+- **Schools**: `GET /api/v1/schools/` (filters: `?state=`, `?ppd=`, `?constituency=`, `?skm=true`, `?min_enrolment=`, `?max_enrolment=`), `GET /api/v1/schools/<moe_code>/`
+- **Constituencies**: `GET /api/v1/constituencies/` (filter: `?state=`, includes `school_count`), `GET /api/v1/constituencies/<code>/` (nested schools + scorecard)
+- **DUNs**: `GET /api/v1/duns/` (filters: `?state=`, `?constituency=`), `GET /api/v1/duns/<pk>/` (nested schools)
+- **Scorecards**: `GET /api/v1/scorecards/` (filters: `?constituency=`, `?party=`), `GET /api/v1/scorecards/<pk>/`
+- **Briefs**: `GET /api/v1/briefs/` (published only), `GET /api/v1/briefs/<pk>/`
+- **Search**: `GET /api/v1/search/?q=<query>` — searches schools (name, code) and constituencies (name, code, MP name). Min 2 chars.
+- CORS via `django-cors-headers` — origins from `CORS_ALLOWED_ORIGINS` env var
+- URL ordering: GeoJSON literal paths before `<str:code>` detail paths to avoid capture conflicts
 
 ## GeoJSON API (Sprint 1.1)
 - `GET /api/v1/constituencies/geojson/` — all constituency boundaries as FeatureCollection

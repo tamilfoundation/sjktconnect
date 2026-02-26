@@ -236,22 +236,9 @@ boundary_wkt on Constituency/DUN, shapely + DRF, 4 GeoJSON endpoints. 19 new tes
 
 ---
 
-### Sprint 1.2: Django REST API for Schools + Constituencies
+### Sprint 1.2: COMPLETED (2026-02-26) — see docs/retrospective-sprint1.2.md
 
-**Goal**: REST API endpoints exposing all data for the Next.js frontend.
-
-**Tasks**:
-1. School API: list (filterable by state, ppd, constituency, enrolment range, skm), retrieve by moe_code
-2. Constituency API: list (filterable by state), retrieve with nested schools + scorecard
-3. DUN API: list, retrieve
-4. MPScorecard API: list, retrieve
-5. SittingBrief API: list, retrieve (published only)
-6. Search endpoint: `GET /api/v1/search/?q=<query>`
-7. Configure CORS for Next.js origin
-
-**Files** (~10): `schools/api/` (serializers, views, urls), `parliament/api/` (serializers, views, urls), modified root urls, 2 test files
-
-**Acceptance**: All endpoints return correct data. Filters, search, pagination work. CORS configured.
+REST API: 12 endpoints (School/Constituency/DUN/Scorecard/Brief/Search), CORS, pagination. 37 new tests (276 total).
 
 ---
 

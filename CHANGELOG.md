@@ -1,5 +1,37 @@
 # Changelog
 
+## Sprint 1.2 — Django REST API for Schools + Constituencies (2026-02-26)
+
+### Added
+- REST API endpoints (12 new):
+  - `GET /api/v1/schools/` — list with filters: state, ppd, constituency, skm, min/max enrolment
+  - `GET /api/v1/schools/<moe_code>/` — full school profile
+  - `GET /api/v1/constituencies/` — list with school_count annotation, state filter
+  - `GET /api/v1/constituencies/<code>/` — detail with nested schools + scorecard
+  - `GET /api/v1/duns/` — list with state/constituency filters
+  - `GET /api/v1/duns/<pk>/` — detail with nested schools
+  - `GET /api/v1/scorecards/` — list with constituency/party filters
+  - `GET /api/v1/scorecards/<pk>/` — MP scorecard detail
+  - `GET /api/v1/briefs/` — published sitting briefs only
+  - `GET /api/v1/briefs/<pk>/` — single published brief
+  - `GET /api/v1/search/?q=<query>` — cross-entity search (schools, constituencies, MPs)
+- `schools/api/serializers.py` — 6 serializers (School list/detail, Constituency list/detail, DUN list/detail)
+- `parliament/api/` package — serializers, views, URLs for MPScorecard + SittingBrief
+- CORS support via `django-cors-headers` with configurable `CORS_ALLOWED_ORIGINS` env var
+- DRF pagination (50 items/page via PageNumberPagination)
+- 37 new tests: test_school_api (26), test_parliament_api (11)
+
+### Changed
+- `schools/api/urls.py` expanded from 4 GeoJSON routes to 15 total routes
+- `schools/api/views.py` expanded with School, Constituency, DUN, Search views
+- `corsheaders` added to INSTALLED_APPS and MIDDLEWARE
+- REST_FRAMEWORK config added to base settings
+
+### Test totals
+- 276 tests passing (239 from Sprint 1.1 + 37 new)
+
+---
+
 ## Sprint 1.1 — WKT Boundary Import + GeoJSON API (2026-02-26)
 
 ### Added
