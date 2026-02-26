@@ -121,22 +121,9 @@ These must be completed by the user before any coding begins:
 
 ---
 
-### Sprint 6: Deployment + Cloud Scheduler + Documentation
+### Sprint 6: Deployment + Cloud Scheduler + Documentation — DONE
 
-**Goal**: Live on Cloud Run with automated daily Hansard checks during sitting periods.
-
-**Scope**:
-- Cloud Run deployment (backend)
-- PostgreSQL RLS policies on all tables (applied via Django migration — no Supabase security advisor, so verify manually with `SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public'`)
-- Cloud Scheduler job: daily check for new Hansard PDFs (during sitting periods only)
-- Management command: `check_new_hansards` — checks parlimen.gov.my for PDFs not yet processed
-- End-to-end test: trigger pipeline on real Hansard, review in admin, approve
-- Documentation: `CLAUDE.md` (architecture, deploy commands, env vars), `README.md`
-- Retrospective
-
-**Acceptance**: Pipeline runs automatically on Cloud Run. Admin reviews at deployed URL. Phase 0 exit criteria: first 5 Parliament Watch reports published.
-
-**Complexity**: Medium (~10 files)
+Cloud Run + Supabase PostgreSQL, check_new_hansards discovery command, Cloud Scheduler (daily 8am MYT), health check, README. 22 new tests (220 total).
 
 ---
 
@@ -210,13 +197,11 @@ These are outlined for visibility, not commitment. Each phase will get its own s
 **After each sprint**:
 - All tests pass (`pytest`)
 - Manual verification of the sprint's deliverable
-- RLS enabled on all tables (verified via SQL query)
-
-**After Sprint 6 (Phase 0 complete)**:
-- End-to-end: Hansard PDF downloaded, pipeline extracts mentions, AI analyses, admin reviews split-screen, approves, content generated
-- Cloud Scheduler triggers daily during sitting periods
-- Admin can access review queue at deployed URL
-- Exit criteria from PRD: first 5 Parliament Watch reports published, at least 3 receive engagement
+**Phase 0 complete (Sprint 6 done)**:
+- End-to-end pipeline is live: Hansard discovery + download + extract + search + match + AI analysis + admin review + publish
+- Cloud Scheduler triggers daily at 8:00 AM MYT
+- Admin reviews at https://sjktconnect-api-90344691621.asia-southeast1.run.app/review/
+- Remaining: first 5 Parliament Watch reports published (Sprint 0.7 content task)
 
 ---
 

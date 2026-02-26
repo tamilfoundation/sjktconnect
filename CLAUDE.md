@@ -3,7 +3,7 @@
 ## Architecture
 
 - **Backend**: Django 5.x (backend/)
-- **Database**: Neon PostgreSQL (free tier, auto-suspends after 5 min idle)
+- **Database**: Supabase PostgreSQL (Tamil Foundation org, free tier)
 - **AI**: Gemini Flash API (Hansard analysis, Sprint 0.4+)
 - **Hosting**: Google Cloud Run (GCP project: `gen-lang-client-0871147736`)
 - **Domain**: tamilschool.org.my
@@ -11,8 +11,9 @@
 ## Project Status
 
 - **Current Phase**: Phase 0 — Parliament Watch
-- **Current Sprint**: 0.5 DONE. Next: 0.6
-- **Tests**: 198 passing
+- **Current Sprint**: 0.6 DONE. Next: 0.7
+- **Tests**: 220 passing
+- **Live URL**: https://sjktconnect-api-90344691621.asia-southeast1.run.app
 
 ## Apps
 
@@ -20,7 +21,7 @@
 |-----|---------|--------|
 | `core` | AuditLog, middleware | 0.1 |
 | `schools` | School, Constituency, DUN models + import commands | 0.1 |
-| `hansard` | Hansard pipeline (download, extract, search, match) | 0.2-0.3 |
+| `hansard` | Hansard pipeline (download, extract, search, match, discover) | 0.2-0.3, 0.6 |
 | `parliament` | MP Scorecard, review UI, content publishing | 0.4-0.5 |
 
 ## Commands
@@ -29,7 +30,7 @@
 # Development
 cd backend
 python manage.py runserver                    # Start dev server
-pytest                                        # Run tests (198 passing)
+pytest                                        # Run tests (220 passing)
 
 # AI Analysis (requires GEMINI_API_KEY env var)
 python manage.py analyse_mentions              # Analyse unprocessed mentions with Gemini
@@ -47,6 +48,12 @@ python manage.py process_hansard <url> --sitting-date YYYY-MM-DD
 python manage.py process_hansard <url> --catalogue-variants   # Print variant catalogue
 python manage.py process_hansard <url> --skip-matching        # Skip school matching step
 
+# Hansard Discovery (Sprint 0.6)
+python manage.py check_new_hansards              # Discover new PDFs (last 14 days)
+python manage.py check_new_hansards --days 30    # Last 30 days
+python manage.py check_new_hansards --auto-process  # Discover + process automatically
+python manage.py check_new_hansards --start 2026-01-01 --end 2026-03-31
+
 # School Name Matching
 python manage.py seed_aliases                 # Generate aliases for all 528 schools
 python manage.py seed_aliases --clear         # Re-seed (delete non-HANSARD aliases first)
@@ -55,13 +62,16 @@ python manage.py seed_aliases --clear         # Re-seed (delete non-HANSARD alia
 gcloud config set account tamiliam@gmail.com
 gcloud config set project gen-lang-client-0871147736
 gcloud run deploy sjktconnect-api --source . --region asia-southeast1 --allow-unauthenticated
+
+# Cloud Run Job (manual trigger)
+gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 ```
 
 ## Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | Yes (prod) | Neon PostgreSQL connection string |
+| `DATABASE_URL` | Yes (prod) | Supabase PostgreSQL connection string (transaction pooler, port 6543) |
 | `SECRET_KEY` | Yes (prod) | Django secret key |
 | `DJANGO_SETTINGS_MODULE` | Yes | `sjktconnect.settings.development` or `.production` |
 | `GEMINI_API_KEY` | Sprint 0.4+ | Google AI Studio API key |
@@ -79,10 +89,11 @@ gcloud run deploy sjktconnect-api --source . --region asia-southeast1 --allow-un
 
 ## Database Notes
 
-- Neon free tier: 0.5 GB storage, 190 compute hours/month
-- Auto-suspends after 5 min idle, wakes in ~1s
+- Supabase free tier: 500 MB storage, Tamil Foundation org
+- Region: Southeast Asia (Singapore) — matches Cloud Run asia-southeast1
+- Transaction pooler (port 6543) recommended for Cloud Run serverless
 - Supports pg_trgm (needed for Sprint 0.3 fuzzy matching)
-- Django connects via `DATABASE_URL` same as Supabase
+- Django connects via `DATABASE_URL` using dj-database-url
 
 ## Sprint History
 
@@ -93,13 +104,24 @@ gcloud run deploy sjktconnect-api --source . --region asia-southeast1 --allow-un
 | 0.3 | Done | School name matching: SchoolAlias + MentionedSchool models, seed_aliases command, matcher (exact + trigram), stop words. 41 new tests (111 total). |
 | 0.4 | Done | Gemini AI analysis + MP Scorecard: parliament app, gemini_client (google.genai SDK), scorecard aggregation, brief generator, 2 management commands. 38 new tests (149 total). |
 | 0.5 | Done | Admin Review Queue + Content Publishing: 8 views, MentionReviewForm, highlight_keywords templatetag, 7 templates, CSS, URL wiring, login/logout. 49 new tests (198 total). |
+| 0.6 | Done | Deployment: Cloud Run + Supabase PostgreSQL, check_new_hansards discovery command, Cloud Scheduler (daily 8am MYT), health check, README. 22 new tests (220 total). |
+
+## Production Infrastructure (Sprint 0.6)
+
+- **Service URL**: https://sjktconnect-api-90344691621.asia-southeast1.run.app
+- **Cloud Run service**: `sjktconnect-api` (asia-southeast1)
+- **Cloud Run job**: `sjktconnect-check-hansards` — runs `check_new_hansards --auto-process --days 7`
+- **Cloud Scheduler**: `sjktconnect-daily-check` — triggers job daily at 8:00 AM MYT
+- **Health check**: `/health/` returns `{"status": "ok"}`
+- **Admin**: `/admin/` (username: admin, email: admin@tamilfoundation.org)
+- **Note**: After redeploying, update the job image: `gcloud run jobs update sjktconnect-check-hansards --image <new-image> --region asia-southeast1`
 
 ## Next Sprint
 
-Sprint 0.6 — Deployment + Cloud Scheduler + Documentation
-- Dockerfile, Cloud Run deployment, environment setup
-- Cloud Scheduler for periodic Hansard processing
-- User documentation, admin guide
+Sprint 0.7 — First Real Data + Polish
+- Process real Hansard sessions from Jan-Mar 2026
+- Add GEMINI_API_KEY to Cloud Run env vars for AI analysis
+- Review and publish first batch of briefs
 - DUN model uses auto PK with unique_together(code, constituency) — remember when creating FKs
 
 ## Review UI & URL Structure (Sprint 0.5)

@@ -9,3 +9,5 @@ Cross-cutting lessons from SJK(T) Connect development. Project-specific decision
 - `google.generativeai` is deprecated — use `google.genai` with client pattern (`genai.Client(api_key=...)`) instead of global `genai.configure()` (Sprint 0.4)
 - Django ChoiceField with `required=False` saves empty string `''`, not None — for IntegerField model fields use `TypedChoiceField(coerce=int, empty_value=None)` (Sprint 0.5)
 - When redirecting after a model update, double-check the target URL's kwargs match the right model — `pk=instance.fk_id` redirects to the FK's PK, not the instance's PK (Sprint 0.5)
+- Setting env vars from bash→PowerShell is unreliable (`$env:VAR` escaping fails). For management commands needing env vars, write a temp Python script that reads `.env` and calls `django.setup()` + `call_command()` — delete after use (Sprint 0.6)
+- Database passwords with `?`, `+`, `@`, `#` break `DATABASE_URL` URI parsing — always URL-encode special characters (`%3F`, `%2B`, `%40`, `%23`) in the password portion (Sprint 0.6)

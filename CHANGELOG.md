@@ -1,5 +1,31 @@
 # Changelog
 
+## Sprint 0.6 — Deployment + Cloud Scheduler + Documentation (2026-02-26)
+
+### Added
+- `hansard/pipeline/scraper.py` — Discovers new Hansard PDFs via HEAD requests to parlimen.gov.my, probing date ranges for `DR-DDMMYYYY.pdf` URLs
+- `check_new_hansards` management command — compares discovered PDFs against processed sittings in DB; supports `--days`, `--start`/`--end`, `--auto-process` (chains into `process_hansard`)
+- Health check endpoint at `/health/` — returns `{"status": "ok"}` for Cloud Run liveness probes
+- Cloud Run service `sjktconnect-api` deployed to asia-southeast1
+- Cloud Run job `sjktconnect-check-hansards` — runs `check_new_hansards --auto-process --days 7`
+- Cloud Scheduler `sjktconnect-daily-check` — triggers job daily at 8:00 AM MYT
+- 22 new tests: test_scraper (11), test_check_new_hansards (10), test_health_check (1)
+
+### Changed
+- Database switched from planned Neon PostgreSQL to Supabase PostgreSQL (Tamil Foundation org, Singapore region, free tier)
+- Production settings and docs updated from "Neon" to "Supabase"
+
+### Infrastructure
+- **Service URL**: https://sjktconnect-api-90344691621.asia-southeast1.run.app
+- **Database**: Supabase PostgreSQL (transaction pooler, port 6543)
+- **Reference data imported**: 222 constituencies, 613 DUNs, 528 schools, 2,106 aliases
+- **Admin user**: admin@tamilfoundation.org
+
+### Test totals
+- 220 tests passing (198 from Sprint 0.5 + 22 new)
+
+---
+
 ## Sprint 0.5 — Admin Review Queue + Content Publishing (2026-02-25)
 
 ### Added
