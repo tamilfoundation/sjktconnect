@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "schools",
     "hansard",
     "parliament",
+    "accounts",
 ]
 
 MIDDLEWARE = [
@@ -122,4 +123,10 @@ AUDIT_LOG_MODELS = [
     "hansard.MentionedSchool",
     "parliament.MPScorecard",
     "parliament.SittingBrief",
+    "accounts.SchoolContact",
+    "accounts.MagicLinkToken",
 ]
+
+# Magic Link Authentication
+BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")

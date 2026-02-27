@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 interface ClaimButtonProps {
   moeCode: string;
 }
@@ -11,15 +13,14 @@ export default function ClaimButton({ moeCode }: ClaimButtonProps) {
       <p className="text-sm text-primary-700 mb-4">
         Verify and update your school&apos;s information to keep it accurate.
       </p>
-      <button
+      <Link
+        href={`/claim/?school=${moeCode}`}
         className="inline-block bg-primary-600 text-white font-medium px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors"
-        title={`Claim school ${moeCode}`}
-        disabled
       >
         Claim This Page
-      </button>
+      </Link>
       <p className="text-xs text-primary-500 mt-2">
-        Coming soon — requires a valid @moe.edu.my email address
+        Requires a valid @moe.edu.my email address
       </p>
     </div>
   );

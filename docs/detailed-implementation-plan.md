@@ -254,21 +254,7 @@ REST API: 12 endpoints (School/Constituency/DUN/Scorecard/Brief/Search), CORS, p
 
 ---
 
-### Sprint 1.6: Magic Link Authentication
-
-**Goal**: Passwordless login for school reps via MOE email.
-
-**Tasks**:
-1. Create `accounts` Django app with `MagicLinkToken` and `SchoolContact` models
-2. API: `POST /api/v1/auth/request-magic-link/` — validate @moe.edu.my, match to school, generate token (24h expiry), send via Brevo
-3. API: `GET /api/v1/auth/verify/{token}/` — validate, mark used, create/update SchoolContact, return session
-4. API: `GET /api/v1/auth/me/`
-5. Brevo transactional email integration
-6. Next.js claim pages: `/claim/`, `/claim/sent/`, `/claim/verify/[token]/`
-
-**Files** (~14): `accounts/` (models, API views/serializers/urls, services for email + token, admin, 2 test files), `frontend/` (3 claim pages, form component)
-
-**Acceptance**: School rep enters MOE email, receives Magic Link, clicks link, authenticated to their school. Token expires after 24h.
+### Sprint 1.6: DONE (2026-02-27) — Magic Link auth, 47 new tests (421 total)
 
 ---
 

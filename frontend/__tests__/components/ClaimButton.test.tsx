@@ -3,21 +3,22 @@ import { render, screen } from "@testing-library/react";
 import ClaimButton from "@/components/ClaimButton";
 
 describe("ClaimButton", () => {
-  it("renders the claim button", () => {
+  it("renders the claim link", () => {
     render(<ClaimButton moeCode="JBD0050" />);
     expect(
-      screen.getByRole("button", { name: /Claim/i })
+      screen.getByRole("link", { name: /Claim This Page/i })
     ).toBeInTheDocument();
   });
 
-  it("shows coming soon text", () => {
+  it("links to claim page with school code", () => {
     render(<ClaimButton moeCode="JBD0050" />);
-    expect(screen.getByText(/Coming soon/)).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: /Claim This Page/i });
+    expect(link).toHaveAttribute("href", "/claim?school=JBD0050");
   });
 
-  it("button is disabled", () => {
+  it("shows moe.edu.my requirement", () => {
     render(<ClaimButton moeCode="JBD0050" />);
-    expect(screen.getByRole("button", { name: /Claim/i })).toBeDisabled();
+    expect(screen.getByText(/moe.edu.my/)).toBeInTheDocument();
   });
 
   it("shows the question prompt", () => {

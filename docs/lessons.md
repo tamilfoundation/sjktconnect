@@ -16,3 +16,4 @@ Cross-cutting lessons from SJK(T) Connect development. Project-specific decision
 - Jest `setupFiles` runs BEFORE test framework globals (`expect`, `test`) are available — import `@testing-library/jest-dom` directly in each test file, not via setupFiles (Sprint 1.3)
 - Next.js tsconfig uses `jsx: "preserve"` (framework handles transform), but ts-jest needs `jsx: "react-jsx"` — pass inline tsconfig object to ts-jest instead of referencing tsconfig.json (Sprint 1.3)
 - Jest config options: `testPathPattern` is CLI-only, use `testMatch` in config; `setupFilesAfterSetup` doesn't exist, use `setupFiles` (Sprint 1.3)
+- Django UUIDField `.get(token=value)` raises `django.core.exceptions.ValidationError` (not `ValueError`) when value is not a valid UUID string — always catch `ValidationError` alongside `DoesNotExist` and `ValueError` (Sprint 1.6)

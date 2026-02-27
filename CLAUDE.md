@@ -12,8 +12,8 @@
 ## Project Status
 
 - **Current Phase**: Phase 1 — The Seed
-- **Current Sprint**: 1.5 DONE. Next: 1.6
-- **Tests**: 374 passing (276 backend + 98 frontend)
+- **Current Sprint**: 1.6 DONE. Next: 1.7
+- **Tests**: 421 passing (309 backend + 112 frontend)
 - **Live URL**: https://sjktconnect-api-90344691621.asia-southeast1.run.app
 
 ## Apps
@@ -24,6 +24,7 @@
 | `schools` | School, Constituency, DUN models + import commands | 0.1 |
 | `hansard` | Hansard pipeline (download, extract, search, match, discover) | 0.2-0.3, 0.6 |
 | `parliament` | MP Scorecard, review UI, content publishing | 0.4-0.5 |
+| `accounts` | Magic Link auth, SchoolContact, token/email services | 1.6 |
 
 ## Commands
 
@@ -31,12 +32,12 @@
 # Development
 cd backend
 python manage.py runserver                    # Start dev server
-pytest                                        # Run backend tests (276 passing)
+pytest                                        # Run backend tests (309 passing)
 
 # Frontend
 cd frontend
 npm run dev                                    # Start dev server (port 3000)
-npm test                                       # Run frontend tests (98 passing)
+npm test                                       # Run frontend tests (112 passing)
 npm run build                                  # Production build
 
 # AI Analysis (requires GEMINI_API_KEY env var)
@@ -88,6 +89,8 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | `NEXT_PUBLIC_API_URL` | Frontend | Backend API URL (default: `http://localhost:8000`) |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Frontend | Google Maps JavaScript API key |
 | `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` | Frontend | Google Maps Map ID (for AdvancedMarker styling) |
+| `BREVO_API_KEY` | Sprint 1.6+ (prod) | Brevo transactional email API key (logs to console in dev if absent) |
+| `FRONTEND_URL` | Sprint 1.6+ (prod) | Next.js frontend URL for magic link emails (default: `http://localhost:3000`) |
 
 ## Data Files (not in git — too large)
 
@@ -121,6 +124,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 1.3 | Done | Next.js frontend: Google Maps + 528 school pins + clustering, state filter, search typeahead, Dockerfile. 26 new tests (302 total). |
 | 1.4 | Done | School profile pages: ISR route, SchoolProfile, StatCard, Breadcrumb, ClaimButton, MiniMap, MentionsSection, ConstituencySchools sidebar, SEO metadata, loading skeleton. 36 new tests (338 total). |
 | 1.5 | Done | Constituency + DUN pages: constituency detail, DUN detail, constituencies index, BoundaryMap, ScorecardCard, DemographicsCard, SchoolTable, ConstituencyList. 36 new tests (374 total). |
+| 1.6 | Done | Magic Link auth: accounts app, MagicLinkToken + SchoolContact, Brevo email, claim pages, @moe.edu.my validation, session auth. 47 new tests (421 total). |
 
 ## Production Infrastructure (Sprint 0.6)
 
@@ -134,14 +138,15 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-Sprint 1.6 — Magic Link Authentication
-- `accounts` Django app with MagicLinkToken + SchoolContact models
-- API: request-magic-link, verify, /me endpoints
-- Brevo transactional email integration
-- Next.js claim pages: /claim/, /claim/sent/, /claim/verify/[token]/
-- Requires @moe.edu.my email validation
+Sprint 1.7 — School Data Confirm/Edit + Admin Dashboard
+- Authenticated reps confirm/edit school data via `/school/[code]/edit/`
+- API: `GET/PUT /api/v1/schools/{code}/edit/`, `POST /api/v1/schools/{code}/confirm/`
+- Pre-filled edit form, "Confirm" (2-click) + "Edit" actions
+- Admin dashboard (Django templates): verification progress, recently verified, unverified by state
+- Requires Magic Link session from Sprint 1.6
+- Current codebase: 421 tests passing (309 backend + 112 frontend), 5 Django apps
 
-## Frontend (Sprint 1.3–1.5)
+## Frontend (Sprint 1.3–1.6)
 - **Stack**: Next.js 14, App Router, Tailwind CSS, TypeScript
 - **Map**: `@vis.gl/react-google-maps` + `@googlemaps/markerclusterer`
 - **API client**: `lib/api.ts` — auto-paginates, school/constituency/DUN detail, GeoJSON, mentions
@@ -149,7 +154,9 @@ Sprint 1.6 — Magic Link Authentication
 - **Constituency pages**: `/constituency/[code]` — ISR, scorecard, boundary map, demographics, school table, DUN list
 - **DUN pages**: `/dun/[id]` — ISR, demographics, boundary map, school table, constituency link
 - **Constituencies index**: `/constituencies/` — filterable table with state dropdown
-- **Tests**: Jest + React Testing Library (98 tests)
+- **Claim flow**: `/claim/` (email form), `/claim/verify/[token]/` (verification). ClaimForm component with pre-fill, loading/success/error states.
+- **Auth API**: `requestMagicLink`, `verifyMagicLink`, `fetchMe` — session-based via credentials: "include"
+- **Tests**: Jest + React Testing Library (112 tests)
 - **Build**: Standalone output, 107 kB first load JS
 - **Dockerfile**: Multi-stage (deps → build → runner), port 8080
 - **Env vars**: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID`

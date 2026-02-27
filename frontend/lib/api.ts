@@ -1,10 +1,12 @@
 import {
+  AuthUser,
   Constituency,
   ConstituencyDetail,
   DUN,
   DUNDetail,
   GeoJSONFeature,
   GeoJSONFeatureCollection,
+  MagicLinkResponse,
   PaginatedResponse,
   School,
   SchoolDetail,
@@ -195,4 +197,53 @@ export async function fetchDUNGeoJSON(
 export function getUniqueStates(schools: School[]): string[] {
   const states = new Set(schools.map((s) => s.state));
   return Array.from(states).sort();
+}
+
+/**
+ * Request a magic link for the given MOE email.
+ */
+export async function requestMagicLink(
+  email: string
+): Promise<MagicLinkResponse> {
+  const res = await fetch(`${BASE}/auth/request-magic-link/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || `API error: ${res.status}`);
+  }
+  return data;
+}
+
+/**
+ * Verify a magic link token.
+ */
+export async function verifyMagicLink(
+  token: string
+): Promise<AuthUser> {
+  const res = await fetch(`${BASE}/auth/verify/${token}/`, {
+    credentials: "include",
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || `API error: ${res.status}`);
+  }
+  return data;
+}
+
+/**
+ * Get current authenticated user.
+ */
+export async function fetchMe(): Promise<AuthUser | null> {
+  try {
+    const res = await fetch(`${BASE}/auth/me/`, {
+      credentials: "include",
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
 }

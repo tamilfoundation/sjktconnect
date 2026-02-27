@@ -131,3 +131,21 @@ export interface SearchResults {
   schools: School[];
   constituencies: Constituency[];
 }
+
+export interface MagicLinkResponse {
+  message: string;
+  school_name: string;
+}
+
+export interface AuthUser {
+  school_moe_code: string;
+  school_name: string;
+  email: string;
+  name: string;
+  role: string;
+  verified_at: string;
+}
+
+export interface ApiError {
+  error: string;
+}

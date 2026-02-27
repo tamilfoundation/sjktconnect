@@ -1,6 +1,6 @@
 # SJK(T) Connect — Architecture Map
 
-Last updated: Sprint 1.5 (27 Feb 2026)
+Last updated: Sprint 1.6 (27 Feb 2026)
 
 ## Stack
 
@@ -49,23 +49,34 @@ backend/
 │       ├── process_hansard.py     # Process a single sitting
 │       └── seed_aliases.py        # Generate SchoolAlias from School names
 │
-└── parliament/           # Parliament Watch (AI analysis + scorecards)
-    ├── models.py         # MPScorecard
+├── parliament/           # Parliament Watch (AI analysis + scorecards)
+│   ├── models.py         # MPScorecard
+│   ├── services/
+│   │   ├── gemini_client.py    # Gemini API wrapper
+│   │   ├── brief_generator.py  # Generate briefing notes from mentions
+│   │   └── scorecard.py        # Compute/update MP scorecards
+│   ├── api/
+│   │   ├── serializers.py
+│   │   ├── views.py
+│   │   └── urls.py       # /parliament/ endpoints
+│   ├── views.py          # Django template views (admin-facing)
+│   ├── forms.py
+│   ├── templatetags/
+│   │   └── highlight.py  # Template filter for keyword highlighting
+│   └── management/commands/
+│       ├── analyse_mentions.py   # AI analysis of mentions (Gemini)
+│       └── update_scorecards.py  # Recompute all MP scorecards
+│
+└── accounts/             # Magic Link authentication (Sprint 1.6)
+    ├── models.py         # MagicLinkToken (UUID, 24h expiry), SchoolContact (verified rep)
     ├── services/
-    │   ├── gemini_client.py    # Gemini API wrapper
-    │   ├── brief_generator.py  # Generate briefing notes from mentions
-    │   └── scorecard.py        # Compute/update MP scorecards
+    │   ├── token.py      # validate_moe_email, find_school_by_email, create/verify tokens
+    │   └── email.py      # Brevo transactional email (console fallback in dev)
     ├── api/
     │   ├── serializers.py
-    │   ├── views.py
-    │   └── urls.py       # /parliament/ endpoints
-    ├── views.py          # Django template views (admin-facing)
-    ├── forms.py
-    ├── templatetags/
-    │   └── highlight.py  # Template filter for keyword highlighting
-    └── management/commands/
-        ├── analyse_mentions.py   # AI analysis of mentions (Gemini)
-        └── update_scorecards.py  # Recompute all MP scorecards
+    │   ├── views.py      # RequestMagicLink, VerifyToken, Me
+    │   └── urls.py       # /auth/ endpoints
+    └── admin.py          # SchoolContact + MagicLinkToken admin
 ```
 
 ## Frontend — Next.js App Router
@@ -85,8 +96,12 @@ frontend/
 │   ├── dun/[id]/
 │   │   ├── page.tsx                   # ISR (1hr). DUN detail: schools, demographics, map
 │   │   └── loading.tsx
-│   └── constituencies/
-│       └── page.tsx                   # ISR (1hr). Constituency index: filterable table
+│   ├── constituencies/
+│   │   └── page.tsx                   # ISR (1hr). Constituency index: filterable table
+│   └── claim/
+│       ├── page.tsx                   # Claim form: enter @moe.edu.my email
+│       └── verify/[token]/
+│           └── page.tsx               # Token verification: success/error states
 │
 ├── components/
 │   ├── Header.tsx          # Nav: School Map, Constituencies, Parliament Watch
@@ -98,7 +113,8 @@ frontend/
 │   ├── SchoolProfile.tsx   # School detail: stat cards + info grid + political rep
 │   ├── StatCard.tsx        # Reusable stat display (label + value + icon)
 │   ├── Breadcrumb.tsx      # Navigation breadcrumbs
-│   ├── ClaimButton.tsx     # "Claim this school" CTA (disabled, Sprint 1.6)
+│   ├── ClaimButton.tsx     # "Claim this school" CTA — links to /claim/?school=CODE
+│   ├── ClaimForm.tsx       # Email form: MOE email input, loading/success/error states
 │   ├── MiniMap.tsx         # Single-pin embedded Google Map
 │   ├── MentionsSection.tsx # Parliament Watch mentions list
 │   ├── ConstituencySchools.tsx  # Sidebar: other schools in same constituency
@@ -110,11 +126,11 @@ frontend/
 │
 ├── lib/
 │   ├── types.ts            # All TypeScript interfaces
-│   └── api.ts              # API client: fetchSchools, fetchSchoolDetail, fetchConstituencies, etc.
+│   └── api.ts              # API client: fetchSchools, fetchSchoolDetail, fetchConstituencies, auth, etc.
 │
 └── __tests__/              # Jest + React Testing Library
-    ├── components/         # 14 component test files
-    └── lib/                # 3 API test files (schools, constituencies, school detail)
+    ├── components/         # 15 component test files
+    └── lib/                # 4 API test files (schools, constituencies, school detail, auth)
 ```
 
 ## Data Models (key relationships)
@@ -130,7 +146,9 @@ DUN (PK: auto ID, unique: code+constituency)
 
 School (PK: moe_code "JBD0050")
   ├── has many SchoolAliases (FK school)
-  └── has many MentionedSchools (FK school)
+  ├── has many MentionedSchools (FK school)
+  ├── has many SchoolContacts (FK school)     ← verified reps
+  └── has many MagicLinkTokens (FK school)    ← auth tokens
 
 HansardSitting (PK: auto ID, unique: sitting_date)
   └── has many HansardMentions (FK sitting)
@@ -153,6 +171,9 @@ AuditLog — standalone, tracks all admin actions
 | `/duns/<id>/` | GET | DUN detail (includes schools) |
 | `/duns/<id>/geojson/` | GET | DUN boundary as GeoJSON |
 | `/parliament/` | GET | Parliament Watch views (Django templates) |
+| `/auth/request-magic-link/` | POST | Send magic link email (requires @moe.edu.my) |
+| `/auth/verify/{token}/` | GET | Verify token, create session + SchoolContact |
+| `/auth/me/` | GET | Current authenticated school contact |
 
 ## Key Design Decisions
 
@@ -161,3 +182,5 @@ AuditLog — standalone, tracks all admin actions
 - **WKT → GeoJSON on the fly**: Boundaries stored as WKT text. `geojson.py` converts at request time.
 - **Auto-pagination in API client**: `fetchConstituencies()` iterates all pages automatically.
 - **Google Maps Data Layer for boundaries**: `map.data.addGeoJson()` instead of a Polygon component.
+- **Magic Link over passwords**: Schools don't need accounts — verify via MOE email, session-based auth.
+- **Brevo with console fallback**: No API key in dev → logs magic link to console. No paid service needed for development.

@@ -1,5 +1,33 @@
 # Changelog
 
+## Sprint 1.6 — Magic Link Authentication (2026-02-27)
+
+### Added
+- `accounts` Django app with `MagicLinkToken` and `SchoolContact` models
+- Magic link API: `POST /api/v1/auth/request-magic-link/`, `GET /api/v1/auth/verify/{token}/`, `GET /api/v1/auth/me/`
+- Token service: 24-hour expiry, UUID tokens, single-use validation
+- Email service: Brevo transactional email in production, console logging in development
+- @moe.edu.my email validation — matches school by MOE code or stored email
+- Session-based authentication after token verification
+- Next.js claim flow: `/claim/` (email form), `/claim/verify/[token]/` (verification)
+- ClaimForm component: email input with pre-fill from school code, loading/success/error states
+- ClaimButton now links to `/claim/?school=MOE_CODE` (was disabled placeholder)
+- Types: `MagicLinkResponse`, `AuthUser`, `ApiError`
+- API functions: `requestMagicLink`, `verifyMagicLink`, `fetchMe`
+- Admin: SchoolContact and MagicLinkToken registered with list display/filters/search
+- 33 new backend tests: models (7), token service (5), email validation (5), school matching (4), API endpoints (12)
+- 14 new frontend tests: ClaimForm (6), auth API (8)
+
+### Changed
+- ClaimButton: active link instead of disabled button
+
+### Test totals
+- Frontend: 112 passing (+14)
+- Backend: 309 passing (+33)
+- **Total: 421**
+
+---
+
 ## Sprint 1.5 — Constituency + DUN Pages (2026-02-27)
 
 ### Added
