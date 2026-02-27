@@ -250,20 +250,7 @@ REST API: 12 endpoints (School/Constituency/DUN/Scorecard/Brief/Search), CORS, p
 
 ---
 
-### Sprint 1.5: Constituency + DUN Pages
-
-**Goal**: 122 constituency + 222 DUN pages with school lists and aggregate stats.
-
-**Tasks**:
-1. Constituency page: `app/constituency/[code]/page.tsx` with SSG
-2. Content: MP name/party, scorecard snapshot, boundary map, demographics, school table, aggregate stats
-3. DUN page: `app/dun/[code]/page.tsx`
-4. Constituencies index page at `/constituencies/`
-5. SEO metadata
-
-**Files** (~9): `frontend/app/constituency/`, `app/dun/`, `app/constituencies/`, components (constituency profile, boundary map, school table, scorecard card, demographics card)
-
-**Acceptance**: 122 + 222 pages with correct data. Scorecard on constituency pages.
+### Sprint 1.5: Constituency + DUN Pages — DONE (2026-02-27, ISR approach, 36 tests, 374 total)
 
 ---
 

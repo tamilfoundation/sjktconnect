@@ -26,6 +26,12 @@ export default function Header() {
               School Map
             </Link>
             <Link
+              href="/constituencies"
+              className="text-sm font-medium text-gray-700 hover:text-primary-600"
+            >
+              Constituencies
+            </Link>
+            <Link
               href="/parliament-watch"
               className="text-sm font-medium text-gray-700 hover:text-primary-600"
             >
@@ -59,6 +65,13 @@ export default function Header() {
             onClick={() => setMenuOpen(false)}
           >
             School Map
+          </Link>
+          <Link
+            href="/constituencies"
+            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            onClick={() => setMenuOpen(false)}
+          >
+            Constituencies
           </Link>
           <Link
             href="/parliament-watch"

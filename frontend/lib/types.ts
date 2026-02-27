@@ -56,6 +56,70 @@ export interface Constituency {
   school_count: number;
 }
 
+export interface ConstituencyDetail {
+  code: string;
+  name: string;
+  state: string;
+  mp_name: string;
+  mp_party: string;
+  mp_coalition: string;
+  indian_population: number | null;
+  indian_percentage: number | null;
+  avg_income: number | null;
+  poverty_rate: number | null;
+  gini: number | null;
+  unemployment_rate: number | null;
+  schools: School[];
+  scorecard: Scorecard | null;
+}
+
+export interface Scorecard {
+  total_mentions: number;
+  substantive_mentions: number;
+  questions_asked: number;
+  commitments_made: number;
+  last_mention_date: string | null;
+}
+
+export interface DUN {
+  id: number;
+  code: string;
+  name: string;
+  state: string;
+  constituency_code: string;
+  adun_name: string;
+  adun_party: string;
+}
+
+export interface DUNDetail {
+  id: number;
+  code: string;
+  name: string;
+  state: string;
+  constituency_code: string;
+  constituency_name: string;
+  adun_name: string;
+  adun_party: string;
+  adun_coalition: string;
+  indian_population: number | null;
+  indian_percentage: number | null;
+  schools: School[];
+}
+
+export interface GeoJSONFeature {
+  type: "Feature";
+  geometry: {
+    type: string;
+    coordinates: number[][][] | number[][][][];
+  };
+  properties: Record<string, unknown>;
+}
+
+export interface GeoJSONFeatureCollection {
+  type: "FeatureCollection";
+  features: GeoJSONFeature[];
+}
+
 export interface PaginatedResponse<T> {
   count: number;
   next: string | null;

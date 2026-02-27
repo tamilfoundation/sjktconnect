@@ -1,4 +1,10 @@
 import {
+  Constituency,
+  ConstituencyDetail,
+  DUN,
+  DUNDetail,
+  GeoJSONFeature,
+  GeoJSONFeatureCollection,
   PaginatedResponse,
   School,
   SchoolDetail,
@@ -93,6 +99,93 @@ export async function fetchSchoolMentions(
     );
   } catch {
     return [];
+  }
+}
+
+/**
+ * Fetch all constituencies with optional state filter.
+ */
+export async function fetchConstituencies(
+  state?: string
+): Promise<Constituency[]> {
+  let url = `${BASE}/constituencies/?page_size=50`;
+  if (state) {
+    url += `&state=${encodeURIComponent(state)}`;
+  }
+  const items: Constituency[] = [];
+  let page = await fetchJSON<PaginatedResponse<Constituency>>(url);
+  items.push(...page.results);
+  while (page.next) {
+    page = await fetchJSON<PaginatedResponse<Constituency>>(page.next);
+    items.push(...page.results);
+  }
+  return items;
+}
+
+/**
+ * Fetch a single constituency detail by code.
+ */
+export async function fetchConstituencyDetail(
+  code: string
+): Promise<ConstituencyDetail> {
+  return fetchJSON<ConstituencyDetail>(`${BASE}/constituencies/${code}/`);
+}
+
+/**
+ * Fetch constituency boundary GeoJSON.
+ */
+export async function fetchConstituencyGeoJSON(
+  code: string
+): Promise<GeoJSONFeature | null> {
+  try {
+    return await fetchJSON<GeoJSONFeature>(
+      `${BASE}/constituencies/${code}/geojson/`
+    );
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch all DUNs with optional filters.
+ */
+export async function fetchDUNs(
+  options?: { state?: string; constituency?: string }
+): Promise<DUN[]> {
+  let url = `${BASE}/duns/?page_size=50`;
+  if (options?.state) {
+    url += `&state=${encodeURIComponent(options.state)}`;
+  }
+  if (options?.constituency) {
+    url += `&constituency=${encodeURIComponent(options.constituency)}`;
+  }
+  const items: DUN[] = [];
+  let page = await fetchJSON<PaginatedResponse<DUN>>(url);
+  items.push(...page.results);
+  while (page.next) {
+    page = await fetchJSON<PaginatedResponse<DUN>>(page.next);
+    items.push(...page.results);
+  }
+  return items;
+}
+
+/**
+ * Fetch a single DUN detail by ID.
+ */
+export async function fetchDUNDetail(id: number): Promise<DUNDetail> {
+  return fetchJSON<DUNDetail>(`${BASE}/duns/${id}/`);
+}
+
+/**
+ * Fetch DUN boundary GeoJSON.
+ */
+export async function fetchDUNGeoJSON(
+  id: number
+): Promise<GeoJSONFeature | null> {
+  try {
+    return await fetchJSON<GeoJSONFeature>(`${BASE}/duns/${id}/geojson/`);
+  } catch {
+    return null;
   }
 }
 

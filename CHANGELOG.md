@@ -1,5 +1,30 @@
 # Changelog
 
+## Sprint 1.5 — Constituency + DUN Pages (2026-02-27)
+
+### Added
+- Constituency page `/constituency/[code]` with ISR — MP info, scorecard, boundary map, demographics, school table, DUN list
+- DUN page `/dun/[id]` with ISR — ADUN info, demographics, boundary map, school table, parent constituency link
+- Constituencies index `/constituencies/` — browsable table with state filter, school counts, MP/party info
+- BoundaryMap component: Google Maps with GeoJSON overlay for constituency/DUN boundaries
+- ScorecardCard component: Parliament Watch scorecard stats (mentions, questions, commitments)
+- DemographicsCard component: Indian population, income, poverty rate, Gini, unemployment
+- SchoolTable component: sortable school list with links, enrolment, teacher count, PPD
+- ConstituencyList component: filterable table with state dropdown
+- "Constituencies" nav link added to Header (desktop + mobile)
+- API functions: `fetchConstituencies`, `fetchConstituencyDetail`, `fetchConstituencyGeoJSON`, `fetchDUNs`, `fetchDUNDetail`, `fetchDUNGeoJSON`
+- Types: `ConstituencyDetail`, `Scorecard`, `DUN`, `DUNDetail`, `GeoJSONFeature`, `GeoJSONFeatureCollection`
+- Loading skeletons for constituency and DUN pages
+- SEO metadata for all new pages
+- 36 new frontend tests: API (9), ScorecardCard (7), DemographicsCard (7), SchoolTable (7), ConstituencyList (6)
+
+### Test totals
+- Frontend: 98 passing (+36)
+- Backend: 276 passing (unchanged)
+- **Total: 374**
+
+---
+
 ## Sprint 1.4 — School Profile Pages (2026-02-27)
 
 ### Added
