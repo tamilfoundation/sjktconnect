@@ -246,21 +246,7 @@ REST API: 12 endpoints (School/Constituency/DUN/Scorecard/Brief/Search), CORS, p
 
 ---
 
-### Sprint 1.4: School Profile Pages (SSR)
-
-**Goal**: SEO-friendly page per school with full profile data.
-
-**Tasks**:
-1. Dynamic route `app/school/[moe_code]/page.tsx` with `generateStaticParams` (SSG for 528 schools)
-2. Profile layout: name, code, address, enrolment, teachers, constituency, DUN, embedded map, grade, SKM status
-3. "Claim This Page" CTA button (prominent, above fold)
-4. SEO metadata (title, description, Open Graph)
-5. Breadcrumbs, "Schools in this constituency" sidebar
-6. Parliament Watch mentions section (if any)
-
-**Files** (~8): `frontend/app/school/[moe_code]/` (page, loading), components (profile, mini-map, claim button, breadcrumb, mentions, stat card)
-
-**Acceptance**: 528 school pages generated, SEO metadata present, "Claim This Page" visible.
+### Sprint 1.4: School Profile Pages — DONE (2026-02-27, ISR approach, 36 tests, 338 total)
 
 ---
 

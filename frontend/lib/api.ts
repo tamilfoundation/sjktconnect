@@ -1,4 +1,10 @@
-import { PaginatedResponse, School, SearchResults } from "./types";
+import {
+  PaginatedResponse,
+  School,
+  SchoolDetail,
+  SchoolMention,
+  SearchResults,
+} from "./types";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -51,6 +57,43 @@ export async function searchEntities(
   return fetchJSON<SearchResults>(
     `${BASE}/search/?q=${encodeURIComponent(query)}`
   );
+}
+
+/**
+ * Fetch a single school's full profile by MOE code.
+ */
+export async function fetchSchoolDetail(
+  moeCode: string
+): Promise<SchoolDetail> {
+  return fetchJSON<SchoolDetail>(`${BASE}/schools/${moeCode}/`);
+}
+
+/**
+ * Fetch all schools in the same constituency as the given school.
+ */
+export async function fetchSchoolsByConstituency(
+  constituencyCode: string
+): Promise<School[]> {
+  const page = await fetchJSON<PaginatedResponse<School>>(
+    `${BASE}/schools/?constituency=${encodeURIComponent(constituencyCode)}&page_size=50`
+  );
+  return page.results;
+}
+
+/**
+ * Fetch parliamentary mentions for a school.
+ * Returns empty array if endpoint not available yet.
+ */
+export async function fetchSchoolMentions(
+  moeCode: string
+): Promise<SchoolMention[]> {
+  try {
+    return await fetchJSON<SchoolMention[]>(
+      `${BASE}/schools/${moeCode}/mentions/`
+    );
+  } catch {
+    return [];
+  }
 }
 
 /**

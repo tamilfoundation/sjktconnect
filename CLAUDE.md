@@ -12,8 +12,8 @@
 ## Project Status
 
 - **Current Phase**: Phase 1 — The Seed
-- **Current Sprint**: 1.3 DONE. Next: 1.4
-- **Tests**: 302 passing (276 backend + 26 frontend)
+- **Current Sprint**: 1.4 DONE. Next: 1.5
+- **Tests**: 338 passing (276 backend + 62 frontend)
 - **Live URL**: https://sjktconnect-api-90344691621.asia-southeast1.run.app
 
 ## Apps
@@ -36,7 +36,7 @@ pytest                                        # Run backend tests (276 passing)
 # Frontend
 cd frontend
 npm run dev                                    # Start dev server (port 3000)
-npm test                                       # Run frontend tests (26 passing)
+npm test                                       # Run frontend tests (62 passing)
 npm run build                                  # Production build
 
 # AI Analysis (requires GEMINI_API_KEY env var)
@@ -119,6 +119,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 1.1 | Done | WKT boundary import + GeoJSON API: boundary_wkt on Constituency/DUN, shapely + DRF, 4 GeoJSON endpoints. 19 new tests (239 total). |
 | 1.2 | Done | REST API: School/Constituency/DUN/Scorecard/Brief endpoints, search, CORS, pagination. 37 new tests (276 total). |
 | 1.3 | Done | Next.js frontend: Google Maps + 528 school pins + clustering, state filter, search typeahead, Dockerfile. 26 new tests (302 total). |
+| 1.4 | Done | School profile pages: ISR route, SchoolProfile, StatCard, Breadcrumb, ClaimButton, MiniMap, MentionsSection, ConstituencySchools sidebar, SEO metadata, loading skeleton. 36 new tests (338 total). |
 
 ## Production Infrastructure (Sprint 0.6)
 
@@ -132,19 +133,19 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-Sprint 1.4 — School Profile Pages (SSR)
-- Dynamic route `app/school/[moe_code]/page.tsx` with SSG for 528 schools
-- Profile layout: name, code, address, enrolment, teachers, constituency, DUN, embedded map, grade, SKM status
-- "Claim This Page" CTA button (prominent, above fold)
-- SEO metadata (title, description, Open Graph)
-- Breadcrumbs, "Schools in this constituency" sidebar
-- Parliament Watch mentions section (if any)
+Sprint 1.5 — Constituency + DUN Pages
+- Constituency page: `app/constituency/[code]/page.tsx` with ISR
+- Content: MP name/party, scorecard snapshot, boundary map, demographics, school table, aggregate stats
+- DUN page: `app/dun/[code]/page.tsx`
+- Constituencies index page at `/constituencies/`
+- SEO metadata
 
-## Frontend (Sprint 1.3)
+## Frontend (Sprint 1.3–1.4)
 - **Stack**: Next.js 14, App Router, Tailwind CSS, TypeScript
 - **Map**: `@vis.gl/react-google-maps` + `@googlemaps/markerclusterer`
-- **API client**: `lib/api.ts` — auto-paginates through all schools (50/page)
-- **Tests**: Jest + React Testing Library (26 tests)
+- **API client**: `lib/api.ts` — auto-paginates through all schools (50/page), school detail, constituency schools, mentions
+- **School profiles**: `/school/[moe_code]` — ISR (revalidate 3600s), SEO metadata, Breadcrumb, ClaimButton, SchoolProfile, MiniMap, MentionsSection, ConstituencySchools sidebar
+- **Tests**: Jest + React Testing Library (62 tests)
 - **Build**: Standalone output, 107 kB first load JS
 - **Dockerfile**: Multi-stage (deps → build → runner), port 8080
 - **Env vars**: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID`

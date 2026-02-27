@@ -30,7 +30,21 @@ export interface SchoolDetail extends School {
   session_type: string;
   skm_eligible: boolean;
   location_type: string;
+  dun_code: string | null;
   dun_name: string | null;
+  last_verified: string | null;
+}
+
+export interface SchoolMention {
+  sitting_date: string;
+  mp_name: string;
+  mp_constituency: string;
+  mp_party: string;
+  mention_type: string;
+  significance: number | null;
+  sentiment: string;
+  ai_summary: string;
+  verbatim_quote: string;
 }
 
 export interface Constituency {

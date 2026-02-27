@@ -1,5 +1,30 @@
 # Changelog
 
+## Sprint 1.4 — School Profile Pages (2026-02-27)
+
+### Added
+- Dynamic school profile route `app/school/[moe_code]/page.tsx` with ISR (revalidates hourly)
+- SchoolProfile component: stat cards (enrolment, teachers, grade, SKM), full detail grid, political representation section
+- StatCard component: reusable stat display with number formatting
+- Breadcrumb navigation: Home > State > School
+- ClaimButton component: "Claim This Page" CTA (disabled, coming in Sprint 1.6)
+- MiniMap component: embedded Google Map with single school pin
+- MentionsSection component: Parliament Watch mentions with MP name, party, significance, date
+- ConstituencySchools sidebar: links to other schools in the same constituency
+- Loading skeleton (`loading.tsx`) for school pages
+- Not-found page for invalid school codes
+- API functions: `fetchSchoolDetail`, `fetchSchoolsByConstituency`, `fetchSchoolMentions`
+- `SchoolMention` TypeScript type
+- SEO metadata: dynamic title, description, Open Graph tags per school
+- 36 new frontend tests: API (5), StatCard (3), Breadcrumb (5), ClaimButton (4), MentionsSection (7), ConstituencySchools (4), SchoolProfile (8)
+
+### Test totals
+- Frontend: 62 passing (+36)
+- Backend: 276 passing (unchanged)
+- **Total: 338**
+
+---
+
 ## Sprint 1.3 — Next.js Frontend + School Map (2026-02-27)
 
 ### Added
