@@ -1,6 +1,6 @@
 # SJK(T) Connect — Architecture Map
 
-Last updated: Sprint 1.7 (28 Feb 2026)
+Last updated: Sprint 1.8 (28 Feb 2026)
 
 ## Stack
 
@@ -69,17 +69,30 @@ backend/
 │       ├── analyse_mentions.py   # AI analysis of mentions (Gemini)
 │       └── update_scorecards.py  # Recompute all MP scorecards
 │
-└── accounts/             # Magic Link authentication (Sprint 1.6)
-    ├── models.py         # MagicLinkToken (UUID, 24h expiry), SchoolContact (verified rep)
-    ├── permissions.py    # IsMagicLinkAuthenticated — DRF permission for session-based auth
+├── accounts/             # Magic Link authentication (Sprint 1.6)
+│   ├── models.py         # MagicLinkToken (UUID, 24h expiry), SchoolContact (verified rep)
+│   ├── permissions.py    # IsMagicLinkAuthenticated — DRF permission for session-based auth
+│   ├── services/
+│   │   ├── token.py      # validate_moe_email, find_school_by_email, create/verify tokens
+│   │   └── email.py      # Brevo transactional email (console fallback in dev)
+│   ├── api/
+│   │   ├── serializers.py
+│   │   ├── views.py      # RequestMagicLink, VerifyToken, Me
+│   │   └── urls.py       # /auth/ endpoints
+│   └── admin.py          # SchoolContact + MagicLinkToken admin
+│
+└── outreach/             # School images + email outreach (Sprint 1.8)
+    ├── models.py         # SchoolImage (satellite/places/manual), OutreachEmail (Brevo tracking)
     ├── services/
-    │   ├── token.py      # validate_moe_email, find_school_by_email, create/verify tokens
-    │   └── email.py      # Brevo transactional email (console fallback in dev)
-    ├── api/
-    │   ├── serializers.py
-    │   ├── views.py      # RequestMagicLink, VerifyToken, Me
-    │   └── urls.py       # /auth/ endpoints
-    └── admin.py          # SchoolContact + MagicLinkToken admin
+    │   ├── image_harvester.py  # Google Static Maps + Places API image harvesting
+    │   └── email_sender.py     # Brevo outreach email sending (console fallback in dev)
+    ├── management/commands/
+    │   ├── harvest_school_images.py  # Harvest images: --limit, --state, --source, --dry-run
+    │   └── send_outreach_emails.py   # Send emails: --limit, --state, --dry-run
+    ├── admin.py          # SchoolImage + OutreachEmail admin
+    └── tests/
+        ├── test_image_harvester.py   # 18 tests (satellite, places, command)
+        └── test_email_sender.py      # 16 tests (email, models, command, API)
 ```
 
 ## Frontend — Next.js App Router
@@ -122,6 +135,7 @@ frontend/
 │   ├── ClaimForm.tsx       # Email form: MOE email input, loading/success/error states
 │   ├── EditSchoolLink.tsx  # Auth-aware: shows edit link only for authenticated school reps
 │   ├── SchoolEditForm.tsx  # Pre-filled school edit form: confirm (2-click) + edit + save/cancel
+│   ├── SchoolImage.tsx     # Hero image for school profile (lazy loading, responsive)
 │   ├── MiniMap.tsx         # Single-pin embedded Google Map
 │   ├── MentionsSection.tsx # Parliament Watch mentions list
 │   ├── ConstituencySchools.tsx  # Sidebar: other schools in same constituency
@@ -136,7 +150,7 @@ frontend/
 │   └── api.ts              # API client: fetchSchools, fetchSchoolDetail, fetchConstituencies, auth, etc.
 │
 └── __tests__/              # Jest + React Testing Library
-    ├── components/         # 17 component test files
+    ├── components/         # 18 component test files
     └── lib/                # 5 API test files (schools, constituencies, school detail, auth, edit)
 ```
 
@@ -155,7 +169,9 @@ School (PK: moe_code "JBD0050")
   ├── has many SchoolAliases (FK school)
   ├── has many MentionedSchools (FK school)
   ├── has many SchoolContacts (FK school)     ← verified reps
-  └── has many MagicLinkTokens (FK school)    ← auth tokens
+  ├── has many MagicLinkTokens (FK school)    ← auth tokens
+  ├── has many SchoolImages (FK school)       ← satellite/places photos
+  └── has many OutreachEmails (FK school)     ← email tracking
 
 HansardSitting (PK: auto ID, unique: sitting_date)
   └── has many HansardMentions (FK sitting)

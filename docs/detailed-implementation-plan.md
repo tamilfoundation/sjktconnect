@@ -262,21 +262,7 @@ REST API: 12 endpoints (School/Constituency/DUN/Scorecard/Brief/Search), CORS, p
 
 ---
 
-### Sprint 1.8: Outreach App + School Images + Email Outreach
-
-**Goal**: Build outreach app, harvest sample images (10 schools), build email outreach command.
-
-**Tasks**:
-1. Create `outreach` app with `SchoolImage`, `OutreachEmail` models + migration
-2. `harvest_school_images` command — satellite (from GPS, free) + Places API (paid, real photos). `--limit`, `--state`, `--source`, `--dry-run`. Sample: 10 schools.
-3. `send_outreach_emails` command — Brevo introduction emails, batched, `--limit`, `--state`, `--dry-run`
-4. Add `image_url` to School API detail serializer
-5. Update school profile page in frontend to display primary image
-6. Tests for all (API calls mocked)
-
-**Files** (~14): `outreach/` (models, apps, admin, 2 services, 2 commands, tests), modified school serializer, modified frontend profile + types + api
-
-**Acceptance**: 10 schools have images. Outreach email `--dry-run` works. Frontend shows school image.
+### Sprint 1.8: DONE (2026-02-28) — Outreach App + School Images + Email Outreach, 37 new tests (509 total)
 
 ---
 

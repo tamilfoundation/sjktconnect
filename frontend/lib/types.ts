@@ -33,6 +33,7 @@ export interface SchoolDetail extends School {
   dun_code: string | null;
   dun_name: string | null;
   last_verified: string | null;
+  image_url: string | null;
 }
 
 export interface SchoolMention {

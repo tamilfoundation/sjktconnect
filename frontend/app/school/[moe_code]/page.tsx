@@ -8,6 +8,7 @@ import {
 import Breadcrumb from "@/components/Breadcrumb";
 import ClaimButton from "@/components/ClaimButton";
 import EditSchoolLink from "@/components/EditSchoolLink";
+import SchoolImage from "@/components/SchoolImage";
 import SchoolProfile from "@/components/SchoolProfile";
 import MiniMap from "@/components/MiniMap";
 import MentionsSection from "@/components/MentionsSection";
@@ -70,6 +71,14 @@ export default async function SchoolPage({ params }: PageProps) {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <Breadcrumb items={breadcrumbItems} />
+
+      {/* School Image */}
+      {school.image_url && (
+        <SchoolImage
+          imageUrl={school.image_url}
+          schoolName={school.short_name || school.name}
+        />
+      )}
 
       {/* School Header */}
       <div className="mb-6">

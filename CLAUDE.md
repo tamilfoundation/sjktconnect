@@ -12,8 +12,8 @@
 ## Project Status
 
 - **Current Phase**: Phase 1 — The Seed
-- **Current Sprint**: 1.7 DONE. Next: 1.8
-- **Tests**: 472 passing (341 backend + 131 frontend)
+- **Current Sprint**: 1.8 DONE. Next: 1.9
+- **Tests**: 509 passing (375 backend + 134 frontend)
 - **Live URL**: https://sjktconnect-api-90344691621.asia-southeast1.run.app
 
 ## Apps
@@ -25,6 +25,7 @@
 | `hansard` | Hansard pipeline (download, extract, search, match, discover) | 0.2-0.3, 0.6 |
 | `parliament` | MP Scorecard, review UI, content publishing | 0.4-0.5 |
 | `accounts` | Magic Link auth, SchoolContact, token/email services | 1.6 |
+| `outreach` | SchoolImage, OutreachEmail, image harvesting, email campaigns | 1.8 |
 
 ## Commands
 
@@ -32,12 +33,12 @@
 # Development
 cd backend
 python manage.py runserver                    # Start dev server
-pytest                                        # Run backend tests (341 passing)
+pytest                                        # Run backend tests (375 passing)
 
 # Frontend
 cd frontend
 npm run dev                                    # Start dev server (port 3000)
-npm test                                       # Run frontend tests (131 passing)
+npm test                                       # Run frontend tests (134 passing)
 npm run build                                  # Production build
 
 # AI Analysis (requires GEMINI_API_KEY env var)
@@ -66,6 +67,17 @@ python manage.py check_new_hansards --start 2026-01-01 --end 2026-03-31
 python manage.py seed_aliases                 # Generate aliases for all 528 schools
 python manage.py seed_aliases --clear         # Re-seed (delete non-HANSARD aliases first)
 
+# Outreach (Sprint 1.8)
+python manage.py harvest_school_images                     # Harvest images (satellite + places)
+python manage.py harvest_school_images --limit 10          # Sample: 10 schools
+python manage.py harvest_school_images --source satellite  # Satellite only
+python manage.py harvest_school_images --state Johor       # Filter by state
+python manage.py harvest_school_images --dry-run           # Preview
+python manage.py send_outreach_emails                      # Send outreach emails
+python manage.py send_outreach_emails --limit 50           # Batch: 50 emails
+python manage.py send_outreach_emails --state Johor        # Filter by state
+python manage.py send_outreach_emails --dry-run            # Preview
+
 # Deployment (verify account first!)
 gcloud config set account tamiliam@gmail.com
 gcloud config set project gen-lang-client-0871147736
@@ -91,6 +103,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` | Frontend | Google Maps Map ID (for AdvancedMarker styling) |
 | `BREVO_API_KEY` | Sprint 1.6+ (prod) | Brevo transactional email API key (logs to console in dev if absent) |
 | `FRONTEND_URL` | Sprint 1.6+ (prod) | Next.js frontend URL for magic link emails (default: `http://localhost:3000`) |
+| `GOOGLE_MAPS_API_KEY` | Sprint 1.8+ | Backend Google Maps API key for image harvesting (falls back to `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`) |
 
 ## Data Files (not in git — too large)
 
@@ -126,6 +139,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 1.5 | Done | Constituency + DUN pages: constituency detail, DUN detail, constituencies index, BoundaryMap, ScorecardCard, DemographicsCard, SchoolTable, ConstituencyList. 36 new tests (374 total). |
 | 1.6 | Done | Magic Link auth: accounts app, MagicLinkToken + SchoolContact, Brevo email, claim pages, @moe.edu.my validation, session auth. 47 new tests (421 total). |
 | 1.7 | Done | School Data Confirm/Edit + Admin Dashboard: IsMagicLinkAuthenticated permission, edit/confirm API, Next.js edit page, verification dashboard. 51 new tests (472 total). |
+| 1.8 | Done | Outreach app: SchoolImage + OutreachEmail models, image harvesting (satellite + Places), email outreach (Brevo), image_url on API, SchoolImage component. 37 new tests (509 total). |
 
 ## Production Infrastructure (Sprint 0.6)
 
@@ -139,19 +153,22 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-Sprint 1.8 — School Images + Email Outreach + Full Deployment
-- Create `outreach` app: `SchoolImage`, `OutreachEmail` models
-- `harvest_school_images` command — Google Places → Street View → Satellite fallback (~$5 total)
-- `send_outreach_emails` command — Brevo, batched 50/day, `--state` filter, `--dry-run`
-- Update school profile page to display primary image
-- Deploy full stack: `sjktconnect-api` (update), `sjktconnect-web` (new), custom domain `tamilschool.org.my`
-- Current codebase: 472 tests passing (341 backend + 131 frontend), 5 Django apps
+Sprint 1.9 — Full Stack Deployment + Phase 1 Close
+- Deploy updated `sjktconnect-api` (all Sprint 1.7-1.8 changes)
+- Deploy `sjktconnect-web` (new Cloud Run service for Next.js frontend)
+- Custom domain `tamilschool.org.my` → Cloud Run mapping
+- Set production env vars (BREVO_API_KEY, FRONTEND_URL, GOOGLE_MAPS_API_KEY)
+- End-to-end smoke test
+- Harvest remaining school images (full 528)
+- Send first outreach batch (1 state, `--limit 50`)
+- Phase 1 retrospective + docs
+- Current codebase: 509 tests passing (375 backend + 134 frontend), 6 Django apps
 
-## Frontend (Sprint 1.3–1.7)
+## Frontend (Sprint 1.3–1.8)
 - **Stack**: Next.js 14, App Router, Tailwind CSS, TypeScript
 - **Map**: `@vis.gl/react-google-maps` + `@googlemaps/markerclusterer`
 - **API client**: `lib/api.ts` — auto-paginates, school/constituency/DUN detail, GeoJSON, mentions, edit/confirm
-- **School profiles**: `/school/[moe_code]` — ISR, SEO, Breadcrumb, ClaimButton, EditSchoolLink, SchoolProfile, MiniMap, MentionsSection, ConstituencySchools sidebar
+- **School profiles**: `/school/[moe_code]` — ISR, SEO, SchoolImage (hero), Breadcrumb, ClaimButton, EditSchoolLink, SchoolProfile, MiniMap, MentionsSection, ConstituencySchools sidebar
 - **School edit**: `/school/[moe_code]/edit/` — pre-filled edit form, confirm (2-click) + edit actions, auth-gated
 - **Constituency pages**: `/constituency/[code]` — ISR, scorecard, boundary map, demographics, school table, DUN list
 - **DUN pages**: `/dun/[id]` — ISR, demographics, boundary map, school table, constituency link
@@ -159,7 +176,7 @@ Sprint 1.8 — School Images + Email Outreach + Full Deployment
 - **Claim flow**: `/claim/` (email form), `/claim/verify/[token]/` (verification). ClaimForm component with pre-fill, loading/success/error states.
 - **Auth API**: `requestMagicLink`, `verifyMagicLink`, `fetchMe` — session-based via credentials: "include"
 - **Edit API**: `fetchSchoolEdit`, `updateSchool`, `confirmSchool` — session-based, school ownership validated server-side
-- **Tests**: Jest + React Testing Library (131 tests)
+- **Tests**: Jest + React Testing Library (134 tests)
 - **Build**: Standalone output, 107 kB first load JS
 - **Dockerfile**: Multi-stage (deps → build → runner), port 8080
 - **Env vars**: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID`

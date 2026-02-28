@@ -44,6 +44,7 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
     )
     dun_code = serializers.CharField(source="dun.code", default=None)
     dun_name = serializers.CharField(source="dun.name", default=None)
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = School
@@ -79,7 +80,15 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
             "location_type",
             "is_active",
             "last_verified",
+            "image_url",
         ]
+
+    def get_image_url(self, obj):
+        """Return the primary image URL for this school, or None."""
+        primary = obj.images.filter(is_primary=True).first()
+        if primary:
+            return primary.image_url
+        return None
 
 
 class SchoolEditSerializer(serializers.ModelSerializer):

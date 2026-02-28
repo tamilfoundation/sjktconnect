@@ -1,5 +1,34 @@
 # Changelog
 
+## Sprint 1.8 — Outreach App + School Images + Email Outreach (2026-02-28)
+
+### Added
+- `outreach` Django app (6th app) with `SchoolImage` and `OutreachEmail` models + migration
+- `SchoolImage` model: image URL, source (SATELLITE/STREET_VIEW/PLACES/MANUAL), primary flag, attribution, photo reference
+- `OutreachEmail` model: recipient, subject, status (PENDING/SENT/FAILED/BOUNCED), Brevo message ID tracking
+- `harvest_school_images` management command — Google Static Maps (satellite) + Places API (real photos), `--limit`, `--state`, `--source`, `--dry-run` flags
+- `send_outreach_emails` management command — Brevo introduction emails with school page + claim links, `--limit`, `--state`, `--dry-run` flags, skips already-emailed schools
+- Image harvester service: `harvest_satellite_image` (GPS → static map URL), `harvest_places_image` (Places API search + photo reference), `harvest_images_for_school` (both sources)
+- Email sender service: `send_outreach_email` with Brevo API integration and console fallback in dev
+- Admin registration for SchoolImage and OutreachEmail with list display, filters, search
+- `SchoolImage` frontend component — responsive image with lazy loading, rounded border
+- `GOOGLE_MAPS_API_KEY` backend env var (falls back to `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)
+- 34 new backend tests: satellite harvest (5), places harvest (6), combined harvest (2), harvest command (5), email sending (4), email model (2), image model (2), email command (6), API image_url (2)
+- 3 new frontend tests: SchoolImage component (src/alt, lazy loading, responsive classes)
+
+### Changed
+- `SchoolDetailSerializer` now includes `image_url` field (primary image URL from SchoolImage or null)
+- School profile page displays hero image above header when `image_url` is available
+- `SchoolDetail` TypeScript type extended with `image_url: string | null`
+- `INSTALLED_APPS` in base settings: added `outreach`
+
+### Test totals
+- Frontend: 134 passing (+3)
+- Backend: 375 passing (+34)
+- **Total: 509**
+
+---
+
 ## Sprint 1.7 — School Data Confirm/Edit + Admin Dashboard (2026-02-28)
 
 ### Added
