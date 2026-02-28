@@ -1,6 +1,6 @@
 # SJK(T) Connect — Architecture Map
 
-Last updated: Sprint 1.6 (27 Feb 2026)
+Last updated: Sprint 1.7 (28 Feb 2026)
 
 ## Stack
 
@@ -24,9 +24,11 @@ backend/
 │
 ├── schools/              # School + geography data
 │   ├── models.py         # Constituency, DUN, School
+│   ├── views.py          # VerificationDashboardView (admin, login required)
+│   ├── urls.py           # /dashboard/verification/
 │   ├── api/
-│   │   ├── serializers.py
-│   │   ├── views.py      # SchoolList, SchoolDetail, ConstituencyList/Detail, DUNList/Detail
+│   │   ├── serializers.py  # SchoolList/Detail/Edit, Constituency, DUN serializers
+│   │   ├── views.py      # SchoolList, SchoolDetail, SchoolEdit, SchoolConfirm, Constituency/DUN
 │   │   ├── geojson.py    # GeoJSON endpoint (WKT → GeoJSON conversion)
 │   │   └── urls.py       # /schools/, /constituencies/, /duns/
 │   └── management/commands/
@@ -69,6 +71,7 @@ backend/
 │
 └── accounts/             # Magic Link authentication (Sprint 1.6)
     ├── models.py         # MagicLinkToken (UUID, 24h expiry), SchoolContact (verified rep)
+    ├── permissions.py    # IsMagicLinkAuthenticated — DRF permission for session-based auth
     ├── services/
     │   ├── token.py      # validate_moe_email, find_school_by_email, create/verify tokens
     │   └── email.py      # Brevo transactional email (console fallback in dev)
@@ -88,6 +91,8 @@ frontend/
 │   ├── page.tsx                       # Home: school map with 528 pins, search, state filter
 │   ├── school/[moe_code]/
 │   │   ├── page.tsx                   # ISR (1hr). School profile: stats, details, political rep
+│   │   ├── edit/
+│   │   │   └── page.tsx               # Client-side. Auth-gated school edit form
 │   │   ├── loading.tsx                # Skeleton
 │   │   └── not-found.tsx              # 404
 │   ├── constituency/[code]/
@@ -115,6 +120,8 @@ frontend/
 │   ├── Breadcrumb.tsx      # Navigation breadcrumbs
 │   ├── ClaimButton.tsx     # "Claim this school" CTA — links to /claim/?school=CODE
 │   ├── ClaimForm.tsx       # Email form: MOE email input, loading/success/error states
+│   ├── EditSchoolLink.tsx  # Auth-aware: shows edit link only for authenticated school reps
+│   ├── SchoolEditForm.tsx  # Pre-filled school edit form: confirm (2-click) + edit + save/cancel
 │   ├── MiniMap.tsx         # Single-pin embedded Google Map
 │   ├── MentionsSection.tsx # Parliament Watch mentions list
 │   ├── ConstituencySchools.tsx  # Sidebar: other schools in same constituency
@@ -129,8 +136,8 @@ frontend/
 │   └── api.ts              # API client: fetchSchools, fetchSchoolDetail, fetchConstituencies, auth, etc.
 │
 └── __tests__/              # Jest + React Testing Library
-    ├── components/         # 15 component test files
-    └── lib/                # 4 API test files (schools, constituencies, school detail, auth)
+    ├── components/         # 17 component test files
+    └── lib/                # 5 API test files (schools, constituencies, school detail, auth, edit)
 ```
 
 ## Data Models (key relationships)
@@ -171,6 +178,8 @@ AuditLog — standalone, tracks all admin actions
 | `/duns/<id>/` | GET | DUN detail (includes schools) |
 | `/duns/<id>/geojson/` | GET | DUN boundary as GeoJSON |
 | `/parliament/` | GET | Parliament Watch views (Django templates) |
+| `/schools/<moe_code>/edit/` | GET/PUT | View/update school data (Magic Link auth) |
+| `/schools/<moe_code>/confirm/` | POST | 2-click school data confirmation (Magic Link auth) |
 | `/auth/request-magic-link/` | POST | Send magic link email (requires @moe.edu.my) |
 | `/auth/verify/{token}/` | GET | Verify token, create session + SchoolContact |
 | `/auth/me/` | GET | Current authenticated school contact |

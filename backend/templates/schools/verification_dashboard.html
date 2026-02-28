@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Verification Dashboard — SJK(T) Connect{% endblock %}
+
+{% block content %}
+<h1>School Data Verification</h1>
+
+{# Progress Overview #}
+<div class="card">
+    <h2>Progress</h2>
+    <div class="progress-bar-container">
+        <div class="progress-bar" style="width: {{ progress_percent }}%"></div>
+    </div>
+    <p class="progress-text">
+        <strong>{{ verified_count }}</strong> of <strong>{{ total_schools }}</strong> schools verified
+        ({{ progress_percent }}%)
+        &mdash; <strong>{{ unverified_count }}</strong> remaining
+    </p>
+</div>
+
+{# Unverified by State #}
+<div class="card">
+    <h2>Unverified Schools by State</h2>
+    {% if unverified_by_state %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>State</th>
+                <th>Unverified</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in unverified_by_state %}
+            <tr>
+                <td>{{ row.state }}</td>
+                <td>{{ row.count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">All schools have been verified!</p>
+    {% endif %}
+</div>
+
+{# Recently Verified #}
+<div class="card">
+    <h2>Recently Verified</h2>
+    {% if recently_verified %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>School</th>
+                <th>State</th>
+                <th>Verified</th>
+                <th>By</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for school in recently_verified %}
+            <tr>
+                <td>
+                    <strong>{{ school.short_name }}</strong>
+                    <span class="muted">({{ school.moe_code }})</span>
+                </td>
+                <td>{{ school.state }}</td>
+                <td>{{ school.last_verified|date:"d M Y H:i" }}</td>
+                <td>{{ school.verified_by }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No schools verified yet.</p>
+    {% endif %}
+</div>
+
+{# Registered Contacts #}
+<div class="card">
+    <h2>Registered School Contacts</h2>
+    {% if contacts %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>School</th>
+                <th>Email</th>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Registered</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for contact in contacts %}
+            <tr>
+                <td>{{ contact.school.short_name }}</td>
+                <td>{{ contact.email }}</td>
+                <td>{{ contact.name|default:"-" }}</td>
+                <td>{{ contact.role|default:"-" }}</td>
+                <td>{{ contact.verified_at|date:"d M Y H:i" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No contacts registered yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

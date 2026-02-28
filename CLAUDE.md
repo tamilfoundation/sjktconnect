@@ -12,8 +12,8 @@
 ## Project Status
 
 - **Current Phase**: Phase 1 — The Seed
-- **Current Sprint**: 1.6 DONE. Next: 1.7
-- **Tests**: 421 passing (309 backend + 112 frontend)
+- **Current Sprint**: 1.7 DONE. Next: 1.8
+- **Tests**: 472 passing (341 backend + 131 frontend)
 - **Live URL**: https://sjktconnect-api-90344691621.asia-southeast1.run.app
 
 ## Apps
@@ -32,12 +32,12 @@
 # Development
 cd backend
 python manage.py runserver                    # Start dev server
-pytest                                        # Run backend tests (309 passing)
+pytest                                        # Run backend tests (341 passing)
 
 # Frontend
 cd frontend
 npm run dev                                    # Start dev server (port 3000)
-npm test                                       # Run frontend tests (112 passing)
+npm test                                       # Run frontend tests (131 passing)
 npm run build                                  # Production build
 
 # AI Analysis (requires GEMINI_API_KEY env var)
@@ -125,6 +125,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 1.4 | Done | School profile pages: ISR route, SchoolProfile, StatCard, Breadcrumb, ClaimButton, MiniMap, MentionsSection, ConstituencySchools sidebar, SEO metadata, loading skeleton. 36 new tests (338 total). |
 | 1.5 | Done | Constituency + DUN pages: constituency detail, DUN detail, constituencies index, BoundaryMap, ScorecardCard, DemographicsCard, SchoolTable, ConstituencyList. 36 new tests (374 total). |
 | 1.6 | Done | Magic Link auth: accounts app, MagicLinkToken + SchoolContact, Brevo email, claim pages, @moe.edu.my validation, session auth. 47 new tests (421 total). |
+| 1.7 | Done | School Data Confirm/Edit + Admin Dashboard: IsMagicLinkAuthenticated permission, edit/confirm API, Next.js edit page, verification dashboard. 51 new tests (472 total). |
 
 ## Production Infrastructure (Sprint 0.6)
 
@@ -138,32 +139,35 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-Sprint 1.7 — School Data Confirm/Edit + Admin Dashboard
-- Authenticated reps confirm/edit school data via `/school/[code]/edit/`
-- API: `GET/PUT /api/v1/schools/{code}/edit/`, `POST /api/v1/schools/{code}/confirm/`
-- Pre-filled edit form, "Confirm" (2-click) + "Edit" actions
-- Admin dashboard (Django templates): verification progress, recently verified, unverified by state
-- Requires Magic Link session from Sprint 1.6
-- Current codebase: 421 tests passing (309 backend + 112 frontend), 5 Django apps
+Sprint 1.8 — School Images + Email Outreach + Full Deployment
+- Create `outreach` app: `SchoolImage`, `OutreachEmail` models
+- `harvest_school_images` command — Google Places → Street View → Satellite fallback (~$5 total)
+- `send_outreach_emails` command — Brevo, batched 50/day, `--state` filter, `--dry-run`
+- Update school profile page to display primary image
+- Deploy full stack: `sjktconnect-api` (update), `sjktconnect-web` (new), custom domain `tamilschool.org.my`
+- Current codebase: 472 tests passing (341 backend + 131 frontend), 5 Django apps
 
-## Frontend (Sprint 1.3–1.6)
+## Frontend (Sprint 1.3–1.7)
 - **Stack**: Next.js 14, App Router, Tailwind CSS, TypeScript
 - **Map**: `@vis.gl/react-google-maps` + `@googlemaps/markerclusterer`
-- **API client**: `lib/api.ts` — auto-paginates, school/constituency/DUN detail, GeoJSON, mentions
-- **School profiles**: `/school/[moe_code]` — ISR, SEO, Breadcrumb, ClaimButton, SchoolProfile, MiniMap, MentionsSection, ConstituencySchools sidebar
+- **API client**: `lib/api.ts` — auto-paginates, school/constituency/DUN detail, GeoJSON, mentions, edit/confirm
+- **School profiles**: `/school/[moe_code]` — ISR, SEO, Breadcrumb, ClaimButton, EditSchoolLink, SchoolProfile, MiniMap, MentionsSection, ConstituencySchools sidebar
+- **School edit**: `/school/[moe_code]/edit/` — pre-filled edit form, confirm (2-click) + edit actions, auth-gated
 - **Constituency pages**: `/constituency/[code]` — ISR, scorecard, boundary map, demographics, school table, DUN list
 - **DUN pages**: `/dun/[id]` — ISR, demographics, boundary map, school table, constituency link
 - **Constituencies index**: `/constituencies/` — filterable table with state dropdown
 - **Claim flow**: `/claim/` (email form), `/claim/verify/[token]/` (verification). ClaimForm component with pre-fill, loading/success/error states.
 - **Auth API**: `requestMagicLink`, `verifyMagicLink`, `fetchMe` — session-based via credentials: "include"
-- **Tests**: Jest + React Testing Library (112 tests)
+- **Edit API**: `fetchSchoolEdit`, `updateSchool`, `confirmSchool` — session-based, school ownership validated server-side
+- **Tests**: Jest + React Testing Library (131 tests)
 - **Build**: Standalone output, 107 kB first load JS
 - **Dockerfile**: Multi-stage (deps → build → runner), port 8080
 - **Env vars**: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID`
 
-## REST API (Sprint 1.2)
+## REST API (Sprint 1.2+)
 - All endpoints under `/api/v1/` — paginated (50/page via `?page=N`)
 - **Schools**: `GET /api/v1/schools/` (filters: `?state=`, `?ppd=`, `?constituency=`, `?skm=true`, `?min_enrolment=`, `?max_enrolment=`), `GET /api/v1/schools/<moe_code>/`
+- **School Edit** (Sprint 1.7, Magic Link auth): `GET/PUT /api/v1/schools/<moe_code>/edit/` (view/update school data), `POST /api/v1/schools/<moe_code>/confirm/` (2-click verify)
 - **Constituencies**: `GET /api/v1/constituencies/` (filter: `?state=`, includes `school_count`), `GET /api/v1/constituencies/<code>/` (nested schools + scorecard)
 - **DUNs**: `GET /api/v1/duns/` (filters: `?state=`, `?constituency=`), `GET /api/v1/duns/<pk>/` (nested schools)
 - **Scorecards**: `GET /api/v1/scorecards/` (filters: `?constituency=`, `?party=`), `GET /api/v1/scorecards/<pk>/`
@@ -188,6 +192,7 @@ Sprint 1.7 — School Data Confirm/Edit + Admin Dashboard
 - MentionReviewForm uses TypedChoiceField for significance (IntegerField → coerce=int, empty_value=None)
 - Approve saves form edits + sets APPROVED; reject just sets REJECTED + review_notes
 - PublishBriefView calls `generate_brief()` then sets `is_published=True`
+- **Verification dashboard** (Sprint 1.7): `/dashboard/verification/` (login required) — progress bar, unverified by state, recently verified, registered contacts
 
 ## Gemini AI Notes
 - Uses `google.genai` SDK (not deprecated `google.generativeai`)

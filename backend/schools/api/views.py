@@ -1,11 +1,15 @@
 """API views for schools, constituencies, DUNs, and GeoJSON boundaries."""
 
 from django.db.models import Count, Q
+from django.utils import timezone
 
+from rest_framework import status
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.permissions import IsMagicLinkAuthenticated
+from core.models import AuditLog
 from schools.api.geojson import to_feature, to_feature_collection
 from schools.api.serializers import (
     ConstituencyDetailSerializer,
@@ -13,6 +17,7 @@ from schools.api.serializers import (
     DUNDetailSerializer,
     DUNListSerializer,
     SchoolDetailSerializer,
+    SchoolEditSerializer,
     SchoolListSerializer,
 )
 from schools.models import Constituency, DUN, School
@@ -59,6 +64,116 @@ class SchoolDetailView(RetrieveAPIView):
     serializer_class = SchoolDetailSerializer
     queryset = School.objects.select_related("constituency", "dun")
     lookup_field = "moe_code"
+
+
+class SchoolEditView(APIView):
+    """GET/PUT /api/v1/schools/{moe_code}/edit/
+
+    Requires Magic Link session. Rep must be associated with this school.
+    GET returns editable fields. PUT updates and logs to AuditLog.
+    """
+
+    permission_classes = [IsMagicLinkAuthenticated]
+
+    def _get_school(self, moe_code, request):
+        """Get school and verify the rep is associated with it."""
+        try:
+            school = School.objects.get(moe_code=moe_code, is_active=True)
+        except School.DoesNotExist:
+            return None, Response(
+                {"error": "School not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        if request.school_moe_code != moe_code:
+            return None, Response(
+                {"error": "You can only edit your own school."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        return school, None
+
+    def get(self, request, moe_code):
+        school, error = self._get_school(moe_code, request)
+        if error:
+            return error
+        serializer = SchoolEditSerializer(school)
+        return Response(serializer.data)
+
+    def put(self, request, moe_code):
+        school, error = self._get_school(moe_code, request)
+        if error:
+            return error
+
+        old_values = SchoolEditSerializer(school).data
+        serializer = SchoolEditSerializer(school, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        # Save with verification timestamp
+        school = serializer.save(
+            last_verified=timezone.now(),
+            verified_by=request.school_contact.email,
+        )
+
+        # Log to AuditLog
+        new_values = SchoolEditSerializer(school).data
+        changed = {
+            k: {"old": old_values[k], "new": new_values[k]}
+            for k in new_values
+            if old_values.get(k) != new_values[k]
+            and k not in ("last_verified", "verified_by")
+        }
+        AuditLog.objects.create(
+            action="update",
+            target_type="School",
+            target_id=moe_code,
+            detail={"changed_fields": changed, "contact": request.school_contact.email},
+            ip_address=request.META.get("REMOTE_ADDR"),
+        )
+
+        return Response(SchoolEditSerializer(school).data)
+
+
+class SchoolConfirmView(APIView):
+    """POST /api/v1/schools/{moe_code}/confirm/
+
+    Quick 2-click confirmation: updates last_verified without editing fields.
+    Requires Magic Link session for this school.
+    """
+
+    permission_classes = [IsMagicLinkAuthenticated]
+
+    def post(self, request, moe_code):
+        try:
+            school = School.objects.get(moe_code=moe_code, is_active=True)
+        except School.DoesNotExist:
+            return Response(
+                {"error": "School not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        if request.school_moe_code != moe_code:
+            return Response(
+                {"error": "You can only confirm your own school."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        now = timezone.now()
+        school.last_verified = now
+        school.verified_by = request.school_contact.email
+        school.save(update_fields=["last_verified", "verified_by", "updated_at"])
+
+        AuditLog.objects.create(
+            action="confirm",
+            target_type="School",
+            target_id=moe_code,
+            detail={"contact": request.school_contact.email},
+            ip_address=request.META.get("REMOTE_ADDR"),
+        )
+
+        return Response({
+            "message": "School data confirmed.",
+            "last_verified": now.isoformat(),
+            "verified_by": request.school_contact.email,
+        })
 
 
 # --- Constituency API ---

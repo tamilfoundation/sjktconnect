@@ -16,5 +16,6 @@ urlpatterns = [
     path("api/v1/auth/", include("accounts.api.urls")),
     path("accounts/login/", auth_views.LoginView.as_view(), name="login"),
     path("accounts/logout/", auth_views.LogoutView.as_view(), name="logout"),
+    path("", include("schools.urls")),
     path("", include("parliament.urls")),
 ]

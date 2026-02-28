@@ -9,7 +9,9 @@ import {
   MagicLinkResponse,
   PaginatedResponse,
   School,
+  SchoolConfirmResponse,
   SchoolDetail,
+  SchoolEditData,
   SchoolMention,
   SearchResults,
 } from "./types";
@@ -246,4 +248,57 @@ export async function fetchMe(): Promise<AuthUser | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Fetch school edit data (requires Magic Link session).
+ */
+export async function fetchSchoolEdit(
+  moeCode: string
+): Promise<SchoolEditData> {
+  const res = await fetch(`${BASE}/schools/${moeCode}/edit/`, {
+    credentials: "include",
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || `API error: ${res.status}`);
+  }
+  return data;
+}
+
+/**
+ * Update school data (requires Magic Link session).
+ */
+export async function updateSchool(
+  moeCode: string,
+  updates: Partial<SchoolEditData>
+): Promise<SchoolEditData> {
+  const res = await fetch(`${BASE}/schools/${moeCode}/edit/`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(updates),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || `API error: ${res.status}`);
+  }
+  return data;
+}
+
+/**
+ * Confirm school data without editing (requires Magic Link session).
+ */
+export async function confirmSchool(
+  moeCode: string
+): Promise<SchoolConfirmResponse> {
+  const res = await fetch(`${BASE}/schools/${moeCode}/confirm/`, {
+    method: "POST",
+    credentials: "include",
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || `API error: ${res.status}`);
+  }
+  return data;
 }

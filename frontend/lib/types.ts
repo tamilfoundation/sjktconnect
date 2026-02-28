@@ -149,3 +149,33 @@ export interface AuthUser {
 export interface ApiError {
   error: string;
 }
+
+export interface SchoolEditData {
+  moe_code: string;
+  name: string;
+  short_name: string;
+  name_tamil: string;
+  address: string;
+  postcode: string;
+  city: string;
+  state: string;
+  email: string;
+  phone: string;
+  fax: string;
+  gps_lat: number | null;
+  gps_lng: number | null;
+  enrolment: number;
+  preschool_enrolment: number;
+  special_enrolment: number;
+  teacher_count: number;
+  session_count: number;
+  session_type: string;
+  last_verified: string | null;
+  verified_by: string;
+}
+
+export interface SchoolConfirmResponse {
+  message: string;
+  last_verified: string;
+  verified_by: string;
+}

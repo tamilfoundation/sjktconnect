@@ -7,6 +7,7 @@ import {
 } from "@/lib/api";
 import Breadcrumb from "@/components/Breadcrumb";
 import ClaimButton from "@/components/ClaimButton";
+import EditSchoolLink from "@/components/EditSchoolLink";
 import SchoolProfile from "@/components/SchoolProfile";
 import MiniMap from "@/components/MiniMap";
 import MentionsSection from "@/components/MentionsSection";
@@ -83,9 +84,10 @@ export default async function SchoolPage({ params }: PageProps) {
         </p>
       </div>
 
-      {/* Claim This Page CTA — above fold */}
-      <div className="mb-6">
+      {/* Edit (if authenticated) or Claim CTA — above fold */}
+      <div className="mb-6 flex flex-wrap gap-3 items-start">
         <ClaimButton moeCode={school.moe_code} />
+        <EditSchoolLink moeCode={school.moe_code} />
       </div>
 
       {/* Main content: two-column layout on desktop */}

@@ -258,19 +258,7 @@ REST API: 12 endpoints (School/Constituency/DUN/Scorecard/Brief/Search), CORS, p
 
 ---
 
-### Sprint 1.7: School Data Confirm/Edit + Admin Dashboard
-
-**Goal**: Authenticated reps confirm/edit data. Admin sees verification status.
-
-**Tasks**:
-1. API: `GET/PUT /api/v1/schools/{code}/edit/` — Magic Link auth required, saves + logs to AuditLog
-2. API: `POST /api/v1/schools/{code}/confirm/` — quick confirm, updates `last_verified`
-3. Next.js edit page: pre-filled form, "Confirm" + "Edit" actions
-4. Admin dashboard (Django templates): verification progress bar, recently verified, unverified by state, contact management
-
-**Files** (~10): Modified school API, permission class, `frontend/` edit page + components, `templates/admin_dashboard/` (2 templates), tests
-
-**Acceptance**: Confirm in 2 clicks. Edit saves + AuditLog. Admin sees progress.
+### Sprint 1.7: DONE (2026-02-28) — School Data Confirm/Edit + Admin Dashboard, 51 new tests (472 total)
 
 ---
 

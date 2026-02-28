@@ -82,6 +82,49 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
         ]
 
 
+class SchoolEditSerializer(serializers.ModelSerializer):
+    """Writable serializer for school reps to confirm/edit their school data.
+
+    Only exposes fields that school representatives should be able to update.
+    Read-only fields (moe_code, name, short_name, state) are included for display
+    but cannot be modified.
+    """
+
+    class Meta:
+        model = School
+        fields = [
+            "moe_code",
+            "name",
+            "short_name",
+            "name_tamil",
+            "address",
+            "postcode",
+            "city",
+            "state",
+            "email",
+            "phone",
+            "fax",
+            "gps_lat",
+            "gps_lng",
+            "enrolment",
+            "preschool_enrolment",
+            "special_enrolment",
+            "teacher_count",
+            "session_count",
+            "session_type",
+            "last_verified",
+            "verified_by",
+        ]
+        read_only_fields = [
+            "moe_code",
+            "name",
+            "short_name",
+            "state",
+            "last_verified",
+            "verified_by",
+        ]
+
+
 class DUNListSerializer(serializers.ModelSerializer):
     """Compact DUN for list views."""
 

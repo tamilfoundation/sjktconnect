@@ -1,5 +1,41 @@
 # Changelog
 
+## Sprint 1.7 — School Data Confirm/Edit + Admin Dashboard (2026-02-28)
+
+### Added
+- `IsMagicLinkAuthenticated` DRF permission class in `accounts/permissions.py` — validates session-based Magic Link auth, sets `request.school_contact` and `request.school_moe_code`
+- `SchoolEditSerializer` — writable fields for school data (address, phone, enrolment, GPS, etc.), read-only for identity fields
+- `GET/PUT /api/v1/schools/{code}/edit/` — authenticated reps can view and update their school's editable fields; creates AuditLog with changed_fields
+- `POST /api/v1/schools/{code}/confirm/` — 2-click confirmation: updates `last_verified` timestamp without editing
+- Next.js edit page at `/school/[moe_code]/edit/` — pre-filled form with confirm button (green, prominent) + edit form with save/cancel
+- `SchoolEditForm` component: 16 fields (3 read-only), confirm and save actions, success/error states, last verified display
+- `EditSchoolLink` component: client-side auth check, shows "Edit School Data" link only for authenticated school reps
+- Admin verification dashboard at `/dashboard/verification/` (Django templates, login required):
+  - Progress bar showing verified/total schools
+  - Unverified schools by state table (ordered by count)
+  - Recently verified schools table (last 20)
+  - Registered school contacts table (last 20)
+- `schools/views.py` — `VerificationDashboardView` (LoginRequiredMixin + ListView)
+- `schools/urls.py` — dashboard URL routing
+- "Verification" nav link in base template for authenticated admin users
+- CSS styles: `.card`, `.progress-bar-container`, `.progress-bar`, `.progress-text`, `.data-table`, `.muted`
+- Frontend types: `SchoolEditData`, `SchoolConfirmResponse`
+- Frontend API functions: `fetchSchoolEdit`, `updateSchool`, `confirmSchool` (all with `credentials: "include"`)
+- 32 new backend tests: permission class (4), school edit API (8), school confirm API (6), admin dashboard (14)
+- 19 new frontend tests: SchoolEditForm (10), EditSchoolLink (3), API edit functions (6)
+
+### Changed
+- School profile page: added `EditSchoolLink` alongside ClaimButton
+- `schools/api/urls.py`: added edit/confirm routes before detail route (avoids capture conflicts)
+- `sjktconnect/urls.py`: added `schools.urls` include for dashboard
+
+### Test totals
+- Frontend: 131 passing (+19)
+- Backend: 341 passing (+32)
+- **Total: 472**
+
+---
+
 ## Sprint 1.6 — Magic Link Authentication (2026-02-27)
 
 ### Added
