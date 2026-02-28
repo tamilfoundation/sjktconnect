@@ -7,7 +7,7 @@ Intelligence and advocacy platform for Malaysia's 528 Tamil primary schools (SJK
 SJK(T) Connect monitors Malaysian parliamentary proceedings (Hansard) for Tamil school mentions, analyses them with AI, and publishes reports. It operates as three layers:
 
 1. **Intelligence Engine** — AI-powered monitoring of Parliament and news media
-2. **Advocacy Platform** — Public school map and directory at tamilschool.org.my
+2. **Advocacy Platform** — Public school map and directory at tamilschool.org
 3. **Communications Hub** — Automated broadcasts to schools and stakeholders
 
 ## Phase 0: Parliament Watch
@@ -133,6 +133,6 @@ SJKTConnect/
 
 ## Links
 
-- Domain: [tamilschool.org.my](https://tamilschool.org.my)
+- Domain: [tamilschool.org](https://tamilschool.org)
 - PRD: See `PRD-SJKTConnect.md`
 - Roadmap: See `docs/implementation-roadmap.md`

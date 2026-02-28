@@ -1,5 +1,32 @@
 # Changelog
 
+## Sprint 1.9 — Full Stack Deployment + Phase 1 Close (2026-02-28)
+
+### Infrastructure
+- New GCP project `sjktconnect` created under `tamilfoundation.org` organisation (previously on personal account)
+- Backend deployed as `sjktconnect-api` on Cloud Run (asia-southeast1)
+- Frontend deployed as `sjktconnect-web` on Cloud Run (asia-southeast1) — first frontend deployment
+- Google Maps API key created and restricted to Maps JS, Static Maps, Places APIs
+- CORS configured: frontend origin whitelisted on backend
+- Cloud Run job `sjktconnect-check-hansards` recreated in new project
+- Cloud Scheduler `sjktconnect-daily-check` recreated (daily 8am MYT)
+
+### Changed
+- Frontend Dockerfile: switched from ARG to ENV for `NEXT_PUBLIC_*` build vars (Cloud Build doesn't pass build args)
+- Backend ALLOWED_HOSTS and CSRF_TRUSTED_ORIGINS updated for new URLs
+
+### Data
+- 528 satellite images harvested into production database (all schools with GPS coordinates)
+
+### Pending (Follow-ups)
+- Custom domain `tamilschool.org` mapping (needs domain verification)
+- BREVO_API_KEY for outreach emails
+- First outreach email batch
+- GEMINI_API_KEY for AI analysis commands
+- Delete old services from `gen-lang-client-0871147736`
+
+---
+
 ## Sprint 1.8 — Outreach App + School Images + Email Outreach (2026-02-28)
 
 ### Added

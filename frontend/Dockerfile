@@ -12,10 +12,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build arguments become env vars at build time
-ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-ARG NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID
+# Production defaults — NEXT_PUBLIC_* must be available at build time
+ENV NEXT_PUBLIC_API_URL=https://sjktconnect-api-748286712183.asia-southeast1.run.app
+ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyAsxMjbkpPs5AW75CeEXLjU1jpj02AC6eo
+ENV NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID=
 
 RUN npm run build
 

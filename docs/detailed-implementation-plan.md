@@ -266,23 +266,9 @@ REST API: 12 endpoints (School/Constituency/DUN/Scorecard/Brief/Search), CORS, p
 
 ---
 
-### Sprint 1.9: Full Stack Deployment + Phase 1 Close
+### Sprint 1.9: DONE (2026-02-28) — Full Stack Deployment + Phase 1 Close
 
-**Goal**: Deploy full stack at tamilschool.org.my, set production env vars, Phase 1 retrospective.
-
-**Tasks**:
-1. Deploy updated `sjktconnect-api` (all Sprint 1.7-1.8 changes)
-2. Deploy `sjktconnect-web` (new Cloud Run service for Next.js frontend)
-3. Custom domain `tamilschool.org.my` → Cloud Run mapping
-4. Set production env vars (BREVO_API_KEY, FRONTEND_URL, GOOGLE_MAPS_API_KEY)
-5. End-to-end smoke test
-6. Harvest remaining school images (full 528)
-7. Send first outreach batch (1 state, `--limit 50`)
-8. Phase 1 retrospective + docs
-
-**Files** (~5): Deployment config, docs
-
-**Acceptance**: Frontend live at tamilschool.org.my. All 528 schools have images. First outreach batch sent.
+New GCP project `sjktconnect` (tamilfoundation.org). Backend + frontend on Cloud Run. Maps API key. 528 satellite images. Job + scheduler migrated. Custom domain + BREVO_API_KEY deferred as follow-ups.
 
 ---
 
@@ -329,10 +315,10 @@ PHASE 1 (Partially parallel after 1.2):
 1. **Sprint 0.1 density** (30 files): Densest sprint. If MOE Excel parsing is tricky, constituency import can shift to Sprint 0.2 start without blocking.
 2. **~~Neon PostGIS~~ RESOLVED** (Sprint 1.1): Supabase supports PostGIS. Using shapely + TextField approach anyway — avoids GDAL/GEOS dependency on Windows dev + Docker. Upgrade to GeoDjango later if spatial queries needed.
 3. **Parlimen.gov.my scraping** (Sprint 0.6): Page structure may change. Build scraper defensively with configurable selectors.
-4. **Brevo deliverability** (Sprint 1.6/1.8): Send from tamilschool.org.my (DKIM/SPF/DMARC configured). Batch at 50/day to build reputation.
+4. **Brevo deliverability** (Sprint 1.6/1.8): Send from tamilschool.org (DKIM/SPF/DMARC configured). Batch at 50/day to build reputation.
 
 ## Verification
 
 After each sprint: all tests pass (`pytest`), manual verification of deliverable.
 After Phase 0 (Sprint 0.6): end-to-end test — Hansard PDF → pipeline → admin review → published brief.
-After Phase 1 (Sprint 1.8): map live at tamilschool.org.my, claim flow working, first outreach batch sent.
+After Phase 1 (Sprint 1.8): map live at tamilschool.org, claim flow working, first outreach batch sent.

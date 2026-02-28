@@ -17,10 +17,10 @@ Tamil Foundation (TF) has compiled data on Malaysia's 528 SJK(T) (Tamil primary 
 **The Solution**: SJK(T) Connect — an intelligence and advocacy hub that flips the traditional model. Instead of asking schools for data and getting silence, TF **pushes high-value intelligence first** (parliamentary analysis, news monitoring, grant alerts) and collects verified school data as a byproduct. The system operates as three layers:
 
 1. **Intelligence Engine** — AI-powered monitoring of Parliament (Hansard), news media, and government policy affecting Tamil schools, producing ready-to-publish analysis with minimal human input
-2. **Advocacy Platform** — A public-facing map and directory of all 528 schools at `tamilschool.org.my`, with constituency pages, school profiles, and MP scorecards
+2. **Advocacy Platform** — A public-facing map and directory of all 528 schools at `tamilschool.org`, with constituency pages, school profiles, and MP scorecards
 3. **Communications Hub** — Automated broadcast system that delivers intelligence to schools, community leaders, journalists, and MPs, while collecting verified school data through Magic Link interactions
 
-**Why now**: TF owns `tamilschool.org.my`, has working relationships with all four key stakeholder networks (LPS Federation, Headmasters' association, Former students' associations, Tamil Teachers Union), has verified GPS data for 95% of schools, and has official MOE email addresses for 526 of 528 schools. The missing piece is the platform.
+**Why now**: TF owns `tamilschool.org`, has working relationships with all four key stakeholder networks (LPS Federation, Headmasters' association, Former students' associations, Tamil Teachers Union), has verified GPS data for 95% of schools, and has official MOE email addresses for 526 of 528 schools. The missing piece is the platform.
 
 **Technology**: Next.js + Django REST + Supabase + Gemini API, hosted on Cloud Run. Estimated cost: **$5-20/month**.
 
@@ -184,8 +184,8 @@ automatically                     |                         |
 | Requirement | Description | Priority |
 |------------|-------------|----------|
 | C1. Interactive Map | Map of all 528 schools with GPS pins. Cluster at zoom-out, individual pins at zoom-in. | Must |
-| C2. School Pages | SEO-friendly page per school (`tamilschool.org.my/school/[code]`). Name, location, enrolment, district, constituency, school image. | Must |
-| C3. Constituency Pages | Auto-generated page per parliamentary constituency (`tamilschool.org.my/constituency/[name]`). Lists schools, aggregate stats, MP name, Parliament Watch score. 122 constituency pages + 222 DUN pages. | Must |
+| C2. School Pages | SEO-friendly page per school (`tamilschool.org/school/[code]`). Name, location, enrolment, district, constituency, school image. | Must |
+| C3. Constituency Pages | Auto-generated page per parliamentary constituency (`tamilschool.org/constituency/[name]`). Lists schools, aggregate stats, MP name, Parliament Watch score. 122 constituency pages + 222 DUN pages. | Must |
 | C4. Filters | Filter map by state, district, enrolment range, SKM status. | Should |
 | C5. Search | Search by school name, code, district, or constituency. | Must |
 | C6. Privacy | Hide personal phone numbers. Show only official school contact (MOE email, school phone). | Must |
@@ -300,7 +300,7 @@ automatically                     |                         |
 | PDF Processing | pdfplumber (Python) | Hansard text extraction. Free, no API key. |
 | Video | youtube-transcript-api + yt-dlp | Parliament clip extraction. Free, no API key. |
 | Hosting | Google Cloud Run | Same as all other TF projects. Scales to zero. |
-| Domain | tamilschool.org.my | Shares TF's Google Workspace. DKIM/SPF/DMARC configured. |
+| Domain | tamilschool.org | Shares TF's Google Workspace. DKIM/SPF/DMARC configured. |
 
 ### 6.2 Data Model (Core Tables)
 
@@ -387,7 +387,7 @@ automatically                     |                         |
 
 ### 6.4 Email Architecture
 
-- **Sender domain**: `tamilschool.org.my` (shares TF's Google Workspace credentials)
+- **Sender domain**: `tamilschool.org` (shares TF's Google Workspace credentials)
 - **Authentication**: DKIM, SPF, DMARC configured via Google Workspace
 - **Provider**: Brevo free tier (300 emails/day) or Resend (100 emails/day free)
 - **Deliverability strategy**: Batch sends at ~50/day during initial outreach to build sender reputation
@@ -426,7 +426,7 @@ automatically                     |                         |
 | Deliverable | Description |
 |-------------|-------------|
 | Data import | MOE Jan 2026 Excel → Supabase. All 528 schools loaded. |
-| Public school map | Interactive map at `tamilschool.org.my` with all 528 pins |
+| Public school map | Interactive map at `tamilschool.org` with all 528 pins |
 | School pages | SEO-friendly page per school with profile data, map, image |
 | Constituency pages | 122 parliamentary + 222 DUN pages with school lists, aggregate stats |
 | "Claim This Page" flow | MOE email authentication + Magic Link verification |
@@ -435,7 +435,7 @@ automatically                     |                         |
 | Email outreach | Batched notifications to all 526 schools over 4 weeks, endorsed by partner networks |
 | Parliament Watch integration | Reports link to relevant constituency and school pages |
 
-**Exit criteria**: Map live at `tamilschool.org.my`. At least 50 schools claimed. At least 200 subscribers.
+**Exit criteria**: Map live at `tamilschool.org`. At least 50 schools claimed. At least 200 subscribers.
 
 ### Phase 2: The Value (Broadcasts + Magic Links + News Watch)
 
@@ -495,16 +495,16 @@ Launch Parliament Watch immediately. Zero contacts needed. Public Hansard data p
 
 ### Tactic 2: "Are You on the Map?" — Publish first, collect later
 
-Publish all 528 school profiles on `tamilschool.org.my`. Schools discover themselves via Google search. "Claim This Page" via MOE email collects verified contacts as a byproduct of curiosity and pride.
+Publish all 528 school profiles on `tamilschool.org`. Schools discover themselves via Google search. "Claim This Page" via MOE email collects verified contacts as a byproduct of curiosity and pride.
 
 ### Tactic 3: Direct email to 526 schools — Sequenced, not spammed
 
-Send personalised notifications in batches of ~50/day after the map is live and partner endorsements are secured. Each email is a transactional notification about their school, not marketing. Sent from `tamilschool.org.my` with proper DKIM/SPF/DMARC. The 50/day limit is deliberate — it builds sender reputation gradually and avoids spam flags on a new sending domain.
+Send personalised notifications in batches of ~50/day after the map is live and partner endorsements are secured. Each email is a transactional notification about their school, not marketing. Sent from `tamilschool.org` with proper DKIM/SPF/DMARC. The 50/day limit is deliberate — it builds sender reputation gradually and avoids spam flags on a new sending domain.
 
 **Sequence**:
 1. Weeks 1-2: Launch map + Parliament Watch. Share with 4 partner networks. Build initial buzz.
 2. Weeks 3-4: Get endorsements from network leaders. Partner logos on site footer.
-3. Weeks 5-8: Email schools in batches of ~50/day. Personalised subject: "Your school's profile on tamilschool.org.my".
+3. Weeks 5-8: Email schools in batches of ~50/day. Personalised subject: "Your school's profile on tamilschool.org".
 
 **The clerk problem is actually a feature**: The person checking the school email is likely a clerk — but clerks process administrative correspondence. "Your school has a new profile page" is exactly the kind of thing they forward to the headmaster or print for the notice board. A grant deadline alert is something they act on directly.
 
@@ -640,7 +640,7 @@ Under RM 1,000/year for an automated intelligence unit + advocacy platform + com
 |-------|--------|
 | Google Places API key | Active |
 | `verify_school_pins.py` tool | Built and tested |
-| `tamilschool.org.my` domain | Owned, Google Workspace configured |
+| `tamilschool.org` domain | Owned, Google Workspace configured |
 | Cloud Run infrastructure | Running for 3 other TF projects |
 | Supabase account | Active, running 3 other projects |
 
@@ -685,7 +685,7 @@ Under RM 1,000/year for an automated intelligence unit + advocacy platform + com
 | 1 | **HM Council endorsement**: Recent leadership change — is the new president willing to endorse SJK(T) Connect? | TF / direct outreach | Affects partner logos and school outreach credibility |
 | 2 | **Grant alert access**: Does TF still have visibility into funding channels (MOE grants, state allocations, CSR programmes)? | TF | Determines whether Tactic 6 is a content pillar or falls back to AI monitoring |
 | 3 | **Historical Hansard availability**: Can TF access the full 1959-2020 corpus (3,684 PDFs) for baseline analysis? | Research / open access | Affects historical MP Scorecard depth |
-| 4 | **Publishing channel**: Where should Parliament Watch reports initially be published — TF website, dedicated section on tamilschool.org.my, or social media only? | TF | Affects Phase 0 build scope |
+| 4 | **Publishing channel**: Where should Parliament Watch reports initially be published — TF website, dedicated section on tamilschool.org, or social media only? | TF | Affects Phase 0 build scope |
 | 5 | **Content language**: Should reports be in English only, or English + Tamil + Malay? | TF | Affects content generation pipeline complexity |
 | 6 | **Timing**: When does Phase 0 start? Is there a triggering event (next Parliament sitting, Lentera launch, community demand)? | TF / Elan | Affects build priority relative to other projects |
 | 7 | **Tamil school names in Tamil**: Do we have Tamil-script school names for all 528 schools, or only English/Malay? | TF / data audit | Affects school page completeness |

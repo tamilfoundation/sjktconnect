@@ -4,7 +4,7 @@
 **Date:** 2026-02-13
 **Updated:** 2026-02-14
 **Owner:** Elan / Tamil Foundation
-**Domain:** `tamilschool.org.my` (owned by Tamil Foundation, shares TF's Google Workspace credentials)
+**Domain:** `tamilschool.org` (owned by Tamil Foundation, shares TF's Google Workspace credentials)
 
 ---
 
@@ -258,7 +258,7 @@ Under $20/month for an automated intelligence unit + communications department.
 
 ## Existing Assets
 
-- **Domain:** `tamilschool.org.my` — owned by Tamil Foundation. Perfect home for the public school map and school pages.
+- **Domain:** `tamilschool.org` — owned by Tamil Foundation. Perfect home for the public school map and school pages.
 - `SKM Distance.xlsx` — 529 schools with coordinates, enrolment, codes, distance matrix
 - `SenaraiSekolahWeb_Januari2026.xlsx` — Official MOE school list (Jan 2026) with 528 Tamil schools, including email addresses (526/528 have `@moe.edu.my`), phone, fax, enrolment, teacher count, GPS, parliamentary constituency, DUN, SKM status
 - **Constituency mapping (already complete):** Every school mapped to parliamentary constituency (122 constituencies), state seat / DUN (222 seats), district / PPD (68 districts), and state (11 states). Enables hyper-local advocacy: constituency report cards, MP scorecards, district comparisons, election-time analysis. Top constituency: Port Dickson (15 schools). Top state: Perak (134 schools, 25% of all SJK(T)s)
@@ -300,7 +300,7 @@ Under $20/month for an automated intelligence unit + communications department.
 ### Phase 1: The Seed (Database + Public Map)
 - Import existing Excel data into Supabase
 - Public read-only map and school pages ("Are You on the Map?" campaign)
-- **Constituency pages:** Auto-generated page for each of 122 parliamentary constituencies and 222 DUN seats — listing schools, aggregate stats, MP/ADUN name, Parliament Watch score. SEO-friendly URLs: `tamilschool.org.my/constituency/port-dickson`
+- **Constituency pages:** Auto-generated page for each of 122 parliamentary constituencies and 222 DUN seats — listing schools, aggregate stats, MP/ADUN name, Parliament Watch score. SEO-friendly URLs: `tamilschool.org/constituency/port-dickson`
 - Admin dashboard for TF
 - Parliament Watch reports link to relevant constituency and school pages
 - Direct email outreach to all 526 schools (batched over 2-3 weeks, endorsed by partner networks)
@@ -386,15 +386,15 @@ The claim flow:
 Since TF has all 526 `@moe.edu.my` addresses, schools can be emailed directly once the map is live. But this must be sequenced carefully — not a cold blast.
 
 **Sequence:**
-1. **Weeks 1-2:** Launch map + Parliament Watch on `tamilschool.org.my`. Share with 4 partner networks. Build initial buzz.
+1. **Weeks 1-2:** Launch map + Parliament Watch on `tamilschool.org`. Share with 4 partner networks. Build initial buzz.
 2. **Weeks 3-4:** Get endorsement from network leaders. Their logos appear on the site footer.
 3. **Weeks 5-8:** Email schools in batches of ~50/day (builds sender reputation, avoids spam flags). Not a marketing blast — a *personalised notification*:
 
-> Subject: Your school's profile on tamilschool.org.my
+> Subject: Your school's profile on tamilschool.org
 >
 > Kepada pihak SJK(T) Sri Gading,
 >
-> Tamil Foundation has created a public profile page for your school on tamilschool.org.my, endorsed by [Tamil Teachers Union / LPS Federation / HM Council].
+> Tamil Foundation has created a public profile page for your school on tamilschool.org, endorsed by [Tamil Teachers Union / LPS Federation / HM Council].
 >
 > Your page includes: location map, school photo, enrolment data, and key statistics.
 >
@@ -406,7 +406,7 @@ Since TF has all 526 `@moe.edu.my` addresses, schools can be emailed directly on
 
 **Why this isn't spam:**
 - It's a transactional notification about *their* school, not a marketing pitch
-- Sent from `tamilschool.org.my` with proper DKIM/SPF/DMARC (shares Tamil Foundation's Google Workspace credentials)
+- Sent from `tamilschool.org` with proper DKIM/SPF/DMARC (shares Tamil Foundation's Google Workspace credentials)
 - Endorsed by organisations the school recognises (logos in the email)
 - Contains genuinely useful content (their own school profile + Parliament Watch)
 
@@ -435,7 +435,7 @@ There is no national or state-level PIBG federation for Tamil schools. But four 
 - Policy/circular explainers → Headmasters + Teachers Union
 - "Are You on the Map?" → Former students (pride/nostalgia) + Headmasters (accuracy)
 
-**Partner logos on the site:** `tamilschool.org.my` footer displays logos of supporting organisations — Tamil Teachers Union, LPS Federation, and potentially HM Council (pending — recent leadership change, relationship needs re-confirming). This gives the site instant credibility when schools receive the notification email.
+**Partner logos on the site:** `tamilschool.org` footer displays logos of supporting organisations — Tamil Teachers Union, LPS Federation, and potentially HM Council (pending — recent leadership change, relationship needs re-confirming). This gives the site instant credibility when schools receive the notification email.
 
 This is not "partnership building" — it's activating relationships that already exist.
 

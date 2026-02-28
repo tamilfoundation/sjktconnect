@@ -51,7 +51,7 @@ class SendOutreachEmailTest(TestCase):
         payload = call_args.kwargs["json"]
         assert payload["to"] == [{"email": "jbd0050@moe.edu.my"}]
         assert "SJK(T) Ladang Bikam" in payload["subject"]
-        assert "noreply@tamilschool.org.my" in payload["sender"]["email"]
+        assert "noreply@tamilschool.org" in payload["sender"]["email"]
 
     @patch("outreach.services.email_sender.requests.post")
     @patch.dict("os.environ", {"BREVO_API_KEY": "xkeysib-test"})

@@ -32,7 +32,7 @@ def send_magic_link_email(email: str, token: str, school_name: str) -> bool:
     payload = {
         "sender": {
             "name": "SJK(T) Connect",
-            "email": "noreply@tamilschool.org.my",
+            "email": "noreply@tamilschool.org",
         },
         "to": [{"email": email}],
         "subject": f"Verify your school page — {school_name}",

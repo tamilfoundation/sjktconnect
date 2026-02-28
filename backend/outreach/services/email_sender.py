@@ -51,7 +51,7 @@ def send_outreach_email(school: School, recipient_email: str) -> OutreachEmail:
     payload = {
         "sender": {
             "name": "SJK(T) Connect",
-            "email": "noreply@tamilschool.org.my",
+            "email": "noreply@tamilschool.org",
         },
         "to": [{"email": recipient_email}],
         "subject": subject,

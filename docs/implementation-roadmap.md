@@ -24,7 +24,7 @@ The PRD (v0.2) defines a 5-phase platform: Intelligence Engine + Advocacy Map + 
 - `பள்ளிகள் - மாநிலம்.xlsx` — TF school database (529 schools, rich contact data: PIBG chair, headmaster, bank details)
 - `school_pin_verification.csv` — GPS verification results (476 confirmed, 25 offset, 28 not on Google Maps)
 - `verify_school_pins.py` tool (built and tested)
-- `tamilschool.org.my` domain (owned, Google Workspace configured)
+- `tamilschool.org` domain (owned, Google Workspace configured)
 - Cloud Run infrastructure (running 3 other TF projects)
 - Neon account (free tier — to be created in Sprint 1)
 

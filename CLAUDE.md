@@ -6,15 +6,16 @@
 - **Frontend**: Next.js 14 + App Router + Tailwind CSS (frontend/)
 - **Database**: Supabase PostgreSQL (Tamil Foundation org, free tier)
 - **AI**: Gemini Flash API (Hansard analysis, Sprint 0.4+)
-- **Hosting**: Google Cloud Run (GCP project: `gen-lang-client-0871147736`)
-- **Domain**: tamilschool.org.my
+- **Hosting**: Google Cloud Run (GCP project: `sjktconnect`, org: tamilfoundation.org)
+- **Domain**: tamilschool.org
 
 ## Project Status
 
 - **Current Phase**: Phase 1 — The Seed
-- **Current Sprint**: 1.8 DONE. Next: 1.9
+- **Current Sprint**: 1.9 DONE. Phase 1 complete.
 - **Tests**: 509 passing (375 backend + 134 frontend)
-- **Live URL**: https://sjktconnect-api-90344691621.asia-southeast1.run.app
+- **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
+- **Frontend URL**: https://sjktconnect-web-748286712183.asia-southeast1.run.app
 
 ## Apps
 
@@ -79,9 +80,14 @@ python manage.py send_outreach_emails --state Johor        # Filter by state
 python manage.py send_outreach_emails --dry-run            # Preview
 
 # Deployment (verify account first!)
-gcloud config set account tamiliam@gmail.com
-gcloud config set project gen-lang-client-0871147736
-gcloud run deploy sjktconnect-api --source . --region asia-southeast1 --allow-unauthenticated
+gcloud config set account admin@tamilfoundation.org
+gcloud config set project sjktconnect
+# Backend
+cd backend && gcloud run deploy sjktconnect-api --source . --region asia-southeast1 --allow-unauthenticated
+# Frontend
+cd frontend && gcloud run deploy sjktconnect-web --source . --region asia-southeast1 --allow-unauthenticated
+# After backend deploy, update the job image:
+gcloud run jobs update sjktconnect-check-hansards --image <new-image> --region asia-southeast1
 
 # Cloud Run Job (manual trigger)
 gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
@@ -140,29 +146,29 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 1.6 | Done | Magic Link auth: accounts app, MagicLinkToken + SchoolContact, Brevo email, claim pages, @moe.edu.my validation, session auth. 47 new tests (421 total). |
 | 1.7 | Done | School Data Confirm/Edit + Admin Dashboard: IsMagicLinkAuthenticated permission, edit/confirm API, Next.js edit page, verification dashboard. 51 new tests (472 total). |
 | 1.8 | Done | Outreach app: SchoolImage + OutreachEmail models, image harvesting (satellite + Places), email outreach (Brevo), image_url on API, SchoolImage component. 37 new tests (509 total). |
+| 1.9 | Done | Full stack deployment: new GCP project `sjktconnect` (tamilfoundation.org), backend + frontend on Cloud Run, Maps API key, CORS, 528 satellite images harvested, job + scheduler migrated. |
 
-## Production Infrastructure (Sprint 0.6)
+## Production Infrastructure (Sprint 1.9)
 
-- **Service URL**: https://sjktconnect-api-90344691621.asia-southeast1.run.app
-- **Cloud Run service**: `sjktconnect-api` (asia-southeast1)
+- **GCP Project**: `sjktconnect` (org: tamilfoundation.org, account: admin@tamilfoundation.org)
+- **Backend**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
+- **Frontend**: https://sjktconnect-web-748286712183.asia-southeast1.run.app
+- **Cloud Run services**: `sjktconnect-api`, `sjktconnect-web` (asia-southeast1)
 - **Cloud Run job**: `sjktconnect-check-hansards` — runs `check_new_hansards --auto-process --days 7`
 - **Cloud Scheduler**: `sjktconnect-daily-check` — triggers job daily at 8:00 AM MYT
+- **Maps API key**: `AIzaSyAsxMjbkpPs5AW75CeEXLjU1jpj02AC6eo` (restricted to Maps JS, Static Maps, Places)
 - **Health check**: `/health/` returns `{"status": "ok"}`
 - **Admin**: `/admin/` (username: admin, email: admin@tamilfoundation.org)
-- **Note**: After redeploying, update the job image: `gcloud run jobs update sjktconnect-check-hansards --image <new-image> --region asia-southeast1`
+- **Old project** (`gen-lang-client-0871147736`): still has old sjktconnect-api — can be deleted after confirming new project is stable
 
-## Next Sprint
+## Follow-ups (Post-Phase 1)
 
-Sprint 1.9 — Full Stack Deployment + Phase 1 Close
-- Deploy updated `sjktconnect-api` (all Sprint 1.7-1.8 changes)
-- Deploy `sjktconnect-web` (new Cloud Run service for Next.js frontend)
-- Custom domain `tamilschool.org.my` → Cloud Run mapping
-- Set production env vars (BREVO_API_KEY, FRONTEND_URL, GOOGLE_MAPS_API_KEY)
-- End-to-end smoke test
-- Harvest remaining school images (full 528)
+- Custom domain `tamilschool.org` → Cloud Run mapping (needs domain verification at Google Webmaster Central)
+- Set BREVO_API_KEY on backend for email outreach
 - Send first outreach batch (1 state, `--limit 50`)
-- Phase 1 retrospective + docs
-- Current codebase: 509 tests passing (375 backend + 134 frontend), 6 Django apps
+- Delete old sjktconnect-api from `gen-lang-client-0871147736`
+- Create Google Maps Map ID for styled markers (Console only)
+- Set GEMINI_API_KEY on backend for AI analysis commands
 
 ## Frontend (Sprint 1.3–1.8)
 - **Stack**: Next.js 14, App Router, Tailwind CSS, TypeScript
