@@ -68,7 +68,7 @@ export default function BoundaryMap({
         <Map
           defaultCenter={center}
           defaultZoom={zoom}
-          mapId={mapId}
+          mapId={mapId || undefined}
           disableDefaultUI={true}
           zoomControl={true}
         >

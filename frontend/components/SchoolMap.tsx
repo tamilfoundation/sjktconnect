@@ -144,7 +144,7 @@ export default function SchoolMap() {
           <Map
             defaultCenter={MALAYSIA_CENTER}
             defaultZoom={DEFAULT_ZOOM}
-            mapId={mapId}
+            mapId={mapId || undefined}
             gestureHandling="greedy"
             disableDefaultUI={false}
             mapTypeControl={false}

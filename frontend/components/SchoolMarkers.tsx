@@ -1,13 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  AdvancedMarker,
-  InfoWindow,
-  useMap,
-} from "@vis.gl/react-google-maps";
-import { MarkerClusterer } from "@googlemaps/markerclusterer";
-import type { Marker } from "@googlemaps/markerclusterer";
+import { useCallback, useMemo, useState } from "react";
+import { Marker, InfoWindow } from "@vis.gl/react-google-maps";
 import { School } from "@/lib/types";
 
 interface SchoolMarkersProps {
@@ -15,38 +9,7 @@ interface SchoolMarkersProps {
 }
 
 export default function SchoolMarkers({ schools }: SchoolMarkersProps) {
-  const map = useMap();
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
-  const clusterer = useRef<MarkerClusterer | null>(null);
-  const markersRef = useRef<Map<string, Marker>>(new Map());
-
-  // Initialise clusterer when map is ready
-  useEffect(() => {
-    if (!map) return;
-    if (!clusterer.current) {
-      clusterer.current = new MarkerClusterer({ map, markers: [] });
-    }
-  }, [map]);
-
-  // Update clusterer markers when schools change
-  useEffect(() => {
-    if (!clusterer.current) return;
-    clusterer.current.clearMarkers();
-    const currentMarkers = Array.from(markersRef.current.values());
-    clusterer.current.addMarkers(currentMarkers);
-  }, [schools]);
-
-  // Track marker refs for clustering
-  const setMarkerRef = useCallback(
-    (marker: Marker | null, key: string) => {
-      if (marker) {
-        markersRef.current.set(key, marker);
-      } else {
-        markersRef.current.delete(key);
-      }
-    },
-    []
-  );
 
   // Close info window
   const handleClose = useCallback(() => setSelectedSchool(null), []);
@@ -60,10 +23,10 @@ export default function SchoolMarkers({ schools }: SchoolMarkersProps) {
   return (
     <>
       {visibleSchools.map((school) => (
-        <AdvancedMarker
+        <Marker
           key={school.moe_code}
-          position={{ lat: school.gps_lat!, lng: school.gps_lng! }}
-          ref={(marker) => setMarkerRef(marker, school.moe_code)}
+          position={{ lat: Number(school.gps_lat), lng: Number(school.gps_lng) }}
+          title={school.short_name || school.name}
           onClick={() => setSelectedSchool(school)}
         />
       ))}
@@ -71,8 +34,8 @@ export default function SchoolMarkers({ schools }: SchoolMarkersProps) {
       {selectedSchool && (
         <InfoWindow
           position={{
-            lat: selectedSchool.gps_lat!,
-            lng: selectedSchool.gps_lng!,
+            lat: Number(selectedSchool.gps_lat),
+            lng: Number(selectedSchool.gps_lng),
           }}
           onCloseClick={handleClose}
         >

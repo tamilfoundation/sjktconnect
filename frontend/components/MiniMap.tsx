@@ -1,6 +1,6 @@
 "use client";
 
-import { APIProvider, Map, AdvancedMarker } from "@vis.gl/react-google-maps";
+import { APIProvider, Map, Marker } from "@vis.gl/react-google-maps";
 
 interface MiniMapProps {
   lat: number;
@@ -24,13 +24,13 @@ export default function MiniMap({ lat, lng, schoolName }: MiniMapProps) {
     <div className="w-full h-64 rounded-lg overflow-hidden border border-gray-200">
       <APIProvider apiKey={apiKey}>
         <Map
-          defaultCenter={{ lat, lng }}
+          defaultCenter={{ lat: Number(lat), lng: Number(lng) }}
           defaultZoom={15}
-          mapId={mapId}
+          mapId={mapId || undefined}
           disableDefaultUI={true}
           zoomControl={true}
         >
-          <AdvancedMarker position={{ lat, lng }} title={schoolName} />
+          <Marker position={{ lat: Number(lat), lng: Number(lng) }} title={schoolName} />
         </Map>
       </APIProvider>
     </div>
