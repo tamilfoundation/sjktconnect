@@ -262,21 +262,41 @@ REST API: 12 endpoints (School/Constituency/DUN/Scorecard/Brief/Search), CORS, p
 
 ---
 
-### Sprint 1.8: School Images + Email Outreach + Full Deployment
+### Sprint 1.8: Outreach App + School Images + Email Outreach
 
-**Goal**: Harvest images, deploy full stack at tamilschool.org.my, begin outreach.
+**Goal**: Build outreach app, harvest sample images (10 schools), build email outreach command.
 
 **Tasks**:
-1. Create `outreach` app with `SchoolImage`, `OutreachEmail` models
-2. `harvest_school_images` command — Google Places → Street View → Satellite fallback (~$5 total)
-3. `send_outreach_emails` command — Brevo, batched 50/day, `--state` filter, `--dry-run`
-4. Update school profile page to display primary image
-5. Deploy full stack: `sjktconnect-api` (update), `sjktconnect-web` (new), custom domain `tamilschool.org.my`
-6. Update docs, write Phase 1 retrospective
+1. Create `outreach` app with `SchoolImage`, `OutreachEmail` models + migration
+2. `harvest_school_images` command — satellite (from GPS, free) + Places API (paid, real photos). `--limit`, `--state`, `--source`, `--dry-run`. Sample: 10 schools.
+3. `send_outreach_emails` command — Brevo introduction emails, batched, `--limit`, `--state`, `--dry-run`
+4. Add `image_url` to School API detail serializer
+5. Update school profile page in frontend to display primary image
+6. Tests for all (API calls mocked)
 
-**Files** (~12): `outreach/` (models, 2 commands, 2 services, admin, 2 test files), modified frontend image component, docs
+**Files** (~14): `outreach/` (models, apps, admin, 2 services, 2 commands, tests), modified school serializer, modified frontend profile + types + api
 
-**Acceptance**: Images harvested. Frontend at tamilschool.org.my. First outreach batch sent. Phase 1 retrospective written.
+**Acceptance**: 10 schools have images. Outreach email `--dry-run` works. Frontend shows school image.
+
+---
+
+### Sprint 1.9: Full Stack Deployment + Phase 1 Close
+
+**Goal**: Deploy full stack at tamilschool.org.my, set production env vars, Phase 1 retrospective.
+
+**Tasks**:
+1. Deploy updated `sjktconnect-api` (all Sprint 1.7-1.8 changes)
+2. Deploy `sjktconnect-web` (new Cloud Run service for Next.js frontend)
+3. Custom domain `tamilschool.org.my` → Cloud Run mapping
+4. Set production env vars (BREVO_API_KEY, FRONTEND_URL, GOOGLE_MAPS_API_KEY)
+5. End-to-end smoke test
+6. Harvest remaining school images (full 528)
+7. Send first outreach batch (1 state, `--limit 50`)
+8. Phase 1 retrospective + docs
+
+**Files** (~5): Deployment config, docs
+
+**Acceptance**: Frontend live at tamilschool.org.my. All 528 schools have images. First outreach batch sent.
 
 ---
 
@@ -291,7 +311,7 @@ PHASE 1 (Partially parallel after 1.2):
 
   1.1 WKT Import → 1.2 REST API ─┬─ 1.3 Map → 1.4 School Pages → 1.5 Constituency Pages ─┐
                                   └─ 1.6 Magic Link Auth → 1.7 Edit/Confirm + Admin ────────┤
-                                                                                             └─ 1.8 Images + Outreach + Deploy
+                                                                                             └─ 1.8 Outreach App → 1.9 Deploy + Phase 1 Close
 ```
 
 ---
