@@ -159,16 +159,16 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **Maps API key**: `AIzaSyAsxMjbkpPs5AW75CeEXLjU1jpj02AC6eo` (restricted to Maps JS, Static Maps, Places)
 - **Health check**: `/health/` returns `{"status": "ok"}`
 - **Admin**: `/admin/` (username: admin, email: admin@tamilfoundation.org)
-- **Old project** (`gen-lang-client-0871147736`): still has old sjktconnect-api — can be deleted after confirming new project is stable
+- **Old project** (`gen-lang-client-0871147736`): old sjktconnect-api deleted (2026-03-01)
 
 ## Follow-ups (Post-Phase 1)
 
 - ✅ Custom domain `tamilschool.org` → Cloud Run mapping (sjktconnect-web, asia-southeast1)
 - ✅ Set BREVO_API_KEY on backend for email outreach
 - Send first outreach batch (1 state, `--limit 50`)
-- Delete old sjktconnect-api from `gen-lang-client-0871147736`
-- Create Google Maps Map ID for styled markers (Console only)
-- Set GEMINI_API_KEY on backend for AI analysis commands
+- ✅ Delete old sjktconnect-api from `gen-lang-client-0871147736`
+- ✅ Create Google Maps Map ID for styled markers (ce9504578e73fb7dd21b6704)
+- ✅ Set GEMINI_API_KEY on backend for AI analysis commands
 
 ## Frontend (Sprint 1.3–1.8)
 - **Stack**: Next.js 14, App Router, Tailwind CSS, TypeScript
