@@ -19,6 +19,10 @@ def subscribe(email, name="", organisation=""):
     """
     email = email.lower().strip()
 
+    # I2 fix: keep HTTP call (send_confirmation_email) outside atomic block
+    send_welcome = False
+    is_new = False
+
     with transaction.atomic():
         subscriber, created = Subscriber.objects.get_or_create(
             email=email,
@@ -28,30 +32,33 @@ def subscribe(email, name="", organisation=""):
         if created:
             _create_default_preferences(subscriber)
             logger.info("New subscriber: %s", email)
-            send_confirmation_email(subscriber)
-            return subscriber, True
-
-        # Existing subscriber — reactivate if previously unsubscribed
-        if not subscriber.is_active:
+            send_welcome = True
+            is_new = True
+        elif not subscriber.is_active:
+            # Existing subscriber — reactivate if previously unsubscribed
             subscriber.is_active = True
             subscriber.unsubscribed_at = None
             subscriber.save(update_fields=["is_active", "unsubscribed_at", "updated_at"])
             _ensure_preferences_exist(subscriber)
             logger.info("Reactivated subscriber: %s", email)
-            return subscriber, True
+            is_new = True
+        else:
+            # Already active — update name/org if provided
+            updated = False
+            if name and not subscriber.name:
+                subscriber.name = name
+                updated = True
+            if organisation and not subscriber.organisation:
+                subscriber.organisation = organisation
+                updated = True
+            if updated:
+                subscriber.save(update_fields=["name", "organisation", "updated_at"])
 
-        # Already active — update name/org if provided
-        updated = False
-        if name and not subscriber.name:
-            subscriber.name = name
-            updated = True
-        if organisation and not subscriber.organisation:
-            subscriber.organisation = organisation
-            updated = True
-        if updated:
-            subscriber.save(update_fields=["name", "organisation", "updated_at"])
+    # Send confirmation email outside transaction
+    if send_welcome:
+        send_confirmation_email(subscriber)
 
-        return subscriber, False
+    return subscriber, is_new
 
 
 def unsubscribe(token):

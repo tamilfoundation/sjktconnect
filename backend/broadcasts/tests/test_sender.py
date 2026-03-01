@@ -155,6 +155,19 @@ class TestSendBroadcast:
         recipient = BroadcastRecipient.objects.get(broadcast=draft_broadcast)
         assert recipient.status == BroadcastRecipient.DeliveryStatus.FAILED
 
+    def test_broadcast_fails_on_unhandled_exception(
+        self, draft_broadcast, subscriber_a
+    ):
+        """C2: Unhandled exception during send sets status to FAILED, not stuck on SENDING."""
+        with patch(
+            "broadcasts.services.sender.get_filtered_subscribers",
+            side_effect=RuntimeError("unexpected failure"),
+        ):
+            result = send_broadcast(draft_broadcast.pk)
+
+        assert result.status == Broadcast.Status.FAILED
+        assert result.sent_at is not None
+
     def test_recipient_email_denormalised(
         self, draft_broadcast, subscriber_a
     ):

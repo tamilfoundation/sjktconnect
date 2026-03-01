@@ -10,6 +10,7 @@ import os
 import time
 
 import requests
+from django.db import transaction
 from django.utils import timezone
 
 from broadcasts.models import Broadcast, BroadcastRecipient
@@ -32,94 +33,106 @@ def send_broadcast(broadcast_id):
 
     Returns the updated Broadcast instance.
     """
-    broadcast = Broadcast.objects.get(pk=broadcast_id)
-
-    if broadcast.status != Broadcast.Status.DRAFT:
-        raise ValueError(
-            "Broadcast %s is %s, not DRAFT — cannot send"
-            % (broadcast_id, broadcast.status)
-        )
-
-    # Transition to SENDING
-    broadcast.status = Broadcast.Status.SENDING
-    broadcast.save(update_fields=["status", "updated_at"])
+    # C1 fix: atomic conditional update prevents race condition
+    with transaction.atomic():
+        updated = Broadcast.objects.filter(
+            pk=broadcast_id, status=Broadcast.Status.DRAFT
+        ).update(status=Broadcast.Status.SENDING)
+        if not updated:
+            broadcast = Broadcast.objects.get(pk=broadcast_id)
+            raise ValueError(
+                "Broadcast %s is %s, not DRAFT — cannot send"
+                % (broadcast_id, broadcast.status)
+            )
+        broadcast = Broadcast.objects.get(pk=broadcast_id)
     logger.info("Broadcast %s: status set to SENDING", broadcast_id)
 
     api_key = os.environ.get("BREVO_API_KEY")
     frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
-    # Get filtered subscribers
-    subscribers = get_filtered_subscribers(broadcast.audience_filter)
-
-    # Create BroadcastRecipient rows
-    recipients = []
-    for subscriber in subscribers:
-        recipient, _created = BroadcastRecipient.objects.get_or_create(
-            broadcast=broadcast,
-            subscriber=subscriber,
-            defaults={"email": subscriber.email},
-        )
-        recipients.append(recipient)
-
-    logger.info(
-        "Broadcast %s: %d recipients created", broadcast_id, len(recipients)
-    )
-
-    # Send to each recipient
+    # C2 fix: wrap entire send process so broadcast transitions to FAILED on exception
     sent_count = 0
     failed_count = 0
+    recipients = []
 
-    for recipient in recipients:
-        unsubscribe_url = (
-            "%s/unsubscribe/%s/" % (frontend_url, recipient.subscriber.unsubscribe_token)
-        )
-        preferences_url = (
-            "%s/preferences/%s/" % (frontend_url, recipient.subscriber.unsubscribe_token)
-        )
-        wrapped_html = _wrap_broadcast_html(
-            broadcast.html_content, unsubscribe_url, preferences_url
+    try:
+        # Get filtered subscribers
+        subscribers = get_filtered_subscribers(broadcast.audience_filter)
+
+        # Create BroadcastRecipient rows
+        for subscriber in subscribers:
+            recipient, _created = BroadcastRecipient.objects.get_or_create(
+                broadcast=broadcast,
+                subscriber=subscriber,
+                defaults={"email": subscriber.email},
+            )
+            recipients.append(recipient)
+
+        logger.info(
+            "Broadcast %s: %d recipients created", broadcast_id, len(recipients)
         )
 
-        if not api_key:
-            # Dev mode: log to console, mark as SENT
-            logger.info(
-                "DEV MODE — Broadcast %s to %s: %s",
-                broadcast_id,
-                recipient.email,
-                broadcast.subject,
+        # I3 fix: reload with select_related to avoid N+1 queries
+        recipients = list(
+            BroadcastRecipient.objects.filter(broadcast=broadcast)
+            .select_related("subscriber")
+        )
+
+        for recipient in recipients:
+            unsubscribe_url = (
+                "{}/unsubscribe/{}/".format(frontend_url, recipient.subscriber.unsubscribe_token)
             )
-            recipient.status = BroadcastRecipient.DeliveryStatus.SENT
-            recipient.sent_at = timezone.now()
-            recipient.save(update_fields=["status", "sent_at"])
-            sent_count += 1
-        else:
-            # Production: send via Brevo
-            success = _send_single_email(
-                api_key=api_key,
-                to_email=recipient.email,
-                to_name=recipient.subscriber.name,
-                subject=broadcast.subject,
-                html_content=wrapped_html,
-                text_content=broadcast.text_content,
-                recipient=recipient,
+            preferences_url = (
+                "{}/preferences/{}/".format(frontend_url, recipient.subscriber.unsubscribe_token)
             )
-            if success:
+            wrapped_html = _wrap_broadcast_html(
+                broadcast.html_content, unsubscribe_url, preferences_url
+            )
+
+            if not api_key:
+                # Dev mode: log to console, mark as SENT
+                logger.info(
+                    "DEV MODE — Broadcast %s to %s: %s",
+                    broadcast_id,
+                    recipient.email,
+                    broadcast.subject,
+                )
+                recipient.status = BroadcastRecipient.DeliveryStatus.SENT
+                recipient.sent_at = timezone.now()
+                recipient.save(update_fields=["status", "sent_at"])
                 sent_count += 1
             else:
-                failed_count += 1
+                # Production: send via Brevo
+                success = _send_single_email(
+                    api_key=api_key,
+                    to_email=recipient.email,
+                    to_name=recipient.subscriber.name,
+                    subject=broadcast.subject,
+                    html_content=wrapped_html,
+                    text_content=broadcast.text_content,
+                    recipient=recipient,
+                )
+                if success:
+                    sent_count += 1
+                else:
+                    failed_count += 1
 
-            # Rate limit: 0.5s between emails
-            time.sleep(0.5)
+                # Rate limit: 0.5s between emails
+                time.sleep(0.5)
 
-    # Final status update
-    broadcast.status = Broadcast.Status.SENT
-    broadcast.sent_at = timezone.now()
-    broadcast.recipient_count = len(recipients)
-    broadcast.save(update_fields=["status", "sent_at", "recipient_count", "updated_at"])
+        broadcast.status = Broadcast.Status.SENT
+    except Exception:
+        broadcast.status = Broadcast.Status.FAILED
+        logger.exception("Broadcast %s failed during send", broadcast_id)
+    finally:
+        broadcast.sent_at = timezone.now()
+        broadcast.recipient_count = len(recipients)
+        broadcast.save(update_fields=["status", "sent_at", "recipient_count", "updated_at"])
 
     logger.info(
-        "Broadcast %s: SENT — %d delivered, %d failed",
+        "Broadcast %s: %s — %d delivered, %d failed",
         broadcast_id,
+        broadcast.status,
         sent_count,
         failed_count,
     )
@@ -182,6 +195,7 @@ def _wrap_broadcast_html(html_content, unsubscribe_url, preferences_url):
     Adds unsubscribe and preferences links in the footer.
     Uses HTML entities for special characters (not Unicode).
     """
+    # M2 fix: use .format() instead of % to avoid breakage on literal % in content
     return """<!DOCTYPE html>
 <html>
 <head>
@@ -191,17 +205,17 @@ def _wrap_broadcast_html(html_content, unsubscribe_url, preferences_url):
 <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
     <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background-color: #ffffff; border-radius: 8px; padding: 30px; margin-bottom: 20px;">
-            %s
+            {content}
         </div>
         <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
             <p>SJK(T) Connect &mdash; Tamil School Intelligence &amp; Advocacy Platform</p>
             <p>
-                <a href="%s" style="color: #666; text-decoration: underline;">Manage Preferences</a>
+                <a href="{prefs}" style="color: #666; text-decoration: underline;">Manage Preferences</a>
                 &nbsp;&middot;&nbsp;
-                <a href="%s" style="color: #666; text-decoration: underline;">Unsubscribe</a>
+                <a href="{unsub}" style="color: #666; text-decoration: underline;">Unsubscribe</a>
             </p>
             <p>An initiative of the Malaysian Community Education Foundation (MCEF)</p>
         </div>
     </div>
 </body>
-</html>""" % (html_content, preferences_url, unsubscribe_url)
+</html>""".format(content=html_content, prefs=preferences_url, unsub=unsubscribe_url)
