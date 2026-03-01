@@ -8,11 +8,13 @@ import {
 import Breadcrumb from "@/components/Breadcrumb";
 import ClaimButton from "@/components/ClaimButton";
 import EditSchoolLink from "@/components/EditSchoolLink";
-import SchoolImage from "@/components/SchoolImage";
+import SchoolPhotoGallery from "@/components/SchoolImage";
 import SchoolProfile from "@/components/SchoolProfile";
 import MiniMap from "@/components/MiniMap";
 import MentionsSection from "@/components/MentionsSection";
 import ConstituencySchools from "@/components/ConstituencySchools";
+import NewsWatchSection from "@/components/NewsWatchSection";
+import SchoolHistory from "@/components/SchoolHistory";
 
 // ISR: revalidate every hour
 export const revalidate = 3600;
@@ -72,19 +74,21 @@ export default async function SchoolPage({ params }: PageProps) {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <Breadcrumb items={breadcrumbItems} />
 
-      {/* School Image */}
-      {school.image_url && (
-        <SchoolImage
-          imageUrl={school.image_url}
-          schoolName={school.short_name || school.name}
-        />
-      )}
+      {/* School Photo Gallery — always rendered, handles empty state */}
+      <SchoolPhotoGallery
+        images={school.images}
+        imageUrl={school.image_url}
+        schoolName={school.short_name || school.name}
+      />
 
       {/* School Header */}
-      <div className="mb-6">
+      <div className="mb-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
           {school.short_name || school.name}
         </h1>
+        {school.name_tamil && (
+          <p className="text-lg text-gray-700 mt-1">{school.name_tamil}</p>
+        )}
         {school.short_name && school.name !== school.short_name && (
           <p className="text-sm text-gray-500 mt-1">{school.name}</p>
         )}
@@ -93,9 +97,8 @@ export default async function SchoolPage({ params }: PageProps) {
         </p>
       </div>
 
-      {/* Edit (if authenticated) or Claim CTA — above fold */}
-      <div className="mb-6 flex flex-wrap gap-3 items-start">
-        <ClaimButton moeCode={school.moe_code} />
+      {/* Edit link for authenticated users */}
+      <div className="mb-6">
         <EditSchoolLink moeCode={school.moe_code} />
       </div>
 
@@ -121,6 +124,12 @@ export default async function SchoolPage({ params }: PageProps) {
 
           {/* Parliament Watch Mentions */}
           <MentionsSection mentions={mentions} />
+
+          {/* News Watch */}
+          <NewsWatchSection />
+
+          {/* School History CTA */}
+          <SchoolHistory />
         </div>
 
         {/* Right column: sidebar */}
@@ -133,6 +142,11 @@ export default async function SchoolPage({ params }: PageProps) {
             />
           )}
         </div>
+      </div>
+
+      {/* Claim button — bottom of page */}
+      <div className="mt-8">
+        <ClaimButton moeCode={school.moe_code} />
       </div>
     </div>
   );
