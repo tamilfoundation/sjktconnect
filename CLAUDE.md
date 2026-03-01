@@ -158,7 +158,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **Cloud Run services**: `sjktconnect-api`, `sjktconnect-web` (asia-southeast1)
 - **Cloud Run job**: `sjktconnect-check-hansards` — runs `check_new_hansards --auto-process --days 7`
 - **Cloud Scheduler**: `sjktconnect-daily-check` — triggers job daily at 8:00 AM MYT
-- **Maps API key**: `AIzaSyAsxMjbkpPs5AW75CeEXLjU1jpj02AC6eo` (restricted to Maps JS, Static Maps, Places)
+- **Maps API key**: Set in Dockerfile + Cloud Run (restricted to Maps JS, Static Maps, Places + referrer-restricted to tamilschool.org)
 - **Health check**: `/health/` returns `{"status": "ok"}`
 - **Admin**: `/admin/` (username: admin, email: admin@tamilfoundation.org)
 - **Old project** (`gen-lang-client-0871147736`): old sjktconnect-api deleted (2026-03-01)
