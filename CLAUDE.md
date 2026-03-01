@@ -12,8 +12,8 @@
 ## Project Status
 
 - **Current Phase**: Phase 2 in progress.
-- **Last Sprint**: 2.4 (closed 2026-03-01, Subscribe/unsubscribe frontend pages)
-- **Tests**: 683 (516 backend + 167 frontend)
+- **Last Sprint**: 2.5 (closed 2026-03-02, News Watch Pipeline: RSS + Article Extraction)
+- **Tests**: 719 (552 backend + 167 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -29,6 +29,7 @@
 | `outreach` | SchoolImage, OutreachEmail, image harvesting, email campaigns | 1.8 |
 | `subscribers` | Subscriber, SubscriptionPreference, subscribe/unsubscribe/preferences API | 2.1 |
 | `broadcasts` | Broadcast, BroadcastRecipient, audience filtering, compose/preview/list UI | 2.2 |
+| `newswatch` | NewsArticle, RSS fetcher (Google Alerts), article extractor (trafilatura) | 2.5 |
 
 ## Commands
 
@@ -80,6 +81,12 @@ python manage.py send_outreach_emails                      # Send outreach email
 python manage.py send_outreach_emails --limit 50           # Batch: 50 emails
 python manage.py send_outreach_emails --state Johor        # Filter by state
 python manage.py send_outreach_emails --dry-run            # Preview
+
+# News Watch (Sprint 2.5)
+python manage.py fetch_news_alerts                         # Fetch from configured RSS feeds
+python manage.py fetch_news_alerts --url "https://..."     # Fetch from specific feed
+python manage.py extract_articles                           # Extract body text (batch of 20)
+python manage.py extract_articles --batch-size 50           # Custom batch size
 
 # Deployment (verify account first!)
 gcloud config set account admin@tamilfoundation.org
@@ -154,6 +161,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 2.2 | Done | Broadcast models + admin compose UI. New `broadcasts` app with Broadcast + BroadcastRecipient models, audience filtering service, compose/preview/list admin views. 47 new tests (484 total). |
 | 2.3 | Done | Broadcast sending + confirmation email. Sender service (Brevo API), per-recipient tracking, rate limiting, management command, confirmation email on subscribe. 32 new tests (516 total). |
 | 2.4 | Done | Subscribe/unsubscribe frontend pages. `/subscribe/`, `/unsubscribe/[token]/`, `/preferences/[token]/` pages. SubscribeForm, UnsubscribeConfirmation, PreferencesForm components. API client + types. Footer subscribe link. 33 new frontend tests (683 total). |
+| 2.5 | Done | News Watch Pipeline: newswatch app, NewsArticle model, RSS fetcher (Google Alerts), article extractor (trafilatura), 2 management commands, admin. 36 new backend tests (719 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -170,13 +178,12 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 2.5 — News Watch Pipeline (RSS + Article Extraction)**
-- Google Alerts RSS feed polling for Tamil school news
-- Article extraction with trafilatura (headline, body, date, source)
-- New `newswatch` app: NewsArticle model, RSS fetcher, article extractor
-- Management command for manual + scheduled execution
-- New deps: feedparser, trafilatura
-- New env var: GOOGLE_ALERTS_RSS_URL
+**Sprint 2.6 — News AI Analysis + Rapid Response + Review UI**
+- Gemini AI analysis of extracted NewsArticle body text (relevance, sentiment, summary, school mentions)
+- Rapid response workflow: flag urgent articles for immediate action
+- Admin review UI for news articles (similar to Hansard review queue)
+- Status lifecycle extension: EXTRACTED → ANALYSED (+ URGENT flag)
+- Depends on Sprint 2.5 newswatch app (NewsArticle model, extraction pipeline)
 - See `docs/implementation-roadmap.md` Phase 2 table
 
 ## Frontend (Sprint 1.3–2.4)

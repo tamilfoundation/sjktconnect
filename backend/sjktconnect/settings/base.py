@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "outreach",
     "subscribers",
     "broadcasts",
+    "newswatch",
 ]
 
 MIDDLEWARE = [

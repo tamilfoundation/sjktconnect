@@ -1,6 +1,6 @@
 # SJK(T) Connect — Architecture Map
 
-Last updated: Sprint 2.4 close (1 Mar 2026)
+Last updated: Sprint 2.5 close (2 Mar 2026)
 
 ## Stack
 
@@ -104,15 +104,26 @@ backend/
 │   │   └── urls.py       # /subscribers/ endpoints
 │   └── tests/
 │
-└── broadcasts/           # Broadcast messaging (Sprint 2.2-2.3)
-    ├── models.py         # Broadcast (draft/sent), BroadcastRecipient (per-recipient tracking)
+├── broadcasts/           # Broadcast messaging (Sprint 2.2-2.3)
+│   ├── models.py         # Broadcast (draft/sent), BroadcastRecipient (per-recipient tracking)
+│   ├── services/
+│   │   └── sender.py     # Brevo transactional send, rate limiting, SENT/FAILED tracking
+│   ├── views.py          # Django admin views: compose, preview, list
+│   ├── forms.py          # BroadcastForm (audience filtering by scope)
+│   ├── templates/        # Admin compose/preview/list templates
+│   ├── management/commands/
+│   │   └── send_broadcast.py  # Management command for sending broadcasts
+│   └── tests/
+│
+└── newswatch/            # News monitoring pipeline (Sprint 2.5)
+    ├── models.py         # NewsArticle (NEW → EXTRACTED/FAILED lifecycle)
     ├── services/
-    │   └── sender.py     # Brevo transactional send, rate limiting, SENT/FAILED tracking
-    ├── views.py          # Django admin views: compose, preview, list
-    ├── forms.py          # BroadcastForm (audience filtering by scope)
-    ├── templates/        # Admin compose/preview/list templates
+    │   ├── rss_fetcher.py       # Google Alerts RSS parser, URL dedup, redirect unwrapping
+    │   └── article_extractor.py # trafilatura body text extraction, metadata (source, date)
     ├── management/commands/
-    │   └── send_broadcast.py  # Management command for sending broadcasts
+    │   ├── fetch_news_alerts.py  # Poll RSS feeds (--url or NEWS_WATCH_RSS_FEEDS setting)
+    │   └── extract_articles.py   # Extract body text from NEW articles (--batch-size)
+    ├── admin.py          # NewsArticle admin with status/source filters
     └── tests/
 ```
 
@@ -214,6 +225,10 @@ Subscriber (PK: auto ID, unique: email)
 Broadcast (PK: auto ID)
   ├── has many BroadcastRecipients (FK broadcast, FK subscriber)
   └── status: draft → sending → sent
+
+NewsArticle (PK: auto ID, unique: url)
+  └── status: NEW → EXTRACTED or FAILED
+       Fields: url, title, source_name, alert_title, published_date, body_text, extraction_error
 
 AuditLog — standalone, tracks all admin actions
 ```

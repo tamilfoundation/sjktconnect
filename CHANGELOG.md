@@ -1,5 +1,25 @@
 # Changelog
 
+## Sprint 2.5 — News Watch Pipeline: RSS + Article Extraction (2026-03-02)
+
+### Added
+- New `newswatch` Django app with `NewsArticle` model (status lifecycle: NEW → EXTRACTED or FAILED)
+- RSS fetcher service: parses Google Alerts RSS feeds, unwraps redirect URLs, deduplicates by URL, batch-checks existing articles
+- Article extractor service: uses trafilatura to fetch and extract body text, source name, and published date from article URLs
+- Management commands: `fetch_news_alerts` (RSS polling, supports `--url` flag or `NEWS_WATCH_RSS_FEEDS` setting) and `extract_articles` (body extraction, `--batch-size` flag)
+- Django admin for NewsArticle with list display, status/source filters, search
+- New dependencies: feedparser, trafilatura, lxml_html_clean
+
+### Technical
+- Google Alerts redirect URL resolution (`google.com/url?...&url=ACTUAL_URL`)
+- HTML tag stripping for RSS titles (Google Alerts uses `<b>` tags)
+- Batch URL existence check to avoid N+1 queries during RSS import
+- Article extraction preserves RSS-sourced published_date, only fills from trafilatura if missing
+- Graceful failure handling: download failures and extraction errors set status=FAILED with error message
+- 36 new backend tests (model, RSS fetcher, article extractor, management commands), 719 total (552 backend + 167 frontend)
+
+---
+
 ## Sprint 2.4 — Subscribe/Unsubscribe Frontend Pages (2026-03-01)
 
 ### Added
