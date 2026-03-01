@@ -69,15 +69,21 @@ def harvest_satellite_image(school: School) -> SchoolImage | None:
     return image
 
 
-def harvest_places_image(school: School) -> SchoolImage | None:
-    """Search Google Places for the school and fetch a photo if available.
+def harvest_places_images(
+    school: School, max_photos: int = 3
+) -> list[SchoolImage]:
+    """Search Google Places for the school and fetch up to *max_photos* photos.
 
-    Returns the created SchoolImage or None if not found.
+    Performs a clean re-harvest: deletes any existing PLACES images for the
+    school before creating new ones.  The first photo is set as primary
+    (demoting any other primaries); subsequent photos are non-primary.
+
+    Returns a list of created SchoolImage objects (may be empty).
     """
     api_key = _get_api_key()
     if not api_key:
         logger.warning("No Google Maps API key — skipping Places search")
-        return None
+        return []
 
     search_query = school.short_name or school.name
     params = {
@@ -95,44 +101,57 @@ def harvest_places_image(school: School) -> SchoolImage | None:
         data = resp.json()
     except requests.RequestException:
         logger.exception("Places API search failed for %s", school.moe_code)
-        return None
+        return []
 
     candidates = data.get("candidates", [])
     if not candidates:
         logger.info("No Places result for %s", school.moe_code)
-        return None
+        return []
 
     place = candidates[0]
     photos = place.get("photos", [])
     if not photos:
         logger.info("No photos for %s in Places", school.moe_code)
-        return None
+        return []
 
-    photo_ref = photos[0]["photo_reference"]
-    photo_url = (
-        f"{PLACES_PHOTO_URL}"
-        f"?maxwidth=640&photo_reference={photo_ref}"
-        f"&key={api_key}"
-    )
+    # Clean re-harvest: remove old Places images
+    school.images.filter(source=SchoolImage.Source.PLACES).delete()
 
-    attribution = ""
-    html_attrs = photos[0].get("html_attributions", [])
-    if html_attrs:
-        attribution = html_attrs[0]
-
-    # Places photo is higher quality — promote to primary
+    # Demote existing primaries so the first Places photo can take over
     school.images.filter(is_primary=True).update(is_primary=False)
 
-    image = SchoolImage.objects.create(
-        school=school,
-        source=SchoolImage.Source.PLACES,
-        image_url=photo_url,
-        is_primary=True,
-        width=640,
-        attribution=attribution,
-        photo_reference=photo_ref,
-    )
-    return image
+    created: list[SchoolImage] = []
+    for i, photo in enumerate(photos[:max_photos]):
+        photo_ref = photo["photo_reference"]
+        photo_url = (
+            f"{PLACES_PHOTO_URL}"
+            f"?maxwidth=640&photo_reference={photo_ref}"
+            f"&key={api_key}"
+        )
+
+        attribution = ""
+        html_attrs = photo.get("html_attributions", [])
+        if html_attrs:
+            attribution = html_attrs[0]
+
+        image = SchoolImage.objects.create(
+            school=school,
+            source=SchoolImage.Source.PLACES,
+            image_url=photo_url,
+            is_primary=(i == 0),
+            width=640,
+            attribution=attribution,
+            photo_reference=photo_ref,
+        )
+        created.append(image)
+
+    return created
+
+
+def harvest_places_image(school: School) -> SchoolImage | None:
+    """Backwards-compatible wrapper — returns the first Places image or None."""
+    images = harvest_places_images(school, max_photos=1)
+    return images[0] if images else None
 
 
 def harvest_images_for_school(
@@ -158,8 +177,7 @@ def harvest_images_for_school(
             results.append(img)
 
     if "places" in sources:
-        img = harvest_places_image(school)
-        if img:
-            results.append(img)
+        imgs = harvest_places_images(school)
+        results.extend(imgs)
 
     return results

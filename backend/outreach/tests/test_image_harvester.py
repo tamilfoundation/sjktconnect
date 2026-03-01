@@ -10,6 +10,7 @@ from outreach.models import SchoolImage
 from outreach.services.image_harvester import (
     harvest_images_for_school,
     harvest_places_image,
+    harvest_places_images,
     harvest_satellite_image,
 )
 from schools.models import School
@@ -183,6 +184,99 @@ class HarvestPlacesImageTest(TestCase):
         mock_get.side_effect = requests.RequestException("Connection error")
         img = harvest_places_image(self.school)
         assert img is None
+
+
+class HarvestPlacesImagesTest(TestCase):
+    """Tests for the new harvest_places_images (plural) function."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.school = School.objects.create(
+            moe_code="JBD0050",
+            name="SJK(T) LADANG BIKAM",
+            short_name="SJK(T) Ladang Bikam",
+            state="Johor",
+            ppd="PPD Segamat",
+            gps_lat="2.4500000",
+            gps_lng="102.8100000",
+        )
+
+    @patch("outreach.services.image_harvester.requests.get")
+    @patch.dict("os.environ", {"GOOGLE_MAPS_API_KEY": "fake-key"})
+    def test_harvests_up_to_3_photos(self, mock_get):
+        """API returns 4 photos but only 3 SchoolImages should be created."""
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.raise_for_status = lambda: None
+        mock_get.return_value.json.return_value = {
+            "candidates": [
+                {
+                    "name": "SJK(T) Ladang Bikam",
+                    "photos": [
+                        {"photo_reference": f"REF_{i}", "html_attributions": []}
+                        for i in range(4)
+                    ],
+                }
+            ]
+        }
+
+        results = harvest_places_images(self.school)
+        assert len(results) == 3
+        assert results[0].is_primary is True
+        assert results[1].is_primary is False
+        assert results[2].is_primary is False
+        assert SchoolImage.objects.filter(
+            school=self.school, source=SchoolImage.Source.PLACES
+        ).count() == 3
+
+    @patch("outreach.services.image_harvester.requests.get")
+    @patch.dict("os.environ", {"GOOGLE_MAPS_API_KEY": "fake-key"})
+    def test_clears_old_places_images_before_harvest(self, mock_get):
+        """Pre-existing Places image should be deleted during re-harvest."""
+        # Create an old Places image
+        SchoolImage.objects.create(
+            school=self.school,
+            image_url="https://old.example.com/photo.jpg",
+            source=SchoolImage.Source.PLACES,
+            is_primary=True,
+            photo_reference="OLD_REF",
+        )
+
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.raise_for_status = lambda: None
+        mock_get.return_value.json.return_value = {
+            "candidates": [
+                {
+                    "name": "SJK(T) Ladang Bikam",
+                    "photos": [
+                        {"photo_reference": "NEW_REF", "html_attributions": []}
+                    ],
+                }
+            ]
+        }
+
+        results = harvest_places_images(self.school)
+        assert len(results) == 1
+        assert results[0].photo_reference == "NEW_REF"
+        # Old image should be gone
+        assert not SchoolImage.objects.filter(photo_reference="OLD_REF").exists()
+        assert SchoolImage.objects.filter(
+            school=self.school, source=SchoolImage.Source.PLACES
+        ).count() == 1
+
+    @patch("outreach.services.image_harvester._get_api_key", return_value="")
+    def test_returns_empty_when_no_api_key(self, _mock_key):
+        results = harvest_places_images(self.school)
+        assert results == []
+
+    @patch("outreach.services.image_harvester.requests.get")
+    @patch.dict("os.environ", {"GOOGLE_MAPS_API_KEY": "fake-key"})
+    def test_returns_empty_when_no_candidates(self, mock_get):
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.raise_for_status = lambda: None
+        mock_get.return_value.json.return_value = {"candidates": []}
+
+        results = harvest_places_images(self.school)
+        assert results == []
 
 
 class HarvestImagesForSchoolTest(TestCase):
