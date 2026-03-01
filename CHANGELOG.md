@@ -1,5 +1,26 @@
 # Changelog
 
+## Sprint 2.2 — Broadcast Models + Admin Compose UI (2026-03-01)
+
+### Added
+- New `broadcasts` app with `Broadcast` and `BroadcastRecipient` models
+- Broadcast compose form at `/broadcast/compose/` with subject, HTML content, plain text, and audience filters
+- Broadcast preview at `/broadcast/preview/<id>/` with sandboxed HTML preview, recipient count, filter summary
+- Broadcast list at `/broadcast/` with status, dates, and pagination (50/page)
+- Audience filtering service: filter subscribers by category, state, constituency, PPD, enrolment range, SKM eligibility
+- `created_by` field on Broadcast for audit trail
+- Django admin registration with inline recipient tracking
+- Nav link to Broadcasts in base template
+
+### Technical
+- Server-side validation for empty subjects and non-numeric enrolment values
+- HTML preview sandboxed in `<iframe sandbox="">` to prevent XSS
+- States and PPDs dynamically queried from School model (not hardcoded)
+- `UniqueConstraint` on (broadcast, subscriber) pair
+- 47 new tests (13 model + 15 audience service + 19 views), 484 total passing
+
+---
+
 ## Sprint 1.10 — School Page Redesign + Image Fix (2026-03-01)
 
 ### Added

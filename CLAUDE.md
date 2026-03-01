@@ -12,8 +12,8 @@
 ## Project Status
 
 - **Current Phase**: Phase 2 in progress.
-- **Last Sprint**: 1.10 (closed 2026-03-01, Phase 1 gap fill)
-- **Tests**: 437 backend passing (frontend tests not re-counted)
+- **Last Sprint**: 2.2 (closed 2026-03-01, Broadcast models + compose UI)
+- **Tests**: 484 backend passing (frontend tests not re-counted)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -28,6 +28,7 @@
 | `accounts` | Magic Link auth, SchoolContact, token/email services | 1.6 |
 | `outreach` | SchoolImage, OutreachEmail, image harvesting, email campaigns | 1.8 |
 | `subscribers` | Subscriber, SubscriptionPreference, subscribe/unsubscribe/preferences API | 2.1 |
+| `broadcasts` | Broadcast, BroadcastRecipient, audience filtering, compose/preview/list UI | 2.2 |
 
 ## Commands
 
@@ -150,6 +151,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 1.9 | Done | Full stack deployment: new GCP project `sjktconnect` (tamilfoundation.org), backend + frontend on Cloud Run, Maps API key, CORS, 528 satellite images harvested, job + scheduler migrated. |
 | 1.10 | Done | School page redesign: mentions API, multi-photo harvester, SchoolPhotoGallery, History CTA, News Watch placeholder, map/search links to school pages. Fixed 528 broken image URLs (API key rotation). |
 | 2.1 | Done | Subscriber models + subscribe/unsubscribe API. New `subscribers` app with Subscriber + SubscriptionPreference models, service layer, 3 REST endpoints. 51 new tests (560 total). |
+| 2.2 | Done | Broadcast models + admin compose UI. New `broadcasts` app with Broadcast + BroadcastRecipient models, audience filtering service, compose/preview/list admin views. 47 new tests (484 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -166,12 +168,13 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 2.2 — Broadcast Models + Admin Compose UI**
-- New `broadcasts` app: `Broadcast` model (subject, html_content, audience_filter JSON, status) + `BroadcastRecipient` (per-email tracking)
-- Audience filtering service: filter subscribers by state, district, constituency, enrolment, SKM
-- Django admin templates: compose form, preview with recipient count, broadcast list
-- Views at `/broadcast/compose/`, `/broadcast/preview/<id>/`, `/broadcast/`
-- Depends on Sprint 2.1 (Subscriber model) — now complete
+**Sprint 2.3 — Broadcast Sending + Confirmation Email**
+- Sender service: loop recipients, call Brevo transactional API per-email, rate-limit to 50/min
+- Send view + management command `send_broadcast` for Cloud Run Job execution
+- Confirmation email: welcome email with preferences link + unsubscribe link on new subscription
+- Status transitions: DRAFT → SENDING → SENT, per-recipient SENT/FAILED tracking
+- Rate limited within Brevo free tier (300/day)
+- Depends on Sprint 2.2 (Broadcast models + compose UI) — now complete
 - See `.claude/plans/streamed-munching-bird.md` for full Phase 2 roadmap
 
 ## Frontend (Sprint 1.3–1.8)
