@@ -34,6 +34,20 @@ class MPScorecardSerializer(serializers.ModelSerializer):
         ]
 
 
+class SchoolMentionSerializer(serializers.Serializer):
+    """Approved Hansard mention for a school."""
+
+    sitting_date = serializers.DateField(source="sitting.sitting_date")
+    mp_name = serializers.CharField()
+    mp_constituency = serializers.CharField()
+    mp_party = serializers.CharField()
+    mention_type = serializers.CharField()
+    significance = serializers.IntegerField()
+    sentiment = serializers.CharField()
+    ai_summary = serializers.CharField()
+    verbatim_quote = serializers.CharField()
+
+
 class SittingBriefSerializer(serializers.ModelSerializer):
     """Published sitting brief."""
 

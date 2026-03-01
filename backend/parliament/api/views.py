@@ -1,9 +1,16 @@
-"""API views for MPScorecard and SittingBrief."""
+"""API views for MPScorecard, SittingBrief, and SchoolMentions."""
 
+from django.shortcuts import get_object_or_404
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 
-from parliament.api.serializers import MPScorecardSerializer, SittingBriefSerializer
+from hansard.models import HansardMention
+from parliament.api.serializers import (
+    MPScorecardSerializer,
+    SchoolMentionSerializer,
+    SittingBriefSerializer,
+)
 from parliament.models import MPScorecard, SittingBrief
+from schools.models import School
 
 
 class MPScorecardListView(ListAPIView):
@@ -48,3 +55,23 @@ class SittingBriefDetailView(RetrieveAPIView):
     queryset = SittingBrief.objects.filter(
         is_published=True,
     ).select_related("sitting")
+
+
+class SchoolMentionsView(ListAPIView):
+    """List approved Hansard mentions for a school."""
+
+    serializer_class = SchoolMentionSerializer
+    authentication_classes = []
+    permission_classes = []
+    pagination_class = None
+
+    def get_queryset(self):
+        school = get_object_or_404(School, moe_code=self.kwargs["moe_code"])
+        return (
+            HansardMention.objects.filter(
+                matched_schools__school=school,
+                review_status="APPROVED",
+            )
+            .select_related("sitting")
+            .order_by("-sitting__sitting_date")
+        )
