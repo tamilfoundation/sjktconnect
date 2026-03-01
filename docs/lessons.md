@@ -23,3 +23,5 @@ Cross-cutting lessons from SJK(T) Connect development. Project-specific decision
 - `auto_now_add` timestamps can be identical within fast test execution — test ordering via `Model._meta.ordering` instead of queryset comparisons (Sprint 2.1)
 - Never bake API keys into stored URLs — store the reference/coordinates and construct the URL at serve time. Key rotation breaks every stored URL otherwise (Sprint 1.10)
 - Navigation gaps compound silently — always verify that new page types are reachable from the main entry points (map, search, nav) before closing the sprint (Sprint 1.10)
+- Never make HTTP/API calls inside `transaction.atomic()` — the DB connection is held open for the entire API call duration. Move external calls outside the transaction block and use a flag to trigger them after commit (Sprint 2.3)
+- Status-gated operations (e.g. DRAFT → SENDING) need atomic conditional UPDATE (`Model.objects.filter(pk=x, status=DRAFT).update(status=SENDING)`) to prevent race conditions — a naive `get()` + check + `save()` allows concurrent requests to both pass the gate (Sprint 2.3)

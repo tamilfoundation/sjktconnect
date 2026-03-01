@@ -1,5 +1,29 @@
 # Changelog
 
+## Sprint 2.3 — Broadcast Sending + Confirmation Email (2026-03-01)
+
+### Added
+- Broadcast sender service: sends individual emails via Brevo transactional API with per-recipient tracking
+- Each broadcast email includes personalised unsubscribe and preferences links in footer
+- Status transitions: DRAFT → SENDING → SENT (or FAILED on error)
+- BroadcastRecipient tracks SENT/FAILED per-email with brevo_message_id
+- Rate limited: 0.5s between emails to stay within Brevo free tier
+- Dev mode: logs to console when no BREVO_API_KEY (no real emails sent)
+- Confirmation email service: welcome email on new subscriber with preferences/unsubscribe links
+- Management command `send_broadcast --id <pk>` for Cloud Run Job execution
+- Broadcast detail view at `/broadcast/<pk>/` with per-recipient delivery status table
+- Send button on preview page (POST with JavaScript confirmation dialog)
+
+### Technical
+- Atomic conditional UPDATE prevents race condition on concurrent send requests
+- Try/finally ensures broadcast never stuck in SENDING state (transitions to FAILED on error)
+- Recipient loop uses `select_related("subscriber")` to avoid N+1 queries
+- Confirmation email sent outside `transaction.atomic()` to avoid holding DB connection during API call
+- HTML template uses `.format()` (not `%s`) to handle content with literal `%` characters
+- 32 new tests (sender service + send views + management command + confirmation email), 516 total passing
+
+---
+
 ## Sprint 2.2 — Broadcast Models + Admin Compose UI (2026-03-01)
 
 ### Added
