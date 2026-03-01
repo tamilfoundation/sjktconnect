@@ -43,7 +43,7 @@
 <div class="card">
     <h2>HTML Preview</h2>
     <div class="email-preview">
-        {{ broadcast.html_content|safe }}
+        <iframe srcdoc="{{ broadcast.html_content }}" sandbox="" style="width: 100%; min-height: 400px; border: 1px solid #ddd;"></iframe>
     </div>
 </div>
 {% endif %}
@@ -57,7 +57,7 @@
 
 <div class="card">
     <button type="button" class="btn" disabled title="Sending will be available in Sprint 2.3">Send Broadcast</button>
-    <a href="{% url 'broadcasts:broadcast-compose' %}" class="btn btn-secondary">Edit</a>
+    <a href="{% url 'broadcasts:broadcast-compose' %}" class="btn btn-secondary">Compose New</a>
     <a href="{% url 'broadcasts:broadcast-list' %}" class="btn btn-secondary">Back to List</a>
 </div>
 {% endblock %}

@@ -9,28 +9,13 @@ from broadcasts.services.audience import get_filtered_subscribers
 from schools.models import School
 
 
-# States for the dropdown — derived from School data
-MALAYSIAN_STATES = [
-    "JOHOR",
-    "KEDAH",
-    "KELANTAN",
-    "MELAKA",
-    "NEGERI SEMBILAN",
-    "PAHANG",
-    "PERAK",
-    "PERLIS",
-    "PULAU PINANG",
-    "SELANGOR",
-    "WILAYAH PERSEKUTUAN KUALA LUMPUR",
-]
-
-
 class BroadcastListView(LoginRequiredMixin, ListView):
     """List all broadcasts with status, subject, and dates."""
 
     model = Broadcast
     template_name = "broadcasts/broadcast_list.html"
     context_object_name = "broadcasts"
+    paginate_by = 50
 
 
 class BroadcastComposeView(LoginRequiredMixin, TemplateView):
@@ -40,7 +25,11 @@ class BroadcastComposeView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["states"] = MALAYSIAN_STATES
+        context["states"] = (
+            School.objects.values_list("state", flat=True)
+            .distinct()
+            .order_by("state")
+        )
         context["ppds"] = (
             School.objects.exclude(ppd="")
             .values_list("ppd", flat=True)
@@ -54,6 +43,13 @@ class BroadcastComposeView(LoginRequiredMixin, TemplateView):
         html_content = request.POST.get("html_content", "").strip()
         text_content = request.POST.get("text_content", "").strip()
 
+        # C2: Validate subject is not empty
+        if not subject:
+            context = self.get_context_data()
+            context["error"] = "Subject is required."
+            context["form_data"] = request.POST
+            return self.render_to_response(context)
+
         # Build audience filter from form fields
         audience_filter = {}
         for field in ["state", "constituency", "ppd"]:
@@ -61,13 +57,20 @@ class BroadcastComposeView(LoginRequiredMixin, TemplateView):
             if value:
                 audience_filter[field] = value
 
+        # C3: Safely parse enrolment values
         min_enrolment = request.POST.get("min_enrolment", "").strip()
         if min_enrolment:
-            audience_filter["min_enrolment"] = int(min_enrolment)
+            try:
+                audience_filter["min_enrolment"] = int(min_enrolment)
+            except ValueError:
+                pass  # Ignore invalid enrolment input
 
         max_enrolment = request.POST.get("max_enrolment", "").strip()
         if max_enrolment:
-            audience_filter["max_enrolment"] = int(max_enrolment)
+            try:
+                audience_filter["max_enrolment"] = int(max_enrolment)
+            except ValueError:
+                pass  # Ignore invalid enrolment input
 
         if request.POST.get("skm"):
             audience_filter["skm"] = True
@@ -86,6 +89,7 @@ class BroadcastComposeView(LoginRequiredMixin, TemplateView):
             text_content=text_content,
             audience_filter=audience_filter,
             recipient_count=recipient_count,
+            created_by=request.user,
         )
 
         return redirect("broadcasts:broadcast-preview", pk=broadcast.pk)

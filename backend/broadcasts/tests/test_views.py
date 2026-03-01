@@ -136,6 +136,50 @@ class TestBroadcastComposeView:
         # subscriber is active, no filters → should match
         assert broadcast.recipient_count == 1
 
+    def test_post_invalid_enrolment_does_not_crash(self, auth_client, subscriber):
+        """POST with non-numeric enrolment ignores the value without crashing."""
+        response = auth_client.post(
+            reverse("broadcasts:broadcast-compose"),
+            {
+                "subject": "Enrolment Test",
+                "html_content": "<p>Hi</p>",
+                "text_content": "Hi",
+                "min_enrolment": "abc",
+                "max_enrolment": "xyz",
+            },
+        )
+        assert response.status_code == 302
+        broadcast = Broadcast.objects.get(subject="Enrolment Test")
+        assert "min_enrolment" not in broadcast.audience_filter
+        assert "max_enrolment" not in broadcast.audience_filter
+
+    def test_post_empty_subject_rejected(self, auth_client, subscriber):
+        """POST with empty subject re-renders form with error, does not create broadcast."""
+        response = auth_client.post(
+            reverse("broadcasts:broadcast-compose"),
+            {
+                "subject": "",
+                "html_content": "<p>Content</p>",
+                "text_content": "Content",
+            },
+        )
+        assert response.status_code == 200  # Re-rendered form, not redirect
+        assert b"Subject is required" in response.content
+        assert Broadcast.objects.filter(html_content="<p>Content</p>").count() == 0
+
+    def test_post_sets_created_by(self, auth_client, user, subscriber):
+        """POST sets created_by to the current user."""
+        response = auth_client.post(
+            reverse("broadcasts:broadcast-compose"),
+            {
+                "subject": "Created By Test",
+                "html_content": "<p>Hi</p>",
+                "text_content": "Hi",
+            },
+        )
+        broadcast = Broadcast.objects.get(subject="Created By Test")
+        assert broadcast.created_by == user
+
 
 @pytest.mark.django_db
 class TestBroadcastPreviewView:

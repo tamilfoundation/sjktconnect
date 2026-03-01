@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -23,6 +24,12 @@ class Broadcast(models.Model):
         max_length=10, choices=Status.choices, default=Status.DRAFT
     )
     recipient_count = models.PositiveIntegerField(default=0)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     sent_at = models.DateTimeField(null=True, blank=True)
@@ -66,7 +73,12 @@ class BroadcastRecipient(models.Model):
 
     class Meta:
         ordering = ["email"]
-        unique_together = [("broadcast", "subscriber")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["broadcast", "subscriber"],
+                name="unique_broadcast_subscriber",
+            )
+        ]
 
     def __str__(self):
         return f"{self.email} — {self.get_status_display()}"
