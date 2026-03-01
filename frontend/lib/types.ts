@@ -13,6 +13,13 @@ export interface School {
   is_active: boolean;
 }
 
+export interface SchoolImageData {
+  image_url: string;
+  source: "SATELLITE" | "PLACES" | "STREET_VIEW" | "MANUAL";
+  is_primary: boolean;
+  attribution: string;
+}
+
 export interface SchoolDetail extends School {
   name_tamil: string;
   address: string;
@@ -34,6 +41,7 @@ export interface SchoolDetail extends School {
   dun_name: string | null;
   last_verified: string | null;
   image_url: string | null;
+  images: SchoolImageData[];
 }
 
 export interface SchoolMention {
