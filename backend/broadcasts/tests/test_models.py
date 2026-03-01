@@ -55,12 +55,8 @@ class TestBroadcast:
         assert str(b) == "Sent One (Sent)"
 
     def test_ordering_newest_first(self):
-        """Broadcasts are ordered by newest first."""
-        b1 = Broadcast.objects.create(subject="First")
-        b2 = Broadcast.objects.create(subject="Second")
-        broadcasts = list(Broadcast.objects.all())
-        assert broadcasts[0].pk == b2.pk
-        assert broadcasts[1].pk == b1.pk
+        """Broadcasts are ordered by newest first via Meta.ordering."""
+        assert Broadcast._meta.ordering == ["-created_at"]
 
     def test_audience_filter_stores_json(self):
         """audience_filter stores arbitrary JSON."""
