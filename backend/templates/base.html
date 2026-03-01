@@ -15,6 +15,7 @@
             {% if user.is_authenticated %}
                 <a href="{% url 'parliament:review-queue' %}">Review Queue</a>
                 <a href="{% url 'schools:verification-dashboard' %}">Verification</a>
+                <a href="{% url 'broadcasts:broadcast-list' %}">Broadcasts</a>
                 <a href="{% url 'logout' %}">Log out</a>
             {% else %}
                 <a href="{% url 'login' %}">Log in</a>

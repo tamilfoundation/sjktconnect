@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "accounts",
     "outreach",
     "subscribers",
+    "broadcasts",
 ]
 
 MIDDLEWARE = [
@@ -129,6 +130,8 @@ AUDIT_LOG_MODELS = [
     "accounts.MagicLinkToken",
     "subscribers.Subscriber",
     "subscribers.SubscriptionPreference",
+    "broadcasts.Broadcast",
+    "broadcasts.BroadcastRecipient",
 ]
 
 # Magic Link Authentication

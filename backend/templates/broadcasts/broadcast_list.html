@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Broadcasts — SJK(T) Connect{% endblock %}
+
+{% block content %}
+<h1>Broadcasts</h1>
+
+<div class="card">
+    <p><a href="{% url 'broadcasts:broadcast-compose' %}" class="btn">Compose New Broadcast</a></p>
+</div>
+
+<div class="card">
+    <h2>All Broadcasts</h2>
+    {% if broadcasts %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Subject</th>
+                <th>Status</th>
+                <th>Recipients</th>
+                <th>Created</th>
+                <th>Sent</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for broadcast in broadcasts %}
+            <tr>
+                <td>{{ broadcast.subject }}</td>
+                <td>{{ broadcast.get_status_display }}</td>
+                <td>{{ broadcast.recipient_count }}</td>
+                <td>{{ broadcast.created_at|date:"d M Y H:i" }}</td>
+                <td>{{ broadcast.sent_at|date:"d M Y H:i"|default:"-" }}</td>
+                <td>
+                    <a href="{% url 'broadcasts:broadcast-preview' pk=broadcast.pk %}">View</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No broadcasts yet. Compose your first broadcast to get started.</p>
+    {% endif %}
+</div>
+{% endblock %}

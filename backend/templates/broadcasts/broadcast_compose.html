@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Compose Broadcast — SJK(T) Connect{% endblock %}
+
+{% block content %}
+<h1>Compose Broadcast</h1>
+
+<form method="post" action="{% url 'broadcasts:broadcast-compose' %}">
+    {% csrf_token %}
+
+    <div class="card">
+        <h2>Content</h2>
+        <div class="form-group">
+            <label for="subject">Subject</label>
+            <input type="text" id="subject" name="subject" required maxlength="300"
+                   placeholder="e.g. Parliament Watch: March 2026 Sitting Summary">
+        </div>
+        <div class="form-group">
+            <label for="html_content">HTML Content</label>
+            <textarea id="html_content" name="html_content" rows="12"
+                      placeholder="Paste your HTML email content here..."></textarea>
+        </div>
+        <div class="form-group">
+            <label for="text_content">Plain Text Content</label>
+            <textarea id="text_content" name="text_content" rows="6"
+                      placeholder="Plain text fallback for email clients that don't support HTML..."></textarea>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Audience Filters</h2>
+        <p class="muted">Leave all filters empty to send to all active subscribers.</p>
+
+        <div class="form-group">
+            <label for="category">Subscription Category</label>
+            <select id="category" name="category">
+                <option value="">All categories</option>
+                <option value="PARLIAMENT_WATCH">Parliament Watch</option>
+                <option value="NEWS_WATCH">News Watch</option>
+                <option value="MONTHLY_BLAST">Monthly Intelligence Blast</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="state">State</label>
+            <select id="state" name="state">
+                <option value="">All states</option>
+                {% for state in states %}
+                <option value="{{ state }}">{{ state }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="constituency">Constituency Code</label>
+            <input type="text" id="constituency" name="constituency"
+                   placeholder="e.g. P140" maxlength="10">
+        </div>
+
+        <div class="form-group">
+            <label for="ppd">PPD (District)</label>
+            <select id="ppd" name="ppd">
+                <option value="">All districts</option>
+                {% for p in ppds %}
+                <option value="{{ p }}">{{ p }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="min_enrolment">Min Enrolment</label>
+            <input type="number" id="min_enrolment" name="min_enrolment" min="0"
+                   placeholder="e.g. 50">
+        </div>
+
+        <div class="form-group">
+            <label for="max_enrolment">Max Enrolment</label>
+            <input type="number" id="max_enrolment" name="max_enrolment" min="0"
+                   placeholder="e.g. 500">
+        </div>
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="skm" name="skm" value="true">
+                SKM eligible schools only
+            </label>
+        </div>
+    </div>
+
+    <div class="card">
+        <button type="submit" class="btn">Preview Broadcast</button>
+        <a href="{% url 'broadcasts:broadcast-list' %}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

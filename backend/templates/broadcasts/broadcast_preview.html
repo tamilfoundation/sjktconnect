@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Preview: {{ broadcast.subject }} — SJK(T) Connect{% endblock %}
+
+{% block content %}
+<h1>Preview Broadcast</h1>
+
+<div class="card">
+    <h2>Details</h2>
+    <table class="data-table">
+        <tbody>
+            <tr>
+                <th>Subject</th>
+                <td>{{ broadcast.subject }}</td>
+            </tr>
+            <tr>
+                <th>Status</th>
+                <td>{{ broadcast.get_status_display }}</td>
+            </tr>
+            <tr>
+                <th>Recipients</th>
+                <td><strong>{{ recipient_count }}</strong> subscriber{{ recipient_count|pluralize }}</td>
+            </tr>
+            <tr>
+                <th>Audience Filter</th>
+                <td>
+                    <ul>
+                        {% for item in filter_summary %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <th>Created</th>
+                <td>{{ broadcast.created_at|date:"d M Y H:i" }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{% if broadcast.html_content %}
+<div class="card">
+    <h2>HTML Preview</h2>
+    <div class="email-preview">
+        {{ broadcast.html_content|safe }}
+    </div>
+</div>
+{% endif %}
+
+{% if broadcast.text_content %}
+<div class="card">
+    <h2>Plain Text Preview</h2>
+    <pre>{{ broadcast.text_content }}</pre>
+</div>
+{% endif %}
+
+<div class="card">
+    <button type="button" class="btn" disabled title="Sending will be available in Sprint 2.3">Send Broadcast</button>
+    <a href="{% url 'broadcasts:broadcast-compose' %}" class="btn btn-secondary">Edit</a>
+    <a href="{% url 'broadcasts:broadcast-list' %}" class="btn btn-secondary">Back to List</a>
+</div>
+{% endblock %}
