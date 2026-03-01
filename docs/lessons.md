@@ -21,3 +21,5 @@ Cross-cutting lessons from SJK(T) Connect development. Project-specific decision
 - Literal Unicode characters (em dash, curly quotes) in HTML email templates render as diamonds in some email clients — always use HTML entities (`&mdash;`, `&ldquo;`) in email HTML, and plain ASCII in subject lines (Sprint 1.9)
 - Django `startapp` creates `tests.py` which conflicts with a `tests/` package directory — delete `tests.py` before creating the tests package, and clear `__pycache__` if pytest reports import mismatches (Sprint 2.1)
 - `auto_now_add` timestamps can be identical within fast test execution — test ordering via `Model._meta.ordering` instead of queryset comparisons (Sprint 2.1)
+- Never bake API keys into stored URLs — store the reference/coordinates and construct the URL at serve time. Key rotation breaks every stored URL otherwise (Sprint 1.10)
+- Navigation gaps compound silently — always verify that new page types are reachable from the main entry points (map, search, nav) before closing the sprint (Sprint 1.10)
