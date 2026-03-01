@@ -15,7 +15,7 @@
 - **Current Sprint**: 1.9 DONE. Phase 1 complete.
 - **Tests**: 509 passing (375 backend + 134 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
-- **Frontend URL**: https://sjktconnect-web-748286712183.asia-southeast1.run.app
+- **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
 ## Apps
 
@@ -163,8 +163,8 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Follow-ups (Post-Phase 1)
 
-- Custom domain `tamilschool.org` → Cloud Run mapping (needs domain verification at Google Webmaster Central)
-- Set BREVO_API_KEY on backend for email outreach
+- ✅ Custom domain `tamilschool.org` → Cloud Run mapping (sjktconnect-web, asia-southeast1)
+- ✅ Set BREVO_API_KEY on backend for email outreach
 - Send first outreach batch (1 state, `--limit 50`)
 - Delete old sjktconnect-api from `gen-lang-client-0871147736`
 - Create Google Maps Map ID for styled markers (Console only)

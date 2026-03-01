@@ -15,7 +15,7 @@ COPY . .
 # Production defaults — NEXT_PUBLIC_* must be available at build time
 ENV NEXT_PUBLIC_API_URL=https://sjktconnect-api-748286712183.asia-southeast1.run.app
 ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyAsxMjbkpPs5AW75CeEXLjU1jpj02AC6eo
-ENV NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID=
+ENV NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID=ce9504578e73fb7dd21b6704
 
 RUN npm run build
 

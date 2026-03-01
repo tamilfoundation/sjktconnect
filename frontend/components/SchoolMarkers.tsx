@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { Marker, InfoWindow } from "@vis.gl/react-google-maps";
+import { AdvancedMarker, InfoWindow, Pin } from "@vis.gl/react-google-maps";
 import { School } from "@/lib/types";
 
 interface SchoolMarkersProps {
@@ -23,12 +23,14 @@ export default function SchoolMarkers({ schools }: SchoolMarkersProps) {
   return (
     <>
       {visibleSchools.map((school) => (
-        <Marker
+        <AdvancedMarker
           key={school.moe_code}
           position={{ lat: Number(school.gps_lat), lng: Number(school.gps_lng) }}
           title={school.short_name || school.name}
           onClick={() => setSelectedSchool(school)}
-        />
+        >
+          <Pin background="#4f46e5" glyphColor="#fff" borderColor="#3730a3" />
+        </AdvancedMarker>
       ))}
 
       {selectedSchool && (
