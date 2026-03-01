@@ -1,5 +1,30 @@
 # Changelog
 
+## Sprint 1.10 — School Page Redesign + Image Fix (2026-03-01)
+
+### Added
+- School mentions API endpoint: `GET /api/v1/schools/<moe_code>/mentions/` — returns approved parliamentary mentions
+- Multi-photo image harvester: Google Places now fetches up to 3 photos per school (was 1)
+- `SchoolImageSerializer` + `images` array in school detail API response
+- `SchoolImageData` TypeScript type on frontend
+- `SchoolPhotoGallery` component: hero image + thumbnails, fallback chain (Places → satellite → placeholder)
+- `SchoolHistory` component: "Help us tell this school's story" CTA with contact link
+- `NewsWatchSection` component: placeholder for upcoming news monitoring
+- New school page layout: photo gallery → name/Tamil name → stats → details → map → Parliament Watch → News Watch → History → sidebar → Claim button
+
+### Fixed
+- Google Maps API key rotation: replaced deleted key in all 528 stored image URLs
+- Updated `GOOGLE_MAPS_API_KEY` env var on backend Cloud Run service
+- Redeployed frontend + backend with new API key
+
+### Technical
+- `MentionsSection` renders approved `HansardMention` records via bridge table
+- Image harvester does clean re-harvest (deletes old PLACES images before creating new)
+- First Places photo promoted to primary; satellite demoted to secondary
+- 437 backend tests passing
+
+---
+
 ## Sprint 2.1 — Subscriber Models + Subscribe/Unsubscribe API (2026-03-01)
 
 ### Added
