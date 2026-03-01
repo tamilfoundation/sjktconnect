@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 1 COMPLETE. Phase 2 not yet started.
-- **Last Sprint**: 1.9 (closed 2026-03-01)
-- **Tests**: 509 passing (375 backend + 134 frontend)
+- **Current Phase**: Phase 2 in progress.
+- **Last Sprint**: 2.1 (closed 2026-03-01)
+- **Tests**: 560 passing (426 backend + 134 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -27,6 +27,7 @@
 | `parliament` | MP Scorecard, review UI, content publishing | 0.4-0.5 |
 | `accounts` | Magic Link auth, SchoolContact, token/email services | 1.6 |
 | `outreach` | SchoolImage, OutreachEmail, image harvesting, email campaigns | 1.8 |
+| `subscribers` | Subscriber, SubscriptionPreference, subscribe/unsubscribe/preferences API | 2.1 |
 
 ## Commands
 
@@ -147,6 +148,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 1.7 | Done | School Data Confirm/Edit + Admin Dashboard: IsMagicLinkAuthenticated permission, edit/confirm API, Next.js edit page, verification dashboard. 51 new tests (472 total). |
 | 1.8 | Done | Outreach app: SchoolImage + OutreachEmail models, image harvesting (satellite + Places), email outreach (Brevo), image_url on API, SchoolImage component. 37 new tests (509 total). |
 | 1.9 | Done | Full stack deployment: new GCP project `sjktconnect` (tamilfoundation.org), backend + frontend on Cloud Run, Maps API key, CORS, 528 satellite images harvested, job + scheduler migrated. |
+| 2.1 | Done | Subscriber models + subscribe/unsubscribe API. New `subscribers` app with Subscriber + SubscriptionPreference models, service layer, 3 REST endpoints. 51 new tests (560 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -163,11 +165,13 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-Phase 2 has not been planned yet. Before starting:
-- Review PRD for Phase 2 scope (features C-F in `PRD-SJKTConnect.md`)
-- Run `_workflows/implementation-planning.md` to create Phase 2 roadmap
-- Outreach emails are ready but site content needs review before sending
-- Codebase is stable: 509 tests, all infra configured, domain live
+**Sprint 2.2 — Broadcast Models + Admin Compose UI**
+- New `broadcasts` app: `Broadcast` model (subject, html_content, audience_filter JSON, status) + `BroadcastRecipient` (per-email tracking)
+- Audience filtering service: filter subscribers by state, district, constituency, enrolment, SKM
+- Django admin templates: compose form, preview with recipient count, broadcast list
+- Views at `/broadcast/compose/`, `/broadcast/preview/<id>/`, `/broadcast/`
+- Depends on Sprint 2.1 (Subscriber model) — now complete
+- See `.claude/plans/streamed-munching-bird.md` for full Phase 2 roadmap
 
 ## Frontend (Sprint 1.3–1.8)
 - **Stack**: Next.js 14, App Router, Tailwind CSS, TypeScript
@@ -195,6 +199,7 @@ Phase 2 has not been planned yet. Before starting:
 - **Scorecards**: `GET /api/v1/scorecards/` (filters: `?constituency=`, `?party=`), `GET /api/v1/scorecards/<pk>/`
 - **Briefs**: `GET /api/v1/briefs/` (published only), `GET /api/v1/briefs/<pk>/`
 - **Search**: `GET /api/v1/search/?q=<query>` — searches schools (name, code) and constituencies (name, code, MP name). Min 2 chars.
+- **Subscribers** (Sprint 2.1, public): `POST /api/v1/subscribers/subscribe/` (create subscriber, idempotent), `GET /api/v1/subscribers/unsubscribe/<token>/` (one-click unsubscribe), `GET/PUT /api/v1/subscribers/preferences/<token>/` (view/update category toggles)
 - CORS via `django-cors-headers` — origins from `CORS_ALLOWED_ORIGINS` env var
 - URL ordering: GeoJSON literal paths before `<str:code>` detail paths to avoid capture conflicts
 

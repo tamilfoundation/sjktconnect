@@ -46,17 +46,28 @@ See `CHANGELOG.md` for detailed sprint-by-sprint changes and `docs/retrospective
 
 ---
 
-## Phases 2-4 (High-Level Outline)
+## Phase 2: The Value (8 sprints)
 
-Each phase will get its own sprint decomposition when we reach it. Run `_workflows/implementation-planning.md` before starting Phase 2.
+**Design decisions**: New `Subscriber` model (separate from SchoolContact), Google Alerts via RSS feeds, Brevo transactional API for broadcasts, Django admin templates for broadcast UI.
 
-### Phase 2: The Value (~4-6 sprints)
-- Broadcast tool (filter audiences, compose, send)
-- News Watch pipeline (Google Alerts to Gemini analysis to response drafts)
-- AI Rapid Response (response matrix from PRD Section 5.6.1)
-- Monthly Intelligence Blast email
-- Subscription management (subscribe/unsubscribe/preferences)
-- Magic Link gating for premium resources
+**New apps**: subscribers, broadcasts, newswatch
+**New deps**: feedparser, trafilatura
+**New env vars**: GOOGLE_ALERTS_RSS_URL
+
+| Sprint | Goal | Complexity | Dependencies |
+|--------|------|-----------|--------------|
+| 2.1 | Subscriber models + subscribe/unsubscribe API | Medium | None |
+| 2.2 | Broadcast models + admin compose UI | High | 2.1 |
+| 2.3 | Broadcast sending engine + confirmation email | Medium | 2.2 |
+| 2.4 | Subscribe/unsubscribe pages (Next.js frontend) | Medium | 2.1 |
+| 2.5 | News Watch pipeline (RSS + article extraction) | High | None |
+| 2.6 | News AI analysis + rapid response + review UI | High | 2.5 |
+| 2.7 | Monthly Intelligence Blast | Medium | 2.3, 2.6 |
+| 2.8 | Magic Link gating + News Watch frontend + deploy | High | 2.6, 2.7 |
+
+Full sprint details in `.claude/plans/streamed-munching-bird.md`.
+
+---
 
 ### Phase 3: The Platform (~4-6 sprints)
 - AI Review Layer (three-tier automated review of school data)
@@ -93,7 +104,7 @@ Each phase will get its own sprint decomposition when we reach it. Run `_workflo
 |-------|---------|-------------|
 | Phase 0 | 6 | Parliament Watch — standalone intelligence pipeline |
 | Phase 1 | ~6-8 | Public map + school pages + Magic Links |
-| Phase 2 | ~4-6 | Broadcasts + News Watch |
+| Phase 2 | 8 | Broadcasts + News Watch + Intelligence Blast |
 | Phase 3 | ~4-6 | AI review + partners + WhatsApp |
 | Phase 4 | ongoing | Reports, historical analysis, election tools |
 | **Total** | **~20-26** | Each sprint = one session, independently shippable, tested, documented |

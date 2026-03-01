@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "parliament",
     "accounts",
     "outreach",
+    "subscribers",
 ]
 
 MIDDLEWARE = [
@@ -126,6 +127,8 @@ AUDIT_LOG_MODELS = [
     "parliament.SittingBrief",
     "accounts.SchoolContact",
     "accounts.MagicLinkToken",
+    "subscribers.Subscriber",
+    "subscribers.SubscriptionPreference",
 ]
 
 # Magic Link Authentication

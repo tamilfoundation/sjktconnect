@@ -1,5 +1,30 @@
 # Changelog
 
+## Sprint 2.1 — Subscriber Models + Subscribe/Unsubscribe API (2026-03-01)
+
+### Added
+- New `subscribers` Django app with `Subscriber` and `SubscriptionPreference` models
+- `Subscriber`: email (unique), name, organisation, is_active, unsubscribe_token (UUID), subscribed/unsubscribed timestamps
+- `SubscriptionPreference`: per-subscriber toggle for PARLIAMENT_WATCH, NEWS_WATCH, MONTHLY_BLAST categories
+- Service layer (`subscriber_service.py`): subscribe (with reactivation), unsubscribe, get/update preferences
+- REST API endpoints:
+  - `POST /api/v1/subscribers/subscribe/` — create subscriber with all preferences enabled (idempotent)
+  - `GET /api/v1/subscribers/unsubscribe/<token>/` — one-click unsubscribe via token
+  - `GET/PUT /api/v1/subscribers/preferences/<token>/` — view/update category preferences
+- Admin registration with inline preferences
+- 51 new tests (16 model + 17 service + 18 API)
+
+### Technical
+- Email normalised to lowercase on subscribe
+- Duplicate subscribe returns 200 (not 400) — idempotent
+- Reactivation: previously unsubscribed users are reactivated on re-subscribe
+- Preferences auto-created for all categories on subscribe or first access
+- All endpoints are public (no authentication required) — tokens provide access control
+
+### Test count: 426 (375 existing + 51 new)
+
+---
+
 ## Sprint 1.9 — Full Stack Deployment + Phase 1 Close (2026-02-28)
 
 ### Infrastructure
