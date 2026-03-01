@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}{{ broadcast.subject }} — SJK(T) Connect{% endblock %}
+
+{% block content %}
+<h1>Broadcast: {{ broadcast.subject }}</h1>
+
+{% if messages %}
+<div class="messages">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="card">
+    <h2>Details</h2>
+    <table class="data-table">
+        <tbody>
+            <tr>
+                <th>Subject</th>
+                <td>{{ broadcast.subject }}</td>
+            </tr>
+            <tr>
+                <th>Status</th>
+                <td>{{ broadcast.get_status_display }}</td>
+            </tr>
+            <tr>
+                <th>Recipients</th>
+                <td><strong>{{ broadcast.recipient_count }}</strong> subscriber{{ broadcast.recipient_count|pluralize }}</td>
+            </tr>
+            <tr>
+                <th>Created</th>
+                <td>{{ broadcast.created_at|date:"d M Y H:i" }}</td>
+            </tr>
+            <tr>
+                <th>Sent</th>
+                <td>{{ broadcast.sent_at|date:"d M Y H:i"|default:"Not yet sent" }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{% if recipients %}
+<div class="card">
+    <h2>Recipient Delivery Status</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Brevo Message ID</th>
+                <th>Sent At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for recipient in recipients %}
+            <tr>
+                <td>{{ recipient.email }}</td>
+                <td>{{ recipient.get_status_display }}</td>
+                <td>{{ recipient.brevo_message_id|default:"-" }}</td>
+                <td>{{ recipient.sent_at|date:"d M Y H:i"|default:"-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<div class="card">
+    <a href="{% url 'broadcasts:broadcast-list' %}" class="btn btn-secondary">Back to List</a>
+</div>
+{% endblock %}

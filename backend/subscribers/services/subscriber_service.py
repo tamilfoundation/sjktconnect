@@ -4,6 +4,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from subscribers.models import Subscriber, SubscriptionPreference
+from subscribers.services.email_service import send_confirmation_email
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ def subscribe(email, name="", organisation=""):
         if created:
             _create_default_preferences(subscriber)
             logger.info("New subscriber: %s", email)
+            send_confirmation_email(subscriber)
             return subscriber, True
 
         # Existing subscriber — reactivate if previously unsubscribed

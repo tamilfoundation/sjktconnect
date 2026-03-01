@@ -1,12 +1,19 @@
-"""Broadcast views — compose, preview, and list broadcasts."""
+"""Broadcast views — compose, preview, send, and list broadcasts."""
 
+import logging
+
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect
-from django.views.generic import ListView, TemplateView
+from django.views import View
+from django.views.generic import DetailView, ListView, TemplateView
 
-from broadcasts.models import Broadcast
+from broadcasts.models import Broadcast, BroadcastRecipient
 from broadcasts.services.audience import get_filtered_subscribers
+from broadcasts.services.sender import send_broadcast
 from schools.models import School
+
+logger = logging.getLogger(__name__)
 
 
 class BroadcastListView(LoginRequiredMixin, ListView):
@@ -128,4 +135,45 @@ class BroadcastPreviewView(LoginRequiredMixin, TemplateView):
             summary_parts.append(f"Category: {af['category']}")
         context["filter_summary"] = summary_parts or ["All active subscribers"]
 
+        return context
+
+
+class BroadcastSendView(LoginRequiredMixin, View):
+    """POST-only view to trigger sending a DRAFT broadcast."""
+
+    def post(self, request, pk):
+        broadcast = get_object_or_404(Broadcast, pk=pk)
+
+        if broadcast.status != Broadcast.Status.DRAFT:
+            messages.error(
+                request,
+                "This broadcast has already been sent or is currently sending.",
+            )
+            return redirect("broadcasts:broadcast-detail", pk=pk)
+
+        try:
+            send_broadcast(broadcast.pk)
+            messages.success(request, "Broadcast sent successfully.")
+        except Exception as exc:
+            logger.exception("Failed to send broadcast %s: %s", pk, exc)
+            messages.error(
+                request, "Failed to send broadcast. Please try again."
+            )
+
+        return redirect("broadcasts:broadcast-detail", pk=pk)
+
+
+class BroadcastDetailView(LoginRequiredMixin, DetailView):
+    """Show broadcast details with per-recipient delivery status."""
+
+    model = Broadcast
+    template_name = "broadcasts/broadcast_detail.html"
+    context_object_name = "broadcast"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["recipients"] = (
+            self.object.recipients.select_related("subscriber")
+            .order_by("email")
+        )
         return context

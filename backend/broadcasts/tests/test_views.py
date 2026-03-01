@@ -218,13 +218,13 @@ class TestBroadcastPreviewView:
         )
         assert b"Hello world" in response.content
 
-    def test_send_button_disabled(self, auth_client, broadcast):
-        """Send button is present but disabled (Sprint 2.3)."""
+    def test_send_button_enabled_for_draft(self, auth_client, broadcast):
+        """Send button is enabled for DRAFT broadcasts."""
         response = auth_client.get(
             reverse("broadcasts:broadcast-preview", kwargs={"pk": broadcast.pk})
         )
-        assert b"disabled" in response.content
         assert b"Send Broadcast" in response.content
+        assert b"broadcast/send/" in response.content
 
     def test_404_for_nonexistent(self, auth_client):
         """Returns 404 for nonexistent broadcast."""

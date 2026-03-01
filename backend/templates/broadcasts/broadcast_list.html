@@ -32,7 +32,11 @@
                 <td>{{ broadcast.created_at|date:"d M Y H:i" }}</td>
                 <td>{{ broadcast.sent_at|date:"d M Y H:i"|default:"-" }}</td>
                 <td>
-                    <a href="{% url 'broadcasts:broadcast-preview' pk=broadcast.pk %}">View</a>
+                    {% if broadcast.status == "DRAFT" %}
+                    <a href="{% url 'broadcasts:broadcast-preview' pk=broadcast.pk %}">Preview</a>
+                    {% else %}
+                    <a href="{% url 'broadcasts:broadcast-detail' pk=broadcast.pk %}">Details</a>
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}

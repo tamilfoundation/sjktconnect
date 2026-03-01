@@ -56,7 +56,16 @@
 {% endif %}
 
 <div class="card">
-    <button type="button" class="btn" disabled title="Sending will be available in Sprint 2.3">Send Broadcast</button>
+    {% if broadcast.status == "DRAFT" %}
+    <form method="post" action="{% url 'broadcasts:broadcast-send' pk=broadcast.pk %}"
+          onsubmit="return confirm('Are you sure you want to send this broadcast to {{ recipient_count }} subscriber{{ recipient_count|pluralize }}?');"
+          style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn">Send Broadcast</button>
+    </form>
+    {% else %}
+    <a href="{% url 'broadcasts:broadcast-detail' pk=broadcast.pk %}" class="btn">View Details</a>
+    {% endif %}
     <a href="{% url 'broadcasts:broadcast-compose' %}" class="btn btn-secondary">Compose New</a>
     <a href="{% url 'broadcasts:broadcast-list' %}" class="btn btn-secondary">Back to List</a>
 </div>
