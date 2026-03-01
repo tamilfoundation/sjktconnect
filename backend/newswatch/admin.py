@@ -9,12 +9,16 @@ class NewsArticleAdmin(admin.ModelAdmin):
         "title_short",
         "source_name",
         "status",
+        "relevance_score",
+        "sentiment",
+        "is_urgent",
+        "review_status",
         "published_date",
         "created_at",
     ]
-    list_filter = ["status", "source_name"]
-    search_fields = ["title", "url", "body_text"]
-    readonly_fields = ["created_at", "updated_at"]
+    list_filter = ["status", "source_name", "sentiment", "review_status", "is_urgent"]
+    search_fields = ["title", "url", "body_text", "ai_summary"]
+    readonly_fields = ["created_at", "updated_at", "ai_raw_response"]
     ordering = ["-created_at"]
 
     @admin.display(description="Title")

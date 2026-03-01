@@ -20,4 +20,5 @@ urlpatterns = [
     path("", include("broadcasts.urls")),
     path("", include("schools.urls")),
     path("", include("parliament.urls")),
+    path("", include("newswatch.urls")),
 ]

@@ -80,3 +80,60 @@ class ExtractArticlesCommandTest(TestCase):
         call_command("extract_articles", "--batch-size", "50", stdout=out)
 
         mock_extract.assert_called_once_with(batch_size=50)
+
+
+class AnalyseNewsArticlesCommandTest(TestCase):
+    @patch(
+        "newswatch.management.commands.analyse_news_articles.analyse_pending_articles"
+    )
+    def test_default_batch_size(self, mock_analyse):
+        mock_analyse.return_value = {
+            "analysed": 3,
+            "failed": 0,
+            "skipped": 1,
+        }
+
+        out = StringIO()
+        call_command("analyse_news_articles", stdout=out)
+
+        mock_analyse.assert_called_once_with(batch_size=10)
+        self.assertIn("Analysed: 3", out.getvalue())
+
+    @patch(
+        "newswatch.management.commands.analyse_news_articles.analyse_pending_articles"
+    )
+    def test_custom_batch_size(self, mock_analyse):
+        mock_analyse.return_value = {
+            "analysed": 5,
+            "failed": 0,
+            "skipped": 0,
+        }
+
+        out = StringIO()
+        call_command("analyse_news_articles", "--batch-size", "25", stdout=out)
+
+        mock_analyse.assert_called_once_with(batch_size=25)
+
+    @patch(
+        "newswatch.management.commands.analyse_news_articles.analyse_pending_articles"
+    )
+    def test_warns_about_urgent(self, mock_analyse):
+        # Create an urgent pending article
+        NewsArticle.objects.create(
+            url="https://example.com/urgent-cmd",
+            title="Urgent",
+            status=NewsArticle.ANALYSED,
+            is_urgent=True,
+            review_status=NewsArticle.PENDING,
+        )
+
+        mock_analyse.return_value = {
+            "analysed": 1,
+            "failed": 0,
+            "skipped": 0,
+        }
+
+        out = StringIO()
+        call_command("analyse_news_articles", stdout=out)
+
+        self.assertIn("URGENT", out.getvalue())

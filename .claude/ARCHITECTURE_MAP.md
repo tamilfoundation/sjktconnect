@@ -1,6 +1,6 @@
 # SJK(T) Connect — Architecture Map
 
-Last updated: Sprint 2.5 close (2 Mar 2026)
+Last updated: Sprint 2.6 close (2 Mar 2026)
 
 ## Stack
 
@@ -115,15 +115,22 @@ backend/
 │   │   └── send_broadcast.py  # Management command for sending broadcasts
 │   └── tests/
 │
-└── newswatch/            # News monitoring pipeline (Sprint 2.5)
-    ├── models.py         # NewsArticle (NEW → EXTRACTED/FAILED lifecycle)
+└── newswatch/            # News monitoring pipeline (Sprint 2.5-2.6)
+    ├── models.py         # NewsArticle (NEW → EXTRACTED → ANALYSED lifecycle, review status)
     ├── services/
     │   ├── rss_fetcher.py       # Google Alerts RSS parser, URL dedup, redirect unwrapping
-    │   └── article_extractor.py # trafilatura body text extraction, metadata (source, date)
+    │   ├── article_extractor.py # trafilatura body text extraction, metadata (source, date)
+    │   └── news_analyser.py     # Gemini Flash AI analysis (relevance, sentiment, summary, urgency)
+    ├── views.py          # Admin review queue: NewsQueueView, NewsArticleDetailView, Approve/Reject/ToggleUrgent
+    ├── urls.py           # /dashboard/news/ review queue routes
     ├── management/commands/
-    │   ├── fetch_news_alerts.py  # Poll RSS feeds (--url or NEWS_WATCH_RSS_FEEDS setting)
-    │   └── extract_articles.py   # Extract body text from NEW articles (--batch-size)
-    ├── admin.py          # NewsArticle admin with status/source filters
+    │   ├── fetch_news_alerts.py      # Poll RSS feeds (--url or NEWS_WATCH_RSS_FEEDS setting)
+    │   ├── extract_articles.py       # Extract body text from NEW articles (--batch-size)
+    │   └── analyse_news_articles.py  # AI-analyse EXTRACTED articles (--batch-size)
+    ├── admin.py          # NewsArticle admin with status/source/urgency filters
+    ├── templates/newswatch/
+    │   ├── queue.html    # Review queue: filterable table, urgency alerts
+    │   └── detail.html   # Split-screen: article body + AI analysis + actions
     └── tests/
 ```
 
@@ -227,8 +234,10 @@ Broadcast (PK: auto ID)
   └── status: draft → sending → sent
 
 NewsArticle (PK: auto ID, unique: url)
-  └── status: NEW → EXTRACTED or FAILED
-       Fields: url, title, source_name, alert_title, published_date, body_text, extraction_error
+  └── status: NEW → EXTRACTED or FAILED → ANALYSED
+       Core: url, title, source_name, alert_title, published_date, body_text, extraction_error
+       AI: relevance_score (1-5), sentiment, ai_summary, mentioned_schools (JSON), is_urgent, urgent_reason, ai_raw_response
+       Review: review_status (PENDING/APPROVED/REJECTED), reviewed_by (FK User), reviewed_at
 
 AuditLog — standalone, tracks all admin actions
 ```

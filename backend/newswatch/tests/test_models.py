@@ -61,3 +61,50 @@ class NewsArticleModelTest(TestCase):
         self.assertEqual(article.body_text, "")
         self.assertEqual(article.extraction_error, "")
         self.assertIsNone(article.published_date)
+
+    # --- Sprint 2.6: AI analysis fields ---
+
+    def test_analysed_status(self):
+        article = NewsArticle.objects.create(
+            url="https://example.com/analysed",
+            title="Analysed",
+            status=NewsArticle.ANALYSED,
+        )
+        article.refresh_from_db()
+        self.assertEqual(article.status, "ANALYSED")
+
+    def test_ai_fields_defaults(self):
+        article = NewsArticle.objects.create(
+            url="https://example.com/ai-defaults",
+            title="AI Defaults",
+        )
+        self.assertIsNone(article.relevance_score)
+        self.assertEqual(article.sentiment, "")
+        self.assertEqual(article.ai_summary, "")
+        self.assertEqual(article.mentioned_schools, [])
+        self.assertEqual(article.ai_raw_response, {})
+        self.assertFalse(article.is_urgent)
+        self.assertEqual(article.urgent_reason, "")
+
+    def test_review_fields_defaults(self):
+        article = NewsArticle.objects.create(
+            url="https://example.com/review-defaults",
+            title="Review Defaults",
+        )
+        self.assertEqual(article.review_status, "PENDING")
+        self.assertIsNone(article.reviewed_by)
+        self.assertIsNone(article.reviewed_at)
+
+    def test_mentioned_schools_json(self):
+        schools = [
+            {"name": "SJK(T) Ladang Bikam", "moe_code": "ABD1234"},
+            {"name": "SJK(T) Test", "moe_code": ""},
+        ]
+        article = NewsArticle.objects.create(
+            url="https://example.com/schools-json",
+            title="JSON test",
+            mentioned_schools=schools,
+        )
+        article.refresh_from_db()
+        self.assertEqual(len(article.mentioned_schools), 2)
+        self.assertEqual(article.mentioned_schools[0]["moe_code"], "ABD1234")

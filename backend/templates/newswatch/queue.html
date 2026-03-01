@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}News Watch — SJK(T) Connect{% endblock %}
+
+{% block content %}
+<h1>News Watch</h1>
+<p>AI-analysed news articles about Tamil schools.</p>
+
+{% if urgent_count > 0 %}
+<div class="alert alert-danger">
+    <strong>{{ urgent_count }} urgent article{{ urgent_count|pluralize }}</strong> flagged for rapid response.
+    <a href="?urgent=1">View urgent only</a>
+</div>
+{% endif %}
+
+<div class="filter-bar">
+    <span class="filter-label">Filter:</span>
+    <a href="{% url 'newswatch:news-queue' %}" class="btn btn-sm {% if not current_review and not current_urgent %}btn-active{% endif %}">
+        All
+    </a>
+    <a href="?review=PENDING" class="btn btn-sm {% if current_review == 'PENDING' %}btn-active{% endif %}">
+        Pending <span class="badge badge-warning">{{ pending_count }}</span>
+    </a>
+    <a href="?review=APPROVED" class="btn btn-sm {% if current_review == 'APPROVED' %}btn-active{% endif %}">
+        Approved <span class="badge badge-approved">{{ approved_count }}</span>
+    </a>
+    <a href="?review=REJECTED" class="btn btn-sm {% if current_review == 'REJECTED' %}btn-active{% endif %}">
+        Rejected <span class="badge badge-rejected">{{ rejected_count }}</span>
+    </a>
+    <a href="?urgent=1" class="btn btn-sm {% if current_urgent == '1' %}btn-active{% endif %}">
+        Urgent Only
+    </a>
+</div>
+
+{% if articles %}
+<table class="table">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Source</th>
+            <th>Relevance</th>
+            <th>Sentiment</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for article in articles %}
+        <tr class="{% if article.is_urgent %}row-urgent{% endif %}">
+            <td>
+                {% if article.is_urgent %}<span class="badge badge-danger" title="Urgent">!</span>{% endif %}
+                {{ article.title|truncatechars:60 }}
+            </td>
+            <td>{{ article.source_name|default:"Unknown" }}</td>
+            <td>
+                <span class="relevance-score relevance-{{ article.relevance_score }}">
+                    {{ article.relevance_score }}/5
+                </span>
+            </td>
+            <td>
+                <span class="badge badge-{{ article.sentiment|lower }}">
+                    {{ article.get_sentiment_display }}
+                </span>
+            </td>
+            <td>
+                <span class="badge badge-{{ article.review_status|lower }}">
+                    {{ article.get_review_status_display }}
+                </span>
+            </td>
+            <td>
+                <a href="{% url 'newswatch:news-detail' article.pk %}" class="btn btn-sm">Review</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if is_paginated %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-sm">&larr; Previous</a>
+    {% endif %}
+    <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}" class="btn btn-sm">Next &rarr;</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<p class="empty-state">No analysed articles found. Run the news pipeline first.</p>
+{% endif %}
+{% endblock %}

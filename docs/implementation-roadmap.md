@@ -54,16 +54,16 @@ See `CHANGELOG.md` for detailed sprint-by-sprint changes and `docs/retrospective
 **New deps**: feedparser, trafilatura
 **New env vars**: GOOGLE_ALERTS_RSS_URL
 
-| Sprint | Goal | Complexity | Dependencies |
-|--------|------|-----------|--------------|
-| 2.1 | Subscriber models + subscribe/unsubscribe API | Medium | None |
-| 2.2 | Broadcast models + admin compose UI | High | 2.1 |
-| 2.3 | Broadcast sending engine + confirmation email | Medium | 2.2 |
-| 2.4 | Subscribe/unsubscribe pages (Next.js frontend) | Medium | 2.1 |
-| 2.5 | News Watch pipeline (RSS + article extraction) | High | None |
-| 2.6 | News AI analysis + rapid response + review UI | High | 2.5 |
-| 2.7 | Monthly Intelligence Blast | Medium | 2.3, 2.6 |
-| 2.8 | Magic Link gating + News Watch frontend + deploy | High | 2.6, 2.7 |
+| Sprint | Goal | Complexity | Dependencies | Status |
+|--------|------|-----------|--------------|--------|
+| 2.1 | Subscriber models + subscribe/unsubscribe API | Medium | None | Done |
+| 2.2 | Broadcast models + admin compose UI | High | 2.1 | Done |
+| 2.3 | Broadcast sending engine + confirmation email | Medium | 2.2 | Done |
+| 2.4 | Subscribe/unsubscribe pages (Next.js frontend) | Medium | 2.1 | Done |
+| 2.5 | News Watch pipeline (RSS + article extraction) | High | None | Done |
+| 2.6 | News AI analysis + rapid response + review UI | High | 2.5 | Done |
+| 2.7 | Monthly Intelligence Blast | Medium | 2.3, 2.6 | Next |
+| 2.8 | Magic Link gating + News Watch frontend + deploy | High | 2.6, 2.7 | |
 
 Full sprint details in `.claude/plans/streamed-munching-bird.md`.
 

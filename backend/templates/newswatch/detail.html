@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Review Article — SJK(T) Connect{% endblock %}
+
+{% block content %}
+<div class="review-header">
+    <h1>Review Article</h1>
+    <a href="{% url 'newswatch:news-queue' %}" class="btn btn-secondary">&larr; Back to Queue</a>
+</div>
+
+<div class="split-screen">
+    <!-- Left: Article content -->
+    <div class="split-left">
+        <h2>{{ article.title }}</h2>
+        <p class="meta-item">
+            {{ article.source_name|default:"Unknown source" }}
+            {% if article.published_date %}&middot; {{ article.published_date|date:"j M Y" }}{% endif %}
+            &middot; <a href="{{ article.url }}" target="_blank" rel="noopener">Original article &rarr;</a>
+        </p>
+
+        {% if article.is_urgent %}
+        <div class="alert alert-danger">
+            <strong>URGENT:</strong> {{ article.urgent_reason }}
+        </div>
+        {% endif %}
+
+        <div class="article-body">
+            {{ article.body_text|truncatewords:500|linebreaksbr }}
+        </div>
+    </div>
+
+    <!-- Right: AI analysis + review actions -->
+    <div class="split-right">
+        <h2>AI Analysis
+            <span class="badge badge-{{ article.review_status|lower }}">{{ article.get_review_status_display }}</span>
+        </h2>
+
+        <div class="analysis-fields">
+            <div class="form-group">
+                <label>Relevance Score</label>
+                <div class="relevance-score relevance-{{ article.relevance_score }}">
+                    {{ article.relevance_score }}/5
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Sentiment</label>
+                <span class="badge badge-{{ article.sentiment|lower }}">
+                    {{ article.get_sentiment_display }}
+                </span>
+            </div>
+
+            <div class="form-group">
+                <label>AI Summary</label>
+                <p>{{ article.ai_summary }}</p>
+            </div>
+
+            {% if article.mentioned_schools %}
+            <div class="form-group">
+                <label>Mentioned Schools</label>
+                <ul>
+                    {% for school in article.mentioned_schools %}
+                    <li>
+                        {{ school.name }}
+                        {% if school.moe_code %}<span class="text-muted">({{ school.moe_code }})</span>{% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label>Urgent</label>
+                <span>{% if article.is_urgent %}Yes &mdash; {{ article.urgent_reason }}{% else %}No{% endif %}</span>
+            </div>
+        </div>
+
+        {% if article.reviewed_by %}
+        <p class="meta-item">
+            Reviewed by {{ article.reviewed_by }} on {{ article.reviewed_at|date:"j M Y H:i" }}
+        </p>
+        {% endif %}
+
+        <div class="form-actions">
+            {% if article.review_status == 'PENDING' %}
+            <form method="post" action="{% url 'newswatch:news-approve' article.pk %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success">Approve</button>
+            </form>
+            <form method="post" action="{% url 'newswatch:news-reject' article.pk %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Reject</button>
+            </form>
+            {% else %}
+            <form method="post" action="{% url 'newswatch:news-approve' article.pk %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success btn-sm">Re-approve</button>
+            </form>
+            <form method="post" action="{% url 'newswatch:news-reject' article.pk %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm">Re-reject</button>
+            </form>
+            {% endif %}
+
+            <form method="post" action="{% url 'newswatch:news-toggle-urgent' article.pk %}" style="display:inline">
+                {% csrf_token %}
+                {% if article.is_urgent %}
+                <button type="submit" class="btn btn-secondary btn-sm">Remove Urgent</button>
+                {% else %}
+                <button type="submit" class="btn btn-warning btn-sm">Flag Urgent</button>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Navigation -->
+{% if siblings %}
+<div class="mention-nav">
+    <h3>Other articles</h3>
+    <div class="mention-nav-list">
+        {% for sib_pk, sib_title, sib_status, sib_urgent in siblings %}
+        <a href="{% url 'newswatch:news-detail' sib_pk %}"
+           class="mention-nav-item {% if sib_pk == article.pk %}active{% endif %} nav-{{ sib_status|lower }}"
+           title="{{ sib_title|truncatechars:50 }}">
+            {% if sib_urgent %}<span class="badge badge-danger">!</span>{% endif %}
+            {{ sib_title|truncatechars:20 }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

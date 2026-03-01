@@ -1,5 +1,30 @@
 # Changelog
 
+## Sprint 2.6 — News AI Analysis + Rapid Response + Review UI (2026-03-02)
+
+### Added
+- Gemini Flash AI analysis of extracted news articles: relevance score (1-5), sentiment (POSITIVE/NEGATIVE/NEUTRAL/MIXED), AI summary, mentioned school extraction, urgency flagging
+- `news_analyser.py` service: Gemini API wrapper with token budgeting (~3000 chars), structured JSON output, response validation with enum clamping
+- `analyse_news_articles` management command: processes EXTRACTED articles in batches (`--batch-size`), warns about urgent articles pending review
+- Admin review queue at `/dashboard/news/`: filterable by review status (PENDING/APPROVED/REJECTED) and urgency, sorted urgent-first then by relevance
+- Article detail view at `/dashboard/news/<pk>/`: split-screen layout (article body left, AI analysis + actions right), approve/reject/toggle-urgent actions
+- Navigation sidebar showing other articles for quick review switching
+- "News Watch" nav link in base template
+- Migration `0002_add_ai_analysis_fields`: adds 9 fields to NewsArticle (relevance_score, sentiment, ai_summary, mentioned_schools, is_urgent, urgent_reason, ai_raw_response, review_status, reviewed_by, reviewed_at)
+
+### Changed
+- NewsArticle model: extended status lifecycle NEW → EXTRACTED → ANALYSED, added PENDING/APPROVED/REJECTED review status
+- NewsArticle admin: added AI analysis fields to list display and filters
+
+### Technical
+- Follows same Gemini pattern as `parliament/services/gemini_client.py` — structured JSON response, validation with enum clamping, token budgeting
+- Review actions use `update_fields` for efficient partial saves
+- Queue view uses `LoginRequiredMixin` — admin-only access
+- Urgency criteria: school closures, safety crises, funding cuts, political controversies
+- 39 new backend tests (news analyser service, management command, admin views, model fields), 758 total (591 backend + 167 frontend)
+
+---
+
 ## Sprint 2.5 — News Watch Pipeline: RSS + Article Extraction (2026-03-02)
 
 ### Added
