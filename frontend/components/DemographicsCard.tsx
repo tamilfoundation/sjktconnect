@@ -1,20 +1,25 @@
 interface DemographicsCardProps {
-  indianPopulation: number | null;
-  indianPercentage: number | null;
-  avgIncome?: number | null;
-  povertyRate?: number | null;
-  gini?: number | null;
-  unemploymentRate?: number | null;
+  indianPopulation: number | string | null;
+  indianPercentage: number | string | null;
+  avgIncome?: number | string | null;
+  povertyRate?: number | string | null;
+  gini?: number | string | null;
+  unemploymentRate?: number | string | null;
 }
 
-export default function DemographicsCard({
-  indianPopulation,
-  indianPercentage,
-  avgIncome,
-  povertyRate,
-  gini,
-  unemploymentRate,
-}: DemographicsCardProps) {
+function toNum(v: number | string | null | undefined): number | null {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  return isNaN(n) ? null : n;
+}
+
+export default function DemographicsCard(props: DemographicsCardProps) {
+  const indianPopulation = toNum(props.indianPopulation);
+  const indianPercentage = toNum(props.indianPercentage);
+  const avgIncome = toNum(props.avgIncome);
+  const povertyRate = toNum(props.povertyRate);
+  const gini = toNum(props.gini);
+  const unemploymentRate = toNum(props.unemploymentRate);
   const hasAnyData =
     indianPopulation != null ||
     indianPercentage != null ||
