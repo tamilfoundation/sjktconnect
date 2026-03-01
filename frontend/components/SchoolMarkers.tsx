@@ -65,6 +65,18 @@ export default function SchoolMarkers({ schools }: SchoolMarkersProps) {
                 {selectedSchool.constituency_code})
               </p>
             )}
+            <a
+              href={`/school/${selectedSchool.moe_code}`}
+              style={{
+                display: "inline-block",
+                marginTop: 8,
+                color: "#4f46e5",
+                fontWeight: 600,
+                textDecoration: "none",
+              }}
+            >
+              View School →
+            </a>
           </div>
         </InfoWindow>
       )}

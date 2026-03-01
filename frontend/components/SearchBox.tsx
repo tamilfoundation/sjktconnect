@@ -130,20 +130,30 @@ export default function SearchBox({ onSelect, onClear }: SearchBoxProps) {
                 Schools ({results.schools.length})
               </p>
               {results.schools.map((school) => (
-                <button
+                <div
                   key={school.moe_code}
-                  onClick={() => handleSelectSchool(school)}
-                  className="w-full text-left px-3 py-2 hover:bg-blue-50 border-b border-gray-100 last:border-0"
+                  className="flex items-center justify-between px-3 py-2 hover:bg-blue-50 border-b border-gray-100 last:border-0"
                 >
-                  <p className="text-sm font-medium text-gray-800">
-                    {school.short_name || school.name}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {school.moe_code} &middot; {school.state}
-                    {school.enrolment > 0 &&
-                      ` \u00b7 ${school.enrolment} students`}
-                  </p>
-                </button>
+                  <button
+                    onClick={() => handleSelectSchool(school)}
+                    className="text-left flex-1 min-w-0"
+                  >
+                    <p className="text-sm font-medium text-gray-800">
+                      {school.short_name || school.name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {school.moe_code} &middot; {school.state}
+                      {school.enrolment > 0 &&
+                        ` \u00b7 ${school.enrolment} students`}
+                    </p>
+                  </button>
+                  <a
+                    href={`/school/${school.moe_code}`}
+                    className="ml-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium whitespace-nowrap"
+                  >
+                    View →
+                  </a>
+                </div>
               ))}
             </div>
           )}
@@ -154,9 +164,10 @@ export default function SearchBox({ onSelect, onClear }: SearchBoxProps) {
                 Constituencies ({results.constituencies.length})
               </p>
               {results.constituencies.map((c) => (
-                <div
+                <a
                   key={c.code}
-                  className="px-3 py-2 border-b border-gray-100 last:border-0"
+                  href={`/constituency/${c.code}`}
+                  className="block px-3 py-2 hover:bg-blue-50 border-b border-gray-100 last:border-0"
                 >
                   <p className="text-sm font-medium text-gray-800">
                     {c.code} {c.name}
@@ -164,7 +175,7 @@ export default function SearchBox({ onSelect, onClear }: SearchBoxProps) {
                   <p className="text-xs text-gray-500">
                     {c.mp_name} ({c.mp_party}) &middot; {c.school_count} schools
                   </p>
-                </div>
+                </a>
               ))}
             </div>
           )}
