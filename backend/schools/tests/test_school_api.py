@@ -81,6 +81,30 @@ class SchoolAPITest(TestCase):
         assert data["dun_code"] == "N01"
         assert data["enrolment"] == 120
 
+    def test_school_detail_returns_images_list(self):
+        """School detail includes all images, not just primary."""
+        from outreach.models import SchoolImage
+
+        SchoolImage.objects.create(
+            school=self.school,
+            source="PLACES",
+            image_url="https://example.com/photo1.jpg",
+            is_primary=True,
+        )
+        SchoolImage.objects.create(
+            school=self.school,
+            source="PLACES",
+            image_url="https://example.com/photo2.jpg",
+            is_primary=False,
+        )
+
+        resp = self.client.get(f"/api/v1/schools/{self.school.moe_code}/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data["images"]), 2)
+        # Primary first
+        self.assertTrue(resp.data["images"][0]["is_primary"])
+        self.assertFalse(resp.data["images"][1]["is_primary"])
+
     def test_school_detail_not_found(self):
         resp = self.client.get("/api/v1/schools/ZZZZZ/")
         assert resp.status_code == 404

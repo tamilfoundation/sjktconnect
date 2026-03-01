@@ -33,6 +33,15 @@ class SchoolListSerializer(serializers.ModelSerializer):
         ]
 
 
+class SchoolImageSerializer(serializers.Serializer):
+    """Read-only serializer for school images."""
+
+    image_url = serializers.URLField()
+    source = serializers.CharField()
+    is_primary = serializers.BooleanField()
+    attribution = serializers.CharField()
+
+
 class SchoolDetailSerializer(serializers.ModelSerializer):
     """Full school profile for detail views."""
 
@@ -45,6 +54,7 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
     dun_code = serializers.CharField(source="dun.code", default=None)
     dun_name = serializers.CharField(source="dun.name", default=None)
     image_url = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
 
     class Meta:
         model = School
@@ -81,6 +91,7 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
             "is_active",
             "last_verified",
             "image_url",
+            "images",
         ]
 
     def get_image_url(self, obj):
@@ -89,6 +100,11 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
         if primary:
             return primary.image_url
         return None
+
+    def get_images(self, obj):
+        """Return all images for this school, primary first."""
+        qs = obj.images.order_by("-is_primary", "-created_at")
+        return SchoolImageSerializer(qs, many=True).data
 
 
 class SchoolEditSerializer(serializers.ModelSerializer):
