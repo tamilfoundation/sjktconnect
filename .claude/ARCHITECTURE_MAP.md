@@ -1,6 +1,6 @@
 # SJK(T) Connect — Architecture Map
 
-Last updated: Sprint 1.9 / Phase 1 close (1 Mar 2026)
+Last updated: Sprint 2.3 close (1 Mar 2026)
 
 ## Stack
 
@@ -81,18 +81,39 @@ backend/
 │   │   └── urls.py       # /auth/ endpoints
 │   └── admin.py          # SchoolContact + MagicLinkToken admin
 │
-└── outreach/             # School images + email outreach (Sprint 1.8)
-    ├── models.py         # SchoolImage (satellite/places/manual), OutreachEmail (Brevo tracking)
+├── outreach/             # School images + email outreach (Sprint 1.8)
+│   ├── models.py         # SchoolImage (satellite/places/manual), OutreachEmail (Brevo tracking)
+│   ├── services/
+│   │   ├── image_harvester.py  # Google Static Maps + Places API image harvesting
+│   │   └── email_sender.py     # Brevo outreach email sending (console fallback in dev)
+│   ├── management/commands/
+│   │   ├── harvest_school_images.py  # Harvest images: --limit, --state, --source, --dry-run
+│   │   └── send_outreach_emails.py   # Send emails: --limit, --state, --dry-run
+│   ├── admin.py          # SchoolImage + OutreachEmail admin
+│   └── tests/
+│       ├── test_image_harvester.py   # 18 tests (satellite, places, command)
+│       └── test_email_sender.py      # 16 tests (email, models, command, API)
+│
+├── subscribers/          # Subscriber management (Sprint 2.1)
+│   ├── models.py         # Subscriber (email, verified), SubscriptionPreference (school/constituency/state)
+│   ├── services/
+│   │   └── confirmation.py  # Brevo confirmation email on subscribe
+│   ├── api/
+│   │   ├── serializers.py
+│   │   ├── views.py      # Subscribe, Unsubscribe, Preferences
+│   │   └── urls.py       # /subscribers/ endpoints
+│   └── tests/
+│
+└── broadcasts/           # Broadcast messaging (Sprint 2.2-2.3)
+    ├── models.py         # Broadcast (draft/sent), BroadcastRecipient (per-recipient tracking)
     ├── services/
-    │   ├── image_harvester.py  # Google Static Maps + Places API image harvesting
-    │   └── email_sender.py     # Brevo outreach email sending (console fallback in dev)
+    │   └── sender.py     # Brevo transactional send, rate limiting, SENT/FAILED tracking
+    ├── views.py          # Django admin views: compose, preview, list
+    ├── forms.py          # BroadcastForm (audience filtering by scope)
+    ├── templates/        # Admin compose/preview/list templates
     ├── management/commands/
-    │   ├── harvest_school_images.py  # Harvest images: --limit, --state, --source, --dry-run
-    │   └── send_outreach_emails.py   # Send emails: --limit, --state, --dry-run
-    ├── admin.py          # SchoolImage + OutreachEmail admin
+    │   └── send_broadcast.py  # Management command for sending broadcasts
     └── tests/
-        ├── test_image_harvester.py   # 18 tests (satellite, places, command)
-        └── test_email_sender.py      # 16 tests (email, models, command, API)
 ```
 
 ## Frontend — Next.js App Router
@@ -177,6 +198,14 @@ HansardSitting (PK: auto ID, unique: sitting_date)
   └── has many HansardMentions (FK sitting)
        └── has many MentionedSchools (FK mention)  ← bridge to School
 
+Subscriber (PK: auto ID, unique: email)
+  └── has many SubscriptionPreferences (FK subscriber)
+       └── scope: school/constituency/state + target ID
+
+Broadcast (PK: auto ID)
+  ├── has many BroadcastRecipients (FK broadcast, FK subscriber)
+  └── status: draft → sending → sent
+
 AuditLog — standalone, tracks all admin actions
 ```
 
@@ -199,6 +228,12 @@ AuditLog — standalone, tracks all admin actions
 | `/auth/request-magic-link/` | POST | Send magic link email (requires @moe.edu.my) |
 | `/auth/verify/{token}/` | GET | Verify token, create session + SchoolContact |
 | `/auth/me/` | GET | Current authenticated school contact |
+| `/subscribers/subscribe/` | POST | Subscribe with email + preferences |
+| `/subscribers/unsubscribe/` | POST | Unsubscribe by email + token |
+| `/subscribers/preferences/` | GET/PUT | View/update subscription preferences |
+| `/broadcasts/compose/` | GET/POST | Admin: compose a broadcast (Django template) |
+| `/broadcasts/preview/<id>/` | GET | Admin: preview broadcast before sending |
+| `/broadcasts/` | GET | Admin: list all broadcasts |
 
 ## Key Design Decisions
 
