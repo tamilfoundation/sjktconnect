@@ -1,6 +1,6 @@
 # SJK(T) Connect — Architecture Map
 
-Last updated: Sprint 2.3 close (1 Mar 2026)
+Last updated: Sprint 2.4 close (1 Mar 2026)
 
 ## Stack
 
@@ -137,14 +137,20 @@ frontend/
 │   │   └── loading.tsx
 │   ├── constituencies/
 │   │   └── page.tsx                   # ISR (1hr). Constituency index: filterable table
-│   └── claim/
-│       ├── page.tsx                   # Claim form: enter @moe.edu.my email
-│       └── verify/[token]/
-│           └── page.tsx               # Token verification: success/error states
+│   ├── claim/
+│   │   ├── page.tsx                   # Claim form: enter @moe.edu.my email
+│   │   └── verify/[token]/
+│   │       └── page.tsx               # Token verification: success/error states
+│   ├── subscribe/
+│   │   └── page.tsx                   # Subscribe form: email, name, org, category preview
+│   ├── unsubscribe/[token]/
+│   │   └── page.tsx                   # One-click unsubscribe confirmation
+│   └── preferences/[token]/
+│       └── page.tsx                   # Manage subscription category toggles
 │
 ├── components/
 │   ├── Header.tsx          # Nav: School Map, Constituencies, Parliament Watch
-│   ├── Footer.tsx
+│   ├── Footer.tsx          # Copyright + subscribe link
 │   ├── SchoolMap.tsx       # Google Map + MarkerClusterer (home page)
 │   ├── SchoolMarkers.tsx   # AdvancedMarker pins for schools
 │   ├── SearchBox.tsx       # Typeahead school search
@@ -164,7 +170,10 @@ frontend/
 │   ├── ScorecardCard.tsx   # MP Parliament Watch scorecard
 │   ├── DemographicsCard.tsx    # Demographics: population, income, poverty, Gini
 │   ├── SchoolTable.tsx     # School list table (constituency/DUN pages)
-│   └── ConstituencyList.tsx    # Filterable constituency table (index page)
+│   ├── ConstituencyList.tsx    # Filterable constituency table (index page)
+│   ├── SubscribeForm.tsx       # Subscribe: email/name/org form, category preview, success state
+│   ├── UnsubscribeConfirmation.tsx  # Auto-unsubscribe on mount, re-subscribe link
+│   └── PreferencesForm.tsx     # Load/toggle/save category preferences
 │
 ├── lib/
 │   ├── types.ts            # All TypeScript interfaces

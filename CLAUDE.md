@@ -12,8 +12,8 @@
 ## Project Status
 
 - **Current Phase**: Phase 2 in progress.
-- **Last Sprint**: 2.3 (closed 2026-03-01, Broadcast sending + confirmation email)
-- **Tests**: 516 backend passing (frontend tests not re-counted)
+- **Last Sprint**: 2.4 (closed 2026-03-01, Subscribe/unsubscribe frontend pages)
+- **Tests**: 683 (516 backend + 167 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -153,6 +153,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 2.1 | Done | Subscriber models + subscribe/unsubscribe API. New `subscribers` app with Subscriber + SubscriptionPreference models, service layer, 3 REST endpoints. 51 new tests (560 total). |
 | 2.2 | Done | Broadcast models + admin compose UI. New `broadcasts` app with Broadcast + BroadcastRecipient models, audience filtering service, compose/preview/list admin views. 47 new tests (484 total). |
 | 2.3 | Done | Broadcast sending + confirmation email. Sender service (Brevo API), per-recipient tracking, rate limiting, management command, confirmation email on subscribe. 32 new tests (516 total). |
+| 2.4 | Done | Subscribe/unsubscribe frontend pages. `/subscribe/`, `/unsubscribe/[token]/`, `/preferences/[token]/` pages. SubscribeForm, UnsubscribeConfirmation, PreferencesForm components. API client + types. Footer subscribe link. 33 new frontend tests (683 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -169,17 +170,16 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 2.4 — Subscribe/Unsubscribe Pages (Next.js Frontend)**
-- `/subscribe/` page with form (email, name, organisation, category checkboxes)
-- `/unsubscribe/[token]/` one-click unsubscribe confirmation
-- `/preferences/[token]/` preference management (toggle categories)
-- Components: SubscribeForm, UnsubscribeConfirmation, PreferencesForm
-- API client updates: subscribe(), unsubscribe(), fetchPreferences(), updatePreferences()
-- Footer update: "Subscribe to Intelligence Blast" link
-- Depends on Sprint 2.1 (subscriber API) — complete
-- See `.claude/plans/streamed-munching-bird.md` for full Phase 2 roadmap
+**Sprint 2.5 — News Watch Pipeline (RSS + Article Extraction)**
+- Google Alerts RSS feed polling for Tamil school news
+- Article extraction with trafilatura (headline, body, date, source)
+- New `newswatch` app: NewsArticle model, RSS fetcher, article extractor
+- Management command for manual + scheduled execution
+- New deps: feedparser, trafilatura
+- New env var: GOOGLE_ALERTS_RSS_URL
+- See `docs/implementation-roadmap.md` Phase 2 table
 
-## Frontend (Sprint 1.3–1.8)
+## Frontend (Sprint 1.3–2.4)
 - **Stack**: Next.js 14, App Router, Tailwind CSS, TypeScript
 - **Map**: `@vis.gl/react-google-maps` + `@googlemaps/markerclusterer`
 - **API client**: `lib/api.ts` — auto-paginates, school/constituency/DUN detail, GeoJSON, mentions, edit/confirm
@@ -191,7 +191,9 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **Claim flow**: `/claim/` (email form), `/claim/verify/[token]/` (verification). ClaimForm component with pre-fill, loading/success/error states.
 - **Auth API**: `requestMagicLink`, `verifyMagicLink`, `fetchMe` — session-based via credentials: "include"
 - **Edit API**: `fetchSchoolEdit`, `updateSchool`, `confirmSchool` — session-based, school ownership validated server-side
-- **Tests**: Jest + React Testing Library (134 tests)
+- **Subscriber pages** (Sprint 2.4): `/subscribe/` (form), `/unsubscribe/[token]/` (one-click), `/preferences/[token]/` (toggle categories). SubscribeForm, UnsubscribeConfirmation, PreferencesForm components. Footer subscribe link.
+- **Subscriber API**: `subscribe`, `unsubscribe`, `fetchPreferences`, `updatePreferences` — public, no auth required
+- **Tests**: Jest + React Testing Library (167 tests)
 - **Build**: Standalone output, 107 kB first load JS
 - **Dockerfile**: Multi-stage (deps → build → runner), port 8080
 - **Env vars**: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID`

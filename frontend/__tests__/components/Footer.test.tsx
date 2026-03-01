@@ -20,4 +20,10 @@ describe("Footer", () => {
       screen.getByText(/MOE.*Parliament of Malaysia/)
     ).toBeInTheDocument();
   });
+
+  it("has subscribe link", () => {
+    render(<Footer />);
+    const link = screen.getByRole("link", { name: /Subscribe to Intelligence Blast/ });
+    expect(link).toHaveAttribute("href", "/subscribe");
+  });
 });

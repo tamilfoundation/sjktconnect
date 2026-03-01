@@ -1,11 +1,21 @@
+import Link from "next/link";
+
 export default function Footer() {
   return (
     <footer className="bg-white border-t border-gray-200 py-4">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <p className="text-center text-xs text-gray-500">
-          &copy; {new Date().getFullYear()} Tamil Foundation Malaysia.
-          Data from MOE &amp; Parliament of Malaysia.
-        </p>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+          <p className="text-xs text-gray-500">
+            &copy; {new Date().getFullYear()} Tamil Foundation Malaysia.
+            Data from MOE &amp; Parliament of Malaysia.
+          </p>
+          <Link
+            href="/subscribe"
+            className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+          >
+            Subscribe to Intelligence Blast
+          </Link>
+        </div>
       </div>
     </footer>
   );

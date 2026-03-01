@@ -1,5 +1,22 @@
 # Changelog
 
+## Sprint 2.4 — Subscribe/Unsubscribe Frontend Pages (2026-03-01)
+
+### Added
+- `/subscribe/` page with SubscribeForm component: email, name, organisation fields, category preview, success/error/loading states
+- `/unsubscribe/[token]/` page with UnsubscribeConfirmation component: auto-calls API on mount, re-subscribe link
+- `/preferences/[token]/` page with PreferencesForm component: loads current toggles, save with feedback, unsubscribe link
+- Footer updated with "Subscribe to Intelligence Blast" link
+- API client functions: `subscribe()`, `unsubscribe()`, `fetchPreferences()`, `updatePreferences()`
+- TypeScript interfaces: `SubscribeRequest`, `SubscriberResponse`, `UnsubscribeResponse`, `PreferenceUpdate`
+
+### Technical
+- 33 new frontend tests (3 component test files + 1 API test file), 683 total (516 backend + 167 frontend)
+- Follows existing patterns: Breadcrumb, metadata, `"use client"` for interactive components, server components for pages
+- Dynamic routes use `params: Promise<{ token: string }>` pattern (Next.js 14 App Router)
+
+---
+
 ## Sprint 2.3 — Broadcast Sending + Confirmation Email (2026-03-01)
 
 ### Added

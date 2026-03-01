@@ -8,12 +8,16 @@ import {
   GeoJSONFeatureCollection,
   MagicLinkResponse,
   PaginatedResponse,
+  PreferenceUpdate,
   School,
   SchoolConfirmResponse,
   SchoolDetail,
   SchoolEditData,
   SchoolMention,
   SearchResults,
+  SubscribeRequest,
+  SubscriberResponse,
+  UnsubscribeResponse,
 } from "./types";
 
 const API_URL =
@@ -299,6 +303,72 @@ export async function confirmSchool(
   const data = await res.json();
   if (!res.ok) {
     throw new Error(data.error || `API error: ${res.status}`);
+  }
+  return data;
+}
+
+/**
+ * Subscribe to SJK(T) Connect communications.
+ * Idempotent — duplicate email reactivates existing subscription.
+ */
+export async function subscribe(
+  request: SubscribeRequest
+): Promise<SubscriberResponse> {
+  const res = await fetch(`${BASE}/subscribers/subscribe/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.email?.[0] || data.detail || `API error: ${res.status}`);
+  }
+  return data;
+}
+
+/**
+ * One-click unsubscribe via token.
+ */
+export async function unsubscribe(
+  token: string
+): Promise<UnsubscribeResponse> {
+  const res = await fetch(`${BASE}/subscribers/unsubscribe/${token}/`);
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.detail || `API error: ${res.status}`);
+  }
+  return data;
+}
+
+/**
+ * Fetch subscription preferences by token.
+ */
+export async function fetchPreferences(
+  token: string
+): Promise<SubscriberResponse> {
+  const res = await fetch(`${BASE}/subscribers/preferences/${token}/`);
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.detail || `API error: ${res.status}`);
+  }
+  return data;
+}
+
+/**
+ * Update subscription preferences by token.
+ */
+export async function updatePreferences(
+  token: string,
+  preferences: PreferenceUpdate
+): Promise<SubscriberResponse> {
+  const res = await fetch(`${BASE}/subscribers/preferences/${token}/`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(preferences),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.detail || `API error: ${res.status}`);
   }
   return data;
 }

@@ -188,3 +188,29 @@ export interface SchoolConfirmResponse {
   last_verified: string;
   verified_by: string;
 }
+
+export interface SubscribeRequest {
+  email: string;
+  name?: string;
+  organisation?: string;
+}
+
+export interface SubscriberResponse {
+  email: string;
+  name: string;
+  organisation: string;
+  is_active: boolean;
+  subscribed_at: string;
+  preferences: Record<string, boolean>;
+}
+
+export interface UnsubscribeResponse {
+  detail: string;
+  email: string;
+}
+
+export interface PreferenceUpdate {
+  PARLIAMENT_WATCH?: boolean;
+  NEWS_WATCH?: boolean;
+  MONTHLY_BLAST?: boolean;
+}
