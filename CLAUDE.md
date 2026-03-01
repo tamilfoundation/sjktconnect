@@ -11,8 +11,8 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 1 — The Seed
-- **Current Sprint**: 1.9 DONE. Phase 1 complete.
+- **Current Phase**: Phase 1 COMPLETE. Phase 2 not yet started.
+- **Last Sprint**: 1.9 (closed 2026-03-01)
 - **Tests**: 509 passing (375 backend + 134 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
@@ -161,14 +161,13 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **Admin**: `/admin/` (username: admin, email: admin@tamilfoundation.org)
 - **Old project** (`gen-lang-client-0871147736`): old sjktconnect-api deleted (2026-03-01)
 
-## Follow-ups (Post-Phase 1)
+## Next Sprint
 
-- ✅ Custom domain `tamilschool.org` → Cloud Run mapping (sjktconnect-web, asia-southeast1)
-- ✅ Set BREVO_API_KEY on backend for email outreach
-- Send first outreach batch (1 state, `--limit 50`)
-- ✅ Delete old sjktconnect-api from `gen-lang-client-0871147736`
-- ✅ Create Google Maps Map ID for styled markers (ce9504578e73fb7dd21b6704)
-- ✅ Set GEMINI_API_KEY on backend for AI analysis commands
+Phase 2 has not been planned yet. Before starting:
+- Review PRD for Phase 2 scope (features C-F in `PRD-SJKTConnect.md`)
+- Run `_workflows/implementation-planning.md` to create Phase 2 roadmap
+- Outreach emails are ready but site content needs review before sending
+- Codebase is stable: 509 tests, all infra configured, domain live
 
 ## Frontend (Sprint 1.3–1.8)
 - **Stack**: Next.js 14, App Router, Tailwind CSS, TypeScript

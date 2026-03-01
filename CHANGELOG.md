@@ -18,12 +18,15 @@
 ### Data
 - 528 satellite images harvested into production database (all schools with GPS coordinates)
 
-### Pending (Follow-ups)
-- Custom domain `tamilschool.org` mapping (needs domain verification)
-- BREVO_API_KEY for outreach emails
-- First outreach email batch
-- GEMINI_API_KEY for AI analysis commands
-- Delete old services from `gen-lang-client-0871147736`
+### Post-Sprint Follow-ups (2026-03-01)
+- Custom domain `tamilschool.org` mapped to Cloud Run (auto-verified via domain provider)
+- BREVO_API_KEY set on backend; Brevo sender domain `tamilschool.org` authenticated (DKIM + DMARC)
+- GEMINI_API_KEY set on backend for AI analysis commands
+- Upgraded map markers from deprecated `Marker` to `AdvancedMarker` with indigo `Pin` styling
+- Added Google Maps Map ID (`ce9504578e73fb7dd21b6704`) to Dockerfile
+- Fixed outreach email encoding: replaced literal em dashes with `&mdash;` entities
+- Deleted old `sjktconnect-api` from personal GCP project (`gen-lang-client-0871147736`)
+- Removed stale `tamilschool.org.my` domain mapping
 
 ---
 

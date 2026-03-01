@@ -51,6 +51,19 @@ Phase 1 "The Seed" is now complete. Over 8 sprints (1.1-1.8) plus this deploymen
 - **Automated Hansard pipeline** running daily on Cloud Scheduler
 - **Email outreach infrastructure** ready (needs BREVO_API_KEY to activate)
 
+## Post-Sprint Follow-ups (2026-03-01)
+
+All deferred items from sprint 1.9 resolved in a follow-up session:
+- `tamilschool.org` custom domain mapped and verified (auto-verified via domain provider)
+- `BREVO_API_KEY` set on backend; Brevo sender domain authenticated (DKIM + DMARC)
+- `GEMINI_API_KEY` set on backend
+- Upgraded `Marker` to `AdvancedMarker` + `Pin` (indigo styling) in MiniMap and SchoolMarkers
+- Added Google Maps Map ID to Dockerfile
+- Fixed outreach email encoding bug (literal em dashes rendered as diamonds in email clients)
+- Deleted old `sjktconnect-api` from personal GCP project
+- Removed stale `tamilschool.org.my` domain mapping
+- Test outreach email sent successfully via Brevo
+
 ## Numbers
 
 | Metric | Value |
@@ -59,7 +72,7 @@ Phase 1 "The Seed" is now complete. Over 8 sprints (1.1-1.8) plus this deploymen
 | Cloud Run jobs | 1 (hansard check) |
 | Cloud Schedulers | 1 (daily 8am MYT) |
 | Satellite images harvested | 528 |
-| Backend deploys | 3 revisions |
-| Frontend deploys | 1 revision |
+| Backend deploys | 3 revisions (sprint) + 2 (follow-up env vars) |
+| Frontend deploys | 1 revision (sprint) + 1 (follow-up AdvancedMarker) |
 | Build failures | 1 (Dockerfile ARG issue) |
 | Total sprints in Phase 1 | 9 (1.1 through 1.9) |

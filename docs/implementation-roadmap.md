@@ -37,110 +37,18 @@ The PRD (v0.2) defines a 5-phase platform: Intelligence Engine + Advocacy Map + 
 
 ---
 
-## Phase 0: Parliament Watch (6 sprints)
+## Completed Phases
 
-**Timeline note**: Each sprint is one focused session, independently shippable. At 1-2 sessions per week, Phase 0 is realistically **3-6 weeks** of calendar time, not "2-3 weeks" as initially estimated in the PRD (now corrected). Sprints are sequenced by dependency — each builds on the previous — so parallelisation is limited.
+- **Phase 0: Parliament Watch** — 6 sprints (0.1-0.6). Hansard pipeline, AI analysis, admin review, deployment. 220 tests.
+- **Phase 1: The Seed** — 9 sprints (1.1-1.9). Next.js frontend, school/constituency pages, Magic Link auth, school edit, outreach, full stack deployment. 509 tests.
 
-Parliament Watch is the first product. It monitors Malaysian parliamentary proceedings (Hansard) for Tamil school mentions, produces AI-powered analysis, and queues it for human review before publishing. It requires zero contacts and uses only public data.
-
-### Pre-Requisites (Manual — before Sprint 1)
-
-These must be completed by the user before any coding begins:
-
-1. **GPS cleanup** — Resolve 25 offset pins and 28 missing pins in `school_pin_verification.csv`. Manual task using Google Maps.
-2. **529 vs 528 discrepancy** — Identify the extra school in TF's database vs MOE's list. Decide whether to include or exclude it.
+See `CHANGELOG.md` for detailed sprint-by-sprint changes and `docs/retrospective-sprint*.md` for retrospectives.
 
 ---
 
-### Sprint 1: Project Scaffold + Reference Data Import
+## Phases 2-4 (High-Level Outline)
 
-**Goal**: Django project running locally with 528 schools and constituency data in Neon PostgreSQL.
-
-**Scope**:
-- **Pre-step (repo hygiene)**: `.gitignore` (exclude Excel/CSV data files, `.env`, `__pycache__`, etc.), `README.md`, project-level `CLAUDE.md` — created before any Django code
-- Django project structure with split settings (base, development, production)
-- Models: `School`, `Constituency`, `DUN`, `AuditLog`
-- Management command: `import_schools` (reads `SenaraiSekolahWeb_Januari2026.xlsx` → School table, with GPS from `school_pin_verification.csv`)
-- Management command: `import_constituencies` (reads `Political Constituencies.csv` → Constituency + DUN tables — **metadata only**: MP/ADUN names, Indian demographics, income/poverty stats. **WKT boundary polygons are deferred to Phase 1** when the map is built, to avoid pulling in GeoDjango + PostGIS + GDAL/GEOS dependencies that Phase 0 doesn't need.)
-- AuditLog middleware — auto-log all School/Constituency model changes from Day 1
-- Create Neon project (free tier), apply migrations
-- Requirements, Dockerfile, environment config, test setup
-
-**Acceptance**: `.gitignore` in place. `import_schools` loads 528 schools. `import_constituencies` loads 122 constituencies (metadata, no geometry). All tests pass. Data visible in Neon console.
-
-**Complexity**: Medium (~15 files) — **this is the densest sprint** (four categories: repo setup, project scaffold, school data, constituency data). If MOE Excel parsing is tricky, it may consume the full session. That's acceptable.
-
----
-
-### Sprint 2: Hansard Download + Text Extraction + Keyword Search
-
-**Goal**: Pipeline that downloads a Hansard PDF, extracts text, and finds Tamil school mentions.
-
-**Scope**:
-- Models: `HansardSitting`, `HansardMention`
-- Pipeline module with functions for:
-  - Downloading Hansard PDFs from parlimen.gov.my
-  - Extracting text using pdfplumber
-  - **Text normalization** before search: lowercase, normalize variants (`sjk(t)`, `sjkt`, `s.j.k.(t)`, `sekolah tamil`). MPs speak colloquially — rigid string matching will miss mentions.
-  - Keyword search against normalized text
-  - Storing extracted mentions with verbatim quotes, page numbers, and **±500 characters of surrounding context** (the context window is needed for entity linking in Sprint 3 and AI analysis in Sprint 4)
-- Management command: `process_hansard <url>` — orchestrates the full pipeline for one PDF
-- Tests with sample Hansard text fixtures
-
-**Acceptance**: Run against 2-3 real Hansard PDFs. Mentions extracted and stored in database with verbatim quotes and page numbers. **Catalogue school name variants** actually found in real Hansard text (output a list of raw name strings) — this evidence informs Sprint 3's matching design.
-
-**Complexity**: Medium (~12 files)
-
----
-
-### Sprint 4: Gemini AI Analysis + MP Scorecard
-
-**Goal**: AI classifies each mention and scorecard tracks MP engagement over time.
-
-**Scope**:
-- Gemini Flash API integration (**token budgeting**: send only the `verbatim_quote` + ±500 chars context per mention, not the full Hansard. The deterministic keyword search in Sprint 2 does the finding for free — Gemini only classifies what's already found.):
-  - Classify mention type (budget / question / policy / throwaway)
-  - Assess significance (1-5), sentiment, change indicator
-  - Extract MP name, constituency, party
-  - Generate AI summary of each mention
-- Model: `MPScorecard` — aggregated per MP (total mentions, substantive mentions, questions asked, last mention date)
-- Management command: `update_scorecards` — recalculate from all stored mentions
-- Constituency context linking: auto-attach school counts when an MP speaks ("Port Dickson has 15 SJK(T)s")
-- Content generation: per-sitting brief template (Markdown rendered to HTML)
-- Tests: mock Gemini responses, scorecard aggregation logic, template rendering
-
-**Acceptance**: Run against real mentions. AI analysis stored. Scorecard populated with correct aggregations. Per-sitting brief renders cleanly.
-
-**Complexity**: High (~12 files)
-
----
-
-### Sprint 5: Admin Review Queue + Content Publishing — DONE
-
-8 views, MentionReviewForm, highlight_keywords templatetag, 7 templates, CSS, login/logout. 49 new tests (198 total).
-
----
-
-### Sprint 6: Deployment + Cloud Scheduler + Documentation — DONE
-
-Cloud Run + Supabase PostgreSQL, check_new_hansards discovery command, Cloud Scheduler (daily 8am MYT), health check, README. 22 new tests (220 total).
-
----
-
-## Phases 1-4 (High-Level Outline)
-
-These are outlined for visibility, not commitment. Each phase will get its own sprint decomposition when we reach it. The roadmap is a living document — re-plan remaining phases at each phase boundary.
-
-### Phase 1: The Seed (~6-8 sprints)
-- Import WKT boundary polygons from `Political Constituencies.csv` (deferred from Phase 0 — using shapely + TextField, not GeoDjango, to avoid GDAL complexity)
-- Next.js frontend setup + public school map (Google Maps JS API, 528 pins)
-- School profile pages (SSR for SEO) + constituency pages (122 + 222 DUN)
-- Magic Link authentication (MOE email to passwordless verification)
-- School data confirm/edit flow
-- School image harvest (Google Places/Street View APIs)
-- Admin dashboard (verification status, contact management)
-- Email outreach to 526 schools (batched 50/day via Brevo)
-- Parliament Watch integration with school/constituency pages
+Each phase will get its own sprint decomposition when we reach it. Run `_workflows/implementation-planning.md` before starting Phase 2.
 
 ### Phase 2: The Value (~4-6 sprints)
 - Broadcast tool (filter audiences, compose, send)

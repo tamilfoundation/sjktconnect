@@ -1,6 +1,6 @@
 # SJK(T) Connect — Architecture Map
 
-Last updated: Sprint 1.8 (28 Feb 2026)
+Last updated: Sprint 1.9 / Phase 1 close (1 Mar 2026)
 
 ## Stack
 
