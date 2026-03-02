@@ -11,6 +11,7 @@ import ClaimButton from "@/components/ClaimButton";
 import EditSchoolLink from "@/components/EditSchoolLink";
 import SchoolPhotoGallery from "@/components/SchoolImage";
 import SchoolProfile from "@/components/SchoolProfile";
+import StatCard from "@/components/StatCard";
 import MiniMap from "@/components/MiniMap";
 import MentionsSection from "@/components/MentionsSection";
 import ConstituencySchools from "@/components/ConstituencySchools";
@@ -78,32 +79,40 @@ export default async function SchoolPage({ params }: PageProps) {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <Breadcrumb items={breadcrumbItems} />
 
-      {/* School Photo Gallery — always rendered, handles empty state */}
-      <SchoolPhotoGallery
-        images={school.images}
-        imageUrl={school.image_url}
-        schoolName={displayName}
-      />
+      {/* Hero: Side-by-side on desktop, stacked on mobile */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
+        {/* Photo — 3/5 width on desktop */}
+        <div className="lg:col-span-3">
+          <SchoolPhotoGallery
+            images={school.images}
+            imageUrl={school.image_url}
+            schoolName={displayName}
+          />
+        </div>
 
-      {/* School Header */}
-      <div className="mb-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-          {displayName}
-        </h1>
-        {school.name_tamil && (
-          <p className="text-lg text-gray-700 mt-1">{school.name_tamil}</p>
-        )}
-        {school.short_name && school.name !== school.short_name && (
-          <p className="text-sm text-gray-500 mt-1">{school.name}</p>
-        )}
-        <p className="text-sm text-gray-500 mt-1">
-          {school.moe_code} · {school.state} · {school.ppd}
-        </p>
-      </div>
+        {/* Name + Stats — 2/5 width on desktop */}
+        <div className="lg:col-span-2 flex flex-col justify-center space-y-3">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            {displayName}
+          </h1>
+          {school.name_tamil && (
+            <p className="text-lg text-gray-700">{school.name_tamil}</p>
+          )}
+          <p className="text-sm text-gray-500">
+            {school.moe_code} · {school.state} · {school.ppd}
+          </p>
+          <EditSchoolLink moeCode={school.moe_code} />
 
-      {/* Edit link for authenticated users */}
-      <div className="mb-6">
-        <EditSchoolLink moeCode={school.moe_code} />
+          {/* Stat cards — compact row */}
+          <div className="grid grid-cols-3 gap-3 pt-2">
+            <StatCard
+              label="Students"
+              value={(school.enrolment ?? 0) + (school.preschool_enrolment ?? 0)}
+            />
+            <StatCard label="Teachers" value={school.teacher_count ?? 0} />
+            <StatCard label="Grade" value={school.grade || "—"} />
+          </div>
+        </div>
       </div>
 
       {/* Main content: two-column layout on desktop */}

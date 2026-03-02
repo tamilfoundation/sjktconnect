@@ -7,7 +7,7 @@ const makeSchoolDetail = (
   overrides: Partial<SchoolDetail> = {}
 ): SchoolDetail => ({
   moe_code: "JBD0050",
-  name: "SEKOLAH JENIS KEBANGSAAN (TAMIL) LADANG BIKAM",
+  name: "Sekolah Jenis Kebangsaan (Tamil) Ladang Bikam",
   short_name: "SJK(T) Ladang Bikam",
   state: "Johor",
   ppd: "PPD Segamat",
@@ -29,7 +29,7 @@ const makeSchoolDetail = (
   preschool_enrolment: 15,
   special_enrolment: 0,
   grade: "A",
-  assistance_type: "Bantuan Penuh",
+  assistance_type: "SBK",
   session_count: 1,
   session_type: "Pagi",
   skm_eligible: false,
@@ -37,24 +37,16 @@ const makeSchoolDetail = (
   dun_code: "N01",
   dun_name: "Buloh Kasap",
   last_verified: null,
+  image_url: null,
+  images: [],
+  leaders: [],
   ...overrides,
 });
 
 describe("SchoolProfile", () => {
-  it("renders stat cards with key data", () => {
-    render(<SchoolProfile school={makeSchoolDetail()} />);
-    expect(screen.getByText("Students")).toBeInTheDocument();
-    expect(screen.getByText("120")).toBeInTheDocument();
-    expect(screen.getByText("Teachers")).toBeInTheDocument();
-    expect(screen.getByText("8")).toBeInTheDocument();
-    expect(screen.getByText("Grade")).toBeInTheDocument();
-    expect(screen.getByText("A")).toBeInTheDocument();
-  });
-
   it("renders school details section", () => {
     render(<SchoolProfile school={makeSchoolDetail()} />);
     expect(screen.getByText("School Details")).toBeInTheDocument();
-    expect(screen.getByText("JBD0050")).toBeInTheDocument();
   });
 
   it("renders Tamil name when present", () => {
@@ -64,10 +56,10 @@ describe("SchoolProfile", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders address", () => {
+  it("renders address with postcode and city grouped", () => {
     render(<SchoolProfile school={makeSchoolDetail()} />);
     expect(
-      screen.getByText(/Ladang Bikam, Segamat.*85000/)
+      screen.getByText(/Ladang Bikam, Segamat, 85000 Segamat, Johor/)
     ).toBeInTheDocument();
   });
 
@@ -78,29 +70,100 @@ describe("SchoolProfile", () => {
     expect(screen.getByText(/N01 Buloh Kasap/)).toBeInTheDocument();
   });
 
-  it("renders preschool enrolment when > 0", () => {
+  it("always shows enrolment breakdown rows", () => {
     render(
-      <SchoolProfile school={makeSchoolDetail({ preschool_enrolment: 15 })} />
+      <SchoolProfile
+        school={makeSchoolDetail({
+          enrolment: 120,
+          preschool_enrolment: 15,
+          special_enrolment: 3,
+        })}
+      />
     );
+    expect(screen.getByText("School")).toBeInTheDocument();
+    expect(screen.getByText("120 students")).toBeInTheDocument();
+    expect(screen.getByText("Preschool")).toBeInTheDocument();
     expect(screen.getByText("15 students")).toBeInTheDocument();
+    expect(screen.getByText("Special Needs")).toBeInTheDocument();
+    expect(screen.getByText("3 students")).toBeInTheDocument();
   });
 
-  it("hides preschool when 0", () => {
+  it("shows enrolment breakdown even when values are 0", () => {
     render(
-      <SchoolProfile school={makeSchoolDetail({ preschool_enrolment: 0 })} />
+      <SchoolProfile
+        school={makeSchoolDetail({
+          enrolment: 50,
+          preschool_enrolment: 0,
+          special_enrolment: 0,
+        })}
+      />
     );
-    expect(screen.queryByText("Preschool")).not.toBeInTheDocument();
+    expect(screen.getByText("School")).toBeInTheDocument();
+    expect(screen.getByText("50 students")).toBeInTheDocument();
+    expect(screen.getByText("Preschool")).toBeInTheDocument();
+    expect(screen.getByText("Special Needs")).toBeInTheDocument();
   });
 
-  it("shows SKM as Eligible or No", () => {
-    const { rerender } = render(
+  it("does not render SKM stat card", () => {
+    render(
       <SchoolProfile school={makeSchoolDetail({ skm_eligible: true })} />
     );
-    expect(screen.getByText("Eligible")).toBeInTheDocument();
+    expect(screen.queryByText("SKM")).not.toBeInTheDocument();
+    expect(screen.queryByText("Eligible")).not.toBeInTheDocument();
+  });
 
-    rerender(
-      <SchoolProfile school={makeSchoolDetail({ skm_eligible: false })} />
+  it("does not render MOE Code detail row", () => {
+    render(<SchoolProfile school={makeSchoolDetail()} />);
+    expect(screen.queryByText("MOE Code")).not.toBeInTheDocument();
+  });
+
+  it("does not render Full Name detail row", () => {
+    render(<SchoolProfile school={makeSchoolDetail()} />);
+    expect(screen.queryByText("Full Name")).not.toBeInTheDocument();
+  });
+
+  it("maps SBK assistance type to Government-Aided", () => {
+    render(
+      <SchoolProfile school={makeSchoolDetail({ assistance_type: "SBK" })} />
     );
-    expect(screen.getByText("No")).toBeInTheDocument();
+    expect(screen.getByText("Government-Aided (SBK)")).toBeInTheDocument();
+  });
+
+  it("maps SK assistance type to Government", () => {
+    render(
+      <SchoolProfile school={makeSchoolDetail({ assistance_type: "SK" })} />
+    );
+    expect(screen.getByText("Government (SK)")).toBeInTheDocument();
+  });
+
+  it("renders school leadership section when leaders exist", () => {
+    render(
+      <SchoolProfile
+        school={makeSchoolDetail({
+          leaders: [
+            {
+              role: "CHAIRMAN",
+              role_display: "Board Chairman",
+              name: "Mr. Rajan",
+            },
+            {
+              role: "HEADMASTER",
+              role_display: "Headmaster",
+              name: "Mrs. Devi",
+            },
+          ],
+        })}
+      />
+    );
+    expect(screen.getByText("School Leadership")).toBeInTheDocument();
+    expect(screen.getByText("Board Chairman")).toBeInTheDocument();
+    expect(screen.getByText("Mr. Rajan")).toBeInTheDocument();
+    expect(screen.getByText("Headmaster")).toBeInTheDocument();
+    expect(screen.getByText("Mrs. Devi")).toBeInTheDocument();
+  });
+
+  it("hides school leadership section when no leaders", () => {
+    render(<SchoolProfile school={makeSchoolDetail({ leaders: [] })} />);
+    expect(screen.queryByText("School Leadership")).not.toBeInTheDocument();
   });
 });
