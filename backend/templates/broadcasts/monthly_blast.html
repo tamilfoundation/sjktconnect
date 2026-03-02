@@ -1,0 +1,68 @@
+<h1 style="color: #1a1a2e; font-size: 24px; margin-bottom: 5px;">Monthly Intelligence Blast</h1>
+<p style="color: #666; font-size: 14px; margin-top: 0;">{{ month_label }}</p>
+<hr style="border: none; border-top: 2px solid #e0e0e0; margin: 20px 0;">
+
+{% if parliament %}
+<h2 style="color: #2c3e50; font-size: 18px;">Parliament Watch</h2>
+<p style="color: #888; font-size: 13px;">Top mentions of Tamil schools in Hansard this month</p>
+{% for mention in parliament %}
+<div style="background: #f8f9fa; border-left: 3px solid #3498db; padding: 12px 15px; margin-bottom: 12px; border-radius: 0 4px 4px 0;">
+    <p style="margin: 0 0 4px 0; font-weight: bold; color: #2c3e50;">
+        {{ mention.mp_name }}
+        {% if mention.mp_constituency %}<span style="font-weight: normal; color: #888;"> &mdash; {{ mention.mp_constituency }}</span>{% endif %}
+    </p>
+    <p style="margin: 0 0 4px 0; font-size: 13px; color: #666;">
+        {{ mention.sitting.sitting_date|date:"j M Y" }}
+        &middot; Significance: {{ mention.significance }}/5
+        {% if mention.mention_type %}&middot; {{ mention.mention_type }}{% endif %}
+    </p>
+    {% if mention.ai_summary %}<p style="margin: 0; color: #333;">{{ mention.ai_summary }}</p>{% endif %}
+</div>
+{% endfor %}
+<hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
+{% endif %}
+
+{% if news %}
+<h2 style="color: #2c3e50; font-size: 18px;">News Watch</h2>
+<p style="color: #888; font-size: 13px;">Top news articles about Tamil schools this month</p>
+{% for article in news %}
+<div style="background: #f8f9fa; border-left: 3px solid #27ae60; padding: 12px 15px; margin-bottom: 12px; border-radius: 0 4px 4px 0;">
+    <p style="margin: 0 0 4px 0; font-weight: bold; color: #2c3e50;">
+        <a href="{{ article.url }}" style="color: #2c3e50; text-decoration: none;">{{ article.title|truncatechars:80 }}</a>
+    </p>
+    <p style="margin: 0 0 4px 0; font-size: 13px; color: #666;">
+        {{ article.source_name|default:"Unknown" }}
+        {% if article.published_date %}&middot; {{ article.published_date|date:"j M Y" }}{% endif %}
+        &middot; Relevance: {{ article.relevance_score }}/5
+        &middot; <span style="text-transform: capitalize;">{{ article.sentiment|lower }}</span>
+    </p>
+    {% if article.ai_summary %}<p style="margin: 0; color: #333;">{{ article.ai_summary|truncatechars:200 }}</p>{% endif %}
+</div>
+{% endfor %}
+<hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
+{% endif %}
+
+{% if scorecards %}
+<h2 style="color: #2c3e50; font-size: 18px;">MP Scorecard Highlights</h2>
+<p style="color: #888; font-size: 13px;">Most active MPs on Tamil school issues</p>
+<table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+    <tr style="background: #f1f1f1;">
+        <th style="text-align: left; padding: 8px;">MP</th>
+        <th style="text-align: left; padding: 8px;">Constituency</th>
+        <th style="text-align: center; padding: 8px;">Mentions</th>
+        <th style="text-align: center; padding: 8px;">Substantive</th>
+    </tr>
+    {% for sc in scorecards %}
+    <tr style="border-bottom: 1px solid #e0e0e0;">
+        <td style="padding: 8px; font-weight: bold;">{{ sc.mp_name }}</td>
+        <td style="padding: 8px;">{{ sc.constituency|default:"Unknown" }}</td>
+        <td style="padding: 8px; text-align: center;">{{ sc.total_mentions }}</td>
+        <td style="padding: 8px; text-align: center;">{{ sc.substantive_mentions }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
+
+{% if not parliament and not news and not scorecards %}
+<p style="color: #888; text-align: center; padding: 30px 0;">No intelligence data available for {{ month_label }}.</p>
+{% endif %}
