@@ -20,6 +20,12 @@ export interface SchoolImageData {
   attribution: string;
 }
 
+export interface SchoolLeader {
+  role: string;
+  role_display: string;
+  name: string;
+}
+
 export interface SchoolDetail extends School {
   name_tamil: string;
   address: string;
@@ -42,6 +48,7 @@ export interface SchoolDetail extends School {
   last_verified: string | null;
   image_url: string | null;
   images: SchoolImageData[];
+  leaders: SchoolLeader[];
 }
 
 export interface SchoolMention {
