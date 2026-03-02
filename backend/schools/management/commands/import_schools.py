@@ -2,9 +2,9 @@
 Import SJK(T) schools from MOE Excel file.
 
 Usage:
-    python manage.py import_schools ../SenaraiSekolahWeb_Januari2026.xlsx
-    python manage.py import_schools --dry-run ../SenaraiSekolahWeb_Januari2026.xlsx
-    python manage.py import_schools --gps-file ../school_pin_verification.csv <excel_file>
+    python manage.py import_schools ../data/SenaraiSekolahWeb_Januari2026.xlsx
+    python manage.py import_schools --dry-run ../data/SenaraiSekolahWeb_Januari2026.xlsx
+    python manage.py import_schools --gps-file ../data/school_pin_verification.csv <excel_file>
 """
 
 import csv
@@ -24,7 +24,7 @@ MOE_PREFIX = "SEKOLAH JENIS KEBANGSAAN (TAMIL)"
 SHORT_PREFIX = "SJK(T)"
 
 # Default GPS verification file
-DEFAULT_GPS = Path(__file__).resolve().parent.parent.parent.parent.parent / "school_pin_verification.csv"
+DEFAULT_GPS = Path(__file__).resolve().parent.parent.parent.parent.parent / "data" / "school_pin_verification.csv"
 
 
 def make_short_name(full_name):

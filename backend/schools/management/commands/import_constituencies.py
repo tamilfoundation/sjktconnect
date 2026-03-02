@@ -20,7 +20,7 @@ from schools.models import Constituency, DUN
 logger = logging.getLogger(__name__)
 
 # Default CSV path: two levels up from backend/
-DEFAULT_CSV = Path(__file__).resolve().parent.parent.parent.parent.parent / "Political Constituencies.csv"
+DEFAULT_CSV = Path(__file__).resolve().parent.parent.parent.parent.parent / "data" / "Political Constituencies.csv"
 
 
 def parse_code_name(value):
