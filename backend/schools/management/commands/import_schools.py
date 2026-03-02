@@ -18,6 +18,7 @@ from django.db import transaction
 from openpyxl import load_workbook
 
 from schools.models import Constituency, DUN, School
+from schools.utils import to_proper_case, format_phone
 
 # MOE name prefix to replace with short form
 MOE_PREFIX = "SEKOLAH JENIS KEBANGSAAN (TAMIL)"
@@ -28,14 +29,14 @@ DEFAULT_GPS = Path(__file__).resolve().parent.parent.parent.parent.parent / "dat
 
 
 def make_short_name(full_name):
-    """Convert MOE full name to short form.
+    """Convert MOE full name to short form with proper case.
 
-    'SEKOLAH JENIS KEBANGSAAN (TAMIL) LADANG BIKAM' -> 'SJK(T) LADANG BIKAM'
+    'SEKOLAH JENIS KEBANGSAAN (TAMIL) LADANG BIKAM' -> 'SJK(T) Ldg Bikam'
     """
     if MOE_PREFIX in full_name.upper():
         suffix = full_name[len(MOE_PREFIX):].strip()
-        return f"{SHORT_PREFIX} {suffix}"
-    return full_name
+        return f"{SHORT_PREFIX} {to_proper_case(suffix)}"
+    return to_proper_case(full_name)
 
 
 def parse_code_name(value):
@@ -239,18 +240,18 @@ class Command(BaseCommand):
                 skm_eligible = bool(skm_raw and str(skm_raw).strip())
 
                 school_data = {
-                    "name": full_name,
+                    "name": to_proper_case(full_name),
                     "short_name": short_name,
-                    "address": str(get_cell(row, "ALAMATSURAT") or "").strip(),
+                    "address": to_proper_case(str(get_cell(row, "ALAMATSURAT") or "").strip()),
                     "postcode": str(get_cell(row, "POSKODSURAT") or "").strip(),
-                    "city": str(get_cell(row, "BANDARSURAT") or "").strip(),
-                    "state": state,
-                    "ppd": str(get_cell(row, "PPD") or "").strip(),
+                    "city": to_proper_case(str(get_cell(row, "BANDARSURAT") or "").strip()),
+                    "state": to_proper_case(state),
+                    "ppd": to_proper_case(str(get_cell(row, "PPD") or "").strip()),
                     "constituency": constituency,
                     "dun": dun_obj,
-                    "email": str(get_cell(row, "EMAIL") or "").strip(),
-                    "phone": str(get_cell(row, "NOTELEFON") or "").strip(),
-                    "fax": str(get_cell(row, "NOFAX") or "").strip(),
+                    "email": str(get_cell(row, "EMAIL") or "").strip().lower(),
+                    "phone": format_phone(str(get_cell(row, "NOTELEFON") or "").strip()),
+                    "fax": format_phone(str(get_cell(row, "NOFAX") or "").strip()),
                     "gps_lat": gps_lat,
                     "gps_lng": gps_lng,
                     "gps_verified": gps_verified,

@@ -32,10 +32,10 @@ def create_test_excel(rows, path):
 
 class MakeShortNameTest(TestCase):
     def test_standard_conversion(self):
-        assert make_short_name("SEKOLAH JENIS KEBANGSAAN (TAMIL) LADANG BIKAM") == "SJK(T) LADANG BIKAM"
+        assert make_short_name("SEKOLAH JENIS KEBANGSAAN (TAMIL) LADANG BIKAM") == "SJK(T) Ladang Bikam"
 
     def test_already_short(self):
-        assert make_short_name("SJK(T) LADANG BIKAM") == "SJK(T) LADANG BIKAM"
+        assert make_short_name("SJK(T) LADANG BIKAM") == "SJK(T) Ladang Bikam"
 
     def test_empty_string(self):
         assert make_short_name("") == ""
@@ -88,8 +88,8 @@ class ImportSchoolsTest(TestCase):
 
         assert School.objects.count() == 2
         school = School.objects.get(moe_code="JBD0050")
-        assert school.short_name == "SJK(T) LADANG BIKAM"
-        assert school.state == "JOHOR"
+        assert school.short_name == "SJK(T) Ladang Bikam"
+        assert school.state == "Johor"
         assert school.enrolment == 120
         assert school.teacher_count == 8
         assert school.constituency == self.c1
