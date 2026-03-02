@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { APIProvider, Map, useMap } from "@vis.gl/react-google-maps";
 import { GeoJSONFeature } from "@/lib/types";
 
@@ -43,13 +44,14 @@ export default function BoundaryMap({
   center,
   zoom = 11,
 }: BoundaryMapProps) {
+  const tc = useTranslations("common");
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
   const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "";
 
   if (!apiKey) {
     return (
       <div className="w-full h-72 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-sm">
-        Map unavailable
+        {tc("mapUnavailable")}
       </div>
     );
   }
@@ -57,7 +59,7 @@ export default function BoundaryMap({
   if (!geoJSON) {
     return (
       <div className="w-full h-72 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-sm">
-        No boundary data available
+        {tc("noBoundaryData")}
       </div>
     );
   }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { APIProvider, Map, AdvancedMarker, Pin } from "@vis.gl/react-google-maps";
 
 interface MiniMapProps {
@@ -9,13 +10,14 @@ interface MiniMapProps {
 }
 
 export default function MiniMap({ lat, lng, schoolName }: MiniMapProps) {
+  const tc = useTranslations("common");
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
   const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "";
 
   if (!apiKey) {
     return (
       <div className="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-sm">
-        Map unavailable
+        {tc("mapUnavailable")}
       </div>
     );
   }

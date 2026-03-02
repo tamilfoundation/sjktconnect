@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import {
   fetchConstituencyDetail,
   fetchConstituencyGeoJSON,
@@ -11,7 +12,7 @@ import ScorecardCard from "@/components/ScorecardCard";
 import DemographicsCard from "@/components/DemographicsCard";
 import SchoolTable from "@/components/SchoolTable";
 import BoundaryMap from "@/components/BoundaryMap";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 export const revalidate = 3600;
 
@@ -32,11 +33,14 @@ export async function generateMetadata({
       openGraph: { title, description, type: "website", siteName: "SJK(T) Connect" },
     };
   } catch {
-    return { title: "Constituency Not Found — SJK(T) Connect" };
+    const t = await getTranslations("constituency");
+    return { title: t("notFoundTitle") };
   }
 }
 
 export default async function ConstituencyPage({ params }: PageProps) {
+  const t = await getTranslations("constituency");
+  const tc = await getTranslations("common");
   let constituency;
   try {
     constituency = await fetchConstituencyDetail(params.code);
@@ -78,8 +82,8 @@ export default async function ConstituencyPage({ params }: PageProps) {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <Breadcrumb
         items={[
-          { label: "Home", href: "/" },
-          { label: "Constituencies", href: "/constituencies" },
+          { label: tc("home"), href: "/" },
+          { label: t("title"), href: "/constituencies" },
           { label: `${constituency.code} ${constituency.name}` },
         ]}
       />
@@ -90,7 +94,7 @@ export default async function ConstituencyPage({ params }: PageProps) {
           {constituency.code} {constituency.name}
         </h1>
         <p className="text-sm text-gray-500 mt-1">
-          {constituency.state} · MP: {constituency.mp_name} ({constituency.mp_party}
+          {constituency.state} · {t("mp")} {constituency.mp_name} ({constituency.mp_party}
           {constituency.mp_coalition
             ? ` / ${constituency.mp_coalition}`
             : ""}
@@ -100,10 +104,10 @@ export default async function ConstituencyPage({ params }: PageProps) {
 
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Tamil Schools" value={constituency.schools.length} />
-        <StatCard label="Total Students" value={totalEnrolment} />
-        <StatCard label="Total Teachers" value={totalTeachers} />
-        <StatCard label="DUNs" value={duns.length} />
+        <StatCard label={t("tamilSchools")} value={constituency.schools.length} />
+        <StatCard label={t("totalStudents")} value={totalEnrolment} />
+        <StatCard label={t("totalTeachers")} value={totalTeachers} />
+        <StatCard label={t("duns")} value={duns.length} />
       </div>
 
       {/* Main content */}
@@ -113,7 +117,7 @@ export default async function ConstituencyPage({ params }: PageProps) {
           {/* Boundary Map */}
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <h2 className="text-lg font-semibold text-gray-800 mb-3">
-              Boundary
+              {t("boundary")}
             </h2>
             <BoundaryMap geoJSON={geoJSON} center={center} />
           </div>
@@ -144,7 +148,7 @@ export default async function ConstituencyPage({ params }: PageProps) {
           {duns.length > 0 && (
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-800 mb-3">
-                State Constituencies (DUN)
+                {t("stateConstituencies")}
               </h2>
               <ul className="space-y-2">
                 {duns.map((dun) => (

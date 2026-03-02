@@ -1,4 +1,7 @@
-import Link from "next/link";
+"use client";
+
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { School } from "@/lib/types";
 
 interface SchoolTableProps {
@@ -6,14 +9,15 @@ interface SchoolTableProps {
 }
 
 export default function SchoolTable({ schools }: SchoolTableProps) {
+  const t = useTranslations("constituency");
   if (schools.length === 0) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-3">
-          Tamil Schools
+          {t("tamilSchools")}
         </h2>
         <p className="text-sm text-gray-500">
-          No Tamil schools found in this area.
+          {t("noSchools")}
         </p>
       </div>
     );
@@ -22,16 +26,16 @@ export default function SchoolTable({ schools }: SchoolTableProps) {
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
       <h2 className="text-lg font-semibold text-gray-800 mb-4">
-        Tamil Schools ({schools.length})
+        {t("tamilSchools")} ({schools.length})
       </h2>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200 text-left text-gray-500">
-              <th className="pb-2 pr-4 font-medium">School</th>
-              <th className="pb-2 pr-4 font-medium text-right">Students</th>
-              <th className="pb-2 pr-4 font-medium text-right">Teachers</th>
-              <th className="pb-2 font-medium">PPD</th>
+              <th className="pb-2 pr-4 font-medium">{t("schoolCol")}</th>
+              <th className="pb-2 pr-4 font-medium text-right">{t("studentsCol")}</th>
+              <th className="pb-2 pr-4 font-medium text-right">{t("teachersCol")}</th>
+              <th className="pb-2 font-medium">{t("ppdCol")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">

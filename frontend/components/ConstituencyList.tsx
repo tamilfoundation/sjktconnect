@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { Constituency } from "@/lib/types";
 
 interface ConstituencyListProps {
@@ -13,6 +14,7 @@ export default function ConstituencyList({
   constituencies,
   states,
 }: ConstituencyListProps) {
+  const t = useTranslations("constituency");
   const [selectedState, setSelectedState] = useState("");
 
   const filtered = selectedState
@@ -32,9 +34,9 @@ export default function ConstituencyList({
           value={selectedState}
           onChange={(e) => setSelectedState(e.target.value)}
           className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-          aria-label="Filter by state"
+          aria-label={t("filterByState")}
         >
-          <option value="">All States</option>
+          <option value="">{t("allStates")}</option>
           {states.map((state) => (
             <option key={state} value={state}>
               {state}
@@ -42,8 +44,7 @@ export default function ConstituencyList({
           ))}
         </select>
         <span className="text-sm text-gray-500">
-          Showing {filtered.length} constituencies · {totalSchools} Tamil
-          schools
+          {t("showingConstituencies", { count: filtered.length, total: totalSchools })}
         </span>
       </div>
 
@@ -53,12 +54,12 @@ export default function ConstituencyList({
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left text-gray-500">
-                <th className="px-4 py-3 font-medium">Code</th>
-                <th className="px-4 py-3 font-medium">Constituency</th>
-                <th className="px-4 py-3 font-medium">State</th>
-                <th className="px-4 py-3 font-medium">MP</th>
-                <th className="px-4 py-3 font-medium">Party</th>
-                <th className="px-4 py-3 font-medium text-right">Schools</th>
+                <th className="px-4 py-3 font-medium">{t("codeCol")}</th>
+                <th className="px-4 py-3 font-medium">{t("constituencyCol")}</th>
+                <th className="px-4 py-3 font-medium">{t("stateCol")}</th>
+                <th className="px-4 py-3 font-medium">{t("mpCol")}</th>
+                <th className="px-4 py-3 font-medium">{t("partyCol")}</th>
+                <th className="px-4 py-3 font-medium text-right">{t("schoolsCol")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">

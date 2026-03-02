@@ -1,3 +1,7 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 interface DemographicsCardProps {
   indianPopulation: number | string | null;
   indianPercentage: number | string | null;
@@ -14,6 +18,7 @@ function toNum(v: number | string | null | undefined): number | null {
 }
 
 export default function DemographicsCard(props: DemographicsCardProps) {
+  const t = useTranslations("constituency");
   const indianPopulation = toNum(props.indianPopulation);
   const indianPercentage = toNum(props.indianPercentage);
   const avgIncome = toNum(props.avgIncome);
@@ -33,12 +38,12 @@ export default function DemographicsCard(props: DemographicsCardProps) {
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
       <h2 className="text-lg font-semibold text-gray-800 mb-4">
-        Demographics
+        {t("demographics")}
       </h2>
       <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
         {indianPopulation != null && (
           <div>
-            <dt className="text-gray-500">Indian Population</dt>
+            <dt className="text-gray-500">{t("indianPopulation")}</dt>
             <dd className="text-gray-800 font-medium mt-0.5">
               {indianPopulation.toLocaleString()}
             </dd>
@@ -46,7 +51,7 @@ export default function DemographicsCard(props: DemographicsCardProps) {
         )}
         {indianPercentage != null && (
           <div>
-            <dt className="text-gray-500">Indian %</dt>
+            <dt className="text-gray-500">{t("indianPercent")}</dt>
             <dd className="text-gray-800 font-medium mt-0.5">
               {indianPercentage.toFixed(1)}%
             </dd>
@@ -54,7 +59,7 @@ export default function DemographicsCard(props: DemographicsCardProps) {
         )}
         {avgIncome != null && (
           <div>
-            <dt className="text-gray-500">Avg. Income</dt>
+            <dt className="text-gray-500">{t("avgIncome")}</dt>
             <dd className="text-gray-800 font-medium mt-0.5">
               RM {avgIncome.toLocaleString()}
             </dd>
@@ -62,7 +67,7 @@ export default function DemographicsCard(props: DemographicsCardProps) {
         )}
         {povertyRate != null && (
           <div>
-            <dt className="text-gray-500">Poverty Rate</dt>
+            <dt className="text-gray-500">{t("povertyRate")}</dt>
             <dd className="text-gray-800 font-medium mt-0.5">
               {povertyRate.toFixed(1)}%
             </dd>
@@ -70,7 +75,7 @@ export default function DemographicsCard(props: DemographicsCardProps) {
         )}
         {gini != null && (
           <div>
-            <dt className="text-gray-500">Gini Index</dt>
+            <dt className="text-gray-500">{t("giniIndex")}</dt>
             <dd className="text-gray-800 font-medium mt-0.5">
               {gini.toFixed(3)}
             </dd>
@@ -78,7 +83,7 @@ export default function DemographicsCard(props: DemographicsCardProps) {
         )}
         {unemploymentRate != null && (
           <div>
-            <dt className="text-gray-500">Unemployment</dt>
+            <dt className="text-gray-500">{t("unemployment")}</dt>
             <dd className="text-gray-800 font-medium mt-0.5">
               {unemploymentRate.toFixed(1)}%
             </dd>

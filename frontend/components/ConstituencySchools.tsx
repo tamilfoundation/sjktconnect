@@ -1,4 +1,7 @@
-import Link from "next/link";
+"use client";
+
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { School } from "@/lib/types";
 
 interface ConstituencySchoolsProps {
@@ -12,6 +15,8 @@ export default function ConstituencySchools({
   currentMoeCode,
   constituencyName,
 }: ConstituencySchoolsProps) {
+  const t = useTranslations("constituency");
+  const tc = useTranslations("common");
   const otherSchools = schools.filter((s) => s.moe_code !== currentMoeCode);
 
   if (otherSchools.length === 0) {
@@ -21,7 +26,7 @@ export default function ConstituencySchools({
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
       <h2 className="text-lg font-semibold text-gray-800 mb-3">
-        Schools in {constituencyName}
+        {t("schoolsIn", { name: constituencyName })}
       </h2>
       <ul className="space-y-2">
         {otherSchools.map((school) => (
@@ -34,7 +39,7 @@ export default function ConstituencySchools({
                 {school.short_name || school.name}
               </span>
               <span className="text-gray-400 text-xs">
-                {school.enrolment?.toLocaleString() ?? "—"} students
+                {school.enrolment?.toLocaleString() ?? "—"} {tc("students")}
               </span>
             </Link>
           </li>

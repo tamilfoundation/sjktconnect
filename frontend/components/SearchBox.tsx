@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { searchEntities } from "@/lib/api";
+import { Link } from "@/i18n/navigation";
 import { School, Constituency } from "@/lib/types";
 
 interface SearchBoxProps {
@@ -10,6 +12,8 @@ interface SearchBoxProps {
 }
 
 export default function SearchBox({ onSelect, onClear }: SearchBoxProps) {
+  const t = useTranslations("home");
+  const tc = useTranslations("common");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<{
     schools: School[];
@@ -95,15 +99,15 @@ export default function SearchBox({ onSelect, onClear }: SearchBoxProps) {
           type="text"
           value={query}
           onChange={(e) => handleChange(e.target.value)}
-          placeholder="Search schools or constituencies..."
+          placeholder={t("searchPlaceholder")}
           className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm shadow-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          aria-label="Search schools"
+          aria-label={t("searchLabel")}
         />
         {query && (
           <button
             onClick={handleClear}
             className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            aria-label="Clear search"
+            aria-label={t("clearSearch")}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -121,13 +125,13 @@ export default function SearchBox({ onSelect, onClear }: SearchBoxProps) {
       {isOpen && results && (
         <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-y-auto z-50">
           {!hasResults && (
-            <p className="px-3 py-2 text-sm text-gray-500">No results found</p>
+            <p className="px-3 py-2 text-sm text-gray-500">{tc("noResults")}</p>
           )}
 
           {results.schools.length > 0 && (
             <div>
               <p className="px-3 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50">
-                Schools ({results.schools.length})
+                {t("schoolsCount", { count: results.schools.length })}
               </p>
               {results.schools.map((school) => (
                 <div
@@ -144,15 +148,15 @@ export default function SearchBox({ onSelect, onClear }: SearchBoxProps) {
                     <p className="text-xs text-gray-500">
                       {school.moe_code} &middot; {school.state}
                       {school.enrolment > 0 &&
-                        ` \u00b7 ${school.enrolment} students`}
+                        ` \u00b7 ${school.enrolment} ${tc("students")}`}
                     </p>
                   </button>
-                  <a
+                  <Link
                     href={`/school/${school.moe_code}`}
                     className="ml-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium whitespace-nowrap"
                   >
-                    View →
-                  </a>
+                    {t("viewArrow")}
+                  </Link>
                 </div>
               ))}
             </div>
@@ -161,10 +165,10 @@ export default function SearchBox({ onSelect, onClear }: SearchBoxProps) {
           {results.constituencies.length > 0 && (
             <div>
               <p className="px-3 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50">
-                Constituencies ({results.constituencies.length})
+                {t("constituenciesCount", { count: results.constituencies.length })}
               </p>
               {results.constituencies.map((c) => (
-                <a
+                <Link
                   key={c.code}
                   href={`/constituency/${c.code}`}
                   className="block px-3 py-2 hover:bg-blue-50 border-b border-gray-100 last:border-0"
@@ -173,9 +177,9 @@ export default function SearchBox({ onSelect, onClear }: SearchBoxProps) {
                     {c.code} {c.name}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {c.mp_name} ({c.mp_party}) &middot; {c.school_count} schools
+                    {c.mp_name} ({c.mp_party}) &middot; {c.school_count} {tc("schools")}
                   </p>
-                </a>
+                </Link>
               ))}
             </div>
           )}

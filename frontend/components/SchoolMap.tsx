@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { APIProvider, Map } from "@vis.gl/react-google-maps";
 import SchoolMarkers from "./SchoolMarkers";
 import StateFilter from "./StateFilter";
@@ -12,6 +13,8 @@ const MALAYSIA_CENTER = { lat: 4.2105, lng: 101.9758 };
 const DEFAULT_ZOOM = 7;
 
 export default function SchoolMap() {
+  const t = useTranslations("home");
+  const tc = useTranslations("common");
   const [allSchools, setAllSchools] = useState<School[]>([]);
   const [filteredSchools, setFilteredSchools] = useState<School[]>([]);
   const [states, setStates] = useState<string[]>([]);
@@ -82,11 +85,10 @@ export default function SchoolMap() {
       <div className="flex items-center justify-center h-[calc(100vh-64px)] bg-gray-100">
         <div className="bg-white p-8 rounded-lg shadow text-center max-w-md">
           <h2 className="text-lg font-semibold text-gray-800 mb-2">
-            Google Maps API Key Required
+            {t("apiKeyRequired")}
           </h2>
           <p className="text-sm text-gray-600">
-            Set <code className="bg-gray-100 px-1 rounded">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> in
-            your <code className="bg-gray-100 px-1 rounded">.env.local</code> file.
+            {t("apiKeyInstructions")}
           </p>
         </div>
       </div>
@@ -115,7 +117,7 @@ export default function SchoolMap() {
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/80">
           <div className="text-center">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600 mx-auto mb-3" />
-            <p className="text-sm text-gray-600">Loading 528 schools...</p>
+            <p className="text-sm text-gray-600">{t("loadingSchools")}</p>
           </div>
         </div>
       )}
@@ -125,14 +127,14 @@ export default function SchoolMap() {
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/80">
           <div className="bg-white p-6 rounded-lg shadow text-center max-w-md">
             <h2 className="text-lg font-semibold text-red-700 mb-2">
-              Failed to load schools
+              {t("failedToLoad")}
             </h2>
             <p className="text-sm text-gray-600 mb-4">{error}</p>
             <button
               className="px-4 py-2 bg-primary-600 text-white text-sm rounded hover:bg-primary-700"
               onClick={() => window.location.reload()}
             >
-              Retry
+              {tc("retry")}
             </button>
           </div>
         </div>

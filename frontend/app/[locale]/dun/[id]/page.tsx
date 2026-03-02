@@ -1,12 +1,13 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { fetchDUNDetail, fetchDUNGeoJSON } from "@/lib/api";
 import Breadcrumb from "@/components/Breadcrumb";
 import StatCard from "@/components/StatCard";
 import DemographicsCard from "@/components/DemographicsCard";
 import SchoolTable from "@/components/SchoolTable";
 import BoundaryMap from "@/components/BoundaryMap";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 export const revalidate = 3600;
 
@@ -27,11 +28,14 @@ export async function generateMetadata({
       openGraph: { title, description, type: "website", siteName: "SJK(T) Connect" },
     };
   } catch {
-    return { title: "DUN Not Found — SJK(T) Connect" };
+    const t = await getTranslations("constituency");
+    return { title: t("dunNotFoundTitle") };
   }
 }
 
 export default async function DUNPage({ params }: PageProps) {
+  const t = await getTranslations("constituency");
+  const tc = await getTranslations("common");
   const dunId = parseInt(params.id, 10);
   if (isNaN(dunId)) {
     notFound();
@@ -72,8 +76,8 @@ export default async function DUNPage({ params }: PageProps) {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <Breadcrumb
         items={[
-          { label: "Home", href: "/" },
-          { label: "Constituencies", href: "/constituencies" },
+          { label: tc("home"), href: "/" },
+          { label: t("title"), href: "/constituencies" },
           {
             label: `${dun.constituency_code} ${dun.constituency_name}`,
             href: `/constituency/${dun.constituency_code}`,
@@ -88,19 +92,19 @@ export default async function DUNPage({ params }: PageProps) {
           {dun.code} {dun.name}
         </h1>
         <p className="text-sm text-gray-500 mt-1">
-          {dun.state} · Parliament: {dun.constituency_code}{" "}
+          {dun.state} · {t("parliament")} {dun.constituency_code}{" "}
           {dun.constituency_name}
           {dun.adun_name
-            ? ` · ADUN: ${dun.adun_name} (${dun.adun_party}${dun.adun_coalition ? ` / ${dun.adun_coalition}` : ""})`
+            ? ` · ${t("adun")} ${dun.adun_name} (${dun.adun_party}${dun.adun_coalition ? ` / ${dun.adun_coalition}` : ""})`
             : ""}
         </p>
       </div>
 
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-        <StatCard label="Tamil Schools" value={dun.schools.length} />
-        <StatCard label="Total Students" value={totalEnrolment} />
-        <StatCard label="Total Teachers" value={totalTeachers} />
+        <StatCard label={t("tamilSchools")} value={dun.schools.length} />
+        <StatCard label={t("totalStudents")} value={totalEnrolment} />
+        <StatCard label={t("totalTeachers")} value={totalTeachers} />
       </div>
 
       {/* Main content */}
@@ -109,7 +113,7 @@ export default async function DUNPage({ params }: PageProps) {
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <h2 className="text-lg font-semibold text-gray-800 mb-3">
-              Boundary
+              {t("boundary")}
             </h2>
             <BoundaryMap geoJSON={geoJSON} center={center} />
           </div>
@@ -126,7 +130,7 @@ export default async function DUNPage({ params }: PageProps) {
           {/* Back to constituency */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-800 mb-3">
-              Parliament Constituency
+              {t("parliamentConstituency")}
             </h2>
             <Link
               href={`/constituency/${dun.constituency_code}`}

@@ -1,23 +1,26 @@
 import { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { fetchConstituencies } from "@/lib/api";
 import ConstituencyList from "@/components/ConstituencyList";
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  title: "Constituencies — SJK(T) Connect",
-  description:
-    "Browse all 222 parliamentary constituencies with Tamil schools in Malaysia. See MP details, school counts, and scorecards.",
-  openGraph: {
-    title: "Constituencies — SJK(T) Connect",
-    description:
-      "Browse all parliamentary constituencies with Tamil schools in Malaysia.",
-    type: "website",
-    siteName: "SJK(T) Connect",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("constituency");
+  return {
+    title: t("pageTitle"),
+    description: t("pageDescription"),
+    openGraph: {
+      title: t("pageTitle"),
+      description: t("pageDescription"),
+      type: "website",
+      siteName: "SJK(T) Connect",
+    },
+  };
+}
 
 export default async function ConstituenciesPage() {
+  const t = await getTranslations("constituency");
   const constituencies = await fetchConstituencies();
 
   // Extract unique states
@@ -29,11 +32,10 @@ export default async function ConstituenciesPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-          Constituencies
+          {t("title")}
         </h1>
         <p className="text-sm text-gray-500 mt-1">
-          {constituencies.length} parliamentary constituencies with Tamil
-          schools
+          {t("countSubtitle", { count: constituencies.length })}
         </p>
       </div>
 

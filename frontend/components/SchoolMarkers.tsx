@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { AdvancedMarker, InfoWindow, Pin } from "@vis.gl/react-google-maps";
+import { Link } from "@/i18n/navigation";
 import { School } from "@/lib/types";
 
 interface SchoolMarkersProps {
@@ -9,6 +11,8 @@ interface SchoolMarkersProps {
 }
 
 export default function SchoolMarkers({ schools }: SchoolMarkersProps) {
+  const t = useTranslations("home");
+  const tc = useTranslations("common");
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
 
   // Close info window
@@ -44,28 +48,28 @@ export default function SchoolMarkers({ schools }: SchoolMarkersProps) {
           <div className="info-window" style={{ maxWidth: 260 }}>
             <h3>{selectedSchool.short_name || selectedSchool.name}</h3>
             <p>
-              <strong>Code:</strong> {selectedSchool.moe_code}
+              <strong>{t("code")}</strong> {selectedSchool.moe_code}
             </p>
             <p>
-              <strong>State:</strong> {selectedSchool.state}
+              <strong>{t("state")}</strong> {selectedSchool.state}
             </p>
             <p>
-              <strong>Enrolment:</strong>{" "}
-              {selectedSchool.enrolment?.toLocaleString() ?? "N/A"}
+              <strong>{t("enrolment")}</strong>{" "}
+              {selectedSchool.enrolment?.toLocaleString() ?? tc("na")}
             </p>
             {selectedSchool.teacher_count > 0 && (
               <p>
-                <strong>Teachers:</strong> {selectedSchool.teacher_count}
+                <strong>{t("teachers")}</strong> {selectedSchool.teacher_count}
               </p>
             )}
             {selectedSchool.constituency_name && (
               <p>
-                <strong>Constituency:</strong>{" "}
+                <strong>{t("constituencyLabel")}</strong>{" "}
                 {selectedSchool.constituency_name} (
                 {selectedSchool.constituency_code})
               </p>
             )}
-            <a
+            <Link
               href={`/school/${selectedSchool.moe_code}`}
               style={{
                 display: "inline-block",
@@ -75,8 +79,8 @@ export default function SchoolMarkers({ schools }: SchoolMarkersProps) {
                 textDecoration: "none",
               }}
             >
-              View School →
-            </a>
+              {t("viewSchool")}
+            </Link>
           </div>
         </InfoWindow>
       )}
