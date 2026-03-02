@@ -2,25 +2,6 @@ import "@testing-library/jest-dom";
 import { render, screen, fireEvent } from "@testing-library/react";
 import Header from "@/components/Header";
 
-// Mock next/link
-jest.mock("next/link", () => {
-  return function MockLink({
-    children,
-    href,
-    ...props
-  }: {
-    children: React.ReactNode;
-    href: string;
-    [key: string]: unknown;
-  }) {
-    return (
-      <a href={href} {...props}>
-        {children}
-      </a>
-    );
-  };
-});
-
 describe("Header", () => {
   it("renders the site title", () => {
     render(<Header />);

@@ -13,7 +13,7 @@ describe("ClaimButton", () => {
   it("links to claim page with school code", () => {
     render(<ClaimButton moeCode="JBD0050" />);
     const link = screen.getByRole("link", { name: /Claim This Page/i });
-    expect(link).toHaveAttribute("href", "/claim?school=JBD0050");
+    expect(link).toHaveAttribute("href", "/claim/?school=JBD0050");
   });
 
   it("shows moe.edu.my requirement", () => {

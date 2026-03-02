@@ -1,5 +1,25 @@
 # Changelog
 
+## Sprint 3.3 — i18n Infrastructure (2026-03-03)
+
+### Added
+- Trilingual support (English, Tamil, Malay) using next-intl
+- Locale-prefixed URLs: `/en/`, `/ta/`, `/ms/`
+- Language switcher in Header (EN | தமிழ் | BM)
+- ~162 strings extracted to `messages/en.json`, `messages/ta.json`, `messages/ms.json`
+- Middleware for automatic locale detection and redirect
+- Translation completeness tests (all three languages must have matching keys)
+- LanguageSwitcher component
+- 6 new i18n tests (190 frontend total, 852 overall)
+
+### Changed
+- All pages moved under `app/[locale]/` directory
+- All internal links use i18n-aware navigation (`@/i18n/navigation`)
+- Root `/` redirects to `/en/`
+- Layout wraps children with NextIntlClientProvider
+
+---
+
 ## Sprint 3.2 — Frontend Layout Redesign (2026-03-02)
 
 ### Changed
