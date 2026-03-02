@@ -12,8 +12,8 @@
 ## Project Status
 
 - **Current Phase**: Phase 2 in progress.
-- **Last Sprint**: 2.6 (closed 2026-03-02, News AI Analysis + Rapid Response + Review UI)
-- **Tests**: 758 (591 backend + 167 frontend)
+- **Last Sprint**: 2.7 (closed 2026-03-02, Monthly Intelligence Blast)
+- **Tests**: 781 (614 backend + 167 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -28,7 +28,7 @@
 | `accounts` | Magic Link auth, SchoolContact, token/email services | 1.6 |
 | `outreach` | SchoolImage, OutreachEmail, image harvesting, email campaigns | 1.8 |
 | `subscribers` | Subscriber, SubscriptionPreference, subscribe/unsubscribe/preferences API | 2.1 |
-| `broadcasts` | Broadcast, BroadcastRecipient, audience filtering, compose/preview/list UI | 2.2 |
+| `broadcasts` | Broadcast, BroadcastRecipient, audience filtering, compose/preview/list UI, monthly blast aggregator | 2.2, 2.7 |
 | `newswatch` | NewsArticle, RSS fetcher, article extractor, Gemini AI analysis, admin review queue | 2.5-2.6 |
 
 ## Commands
@@ -89,6 +89,11 @@ python manage.py extract_articles                           # Extract body text 
 python manage.py extract_articles --batch-size 50           # Custom batch size
 python manage.py analyse_news_articles                      # AI-analyse extracted articles (batch of 10)
 python manage.py analyse_news_articles --batch-size 25      # Custom batch size
+
+# Monthly Intelligence Blast (Sprint 2.7)
+python manage.py compose_monthly_blast                       # Draft blast for previous month
+python manage.py compose_monthly_blast --month 2026-02       # Specific month
+python manage.py compose_monthly_blast --dry-run             # Preview without creating
 
 # Deployment (verify account first!)
 gcloud config set account admin@tamilfoundation.org
@@ -165,6 +170,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 2.4 | Done | Subscribe/unsubscribe frontend pages. `/subscribe/`, `/unsubscribe/[token]/`, `/preferences/[token]/` pages. SubscribeForm, UnsubscribeConfirmation, PreferencesForm components. API client + types. Footer subscribe link. 33 new frontend tests (683 total). |
 | 2.5 | Done | News Watch Pipeline: newswatch app, NewsArticle model, RSS fetcher (Google Alerts), article extractor (trafilatura), 2 management commands, admin. 36 new backend tests (719 total). |
 | 2.6 | Done | News AI Analysis + Rapid Response + Review UI: Gemini Flash analysis (relevance, sentiment, summary, schools, urgency), analyse_news_articles command, admin review queue + detail view, approve/reject/toggle-urgent actions. 39 new backend tests (758 total). |
+| 2.7 | Done | Monthly Intelligence Blast: blast_aggregator service, compose_monthly_blast command (--month, --dry-run), monthly_blast.html email template (3 sections), reuses Broadcast infrastructure. 23 new backend tests (781 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -181,11 +187,9 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 2.7 — Monthly Intelligence Blast**
-- Auto-generate monthly digest from approved news articles + parliament mentions
-- Broadcast template for Intelligence Blast email
-- Management command to compose and send monthly blast to subscribers
-- Depends on Sprint 2.3 (broadcast sending) and Sprint 2.6 (news AI analysis)
+**Sprint 2.8 — Cloud Scheduler Integration**
+- Automate daily news pipeline (fetch → extract → analyse) via Cloud Scheduler
+- Automate monthly blast composition (1st of each month)
 - See `docs/implementation-roadmap.md` Phase 2 table
 
 ## Frontend (Sprint 1.3–2.4)

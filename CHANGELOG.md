@@ -1,5 +1,19 @@
 # Changelog
 
+## Sprint 2.7 — Monthly Intelligence Blast (2026-03-02)
+
+### Added
+- `blast_aggregator.py` service: queries top 5 approved Hansard mentions, top 5 approved news articles, top 3 MP scorecards for a given month
+- `compose_monthly_blast` management command with `--month YYYY-MM` and `--dry-run` flags
+- `monthly_blast.html` email template with three sections (Parliament Watch, News Watch, MP Scorecard Highlights)
+- 23 new backend tests (blast aggregator service + management command)
+
+### Technical
+- No new models — reuses existing Broadcast, HansardMention, NewsArticle, MPScorecard
+- Audience filter set to MONTHLY_BLAST category for subscriber targeting
+- Plain-text fallback auto-generated via strip_tags
+- Admin reviews draft via existing broadcast preview UI, sends via existing Brevo infrastructure
+
 ## Sprint 2.6 — News AI Analysis + Rapid Response + Review UI (2026-03-02)
 
 ### Added
