@@ -7,6 +7,7 @@ import {
   GeoJSONFeature,
   GeoJSONFeatureCollection,
   MagicLinkResponse,
+  NewsArticle,
   PaginatedResponse,
   PreferenceUpdate,
   School,
@@ -104,6 +105,22 @@ export async function fetchSchoolMentions(
   try {
     return await fetchJSON<SchoolMention[]>(
       `${BASE}/schools/${moeCode}/mentions/`
+    );
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Fetch news articles for a school.
+ * Returns empty array if endpoint not available yet.
+ */
+export async function fetchSchoolNews(
+  moeCode: string
+): Promise<NewsArticle[]> {
+  try {
+    return await fetchJSON<NewsArticle[]>(
+      `${BASE}/schools/${moeCode}/news/`
     );
   } catch {
     return [];

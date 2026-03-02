@@ -56,6 +56,19 @@ export interface SchoolMention {
   verbatim_quote: string;
 }
 
+export interface NewsArticle {
+  id: number;
+  title: string;
+  url: string;
+  source_name: string;
+  published_date: string | null;
+  ai_summary: string;
+  sentiment: string;
+  is_urgent: boolean;
+  urgent_reason: string;
+  created_at: string;
+}
+
 export interface Constituency {
   code: string;
   name: string;

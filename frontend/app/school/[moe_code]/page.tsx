@@ -4,6 +4,7 @@ import {
   fetchSchoolDetail,
   fetchSchoolsByConstituency,
   fetchSchoolMentions,
+  fetchSchoolNews,
 } from "@/lib/api";
 import Breadcrumb from "@/components/Breadcrumb";
 import ClaimButton from "@/components/ClaimButton";
@@ -57,11 +58,12 @@ export default async function SchoolPage({ params }: PageProps) {
   }
 
   // Fetch sidebar and mentions data in parallel
-  const [constituencySchools, mentions] = await Promise.all([
+  const [constituencySchools, mentions, newsArticles] = await Promise.all([
     school.constituency_code
       ? fetchSchoolsByConstituency(school.constituency_code)
       : Promise.resolve([]),
     fetchSchoolMentions(school.moe_code),
+    fetchSchoolNews(school.moe_code),
   ]);
 
   const breadcrumbItems = [
@@ -126,7 +128,7 @@ export default async function SchoolPage({ params }: PageProps) {
           <MentionsSection mentions={mentions} />
 
           {/* News Watch */}
-          <NewsWatchSection />
+          <NewsWatchSection articles={newsArticles} />
 
           {/* School History CTA */}
           <SchoolHistory />
