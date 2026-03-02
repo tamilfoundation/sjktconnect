@@ -93,20 +93,24 @@ class HarvestPlacesImageTest(TestCase):
             gps_lng="102.8100000",
         )
 
-    @patch("outreach.services.image_harvester.requests.get")
+    @patch("outreach.services.image_harvester.requests.post")
     @patch.dict("os.environ", {"GOOGLE_MAPS_API_KEY": "test-key-123"})
-    def test_places_image_created_on_success(self, mock_get):
-        mock_get.return_value.status_code = 200
-        mock_get.return_value.raise_for_status = lambda: None
-        mock_get.return_value.json.return_value = {
-            "candidates": [
+    def test_places_image_created_on_success(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status = lambda: None
+        mock_post.return_value.json.return_value = {
+            "places": [
                 {
-                    "name": "SJK(T) Ladang Bikam",
-                    "place_id": "ChIJ123",
+                    "id": "ChIJ123",
+                    "displayName": {"text": "SJK(T) Ladang Bikam"},
                     "photos": [
                         {
-                            "photo_reference": "PHOTO_REF_ABC",
-                            "html_attributions": ["Photo by Google"],
+                            "name": "places/ChIJ123/photos/PHOTO_REF_ABC",
+                            "widthPx": 640,
+                            "heightPx": 480,
+                            "authorAttributions": [
+                                {"displayName": "Photo by Google"}
+                            ],
                         }
                     ],
                 }
@@ -118,34 +122,34 @@ class HarvestPlacesImageTest(TestCase):
         assert img.source == SchoolImage.Source.PLACES
         assert img.is_primary is True
         assert "PHOTO_REF_ABC" in img.image_url
-        assert img.photo_reference == "PHOTO_REF_ABC"
+        assert img.photo_reference == "places/ChIJ123/photos/PHOTO_REF_ABC"
         assert img.attribution == "Photo by Google"
 
-    @patch("outreach.services.image_harvester.requests.get")
+    @patch("outreach.services.image_harvester.requests.post")
     @patch.dict("os.environ", {"GOOGLE_MAPS_API_KEY": "test-key-123"})
-    def test_places_returns_none_no_candidates(self, mock_get):
-        mock_get.return_value.status_code = 200
-        mock_get.return_value.raise_for_status = lambda: None
-        mock_get.return_value.json.return_value = {"candidates": []}
+    def test_places_returns_none_no_candidates(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status = lambda: None
+        mock_post.return_value.json.return_value = {"places": []}
 
         img = harvest_places_image(self.school)
         assert img is None
 
-    @patch("outreach.services.image_harvester.requests.get")
+    @patch("outreach.services.image_harvester.requests.post")
     @patch.dict("os.environ", {"GOOGLE_MAPS_API_KEY": "test-key-123"})
-    def test_places_returns_none_no_photos(self, mock_get):
-        mock_get.return_value.status_code = 200
-        mock_get.return_value.raise_for_status = lambda: None
-        mock_get.return_value.json.return_value = {
-            "candidates": [{"name": "SJK(T) Ladang Bikam", "photos": []}]
+    def test_places_returns_none_no_photos(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status = lambda: None
+        mock_post.return_value.json.return_value = {
+            "places": [{"id": "ChIJ123", "displayName": {"text": "SJK(T) Ladang Bikam"}, "photos": []}]
         }
 
         img = harvest_places_image(self.school)
         assert img is None
 
-    @patch("outreach.services.image_harvester.requests.get")
+    @patch("outreach.services.image_harvester.requests.post")
     @patch.dict("os.environ", {"GOOGLE_MAPS_API_KEY": "test-key-123"})
-    def test_places_demotes_existing_primary(self, mock_get):
+    def test_places_demotes_existing_primary(self, mock_post):
         # Create an existing primary satellite image
         sat = SchoolImage.objects.create(
             school=self.school,
@@ -154,13 +158,19 @@ class HarvestPlacesImageTest(TestCase):
             is_primary=True,
         )
 
-        mock_get.return_value.status_code = 200
-        mock_get.return_value.raise_for_status = lambda: None
-        mock_get.return_value.json.return_value = {
-            "candidates": [
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status = lambda: None
+        mock_post.return_value.json.return_value = {
+            "places": [
                 {
-                    "name": "SJK(T) Ladang Bikam",
-                    "photos": [{"photo_reference": "REF_XYZ", "html_attributions": []}],
+                    "id": "ChIJ123",
+                    "photos": [
+                        {
+                            "name": "places/ChIJ123/photos/REF_XYZ",
+                            "widthPx": 640,
+                            "authorAttributions": [],
+                        }
+                    ],
                 }
             ]
         }
@@ -176,12 +186,12 @@ class HarvestPlacesImageTest(TestCase):
         img = harvest_places_image(self.school)
         assert img is None
 
-    @patch("outreach.services.image_harvester.requests.get")
+    @patch("outreach.services.image_harvester.requests.post")
     @patch.dict("os.environ", {"GOOGLE_MAPS_API_KEY": "test-key-123"})
-    def test_places_handles_request_error(self, mock_get):
+    def test_places_handles_request_error(self, mock_post):
         import requests
 
-        mock_get.side_effect = requests.RequestException("Connection error")
+        mock_post.side_effect = requests.RequestException("Connection error")
         img = harvest_places_image(self.school)
         assert img is None
 
@@ -201,18 +211,22 @@ class HarvestPlacesImagesTest(TestCase):
             gps_lng="102.8100000",
         )
 
-    @patch("outreach.services.image_harvester.requests.get")
+    @patch("outreach.services.image_harvester.requests.post")
     @patch.dict("os.environ", {"GOOGLE_MAPS_API_KEY": "fake-key"})
-    def test_harvests_up_to_3_photos(self, mock_get):
+    def test_harvests_up_to_3_photos(self, mock_post):
         """API returns 4 photos but only 3 SchoolImages should be created."""
-        mock_get.return_value.status_code = 200
-        mock_get.return_value.raise_for_status = lambda: None
-        mock_get.return_value.json.return_value = {
-            "candidates": [
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status = lambda: None
+        mock_post.return_value.json.return_value = {
+            "places": [
                 {
-                    "name": "SJK(T) Ladang Bikam",
+                    "id": "ChIJ123",
                     "photos": [
-                        {"photo_reference": f"REF_{i}", "html_attributions": []}
+                        {
+                            "name": f"places/ChIJ123/photos/REF_{i}",
+                            "widthPx": 640,
+                            "authorAttributions": [],
+                        }
                         for i in range(4)
                     ],
                 }
@@ -228,9 +242,9 @@ class HarvestPlacesImagesTest(TestCase):
             school=self.school, source=SchoolImage.Source.PLACES
         ).count() == 3
 
-    @patch("outreach.services.image_harvester.requests.get")
+    @patch("outreach.services.image_harvester.requests.post")
     @patch.dict("os.environ", {"GOOGLE_MAPS_API_KEY": "fake-key"})
-    def test_clears_old_places_images_before_harvest(self, mock_get):
+    def test_clears_old_places_images_before_harvest(self, mock_post):
         """Pre-existing Places image should be deleted during re-harvest."""
         # Create an old Places image
         SchoolImage.objects.create(
@@ -241,14 +255,18 @@ class HarvestPlacesImagesTest(TestCase):
             photo_reference="OLD_REF",
         )
 
-        mock_get.return_value.status_code = 200
-        mock_get.return_value.raise_for_status = lambda: None
-        mock_get.return_value.json.return_value = {
-            "candidates": [
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status = lambda: None
+        mock_post.return_value.json.return_value = {
+            "places": [
                 {
-                    "name": "SJK(T) Ladang Bikam",
+                    "id": "ChIJ123",
                     "photos": [
-                        {"photo_reference": "NEW_REF", "html_attributions": []}
+                        {
+                            "name": "places/ChIJ123/photos/NEW_REF",
+                            "widthPx": 640,
+                            "authorAttributions": [],
+                        }
                     ],
                 }
             ]
@@ -256,7 +274,7 @@ class HarvestPlacesImagesTest(TestCase):
 
         results = harvest_places_images(self.school)
         assert len(results) == 1
-        assert results[0].photo_reference == "NEW_REF"
+        assert results[0].photo_reference == "places/ChIJ123/photos/NEW_REF"
         # Old image should be gone
         assert not SchoolImage.objects.filter(photo_reference="OLD_REF").exists()
         assert SchoolImage.objects.filter(
@@ -268,12 +286,12 @@ class HarvestPlacesImagesTest(TestCase):
         results = harvest_places_images(self.school)
         assert results == []
 
-    @patch("outreach.services.image_harvester.requests.get")
+    @patch("outreach.services.image_harvester.requests.post")
     @patch.dict("os.environ", {"GOOGLE_MAPS_API_KEY": "fake-key"})
-    def test_returns_empty_when_no_candidates(self, mock_get):
-        mock_get.return_value.status_code = 200
-        mock_get.return_value.raise_for_status = lambda: None
-        mock_get.return_value.json.return_value = {"candidates": []}
+    def test_returns_empty_when_no_candidates(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status = lambda: None
+        mock_post.return_value.json.return_value = {"places": []}
 
         results = harvest_places_images(self.school)
         assert results == []
@@ -292,16 +310,22 @@ class HarvestImagesForSchoolTest(TestCase):
             gps_lng="102.8100000",
         )
 
-    @patch("outreach.services.image_harvester.requests.get")
+    @patch("outreach.services.image_harvester.requests.post")
     @patch.dict("os.environ", {"GOOGLE_MAPS_API_KEY": "test-key-123"})
-    def test_both_sources_by_default(self, mock_get):
-        mock_get.return_value.status_code = 200
-        mock_get.return_value.raise_for_status = lambda: None
-        mock_get.return_value.json.return_value = {
-            "candidates": [
+    def test_both_sources_by_default(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status = lambda: None
+        mock_post.return_value.json.return_value = {
+            "places": [
                 {
-                    "name": "Test",
-                    "photos": [{"photo_reference": "REF", "html_attributions": []}],
+                    "id": "ChIJ123",
+                    "photos": [
+                        {
+                            "name": "places/ChIJ123/photos/REF",
+                            "widthPx": 640,
+                            "authorAttributions": [],
+                        }
+                    ],
                 }
             ]
         }

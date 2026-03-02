@@ -15,14 +15,14 @@ class SchoolImage(models.Model):
     school = models.ForeignKey(
         "schools.School", on_delete=models.CASCADE, related_name="images"
     )
-    image_url = models.URLField(max_length=500)
+    image_url = models.URLField(max_length=1000)
     source = models.CharField(max_length=20, choices=Source.choices)
     is_primary = models.BooleanField(default=False)
     width = models.IntegerField(null=True, blank=True)
     height = models.IntegerField(null=True, blank=True)
     attribution = models.CharField(max_length=500, blank=True, default="")
     photo_reference = models.CharField(
-        max_length=500, blank=True, default="",
+        max_length=1000, blank=True, default="",
         help_text="Google Places photo_reference for re-fetching.",
     )
     created_at = models.DateTimeField(auto_now_add=True)

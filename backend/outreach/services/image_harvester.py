@@ -16,8 +16,8 @@ from schools.models import School
 logger = logging.getLogger(__name__)
 
 STATIC_MAPS_BASE = "https://maps.googleapis.com/maps/api/staticmap"
-PLACES_SEARCH_URL = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
-PLACES_PHOTO_URL = "https://maps.googleapis.com/maps/api/place/photo"
+PLACES_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
+PLACES_PHOTO_BASE = "https://places.googleapis.com/v1"
 
 
 def _get_api_key() -> str:
@@ -86,29 +86,42 @@ def harvest_places_images(
         return []
 
     search_query = school.short_name or school.name
-    params = {
-        "input": search_query,
-        "inputtype": "textquery",
-        "fields": "photos,name,place_id",
-        "key": api_key,
+    headers = {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": api_key,
+        "X-Goog-FieldMask": "places.id,places.displayName,places.photos",
+    }
+    body: dict = {
+        "textQuery": search_query,
+        "maxResultCount": 1,
     }
     if school.gps_lat and school.gps_lng:
-        params["locationbias"] = f"point:{school.gps_lat},{school.gps_lng}"
+        body["locationBias"] = {
+            "circle": {
+                "center": {
+                    "latitude": float(school.gps_lat),
+                    "longitude": float(school.gps_lng),
+                },
+                "radius": 5000.0,
+            }
+        }
 
     try:
-        resp = requests.get(PLACES_SEARCH_URL, params=params, timeout=10)
+        resp = requests.post(
+            PLACES_SEARCH_URL, headers=headers, json=body, timeout=10
+        )
         resp.raise_for_status()
         data = resp.json()
     except requests.RequestException:
         logger.exception("Places API search failed for %s", school.moe_code)
         return []
 
-    candidates = data.get("candidates", [])
-    if not candidates:
+    places = data.get("places", [])
+    if not places:
         logger.info("No Places result for %s", school.moe_code)
         return []
 
-    place = candidates[0]
+    place = places[0]
     photos = place.get("photos", [])
     if not photos:
         logger.info("No photos for %s in Places", school.moe_code)
@@ -122,26 +135,26 @@ def harvest_places_images(
 
     created: list[SchoolImage] = []
     for i, photo in enumerate(photos[:max_photos]):
-        photo_ref = photo["photo_reference"]
+        photo_name = photo["name"]
         photo_url = (
-            f"{PLACES_PHOTO_URL}"
-            f"?maxwidth=640&photo_reference={photo_ref}"
-            f"&key={api_key}"
+            f"{PLACES_PHOTO_BASE}/{photo_name}/media"
+            f"?maxWidthPx=640&key={api_key}"
         )
 
         attribution = ""
-        html_attrs = photo.get("html_attributions", [])
-        if html_attrs:
-            attribution = html_attrs[0]
+        author_attrs = photo.get("authorAttributions", [])
+        if author_attrs:
+            attribution = author_attrs[0].get("displayName", "")
 
         image = SchoolImage.objects.create(
             school=school,
             source=SchoolImage.Source.PLACES,
             image_url=photo_url,
             is_primary=(i == 0),
-            width=640,
+            width=photo.get("widthPx", 640),
+            height=photo.get("heightPx"),
             attribution=attribution,
-            photo_reference=photo_ref,
+            photo_reference=photo_name,
         )
         created.append(image)
 
