@@ -2,6 +2,7 @@
 
 from django.urls import include, path
 
+from newswatch.api.views import SchoolNewsView
 from parliament.api.views import SchoolMentionsView
 from schools.api.views import (
     ConstituencyDetailView,
@@ -27,6 +28,7 @@ urlpatterns = [
     path("schools/<str:moe_code>/edit/", SchoolEditView.as_view(), name="school-edit"),
     path("schools/<str:moe_code>/confirm/", SchoolConfirmView.as_view(), name="school-confirm"),
     path("schools/<str:moe_code>/mentions/", SchoolMentionsView.as_view(), name="school-mentions"),
+    path("schools/<str:moe_code>/news/", SchoolNewsView.as_view(), name="school-news"),
     path("schools/<str:moe_code>/", SchoolDetailView.as_view(), name="school-detail"),
     # Constituencies — GeoJSON before detail (geojson/ is a literal, not a <str:code>)
     path("constituencies/", ConstituencyListView.as_view(), name="constituency-list"),
