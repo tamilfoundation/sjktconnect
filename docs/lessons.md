@@ -29,3 +29,4 @@ Cross-cutting lessons from SJK(T) Connect development. Project-specific decision
 - `lxml.html.clean` was split into a separate package `lxml_html_clean` — libraries depending on lxml (e.g. trafilatura via justext) will fail with ImportError unless you explicitly add `lxml_html_clean` to requirements (Sprint 2.5)
 - gcloud CLI hardcodes Python path — if you upgrade Python versions, set CLOUDSDK_PYTHON env var to the new path (Sprint 2.8)
 - Django JSONField __contains doesn't work on SQLite — use vendor-specific branching or LIKE fallback for tests (Sprint 2.8)
+- Large sprints (14+ tasks) at high context usage (>85%) risk data loss on crash — push commits frequently and use a branch for safety when the plan is big (Sprint 3.3)

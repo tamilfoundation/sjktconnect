@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 3 in progress. Sprint 3.2 done.
-- **Last Sprint**: 3.2 (closed 2026-03-02, Frontend Layout Redesign)
-- **Tests**: 846 (662 backend + 184 frontend)
+- **Current Phase**: Phase 3 in progress. Sprint 3.3 done.
+- **Last Sprint**: 3.3 (closed 2026-03-03, i18n Infrastructure)
+- **Tests**: 852 (662 backend + 190 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -179,6 +179,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 2.8 | Done | News Watch Live + Cloud Scheduler Automation: public news API, real NewsWatchSection component, run_news_pipeline command, Cloud Run Jobs (news-pipeline, monthly-blast), Cloud Scheduler (daily-news, monthly-blast), clickable photo thumbnails. 25 new tests (800 total). |
 | 3.1 | Done | Data Quality + School Leadership: to_proper_case/format_phone utils, data migration (528 schools), SchoolLeader model (4 roles), admin inline, public API (name+role only), import scripts updated for data/ folder. 41 new tests (841 total). |
 | 3.2 | Done | Frontend Layout Redesign: side-by-side hero, stat cards (Students/Teachers/Grade), leadership section, enrolment breakdown, assistance type mapping. 5 new frontend tests (846 total). |
+| 3.3 | Done | i18n Infrastructure: next-intl trilingual (EN/TA/MS), pages under `app/[locale]/`, ~162 strings extracted, LanguageSwitcher, translation completeness tests. 6 new frontend tests (852 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -195,17 +196,15 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 3.3 — i18n Infrastructure** (trilingual: EN/TA/MS):
-- Install and configure next-intl (App Router setup)
-- Move pages under `app/[locale]/`, locale detection middleware
-- Extract ~140 hardcoded strings to `messages/en.json`
-- Tamil translations in `messages/ta.json` (follow `tamil-style-guide.md`)
-- Language switcher in Header (EN | தமிழ்)
-- Implementation plan: `docs/plans/2026-03-02-school-page-improvements-impl.md` (Tasks 12-15)
-- Frontend-only deploy (URL structure changes: `/school/X` → `/en/school/X`)
+**Sprint 3.4 — i18n Deployment + Tamil Translation Review**:
+- Deploy frontend with i18n changes (URL structure: `/school/X` → `/en/school/X`)
+- Review Tamil translations against `tamil-style-guide.md` for accuracy
+- Test locale switching in production (EN/TA/MS)
+- Update SEO metadata for locale-specific pages
+- Consider: Phase 3 platform features (AI review layer, field partner role)
 
-## Frontend (Sprint 1.3–2.4)
-- **Stack**: Next.js 14, App Router, Tailwind CSS, TypeScript
+## Frontend (Sprint 1.3–3.3)
+- **Stack**: Next.js 14, App Router, Tailwind CSS, TypeScript, next-intl (i18n)
 - **Map**: `@vis.gl/react-google-maps` + `@googlemaps/markerclusterer`
 - **API client**: `lib/api.ts` — auto-paginates, school/constituency/DUN detail, GeoJSON, mentions, edit/confirm
 - **School profiles**: `/school/[moe_code]` — ISR, SEO, SchoolPhotoGallery (hero + thumbnails), Breadcrumb, ClaimButton, EditSchoolLink, SchoolProfile, MiniMap, MentionsSection, NewsWatchSection, SchoolHistory CTA, ConstituencySchools sidebar
@@ -218,7 +217,8 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **Edit API**: `fetchSchoolEdit`, `updateSchool`, `confirmSchool` — session-based, school ownership validated server-side
 - **Subscriber pages** (Sprint 2.4): `/subscribe/` (form), `/unsubscribe/[token]/` (one-click), `/preferences/[token]/` (toggle categories). SubscribeForm, UnsubscribeConfirmation, PreferencesForm components. Footer subscribe link.
 - **Subscriber API**: `subscribe`, `unsubscribe`, `fetchPreferences`, `updatePreferences` — public, no auth required
-- **Tests**: Jest + React Testing Library (179 tests)
+- **i18n** (Sprint 3.3): Trilingual (EN/TA/MS) via next-intl. Pages under `app/[locale]/`. ~162 strings in `messages/{en,ta,ms}.json`. LanguageSwitcher in Header. All links via `@/i18n/navigation`.
+- **Tests**: Jest + React Testing Library (190 tests)
 - **Build**: Standalone output, 107 kB first load JS
 - **Dockerfile**: Multi-stage (deps → build → runner), port 8080
 - **Env vars**: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID`

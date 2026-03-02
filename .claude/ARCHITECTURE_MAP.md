@@ -1,6 +1,6 @@
 # SJK(T) Connect — Architecture Map
 
-Last updated: Sprint 3.1 close (2 Mar 2026)
+Last updated: Sprint 3.3 close (3 Mar 2026)
 
 ## Stack
 
@@ -138,41 +138,58 @@ backend/
     └── tests/
 ```
 
-## Frontend — Next.js App Router
+## Frontend — Next.js App Router + next-intl (i18n)
 
 ```
 frontend/
 ├── app/
-│   ├── layout.tsx                     # Root layout: Header + Footer + Google Maps APIProvider
-│   ├── page.tsx                       # Home: school map with 528 pins, search, state filter
-│   ├── school/[moe_code]/
-│   │   ├── page.tsx                   # ISR (1hr). School profile: stats, details, political rep
-│   │   ├── edit/
-│   │   │   └── page.tsx               # Client-side. Auth-gated school edit form
-│   │   ├── loading.tsx                # Skeleton
-│   │   └── not-found.tsx              # 404
-│   ├── constituency/[code]/
-│   │   ├── page.tsx                   # ISR (1hr). Constituency detail: schools, scorecard, demographics, map
-│   │   └── loading.tsx
-│   ├── dun/[id]/
-│   │   ├── page.tsx                   # ISR (1hr). DUN detail: schools, demographics, map
-│   │   └── loading.tsx
-│   ├── constituencies/
-│   │   └── page.tsx                   # ISR (1hr). Constituency index: filterable table
-│   ├── claim/
-│   │   ├── page.tsx                   # Claim form: enter @moe.edu.my email
-│   │   └── verify/[token]/
-│   │       └── page.tsx               # Token verification: success/error states
-│   ├── subscribe/
-│   │   └── page.tsx                   # Subscribe form: email, name, org, category preview
-│   ├── unsubscribe/[token]/
-│   │   └── page.tsx                   # One-click unsubscribe confirmation
-│   └── preferences/[token]/
-│       └── page.tsx                   # Manage subscription category toggles
+│   ├── globals.css                    # Global styles (stays at root, not under [locale])
+│   └── [locale]/                      # All pages under locale prefix (Sprint 3.3)
+│       ├── layout.tsx                 # Locale layout: NextIntlClientProvider + Header + Footer
+│       ├── page.tsx                   # Home: school map with 528 pins, search, state filter
+│       ├── school/[moe_code]/
+│       │   ├── page.tsx               # ISR (1hr). School profile: stats, details, political rep
+│       │   ├── edit/
+│       │   │   └── page.tsx           # Client-side. Auth-gated school edit form
+│       │   ├── loading.tsx            # Skeleton
+│       │   └── not-found.tsx          # 404
+│       ├── constituency/[code]/
+│       │   ├── page.tsx               # ISR (1hr). Constituency detail: scorecard, map, demographics
+│       │   └── loading.tsx
+│       ├── dun/[id]/
+│       │   ├── page.tsx               # ISR (1hr). DUN detail: schools, demographics, map
+│       │   └── loading.tsx
+│       ├── constituencies/
+│       │   └── page.tsx               # ISR (1hr). Constituency index: filterable table
+│       ├── claim/
+│       │   ├── page.tsx               # Claim form: enter @moe.edu.my email
+│       │   └── verify/[token]/
+│       │       └── page.tsx           # Token verification: success/error states
+│       ├── parliament-watch/
+│       │   └── page.tsx               # Parliament Watch page
+│       ├── subscribe/
+│       │   └── page.tsx               # Subscribe form: email, name, org, category preview
+│       ├── unsubscribe/[token]/
+│       │   └── page.tsx               # One-click unsubscribe confirmation
+│       └── preferences/[token]/
+│           └── page.tsx               # Manage subscription category toggles
+│
+├── i18n/                              # Internationalisation config (Sprint 3.3)
+│   ├── routing.ts                     # Locales: en, ta, ms. Default: en
+│   ├── request.ts                     # getRequestConfig — loads messages per locale
+│   └── navigation.ts                  # i18n-aware Link, usePathname, useRouter
+│
+├── messages/                          # Translation files (~162 keys each)
+│   ├── en.json                        # English (source)
+│   ├── ta.json                        # Tamil
+│   └── ms.json                        # Malay
+│
+├── middleware.ts                       # next-intl locale detection + redirect
 │
 ├── components/
 │   ├── Header.tsx          # Nav: School Map, Constituencies, Parliament Watch
 │   ├── Footer.tsx          # Copyright + subscribe link
+│   ├── LanguageSwitcher.tsx # Locale switcher: EN | தமிழ் | BM
 │   ├── SchoolMap.tsx       # Google Map + MarkerClusterer (home page)
 │   ├── SchoolMarkers.tsx   # AdvancedMarker pins for schools
 │   ├── SearchBox.tsx       # Typeahead school search
@@ -201,9 +218,11 @@ frontend/
 │   ├── types.ts            # All TypeScript interfaces
 │   └── api.ts              # API client: fetchSchools, fetchSchoolDetail, fetchConstituencies, auth, etc.
 │
-└── __tests__/              # Jest + React Testing Library
+└── __tests__/              # Jest + React Testing Library (190 tests)
+    ├── __mocks__/          # next-intl, i18n/navigation, i18n/routing mocks
     ├── components/         # 18 component test files
-    └── lib/                # 5 API test files (schools, constituencies, school detail, auth, edit)
+    ├── i18n/               # Routing config + translation completeness tests
+    └── lib/                # 6 API test files (schools, constituencies, school detail, auth, edit, subscribers)
 ```
 
 ## Data Models (key relationships)
