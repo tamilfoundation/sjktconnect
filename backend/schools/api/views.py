@@ -62,7 +62,7 @@ class SchoolDetailView(RetrieveAPIView):
     """Retrieve a single school by MOE code."""
 
     serializer_class = SchoolDetailSerializer
-    queryset = School.objects.select_related("constituency", "dun")
+    queryset = School.objects.select_related("constituency", "dun").prefetch_related("leaders")
     lookup_field = "moe_code"
 
 

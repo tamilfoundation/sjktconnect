@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Constituency, DUN, School
+from .models import Constituency, DUN, School, SchoolLeader
 
 
 @admin.register(Constituency)
@@ -19,6 +19,12 @@ class DUNAdmin(admin.ModelAdmin):
     ordering = ("constituency__code", "code")
 
 
+class SchoolLeaderInline(admin.TabularInline):
+    model = SchoolLeader
+    extra = 0
+    fields = ("role", "name", "phone", "email", "is_active")
+
+
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
     list_display = ("moe_code", "short_name", "state", "ppd", "enrolment", "teacher_count", "is_active")
@@ -26,3 +32,4 @@ class SchoolAdmin(admin.ModelAdmin):
     search_fields = ("moe_code", "name", "short_name")
     ordering = ("moe_code",)
     readonly_fields = ("created_at", "updated_at")
+    inlines = [SchoolLeaderInline]

@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 
-from schools.models import Constituency, DUN, School
+from schools.models import Constituency, DUN, School, SchoolLeader
 
 
 class SchoolListSerializer(serializers.ModelSerializer):
@@ -42,6 +42,16 @@ class SchoolImageSerializer(serializers.Serializer):
     attribution = serializers.CharField()
 
 
+class SchoolLeaderSerializer(serializers.ModelSerializer):
+    """Public leader info — name and role only. Phone/email are private."""
+
+    role_display = serializers.CharField(source="get_role_display", read_only=True)
+
+    class Meta:
+        model = SchoolLeader
+        fields = ["role", "role_display", "name"]
+
+
 class SchoolDetailSerializer(serializers.ModelSerializer):
     """Full school profile for detail views."""
 
@@ -55,6 +65,7 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
     dun_name = serializers.CharField(source="dun.name", default=None)
     image_url = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
+    leaders = serializers.SerializerMethodField()
 
     class Meta:
         model = School
@@ -92,6 +103,7 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
             "last_verified",
             "image_url",
             "images",
+            "leaders",
         ]
 
     def get_image_url(self, obj):
@@ -105,6 +117,22 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
         """Return all images for this school, primary first."""
         qs = obj.images.order_by("-is_primary", "-created_at")
         return SchoolImageSerializer(qs, many=True).data
+
+    def get_leaders(self, obj):
+        """Return active leaders in display order (board_chair, headmaster, pta_chair, alumni_chair)."""
+        from django.db.models import Case, IntegerField, When
+
+        qs = obj.leaders.filter(is_active=True).order_by(
+            Case(
+                When(role="board_chair", then=0),
+                When(role="headmaster", then=1),
+                When(role="pta_chair", then=2),
+                When(role="alumni_chair", then=3),
+                default=4,
+                output_field=IntegerField(),
+            )
+        )
+        return SchoolLeaderSerializer(qs, many=True).data
 
 
 class SchoolEditSerializer(serializers.ModelSerializer):

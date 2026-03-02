@@ -105,6 +105,46 @@ class SchoolAPITest(TestCase):
         self.assertTrue(resp.data["images"][0]["is_primary"])
         self.assertFalse(resp.data["images"][1]["is_primary"])
 
+    def test_school_detail_includes_leaders(self):
+        """Leaders appear in detail with name and role only."""
+        from schools.models import SchoolLeader
+
+        SchoolLeader.objects.create(
+            school=self.school, role="board_chair", name="En. Suresh",
+            phone="0123456789", email="suresh@example.com"
+        )
+        SchoolLeader.objects.create(
+            school=self.school, role="headmaster", name="Pn. Kavitha",
+        )
+        response = self.client.get(f"/api/v1/schools/{self.school.moe_code}/")
+        data = response.json()
+        self.assertIn("leaders", data)
+        self.assertEqual(len(data["leaders"]), 2)
+        # Board chair first (custom ordering)
+        self.assertEqual(data["leaders"][0]["role"], "board_chair")
+        self.assertEqual(data["leaders"][0]["role_display"], "Board Chairman")
+        self.assertEqual(data["leaders"][0]["name"], "En. Suresh")
+        # Phone and email NOT exposed
+        self.assertNotIn("phone", data["leaders"][0])
+        self.assertNotIn("email", data["leaders"][0])
+
+    def test_school_detail_no_leaders(self):
+        """Schools with no leaders return empty list."""
+        response = self.client.get(f"/api/v1/schools/{self.school.moe_code}/")
+        data = response.json()
+        self.assertEqual(data["leaders"], [])
+
+    def test_inactive_leaders_excluded(self):
+        """Inactive leaders should not appear in API."""
+        from schools.models import SchoolLeader
+
+        SchoolLeader.objects.create(
+            school=self.school, role="headmaster", name="Old HM", is_active=False
+        )
+        response = self.client.get(f"/api/v1/schools/{self.school.moe_code}/")
+        data = response.json()
+        self.assertEqual(data["leaders"], [])
+
     def test_school_detail_not_found(self):
         resp = self.client.get("/api/v1/schools/ZZZZZ/")
         assert resp.status_code == 404

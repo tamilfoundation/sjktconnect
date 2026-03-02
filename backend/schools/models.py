@@ -114,3 +114,38 @@ class School(models.Model):
 
     def __str__(self):
         return f"{self.moe_code} {self.short_name}"
+
+
+class SchoolLeader(models.Model):
+    """Key leadership contacts for a school. Names are public; phone/email are private."""
+
+    ROLE_CHOICES = [
+        ("board_chair", "Board Chairman"),
+        ("headmaster", "Headmaster"),
+        ("pta_chair", "PTA Chairman"),
+        ("alumni_chair", "Alumni Association Chairman"),
+    ]
+
+    school = models.ForeignKey(
+        School, on_delete=models.CASCADE, related_name="leaders"
+    )
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    name = models.CharField(max_length=200)
+    phone = models.CharField(max_length=30, blank=True, default="")
+    email = models.EmailField(blank=True, default="")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["role"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["school", "role"],
+                condition=models.Q(is_active=True),
+                name="unique_active_role_per_school",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.get_role_display()}: {self.name} ({self.school.short_name})"
