@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 2 complete. Phase 3 next.
-- **Last Sprint**: 2.8 (closed 2026-03-02, News Watch Live + Cloud Scheduler Automation)
-- **Tests**: 800 (621 backend + 179 frontend)
+- **Current Phase**: Phase 3 in progress. Sprint 3.1 done.
+- **Last Sprint**: 3.1 (closed 2026-03-02, Data Quality + School Leadership)
+- **Tests**: 841 (662 backend + 179 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -22,7 +22,7 @@
 | App | Purpose | Sprint |
 |-----|---------|--------|
 | `core` | AuditLog, middleware | 0.1 |
-| `schools` | School, Constituency, DUN models + import commands | 0.1 |
+| `schools` | School, Constituency, DUN, SchoolLeader models + import commands + utils | 0.1, 3.1 |
 | `hansard` | Hansard pipeline (download, extract, search, match, discover) | 0.2-0.3, 0.6 |
 | `parliament` | MP Scorecard, review UI, content publishing | 0.4-0.5 |
 | `accounts` | Magic Link auth, SchoolContact, token/email services | 1.6 |
@@ -52,8 +52,8 @@ python manage.py analyse_mentions --limit 5    # Process max 5 mentions
 python manage.py update_scorecards             # Recalculate all MP scorecards
 
 # Data Import
-python manage.py import_constituencies        # Load constituencies from CSV
-python manage.py import_schools ../SenaraiSekolahWeb_Januari2026.xlsx
+python manage.py import_constituencies        # Load constituencies from data/
+python manage.py import_schools               # Load schools from data/ (proper case applied)
 
 # Hansard Pipeline
 python manage.py process_hansard <url>                        # Full pipeline
@@ -130,14 +130,16 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | `FRONTEND_URL` | Sprint 1.6+ (prod) | Next.js frontend URL for magic link emails (default: `http://localhost:3000`) |
 | `GOOGLE_MAPS_API_KEY` | Sprint 1.8+ | Backend Google Maps API key for image harvesting (falls back to `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`) |
 
-## Data Files (not in git — too large)
+## Data Files (in `data/`, not in git — too large)
 
 | File | Rows | Purpose |
 |------|------|---------|
-| `SenaraiSekolahWeb_Januari2026.xlsx` | 528 SJK(T) | MOE official school list |
-| `Political Constituencies.csv` | 613 DUN | Constituency reference data |
-| `school_pin_verification.csv` | 528 | GPS verification results |
-| `பள்ளிகள் - மாநிலம்.xlsx` | 529 | TF school database |
+| `data/SenaraiSekolahWeb_Januari2026.xlsx` | 528 SJK(T) | MOE official school list |
+| `data/Political Constituencies.csv` | 613 DUN | Constituency reference data |
+| `data/school_pin_verification.csv` | 528 | GPS verification results |
+| `data/பள்ளிகள் - மாநிலம்.xlsx` | 529 | TF school database |
+| `data/school_pin_verification.xlsx` | 528 | GPS verification (Excel version) |
+| `data/district_boundaries.kml` | — | District boundary polygons |
 
 ## Database Notes
 
@@ -175,6 +177,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 2.6 | Done | News AI Analysis + Rapid Response + Review UI: Gemini Flash analysis (relevance, sentiment, summary, schools, urgency), analyse_news_articles command, admin review queue + detail view, approve/reject/toggle-urgent actions. 39 new backend tests (758 total). |
 | 2.7 | Done | Monthly Intelligence Blast: blast_aggregator service, compose_monthly_blast command (--month, --dry-run), monthly_blast.html email template (3 sections), reuses Broadcast infrastructure. 23 new backend tests (781 total). |
 | 2.8 | Done | News Watch Live + Cloud Scheduler Automation: public news API, real NewsWatchSection component, run_news_pipeline command, Cloud Run Jobs (news-pipeline, monthly-blast), Cloud Scheduler (daily-news, monthly-blast), clickable photo thumbnails. 25 new tests (800 total). |
+| 3.1 | Done | Data Quality + School Leadership: to_proper_case/format_phone utils, data migration (528 schools), SchoolLeader model (4 roles), admin inline, public API (name+role only), import scripts updated for data/ folder. 41 new tests (841 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -191,14 +194,16 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Phase 2 is complete.** Phase 3 (The Platform) is next:
-- AI Review Layer (three-tier automated review of school data)
-- Field Partner role (view-only, verified visit reports)
-- WhatsApp broadcast channels (state-level)
-- PIBG Registration Kit (AGM templates + QR code form)
-- Weekly digest automation
-- Grant alert service or MOE circular monitor
-- See `docs/implementation-roadmap.md` Phase 3 outline
+**Sprint 3.2 — Frontend Layout Redesign** (school profile page):
+- Desktop: side-by-side hero (photo 60% left, school name + key stats right)
+- Mobile: compact stacked layout, remove redundant elements (full MOE name, duplicate code)
+- Stat cards: Students, Preschool, Special Needs, Teachers (remove SKM)
+- Detail section: separate enrolment breakdown (School: X, Preschool: Y, Special Needs: Z)
+- School leadership section: Board Chairman, Headmaster, PTA Chair, Alumni Chair (name+role only)
+- SchoolLeader TypeScript type, updated API client
+- Design doc: `docs/plans/2026-03-02-school-page-improvements-design.md`
+- Implementation plan: `docs/plans/2026-03-02-school-page-improvements-impl.md` (Tasks 8-11)
+- **Sprint 3.3** (after 3.2): i18n infrastructure with next-intl (trilingual: EN/TA/MS)
 
 ## Frontend (Sprint 1.3–2.4)
 - **Stack**: Next.js 14, App Router, Tailwind CSS, TypeScript
@@ -221,7 +226,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## REST API (Sprint 1.2+)
 - All endpoints under `/api/v1/` — paginated (50/page via `?page=N`)
-- **Schools**: `GET /api/v1/schools/` (filters: `?state=`, `?ppd=`, `?constituency=`, `?skm=true`, `?min_enrolment=`, `?max_enrolment=`), `GET /api/v1/schools/<moe_code>/`
+- **Schools**: `GET /api/v1/schools/` (filters: `?state=`, `?ppd=`, `?constituency=`, `?skm=true`, `?min_enrolment=`, `?max_enrolment=`), `GET /api/v1/schools/<moe_code>/` (includes `leaders` array: name + role_display, ordered: Chairman → HM → PTA → Alumni)
 - **School Mentions** (Sprint 1.10): `GET /api/v1/schools/<moe_code>/mentions/` (approved parliamentary mentions, public, no pagination)
 - **School News** (Sprint 2.8): `GET /api/v1/schools/<moe_code>/news/` (approved news articles mentioning a school, public)
 - **School Edit** (Sprint 1.7, Magic Link auth): `GET/PUT /api/v1/schools/<moe_code>/edit/` (view/update school data), `POST /api/v1/schools/<moe_code>/confirm/` (2-click verify)

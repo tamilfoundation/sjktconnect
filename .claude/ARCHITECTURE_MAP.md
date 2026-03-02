@@ -1,6 +1,6 @@
 # SJK(T) Connect — Architecture Map
 
-Last updated: Sprint 2.7 close (2 Mar 2026)
+Last updated: Sprint 3.1 close (2 Mar 2026)
 
 ## Stack
 
@@ -23,17 +23,18 @@ backend/
 │   └── signals.py        # Post-save hooks
 │
 ├── schools/              # School + geography data
-│   ├── models.py         # Constituency, DUN, School
+│   ├── models.py         # Constituency, DUN, School, SchoolLeader
+│   ├── utils.py          # to_proper_case(), format_phone() — data quality utilities
 │   ├── views.py          # VerificationDashboardView (admin, login required)
 │   ├── urls.py           # /dashboard/verification/
 │   ├── api/
-│   │   ├── serializers.py  # SchoolList/Detail/Edit, Constituency, DUN serializers
+│   │   ├── serializers.py  # SchoolList/Detail/Edit, SchoolLeader, Constituency, DUN serializers
 │   │   ├── views.py      # SchoolList, SchoolDetail, SchoolEdit, SchoolConfirm, Constituency/DUN
 │   │   ├── geojson.py    # GeoJSON endpoint (WKT → GeoJSON conversion)
 │   │   └── urls.py       # /schools/, /constituencies/, /duns/
 │   └── management/commands/
-│       ├── import_schools.py         # CSV → School records
-│       └── import_constituencies.py  # CSV → Constituency + DUN + demographics
+│       ├── import_schools.py         # Excel → School records (proper case, data/ folder)
+│       └── import_constituencies.py  # CSV → Constituency + DUN + demographics (data/ folder)
 │
 ├── hansard/              # Hansard pipeline (scrape → extract → match)
 │   ├── models.py         # HansardSitting, HansardMention, SchoolAlias, MentionedSchool
@@ -222,7 +223,8 @@ School (PK: moe_code "JBD0050")
   ├── has many SchoolContacts (FK school)     ← verified reps
   ├── has many MagicLinkTokens (FK school)    ← auth tokens
   ├── has many SchoolImages (FK school)       ← satellite/places photos
-  └── has many OutreachEmails (FK school)     ← email tracking
+  ├── has many OutreachEmails (FK school)     ← email tracking
+  └── has many SchoolLeaders (FK school)      ← board chair, HM, PTA, alumni (unique active per role)
 
 HansardSitting (PK: auto ID, unique: sitting_date)
   └── has many HansardMentions (FK sitting)
