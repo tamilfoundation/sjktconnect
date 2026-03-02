@@ -63,7 +63,7 @@ See `CHANGELOG.md` for detailed sprint-by-sprint changes and `docs/retrospective
 | 2.5 | News Watch pipeline (RSS + article extraction) | High | None | Done |
 | 2.6 | News AI analysis + rapid response + review UI | High | 2.5 | Done |
 | 2.7 | Monthly Intelligence Blast | Medium | 2.3, 2.6 | Done |
-| 2.8 | Magic Link gating + News Watch frontend + deploy | High | 2.6, 2.7 | Next |
+| 2.8 | News Watch Live + Cloud Scheduler Automation | High | 2.6, 2.7 | Done |
 
 Full sprint details in `.claude/plans/streamed-munching-bird.md`.
 

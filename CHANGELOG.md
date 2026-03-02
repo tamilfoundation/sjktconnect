@@ -1,5 +1,29 @@
 # Changelog
 
+## Sprint 2.8 — News Watch Live + Cloud Scheduler Automation (2026-03-02)
+
+### Added
+- Public news API endpoint: `GET /api/v1/schools/<moe_code>/news/` — returns approved news articles mentioning a school
+- `NewsArticleSerializer` and `SchoolNewsView` in `newswatch/api/`
+- Real `NewsWatchSection` component on school pages — replaces placeholder with actual article display (title, source, date, AI summary, sentiment badge, urgency flag)
+- `NewsArticle` TypeScript type and `fetchSchoolNews()` API function
+- `run_news_pipeline` management command — chains fetch → extract → analyse for Cloud Scheduler
+- Cloud Run Jobs: `sjktconnect-news-pipeline` (daily) and `sjktconnect-monthly-blast` (1st of month)
+- Cloud Scheduler: `sjktconnect-daily-news` (8:30 AM MYT daily), `sjktconnect-monthly-blast` (9:00 AM 1st of month)
+- Clickable photo thumbnails in `SchoolPhotoGallery` — click to swap into hero position (from pre-sprint work, included in deploy)
+- 16 new backend tests (7 news API + existing), 9 new frontend tests (NewsWatchSection)
+
+### Fixed
+- Fixed gcloud CLI Python path issue (Python 3.11 removed, updated to Python 3.13 via CLOUDSDK_PYTHON)
+
+### Infrastructure
+- Backend deployed: revision `sjktconnect-api-00015-9bt`
+- Frontend deployed: revision `sjktconnect-web-00012-jfx`
+- Updated all Cloud Run Jobs to latest image
+- Added `CLOUDSDK_PYTHON` to `~/.bashrc` for permanent gcloud fix
+
+---
+
 ## Sprint 2.7 — Monthly Intelligence Blast (2026-03-02)
 
 ### Added

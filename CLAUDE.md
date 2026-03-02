@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 2 in progress.
-- **Last Sprint**: 2.7 (closed 2026-03-02, Monthly Intelligence Blast)
-- **Tests**: 781 (614 backend + 167 frontend)
+- **Current Phase**: Phase 2 complete. Phase 3 next.
+- **Last Sprint**: 2.8 (closed 2026-03-02, News Watch Live + Cloud Scheduler Automation)
+- **Tests**: 800 (621 backend + 179 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -89,6 +89,9 @@ python manage.py extract_articles                           # Extract body text 
 python manage.py extract_articles --batch-size 50           # Custom batch size
 python manage.py analyse_news_articles                      # AI-analyse extracted articles (batch of 10)
 python manage.py analyse_news_articles --batch-size 25      # Custom batch size
+
+# News Pipeline (Sprint 2.8)
+python manage.py run_news_pipeline                          # Full pipeline: fetch → extract → analyse
 
 # Monthly Intelligence Blast (Sprint 2.7)
 python manage.py compose_monthly_blast                       # Draft blast for previous month
@@ -171,6 +174,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 2.5 | Done | News Watch Pipeline: newswatch app, NewsArticle model, RSS fetcher (Google Alerts), article extractor (trafilatura), 2 management commands, admin. 36 new backend tests (719 total). |
 | 2.6 | Done | News AI Analysis + Rapid Response + Review UI: Gemini Flash analysis (relevance, sentiment, summary, schools, urgency), analyse_news_articles command, admin review queue + detail view, approve/reject/toggle-urgent actions. 39 new backend tests (758 total). |
 | 2.7 | Done | Monthly Intelligence Blast: blast_aggregator service, compose_monthly_blast command (--month, --dry-run), monthly_blast.html email template (3 sections), reuses Broadcast infrastructure. 23 new backend tests (781 total). |
+| 2.8 | Done | News Watch Live + Cloud Scheduler Automation: public news API, real NewsWatchSection component, run_news_pipeline command, Cloud Run Jobs (news-pipeline, monthly-blast), Cloud Scheduler (daily-news, monthly-blast), clickable photo thumbnails. 25 new tests (800 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -178,8 +182,8 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **Backend**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend**: https://sjktconnect-web-748286712183.asia-southeast1.run.app
 - **Cloud Run services**: `sjktconnect-api`, `sjktconnect-web` (asia-southeast1)
-- **Cloud Run job**: `sjktconnect-check-hansards` — runs `check_new_hansards --auto-process --days 7`
-- **Cloud Scheduler**: `sjktconnect-daily-check` — triggers job daily at 8:00 AM MYT
+- **Cloud Run jobs**: `sjktconnect-check-hansards` (Hansard discovery), `sjktconnect-news-pipeline` (daily news fetch→extract→analyse), `sjktconnect-monthly-blast` (1st of month blast composition)
+- **Cloud Scheduler**: `sjktconnect-daily-check` (8:00 AM MYT daily, Hansard), `sjktconnect-daily-news` (8:30 AM MYT daily, news pipeline), `sjktconnect-monthly-blast` (9:00 AM 1st of month)
 - **Maps API key**: Set in Dockerfile + Cloud Run (restricted to Maps JS, Static Maps, Places + referrer-restricted to tamilschool.org)
 - **Health check**: `/health/` returns `{"status": "ok"}`
 - **Admin**: `/admin/` (username: admin, email: admin@tamilfoundation.org)
@@ -187,10 +191,14 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 2.8 — Cloud Scheduler Integration**
-- Automate daily news pipeline (fetch → extract → analyse) via Cloud Scheduler
-- Automate monthly blast composition (1st of each month)
-- See `docs/implementation-roadmap.md` Phase 2 table
+**Phase 2 is complete.** Phase 3 (The Platform) is next:
+- AI Review Layer (three-tier automated review of school data)
+- Field Partner role (view-only, verified visit reports)
+- WhatsApp broadcast channels (state-level)
+- PIBG Registration Kit (AGM templates + QR code form)
+- Weekly digest automation
+- Grant alert service or MOE circular monitor
+- See `docs/implementation-roadmap.md` Phase 3 outline
 
 ## Frontend (Sprint 1.3–2.4)
 - **Stack**: Next.js 14, App Router, Tailwind CSS, TypeScript
@@ -206,7 +214,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **Edit API**: `fetchSchoolEdit`, `updateSchool`, `confirmSchool` — session-based, school ownership validated server-side
 - **Subscriber pages** (Sprint 2.4): `/subscribe/` (form), `/unsubscribe/[token]/` (one-click), `/preferences/[token]/` (toggle categories). SubscribeForm, UnsubscribeConfirmation, PreferencesForm components. Footer subscribe link.
 - **Subscriber API**: `subscribe`, `unsubscribe`, `fetchPreferences`, `updatePreferences` — public, no auth required
-- **Tests**: Jest + React Testing Library (167 tests)
+- **Tests**: Jest + React Testing Library (179 tests)
 - **Build**: Standalone output, 107 kB first load JS
 - **Dockerfile**: Multi-stage (deps → build → runner), port 8080
 - **Env vars**: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID`
@@ -215,6 +223,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - All endpoints under `/api/v1/` — paginated (50/page via `?page=N`)
 - **Schools**: `GET /api/v1/schools/` (filters: `?state=`, `?ppd=`, `?constituency=`, `?skm=true`, `?min_enrolment=`, `?max_enrolment=`), `GET /api/v1/schools/<moe_code>/`
 - **School Mentions** (Sprint 1.10): `GET /api/v1/schools/<moe_code>/mentions/` (approved parliamentary mentions, public, no pagination)
+- **School News** (Sprint 2.8): `GET /api/v1/schools/<moe_code>/news/` (approved news articles mentioning a school, public)
 - **School Edit** (Sprint 1.7, Magic Link auth): `GET/PUT /api/v1/schools/<moe_code>/edit/` (view/update school data), `POST /api/v1/schools/<moe_code>/confirm/` (2-click verify)
 - **Constituencies**: `GET /api/v1/constituencies/` (filter: `?state=`, includes `school_count`), `GET /api/v1/constituencies/<code>/` (nested schools + scorecard)
 - **DUNs**: `GET /api/v1/duns/` (filters: `?state=`, `?constituency=`), `GET /api/v1/duns/<pk>/` (nested schools)

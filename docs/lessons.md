@@ -27,3 +27,5 @@ Cross-cutting lessons from SJK(T) Connect development. Project-specific decision
 - Status-gated operations (e.g. DRAFT → SENDING) need atomic conditional UPDATE (`Model.objects.filter(pk=x, status=DRAFT).update(status=SENDING)`) to prevent race conditions — a naive `get()` + check + `save()` allows concurrent requests to both pass the gate (Sprint 2.3)
 - `<input type="email" required>` blocks form submission for invalid emails at the browser level — tests that mock API errors must use valid-looking emails, otherwise the mock is never called and the test silently passes or times out (Sprint 2.4)
 - `lxml.html.clean` was split into a separate package `lxml_html_clean` — libraries depending on lxml (e.g. trafilatura via justext) will fail with ImportError unless you explicitly add `lxml_html_clean` to requirements (Sprint 2.5)
+- gcloud CLI hardcodes Python path — if you upgrade Python versions, set CLOUDSDK_PYTHON env var to the new path (Sprint 2.8)
+- Django JSONField __contains doesn't work on SQLite — use vendor-specific branching or LIKE fallback for tests (Sprint 2.8)
