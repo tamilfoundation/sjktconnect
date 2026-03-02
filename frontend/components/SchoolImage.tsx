@@ -14,13 +14,14 @@ export default function SchoolPhotoGallery({
   schoolName,
   imageUrl,
 }: Props) {
-  // Use images array if available, fall back to single imageUrl
-  const photoList: SchoolImageData[] =
-    images && images.length > 0
-      ? images
-      : imageUrl
-        ? [{ image_url: imageUrl, source: "PLACES" as const, is_primary: true, attribution: "" }]
-        : [];
+  let photoList: SchoolImageData[];
+  if (images && images.length > 0) {
+    photoList = images;
+  } else if (imageUrl) {
+    photoList = [{ image_url: imageUrl, source: "PLACES" as const, is_primary: true, attribution: "" }];
+  } else {
+    photoList = [];
+  }
 
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -35,7 +36,6 @@ export default function SchoolPhotoGallery({
   }
 
   const active = photoList[activeIndex];
-  const thumbnails = photoList.filter((_, i) => i !== activeIndex);
 
   return (
     <div className="mb-6">
@@ -51,7 +51,7 @@ export default function SchoolPhotoGallery({
           Photo: {active.attribution.replace(/<[^>]*>/g, "")}
         </p>
       )}
-      {thumbnails.length > 0 && (
+      {photoList.length > 1 && (
         <div className="flex gap-2 mt-2">
           {photoList.map((img, i) => i !== activeIndex && (
             // eslint-disable-next-line @next/next/no-img-element

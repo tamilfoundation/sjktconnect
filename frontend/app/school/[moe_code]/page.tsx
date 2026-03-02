@@ -29,8 +29,9 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   try {
     const school = await fetchSchoolDetail(params.moe_code);
-    const title = `${school.short_name || school.name} — SJK(T) Connect`;
-    const description = `${school.short_name || school.name} (${school.moe_code}) in ${school.state}. Enrolment: ${school.enrolment?.toLocaleString() ?? "N/A"} students, ${school.teacher_count?.toLocaleString() ?? "N/A"} teachers. Grade ${school.grade || "N/A"}.`;
+    const name = school.short_name || school.name;
+    const title = `${name} — SJK(T) Connect`;
+    const description = `${name} (${school.moe_code}) in ${school.state}. Enrolment: ${school.enrolment?.toLocaleString() ?? "N/A"} students, ${school.teacher_count?.toLocaleString() ?? "N/A"} teachers. Grade ${school.grade || "N/A"}.`;
 
     return {
       title,
@@ -57,7 +58,8 @@ export default async function SchoolPage({ params }: PageProps) {
     notFound();
   }
 
-  // Fetch sidebar and mentions data in parallel
+  const displayName = school.short_name || school.name;
+
   const [constituencySchools, mentions, newsArticles] = await Promise.all([
     school.constituency_code
       ? fetchSchoolsByConstituency(school.constituency_code)
@@ -69,7 +71,7 @@ export default async function SchoolPage({ params }: PageProps) {
   const breadcrumbItems = [
     { label: "Home", href: "/" },
     { label: school.state, href: `/?state=${encodeURIComponent(school.state)}` },
-    { label: school.short_name || school.name },
+    { label: displayName },
   ];
 
   return (
@@ -80,13 +82,13 @@ export default async function SchoolPage({ params }: PageProps) {
       <SchoolPhotoGallery
         images={school.images}
         imageUrl={school.image_url}
-        schoolName={school.short_name || school.name}
+        schoolName={displayName}
       />
 
       {/* School Header */}
       <div className="mb-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-          {school.short_name || school.name}
+          {displayName}
         </h1>
         {school.name_tamil && (
           <p className="text-lg text-gray-700 mt-1">{school.name_tamil}</p>
@@ -119,7 +121,7 @@ export default async function SchoolPage({ params }: PageProps) {
               <MiniMap
                 lat={school.gps_lat}
                 lng={school.gps_lng}
-                schoolName={school.short_name || school.name}
+                schoolName={displayName}
               />
             </div>
           )}
