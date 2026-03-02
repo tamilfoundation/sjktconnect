@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import {
   fetchSchoolDetail,
   fetchSchoolsByConstituency,
@@ -61,6 +62,9 @@ export default async function SchoolPage({ params }: PageProps) {
 
   const displayName = school.short_name || school.name;
 
+  const t = await getTranslations("schoolProfile");
+  const tc = await getTranslations("common");
+
   const [constituencySchools, mentions, newsArticles] = await Promise.all([
     school.constituency_code
       ? fetchSchoolsByConstituency(school.constituency_code)
@@ -70,7 +74,7 @@ export default async function SchoolPage({ params }: PageProps) {
   ]);
 
   const breadcrumbItems = [
-    { label: "Home", href: "/" },
+    { label: tc("home"), href: "/" },
     { label: school.state, href: `/?state=${encodeURIComponent(school.state)}` },
     { label: displayName },
   ];
@@ -106,11 +110,11 @@ export default async function SchoolPage({ params }: PageProps) {
           {/* Stat cards — compact row */}
           <div className="grid grid-cols-3 gap-3 pt-2">
             <StatCard
-              label="Students"
+              label={t("studentsLabel")}
               value={(school.enrolment ?? 0) + (school.preschool_enrolment ?? 0)}
             />
-            <StatCard label="Teachers" value={school.teacher_count ?? 0} />
-            <StatCard label="Grade" value={school.grade || "—"} />
+            <StatCard label={t("teachersLabel")} value={school.teacher_count ?? 0} />
+            <StatCard label={t("gradeLabel")} value={school.grade || "—"} />
           </div>
         </div>
       </div>
@@ -125,7 +129,7 @@ export default async function SchoolPage({ params }: PageProps) {
           {school.gps_lat && school.gps_lng && (
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h2 className="text-lg font-semibold text-gray-800 mb-3">
-                Location
+                {t("location")}
               </h2>
               <MiniMap
                 lat={school.gps_lat}

@@ -1,44 +1,48 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { SchoolDetail } from "@/lib/types";
 
 interface SchoolProfileProps {
   school: SchoolDetail;
 }
 
-function formatAssistanceType(value: string): string {
-  if (value === "SBK") return "Government-Aided (SBK)";
-  if (value === "SK") return "Government (SK)";
-  return value;
-}
-
 export default function SchoolProfile({ school }: SchoolProfileProps) {
+  const t = useTranslations("schoolProfile");
+
+  function formatAssistanceType(value: string): string {
+    if (value === "SBK") return t("governmentAided");
+    if (value === "SK") return t("government");
+    return value;
+  }
+
   return (
     <div className="space-y-6">
-      {/* School Details */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">
-          School Details
+          {t("schoolDetails")}
         </h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
           {school.name_tamil && (
-            <DetailRow label="Tamil Name" value={school.name_tamil} />
+            <DetailRow label={t("tamilName")} value={school.name_tamil} />
           )}
           <DetailRow
-            label="Address"
+            label={t("address")}
             value={
               [school.address, `${school.postcode} ${school.city}`, school.state]
                 .filter(Boolean)
                 .join(", ") || "—"
             }
           />
-          {school.email && <DetailRow label="Email" value={school.email} />}
-          {school.phone && <DetailRow label="Phone" value={school.phone} />}
-          <DetailRow label="Location Type" value={school.location_type || "—"} />
+          {school.email && <DetailRow label={t("email")} value={school.email} />}
+          {school.phone && <DetailRow label={t("phone")} value={school.phone} />}
+          <DetailRow label={t("locationType")} value={school.location_type || "—"} />
           <DetailRow
-            label="Assistance Type"
+            label={t("assistanceType")}
             value={formatAssistanceType(school.assistance_type) || "—"}
           />
           <DetailRow
-            label="Sessions"
+            label={t("sessions")}
             value={
               school.session_count
                 ? `${school.session_count} (${school.session_type || "—"})`
@@ -46,25 +50,24 @@ export default function SchoolProfile({ school }: SchoolProfileProps) {
             }
           />
           <DetailRow
-            label="School"
-            value={`${school.enrolment ?? 0} students`}
+            label={t("school")}
+            value={t("studentsCount", { count: school.enrolment ?? 0 })}
           />
           <DetailRow
-            label="Preschool"
-            value={`${school.preschool_enrolment ?? 0} students`}
+            label={t("preschool")}
+            value={t("studentsCount", { count: school.preschool_enrolment ?? 0 })}
           />
           <DetailRow
-            label="Special Needs"
-            value={`${school.special_enrolment ?? 0} students`}
+            label={t("specialNeeds")}
+            value={t("studentsCount", { count: school.special_enrolment ?? 0 })}
           />
         </dl>
       </div>
 
-      {/* School Leadership */}
       {school.leaders && school.leaders.length > 0 && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">
-            School Leadership
+            {t("schoolLeadership")}
           </h2>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
             {school.leaders.map((leader) => (
@@ -78,15 +81,14 @@ export default function SchoolProfile({ school }: SchoolProfileProps) {
         </div>
       )}
 
-      {/* Political Representation */}
       {school.constituency_code && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">
-            Political Representation
+            {t("politicalRepresentation")}
           </h2>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
             <DetailRow
-              label="Constituency"
+              label={t("constituency")}
               value={
                 school.constituency_name
                   ? `${school.constituency_code} ${school.constituency_name}`
@@ -95,7 +97,7 @@ export default function SchoolProfile({ school }: SchoolProfileProps) {
             />
             {school.dun_name && (
               <DetailRow
-                label="DUN"
+                label={t("dun")}
                 value={
                   school.dun_code
                     ? `${school.dun_code} ${school.dun_name}`

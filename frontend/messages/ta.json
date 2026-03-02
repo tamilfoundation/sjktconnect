@@ -24,5 +24,40 @@
   "footer": {
     "copyright": "\u00a9 {year} தமிழ் அறக்கட்டளை மலேசியா. தரவு: கல்வி அமைச்சு & மலேசிய நாடாளுமன்றம்.",
     "subscribe": "புலனாய்வுச் செய்திமடலுக்குப் பதிவு"
+  },
+  "schoolProfile": {
+    "schoolDetails": "பள்ளி விவரங்கள்",
+    "tamilName": "தமிழ்ப் பெயர்",
+    "address": "முகவரி",
+    "email": "மின்னஞ்சல்",
+    "phone": "தொலைபேசி",
+    "locationType": "இட வகை",
+    "assistanceType": "உதவி வகை",
+    "sessions": "அமர்வுகள்",
+    "school": "பள்ளி",
+    "preschool": "பாலர் பள்ளி",
+    "specialNeeds": "சிறப்புக் கல்வி",
+    "studentsCount": "{count} மாணவர்கள்",
+    "schoolLeadership": "பள்ளித் தலைமை",
+    "politicalRepresentation": "அரசியல் பிரதிநிதித்துவம்",
+    "constituency": "தொகுதி",
+    "dun": "DUN",
+    "governmentAided": "அரசு உதவி (SBK)",
+    "government": "அரசு (SK)",
+    "location": "இடம்",
+    "studentsLabel": "மாணவர்கள்",
+    "teachersLabel": "ஆசிரியர்கள்",
+    "gradeLabel": "கிரேடு",
+    "notFound": "பள்ளி கிடைக்கவில்லை",
+    "notFoundTitle": "பள்ளி கிடைக்கவில்லை — SJK(T) இணைப்பு",
+    "notFoundDescription": "நீங்கள் தேடும் பள்ளி இல்லை அல்லது நீக்கப்பட்டிருக்கலாம்.",
+    "backToMap": "பள்ளி வரைபடத்திற்குத் திரும்பு"
+  },
+  "metadata": {
+    "siteTitle": "SJK(T) இணைப்பு",
+    "siteName": "SJK(T) இணைப்பு",
+    "siteDescription": "மலேசியாவின் 528 தமிழ்ப் பள்ளிகளுக்கான தரவுத் தளம். நாடாளுமன்றக் குறிப்புகள், எம்.பி. மதிப்பீடுகள், பள்ளித் தரவு.",
+    "schoolTitle": "{name} — SJK(T) இணைப்பு",
+    "schoolDescription": "{name} ({code}), {state}. மாணவர் எண்ணிக்கை: {enrolment}, ஆசிரியர்கள்: {teachers}. கிரேடு {grade}."
   }
 }

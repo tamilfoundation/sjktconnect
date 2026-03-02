@@ -24,5 +24,40 @@
   "footer": {
     "copyright": "\u00a9 {year} Tamil Foundation Malaysia. Data from MOE & Parliament of Malaysia.",
     "subscribe": "Subscribe to Intelligence Blast"
+  },
+  "schoolProfile": {
+    "schoolDetails": "School Details",
+    "tamilName": "Tamil Name",
+    "address": "Address",
+    "email": "Email",
+    "phone": "Phone",
+    "locationType": "Location Type",
+    "assistanceType": "Assistance Type",
+    "sessions": "Sessions",
+    "school": "School",
+    "preschool": "Preschool",
+    "specialNeeds": "Special Needs",
+    "studentsCount": "{count} students",
+    "schoolLeadership": "School Leadership",
+    "politicalRepresentation": "Political Representation",
+    "constituency": "Constituency",
+    "dun": "DUN",
+    "governmentAided": "Government-Aided (SBK)",
+    "government": "Government (SK)",
+    "location": "Location",
+    "studentsLabel": "Students",
+    "teachersLabel": "Teachers",
+    "gradeLabel": "Grade",
+    "notFound": "School Not Found",
+    "notFoundTitle": "School Not Found — SJK(T) Connect",
+    "notFoundDescription": "The school you're looking for doesn't exist or may have been removed.",
+    "backToMap": "Back to School Map"
+  },
+  "metadata": {
+    "siteTitle": "SJK(T) Connect",
+    "siteName": "SJK(T) Connect",
+    "siteDescription": "Interactive map and data platform for Malaysia's 528 Tamil schools. Track parliamentary mentions, MP scorecards, and school data.",
+    "schoolTitle": "{name} — SJK(T) Connect",
+    "schoolDescription": "{name} ({code}) in {state}. Enrolment: {enrolment} students, {teachers} teachers. Grade {grade}."
   }
 }

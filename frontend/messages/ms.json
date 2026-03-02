@@ -24,5 +24,40 @@
   "footer": {
     "copyright": "\u00a9 {year} Tamil Foundation Malaysia. Data daripada KPM & Parlimen Malaysia.",
     "subscribe": "Langgan Surat Perisikan"
+  },
+  "schoolProfile": {
+    "schoolDetails": "Butiran Sekolah",
+    "tamilName": "Nama Tamil",
+    "address": "Alamat",
+    "email": "E-mel",
+    "phone": "Telefon",
+    "locationType": "Jenis Lokasi",
+    "assistanceType": "Jenis Bantuan",
+    "sessions": "Sesi",
+    "school": "Sekolah",
+    "preschool": "Prasekolah",
+    "specialNeeds": "Pendidikan Khas",
+    "studentsCount": "{count} murid",
+    "schoolLeadership": "Kepimpinan Sekolah",
+    "politicalRepresentation": "Perwakilan Politik",
+    "constituency": "Kawasan Parlimen",
+    "dun": "DUN",
+    "governmentAided": "Bantuan Kerajaan (SBK)",
+    "government": "Kerajaan (SK)",
+    "location": "Lokasi",
+    "studentsLabel": "Murid",
+    "teachersLabel": "Guru",
+    "gradeLabel": "Gred",
+    "notFound": "Sekolah Tidak Ditemui",
+    "notFoundTitle": "Sekolah Tidak Ditemui — SJK(T) Connect",
+    "notFoundDescription": "Sekolah yang anda cari tidak wujud atau mungkin telah dialih keluar.",
+    "backToMap": "Kembali ke Peta Sekolah"
+  },
+  "metadata": {
+    "siteTitle": "SJK(T) Connect",
+    "siteName": "SJK(T) Connect",
+    "siteDescription": "Platform data interaktif untuk 528 sekolah Tamil di Malaysia. Pantau sebutan parlimen, kad skor MP, dan data sekolah.",
+    "schoolTitle": "{name} — SJK(T) Connect",
+    "schoolDescription": "{name} ({code}) di {state}. Enrolmen: {enrolment} murid, {teachers} guru. Gred {grade}."
   }
 }
