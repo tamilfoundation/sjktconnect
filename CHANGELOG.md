@@ -1,5 +1,24 @@
 # Changelog
 
+## Sprint 3.1 — Data Quality + School Leadership (2026-03-02)
+
+### Added
+- `to_proper_case()` utility: converts ALL CAPS MOE data to proper title case, preserving abbreviations (SJK(T), PPD, LDG, SG, etc.) and handling apostrophes, Roman numerals, parenthetical expressions
+- `format_phone()` utility: standardises Malaysian phone numbers to `+60-X XXX XXXX` format
+- Data migration: proper case for 528 schools (names, addresses, states, PPD), lowercase emails, formatted phones
+- Import script updated: future MOE re-imports produce proper case automatically
+- `SchoolLeader` model: Board Chairman, Headmaster, PTA Chairman, Alumni Association Chairman
+- Admin inline for managing school leaders with full contact details
+- Public API exposes leader name and role only (phone/email private)
+- Unique constraint: one active leader per role per school
+- 41 new backend tests (32 utils + 7 model + 3 API → 662 total)
+
+### Design docs
+- `docs/plans/2026-03-02-school-page-improvements-design.md`
+- `docs/plans/2026-03-02-school-page-improvements-impl.md`
+
+---
+
 ## Sprint 2.8 — News Watch Live + Cloud Scheduler Automation (2026-03-02)
 
 ### Added
