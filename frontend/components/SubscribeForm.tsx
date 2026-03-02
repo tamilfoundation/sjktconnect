@@ -1,33 +1,36 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { subscribe } from "@/lib/api";
 
-const CATEGORIES = [
-  {
-    key: "PARLIAMENT_WATCH",
-    label: "Parliament Watch",
-    description: "Analysis of Tamil school mentions in parliamentary debates",
-  },
-  {
-    key: "NEWS_WATCH",
-    label: "News Watch",
-    description: "Media monitoring alerts about Tamil schools",
-  },
-  {
-    key: "MONTHLY_BLAST",
-    label: "Monthly Intelligence Blast",
-    description: "Monthly digest of all Tamil school intelligence",
-  },
-];
-
 export default function SubscribeForm() {
+  const t = useTranslations("subscribe");
+  const tc = useTranslations("common");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [organisation, setOrganisation] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  const CATEGORIES = [
+    {
+      key: "PARLIAMENT_WATCH",
+      label: t("parliamentWatch"),
+      description: t("parliamentDesc"),
+    },
+    {
+      key: "NEWS_WATCH",
+      label: t("newsWatch"),
+      description: t("newsDesc"),
+    },
+    {
+      key: "MONTHLY_BLAST",
+      label: t("monthlyBlast"),
+      description: t("monthlyDesc"),
+    },
+  ];
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,7 +41,7 @@ export default function SubscribeForm() {
       await subscribe({ email, name, organisation });
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(err instanceof Error ? err.message : tc("somethingWrong"));
     } finally {
       setLoading(false);
     }
@@ -52,12 +55,12 @@ export default function SubscribeForm() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">You&apos;re subscribed!</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">{t("youreSubscribed")}</h2>
         <p className="text-gray-600 mb-1">
-          A confirmation email has been sent to <strong>{email}</strong>.
+          {t("confirmSent")} <strong>{email}</strong>.
         </p>
         <p className="text-sm text-gray-500 mt-4">
-          You can manage your preferences or unsubscribe at any time using the links in our emails.
+          {t("manageNote")}
         </p>
       </div>
     );
@@ -67,14 +70,14 @@ export default function SubscribeForm() {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label htmlFor="subscribe-email" className="block text-sm font-medium text-gray-700 mb-1">
-          Email address <span className="text-red-500">*</span>
+          {t("emailLabel")} <span className="text-red-500">*</span>
         </label>
         <input
           type="email"
           id="subscribe-email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="your@email.com"
+          placeholder={t("emailPlaceholder")}
           required
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         />
@@ -82,35 +85,35 @@ export default function SubscribeForm() {
 
       <div>
         <label htmlFor="subscribe-name" className="block text-sm font-medium text-gray-700 mb-1">
-          Name
+          {t("nameLabel")}
         </label>
         <input
           type="text"
           id="subscribe-name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Your name"
+          placeholder={t("namePlaceholder")}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         />
       </div>
 
       <div>
         <label htmlFor="subscribe-org" className="block text-sm font-medium text-gray-700 mb-1">
-          Organisation
+          {t("orgLabel")}
         </label>
         <input
           type="text"
           id="subscribe-org"
           value={organisation}
           onChange={(e) => setOrganisation(e.target.value)}
-          placeholder="Your organisation (optional)"
+          placeholder={t("orgPlaceholder")}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         />
       </div>
 
       <div>
         <p className="text-sm font-medium text-gray-700 mb-2">
-          You&apos;ll receive updates on:
+          {t("updatesOn")}
         </p>
         <div className="space-y-2">
           {CATEGORIES.map((cat) => (
@@ -126,7 +129,7 @@ export default function SubscribeForm() {
           ))}
         </div>
         <p className="text-xs text-gray-500 mt-2">
-          All categories are enabled by default. You can change these after subscribing.
+          {t("allEnabled")}
         </p>
       </div>
 
@@ -141,7 +144,7 @@ export default function SubscribeForm() {
         disabled={loading}
         className="w-full bg-primary-600 text-white font-medium px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {loading ? "Subscribing..." : "Subscribe"}
+        {loading ? t("subscribing") : t("subscribeButton")}
       </button>
     </form>
   );

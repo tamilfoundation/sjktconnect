@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { SchoolEditData } from "@/lib/types";
 import { updateSchool, confirmSchool } from "@/lib/api";
 
@@ -10,31 +12,33 @@ interface SchoolEditFormProps {
 
 interface FieldConfig {
   key: keyof SchoolEditData;
-  label: string;
+  labelKey: string;
   type: "text" | "number" | "email" | "tel";
   readOnly?: boolean;
 }
 
 const FIELDS: FieldConfig[] = [
-  { key: "name", label: "Official Name (MOE)", type: "text", readOnly: true },
-  { key: "short_name", label: "Short Name", type: "text", readOnly: true },
-  { key: "state", label: "State", type: "text", readOnly: true },
-  { key: "name_tamil", label: "Name (Tamil)", type: "text" },
-  { key: "address", label: "Address", type: "text" },
-  { key: "postcode", label: "Postcode", type: "text" },
-  { key: "city", label: "City", type: "text" },
-  { key: "email", label: "Email", type: "email" },
-  { key: "phone", label: "Phone", type: "tel" },
-  { key: "fax", label: "Fax", type: "tel" },
-  { key: "enrolment", label: "Student Enrolment", type: "number" },
-  { key: "preschool_enrolment", label: "Preschool Enrolment", type: "number" },
-  { key: "special_enrolment", label: "Special Education Enrolment", type: "number" },
-  { key: "teacher_count", label: "Teacher Count", type: "number" },
-  { key: "session_count", label: "Sessions Per Day", type: "number" },
-  { key: "session_type", label: "Session Type", type: "text" },
+  { key: "name", labelKey: "officialName", type: "text", readOnly: true },
+  { key: "short_name", labelKey: "shortName", type: "text", readOnly: true },
+  { key: "state", labelKey: "state", type: "text", readOnly: true },
+  { key: "name_tamil", labelKey: "nameTamil", type: "text" },
+  { key: "address", labelKey: "address", type: "text" },
+  { key: "postcode", labelKey: "postcode", type: "text" },
+  { key: "city", labelKey: "city", type: "text" },
+  { key: "email", labelKey: "email", type: "email" },
+  { key: "phone", labelKey: "phone", type: "tel" },
+  { key: "fax", labelKey: "fax", type: "tel" },
+  { key: "enrolment", labelKey: "studentEnrolment", type: "number" },
+  { key: "preschool_enrolment", labelKey: "preschoolEnrolment", type: "number" },
+  { key: "special_enrolment", labelKey: "specialEnrolment", type: "number" },
+  { key: "teacher_count", labelKey: "teacherCount", type: "number" },
+  { key: "session_count", labelKey: "sessionsPerDay", type: "number" },
+  { key: "session_type", labelKey: "sessionType", type: "text" },
 ];
 
 export default function SchoolEditForm({ school }: SchoolEditFormProps) {
+  const t = useTranslations("schoolEdit");
+  const tc = useTranslations("common");
   const [formData, setFormData] = useState<SchoolEditData>(school);
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -63,7 +67,7 @@ export default function SchoolEditForm({ school }: SchoolEditFormProps) {
         verified_by: result.verified_by,
       }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to confirm.");
+      setError(err instanceof Error ? err.message : t("failedConfirm"));
     } finally {
       setConfirming(false);
     }
@@ -85,17 +89,17 @@ export default function SchoolEditForm({ school }: SchoolEditFormProps) {
     }
 
     if (Object.keys(updates).length === 0) {
-      setError("No changes to save.");
+      setError(t("noChanges"));
       setSaving(false);
       return;
     }
 
     try {
       const result = await updateSchool(school.moe_code, updates);
-      setSuccess("Changes saved and data verified.");
+      setSuccess(t("changesSaved"));
       setFormData(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save.");
+      setError(err instanceof Error ? err.message : t("failedSave"));
     } finally {
       setSaving(false);
     }
@@ -108,10 +112,10 @@ export default function SchoolEditForm({ school }: SchoolEditFormProps) {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold text-green-800">
-              Is this information correct?
+              {t("isCorrect")}
             </h3>
             <p className="text-sm text-green-700 mt-1">
-              Click &quot;Confirm&quot; if all data is accurate, or edit below to make changes.
+              {t("confirmOrEdit")}
             </p>
           </div>
           <button
@@ -120,13 +124,13 @@ export default function SchoolEditForm({ school }: SchoolEditFormProps) {
             disabled={confirming}
             className="px-6 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 whitespace-nowrap"
           >
-            {confirming ? "Confirming..." : "Confirm Data"}
+            {confirming ? t("confirming") : t("confirmData")}
           </button>
         </div>
         {formData.last_verified && (
           <p className="text-xs text-green-600 mt-2">
-            Last verified: {new Date(formData.last_verified).toLocaleString()}
-            {formData.verified_by && ` by ${formData.verified_by}`}
+            {t("lastVerified")} {new Date(formData.last_verified).toLocaleString()}
+            {formData.verified_by && ` ${t("by")} ${formData.verified_by}`}
           </p>
         )}
       </div>
@@ -152,9 +156,9 @@ export default function SchoolEditForm({ school }: SchoolEditFormProps) {
                 htmlFor={`field-${field.key}`}
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                {field.label}
+                {t(field.labelKey)}
                 {field.readOnly && (
-                  <span className="text-gray-400 ml-1">(read-only)</span>
+                  <span className="text-gray-400 ml-1">{t("readOnly")}</span>
                 )}
               </label>
               <input
@@ -179,14 +183,14 @@ export default function SchoolEditForm({ school }: SchoolEditFormProps) {
             disabled={saving}
             className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save Changes"}
+            {saving ? t("saving") : t("saveChanges")}
           </button>
-          <a
+          <Link
             href={`/school/${school.moe_code}`}
             className="px-6 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200"
           >
-            Cancel
-          </a>
+            {tc("cancel")}
+          </Link>
         </div>
       </form>
     </div>

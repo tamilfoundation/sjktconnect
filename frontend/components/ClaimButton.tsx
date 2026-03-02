@@ -1,26 +1,31 @@
-import Link from "next/link";
+"use client";
+
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 
 interface ClaimButtonProps {
   moeCode: string;
 }
 
 export default function ClaimButton({ moeCode }: ClaimButtonProps) {
+  const t = useTranslations("claim");
+
   return (
     <div className="bg-gradient-to-r from-primary-50 to-primary-100 border border-primary-200 rounded-lg p-6 text-center">
       <h3 className="text-lg font-semibold text-primary-800 mb-2">
-        Are you from this school?
+        {t("areYouFromSchool")}
       </h3>
       <p className="text-sm text-primary-700 mb-4">
-        Verify and update your school&apos;s information to keep it accurate.
+        {t("verifyAndUpdate")}
       </p>
       <Link
         href={`/claim/?school=${moeCode}`}
         className="inline-block bg-primary-600 text-white font-medium px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors"
       >
-        Claim This Page
+        {t("claimThisPage")}
       </Link>
       <p className="text-xs text-primary-500 mt-2">
-        Requires a valid @moe.edu.my email address
+        {t("requiresMoeEmail")}
       </p>
     </div>
   );

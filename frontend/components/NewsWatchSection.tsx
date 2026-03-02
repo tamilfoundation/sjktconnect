@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { NewsArticle } from "@/lib/types";
 
 interface Props {
@@ -28,13 +31,15 @@ function formatDate(dateStr: string | null): string {
 }
 
 export default function NewsWatchSection({ articles }: Props) {
+  const t = useTranslations("parliamentWatch");
+
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-800 mb-3">News Watch</h2>
+      <h2 className="text-lg font-semibold text-gray-800 mb-3">{t("newsWatchHeading")}</h2>
 
       {articles.length === 0 ? (
         <p className="text-sm text-gray-400 italic">
-          No news articles yet.
+          {t("noNews")}
         </p>
       ) : (
         <ul className="space-y-4">
@@ -54,7 +59,7 @@ export default function NewsWatchSection({ articles }: Props) {
                 </a>
                 {article.is_urgent && (
                   <span className="shrink-0 text-xs bg-red-600 text-white px-2 py-0.5 rounded-full">
-                    Urgent
+                    {t("urgent")}
                   </span>
                 )}
               </div>

@@ -1,7 +1,9 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useRouter, Link } from "@/i18n/navigation";
 import { fetchSchoolEdit, fetchMe } from "@/lib/api";
 import { SchoolEditData } from "@/lib/types";
 import Breadcrumb from "@/components/Breadcrumb";
@@ -11,6 +13,8 @@ export default function SchoolEditPage() {
   const params = useParams();
   const router = useRouter();
   const moeCode = params.moe_code as string;
+  const t = useTranslations("schoolEdit");
+  const tc = useTranslations("common");
 
   const [school, setSchool] = useState<SchoolEditData | null>(null);
   const [error, setError] = useState("");
@@ -25,7 +29,7 @@ export default function SchoolEditPage() {
         return;
       }
       if (user.school_moe_code !== moeCode) {
-        setError("You can only edit your own school.");
+        setError(t("onlyYourSchool"));
         setLoading(false);
         return;
       }
@@ -34,13 +38,13 @@ export default function SchoolEditPage() {
         const data = await fetchSchoolEdit(moeCode);
         setSchool(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load school data.");
+        setError(err instanceof Error ? err.message : t("failedToLoad"));
       } finally {
         setLoading(false);
       }
     }
     load();
-  }, [moeCode, router]);
+  }, [moeCode, router, t]);
 
   if (loading) {
     return (
@@ -62,14 +66,14 @@ export default function SchoolEditPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <p className="text-red-800 text-lg font-semibold">Access Denied</p>
+          <p className="text-red-800 text-lg font-semibold">{t("accessDenied")}</p>
           <p className="text-red-600 mt-2">{error}</p>
-          <a
+          <Link
             href={`/school/${moeCode}`}
             className="inline-block mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
           >
-            Back to School Page
-          </a>
+            {t("backToSchool")}
+          </Link>
         </div>
       </div>
     );
@@ -78,10 +82,10 @@ export default function SchoolEditPage() {
   if (!school) return null;
 
   const breadcrumbItems = [
-    { label: "Home", href: "/" },
+    { label: tc("home"), href: "/" },
     { label: school.state, href: `/?state=${encodeURIComponent(school.state)}` },
     { label: school.short_name || school.name, href: `/school/${school.moe_code}` },
-    { label: "Edit" },
+    { label: t("editBreadcrumb") },
   ];
 
   return (
@@ -90,7 +94,7 @@ export default function SchoolEditPage() {
 
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
-          Edit School Data
+          {t("editTitle")}
         </h1>
         <p className="text-sm text-gray-500 mt-1">
           {school.short_name || school.name} ({school.moe_code})

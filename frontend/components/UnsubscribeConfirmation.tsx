@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { unsubscribe } from "@/lib/api";
 
 interface UnsubscribeConfirmationProps {
@@ -8,6 +10,8 @@ interface UnsubscribeConfirmationProps {
 }
 
 export default function UnsubscribeConfirmation({ token }: UnsubscribeConfirmationProps) {
+  const t = useTranslations("subscribe");
+  const tc = useTranslations("common");
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
@@ -18,13 +22,13 @@ export default function UnsubscribeConfirmation({ token }: UnsubscribeConfirmati
         const result = await unsubscribe(token);
         setEmail(result.email);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong.");
+        setError(err instanceof Error ? err.message : tc("somethingWrong"));
       } finally {
         setLoading(false);
       }
     }
     doUnsubscribe();
-  }, [token]);
+  }, [token, tc]);
 
   if (loading) {
     return (
@@ -34,7 +38,7 @@ export default function UnsubscribeConfirmation({ token }: UnsubscribeConfirmati
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <p className="text-gray-600">Processing your request...</p>
+        <p className="text-gray-600">{t("processing")}</p>
       </div>
     );
   }
@@ -47,10 +51,10 @@ export default function UnsubscribeConfirmation({ token }: UnsubscribeConfirmati
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Unable to unsubscribe</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">{t("unableTo")}</h2>
         <p className="text-gray-600">{error}</p>
         <p className="text-sm text-gray-500 mt-4">
-          This link may have expired or already been used. Please contact us if you need help.
+          {t("linkExpired")}
         </p>
       </div>
     );
@@ -63,15 +67,15 @@ export default function UnsubscribeConfirmation({ token }: UnsubscribeConfirmati
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
       </div>
-      <h2 className="text-xl font-semibold text-gray-900 mb-2">Unsubscribed</h2>
+      <h2 className="text-xl font-semibold text-gray-900 mb-2">{t("unsubscribed")}</h2>
       <p className="text-gray-600">
-        <strong>{email}</strong> has been removed from all SJK(T) Connect mailings.
+        <strong>{email}</strong> {t("removedFrom")}
       </p>
       <p className="text-sm text-gray-500 mt-4">
-        Changed your mind?{" "}
-        <a href="/subscribe" className="text-primary-600 hover:text-primary-700 underline">
-          Re-subscribe here
-        </a>
+        {t("changedMind")}{" "}
+        <Link href="/subscribe" className="text-primary-600 hover:text-primary-700 underline">
+          {t("resubscribe")}
+        </Link>
       </p>
     </div>
   );

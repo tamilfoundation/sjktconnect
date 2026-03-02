@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { SchoolMention } from "@/lib/types";
 
 interface MentionsSectionProps {
@@ -5,14 +8,16 @@ interface MentionsSectionProps {
 }
 
 export default function MentionsSection({ mentions }: MentionsSectionProps) {
+  const t = useTranslations("parliamentWatch");
+
   if (mentions.length === 0) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-3">
-          Parliament Watch
+          {t("heading")}
         </h2>
         <p className="text-sm text-gray-500">
-          No parliamentary mentions found for this school yet.
+          {t("noMentions")}
         </p>
       </div>
     );
@@ -21,7 +26,7 @@ export default function MentionsSection({ mentions }: MentionsSectionProps) {
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
       <h2 className="text-lg font-semibold text-gray-800 mb-4">
-        Parliament Watch
+        {t("heading")}
       </h2>
       <div className="space-y-4">
         {mentions.map((mention, index) => (
@@ -48,7 +53,7 @@ export default function MentionsSection({ mentions }: MentionsSectionProps) {
                         : "bg-gray-100 text-gray-600"
                   }`}
                 >
-                  Significance: {mention.significance}/5
+                  {t("significance", { score: mention.significance })}
                 </span>
               )}
             </div>

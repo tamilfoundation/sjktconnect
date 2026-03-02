@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { SchoolImageData } from "@/lib/types";
 
 interface Props {
@@ -14,6 +15,8 @@ export default function SchoolPhotoGallery({
   schoolName,
   imageUrl,
 }: Props) {
+  const t = useTranslations("parliamentWatch");
+
   let photoList: SchoolImageData[];
   if (images && images.length > 0) {
     photoList = images;
@@ -29,7 +32,7 @@ export default function SchoolPhotoGallery({
     return (
       <div className="mb-6 bg-gray-100 rounded-lg h-48 flex items-center justify-center">
         <p className="text-gray-400 text-sm">
-          No photo available. Know this school? Help us by sharing a photo.
+          {t("noPhoto")}
         </p>
       </div>
     );
@@ -48,7 +51,7 @@ export default function SchoolPhotoGallery({
       />
       {active.attribution && (
         <p className="text-xs text-gray-400 mt-1">
-          Photo: {active.attribution.replace(/<[^>]*>/g, "")}
+          {t("photoCredit")} {active.attribution.replace(/<[^>]*>/g, "")}
         </p>
       )}
       {photoList.length > 1 && (

@@ -1,34 +1,38 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { fetchPreferences, updatePreferences } from "@/lib/api";
-
-const CATEGORY_LABELS: Record<string, { label: string; description: string }> = {
-  PARLIAMENT_WATCH: {
-    label: "Parliament Watch",
-    description: "Analysis of Tamil school mentions in parliamentary debates",
-  },
-  NEWS_WATCH: {
-    label: "News Watch",
-    description: "Media monitoring alerts about Tamil schools",
-  },
-  MONTHLY_BLAST: {
-    label: "Monthly Intelligence Blast",
-    description: "Comprehensive monthly intelligence digest",
-  },
-};
 
 interface PreferencesFormProps {
   token: string;
 }
 
 export default function PreferencesForm({ token }: PreferencesFormProps) {
+  const t = useTranslations("subscribe");
+  const tc = useTranslations("common");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [email, setEmail] = useState("");
   const [preferences, setPreferences] = useState<Record<string, boolean>>({});
+
+  const CATEGORY_LABELS: Record<string, { label: string; description: string }> = {
+    PARLIAMENT_WATCH: {
+      label: t("parliamentWatch"),
+      description: t("parliamentDesc"),
+    },
+    NEWS_WATCH: {
+      label: t("newsWatch"),
+      description: t("newsDesc"),
+    },
+    MONTHLY_BLAST: {
+      label: t("monthlyBlast"),
+      description: t("monthlyDescAlt"),
+    },
+  };
 
   useEffect(() => {
     async function loadPreferences() {
@@ -37,13 +41,13 @@ export default function PreferencesForm({ token }: PreferencesFormProps) {
         setEmail(data.email);
         setPreferences(data.preferences);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong.");
+        setError(err instanceof Error ? err.message : tc("somethingWrong"));
       } finally {
         setLoading(false);
       }
     }
     loadPreferences();
-  }, [token]);
+  }, [token, tc]);
 
   function handleToggle(category: string) {
     setPreferences((prev) => ({
@@ -63,7 +67,7 @@ export default function PreferencesForm({ token }: PreferencesFormProps) {
       setPreferences(data.preferences);
       setSaved(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(err instanceof Error ? err.message : tc("somethingWrong"));
     } finally {
       setSaving(false);
     }
@@ -77,7 +81,7 @@ export default function PreferencesForm({ token }: PreferencesFormProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <p className="text-gray-600">Loading preferences...</p>
+        <p className="text-gray-600">{t("loadingPrefs")}</p>
       </div>
     );
   }
@@ -90,10 +94,10 @@ export default function PreferencesForm({ token }: PreferencesFormProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Unable to load preferences</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">{t("unableToLoad")}</h2>
         <p className="text-gray-600">{error}</p>
         <p className="text-sm text-gray-500 mt-4">
-          This link may have expired. Please use the link from your most recent email.
+          {t("prefLinkExpired")}
         </p>
       </div>
     );
@@ -102,7 +106,7 @@ export default function PreferencesForm({ token }: PreferencesFormProps) {
   return (
     <div>
       <p className="text-sm text-gray-500 mb-4">
-        Managing preferences for <strong>{email}</strong>
+        {t("managingFor")} <strong>{email}</strong>
       </p>
 
       <div className="space-y-3">
@@ -133,7 +137,7 @@ export default function PreferencesForm({ token }: PreferencesFormProps) {
 
       {saved && (
         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
-          Preferences saved successfully.
+          {t("prefsSaved")}
         </div>
       )}
 
@@ -142,14 +146,14 @@ export default function PreferencesForm({ token }: PreferencesFormProps) {
         disabled={saving}
         className="mt-4 w-full bg-primary-600 text-white font-medium px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {saving ? "Saving..." : "Save Preferences"}
+        {saving ? t("savingPrefs") : t("savePrefs")}
       </button>
 
       <p className="text-center text-xs text-gray-500 mt-4">
-        Want to stop all emails?{" "}
-        <a href={`/unsubscribe/${token}`} className="text-primary-600 hover:text-primary-700 underline">
-          Unsubscribe from all
-        </a>
+        {t("stopAll")}{" "}
+        <Link href={`/unsubscribe/${token}`} className="text-primary-600 hover:text-primary-700 underline">
+          {t("unsubscribeAll")}
+        </Link>
       </p>
     </div>
   );

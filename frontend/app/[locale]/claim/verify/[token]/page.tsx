@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { verifyMagicLink } from "@/lib/api";
 import { AuthUser } from "@/lib/types";
 
 export default function VerifyPage() {
   const params = useParams();
   const token = params.token as string;
+  const t = useTranslations("claim");
   const [user, setUser] = useState<AuthUser | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -20,14 +22,14 @@ export default function VerifyPage() {
         setUser(result);
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Verification failed."
+          err instanceof Error ? err.message : t("verificationError")
         );
       } finally {
         setLoading(false);
       }
     }
     verify();
-  }, [token]);
+  }, [token, t]);
 
   if (loading) {
     return (
@@ -37,7 +39,7 @@ export default function VerifyPage() {
           <div className="h-6 bg-gray-200 rounded w-48 mx-auto mb-2" />
           <div className="h-4 bg-gray-200 rounded w-64 mx-auto" />
         </div>
-        <p className="text-gray-500 mt-4">Verifying your email...</p>
+        <p className="text-gray-500 mt-4">{t("verifying")}</p>
       </main>
     );
   }
@@ -51,14 +53,14 @@ export default function VerifyPage() {
           </svg>
         </div>
         <h1 className="text-xl font-semibold text-gray-900 mb-2">
-          Verification Failed
+          {t("verificationFailed")}
         </h1>
         <p className="text-gray-600 mb-6">{error}</p>
         <Link
           href="/claim/"
           className="inline-block bg-primary-600 text-white font-medium px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors"
         >
-          Try Again
+          {t("tryAgain")}
         </Link>
       </main>
     );
@@ -72,19 +74,19 @@ export default function VerifyPage() {
         </svg>
       </div>
       <h1 className="text-xl font-semibold text-gray-900 mb-2">
-        Email Verified!
+        {t("emailVerified")}
       </h1>
       <p className="text-gray-600 mb-2">
-        You are now linked to <strong>{user?.school_name}</strong>.
+        {t("linkedTo")} <strong>{user?.school_name}</strong>.
       </p>
       <p className="text-sm text-gray-500 mb-6">
-        Signed in as {user?.email}
+        {t("signedInAs")} {user?.email}
       </p>
       <Link
         href={`/school/${user?.school_moe_code}`}
         className="inline-block bg-primary-600 text-white font-medium px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors"
       >
-        Go to Your School Page
+        {t("goToSchool")}
       </Link>
     </main>
   );
