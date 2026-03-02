@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { SchoolImageData } from "@/lib/types";
 
 interface Props {
@@ -19,6 +22,8 @@ export default function SchoolPhotoGallery({
         ? [{ image_url: imageUrl, source: "PLACES" as const, is_primary: true, attribution: "" }]
         : [];
 
+  const [activeIndex, setActiveIndex] = useState(0);
+
   if (photoList.length === 0) {
     return (
       <div className="mb-6 bg-gray-100 rounded-lg h-48 flex items-center justify-center">
@@ -29,33 +34,34 @@ export default function SchoolPhotoGallery({
     );
   }
 
-  const primary = photoList.find((img) => img.is_primary) || photoList[0];
-  const thumbnails = photoList.filter((img) => img !== primary);
+  const active = photoList[activeIndex];
+  const thumbnails = photoList.filter((_, i) => i !== activeIndex);
 
   return (
     <div className="mb-6">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={primary.image_url}
+        src={active.image_url}
         alt={schoolName}
         className="w-full h-48 sm:h-64 object-cover rounded-lg"
         loading="lazy"
       />
-      {primary.attribution && (
+      {active.attribution && (
         <p className="text-xs text-gray-400 mt-1">
-          Photo: {primary.attribution.replace(/<[^>]*>/g, "")}
+          Photo: {active.attribution.replace(/<[^>]*>/g, "")}
         </p>
       )}
       {thumbnails.length > 0 && (
         <div className="flex gap-2 mt-2">
-          {thumbnails.map((img, i) => (
+          {photoList.map((img, i) => i !== activeIndex && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               key={i}
               src={img.image_url}
-              alt={`${schoolName} photo ${i + 2}`}
-              className="w-20 h-14 object-cover rounded border border-gray-200"
+              alt={`${schoolName} photo ${i + 1}`}
+              className="w-20 h-14 object-cover rounded border border-gray-200 cursor-pointer hover:border-blue-400 transition-colors"
               loading="lazy"
+              onClick={() => setActiveIndex(i)}
             />
           ))}
         </div>
