@@ -1,6 +1,28 @@
 {
   "common": {
     "home": "Home",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "back": "Back",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "noResults": "No results found",
+    "students": "students",
+    "schools": "schools",
+    "na": "N/A",
+    "mapUnavailable": "Map unavailable",
+    "noBoundaryData": "No boundary data available",
+    "somethingWrong": "Something went wrong."
+  },
+  "header": {
+    "title": "SJK(T) Connect",
+    "schoolMap": "School Map",
+    "constituencies": "Constituencies",
+    "parliamentWatch": "Parliament Watch",
+    "toggleMenu": "Toggle menu"
+  },
+  "footer": {
+    "copyright": "\u00a9 {year} Tamil Foundation Malaysia. Data from MOE & Parliament of Malaysia.",
+    "subscribe": "Subscribe to Intelligence Blast"
   }
 }

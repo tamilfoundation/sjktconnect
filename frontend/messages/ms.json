@@ -1,6 +1,28 @@
 {
   "common": {
     "home": "Utama",
-    "loading": "Memuatkan..."
+    "loading": "Memuatkan...",
+    "back": "Kembali",
+    "retry": "Cuba semula",
+    "cancel": "Batal",
+    "save": "Simpan",
+    "noResults": "Tiada hasil ditemui",
+    "students": "murid",
+    "schools": "sekolah",
+    "na": "T/A",
+    "mapUnavailable": "Peta tidak tersedia",
+    "noBoundaryData": "Data sempadan tidak tersedia",
+    "somethingWrong": "Sesuatu tidak kena."
+  },
+  "header": {
+    "title": "SJK(T) Connect",
+    "schoolMap": "Peta Sekolah",
+    "constituencies": "Kawasan Parlimen",
+    "parliamentWatch": "Pemantauan Parlimen",
+    "toggleMenu": "Togol menu"
+  },
+  "footer": {
+    "copyright": "\u00a9 {year} Tamil Foundation Malaysia. Data daripada KPM & Parlimen Malaysia.",
+    "subscribe": "Langgan Surat Perisikan"
   }
 }

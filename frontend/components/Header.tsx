@@ -1,49 +1,50 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { useState } from "react";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 export default function Header() {
+  const t = useTranslations("header");
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 relative z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo / Title */}
           <Link href="/" className="flex items-center gap-2">
             <span className="text-xl font-bold text-primary-700">
-              SJK(T) Connect
+              {t("title")}
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
             <Link
               href="/"
               className="text-sm font-medium text-gray-700 hover:text-primary-600"
             >
-              School Map
+              {t("schoolMap")}
             </Link>
             <Link
               href="/constituencies"
               className="text-sm font-medium text-gray-700 hover:text-primary-600"
             >
-              Constituencies
+              {t("constituencies")}
             </Link>
             <Link
               href="/parliament-watch"
               className="text-sm font-medium text-gray-700 hover:text-primary-600"
             >
-              Parliament Watch
+              {t("parliamentWatch")}
             </Link>
+            <LanguageSwitcher />
           </nav>
 
-          {/* Mobile menu button */}
           <button
             className="md:hidden p-2 text-gray-600 hover:text-gray-900"
             onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle menu"
+            aria-label={t("toggleMenu")}
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               {menuOpen ? (
@@ -56,7 +57,6 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile menu */}
       {menuOpen && (
         <div className="md:hidden bg-white border-t border-gray-200 py-2">
           <Link
@@ -64,22 +64,25 @@ export default function Header() {
             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
             onClick={() => setMenuOpen(false)}
           >
-            School Map
+            {t("schoolMap")}
           </Link>
           <Link
             href="/constituencies"
             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
             onClick={() => setMenuOpen(false)}
           >
-            Constituencies
+            {t("constituencies")}
           </Link>
           <Link
             href="/parliament-watch"
             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
             onClick={() => setMenuOpen(false)}
           >
-            Parliament Watch
+            {t("parliamentWatch")}
           </Link>
+          <div className="px-4 py-2">
+            <LanguageSwitcher />
+          </div>
         </div>
       )}
     </header>
