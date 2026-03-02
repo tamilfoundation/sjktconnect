@@ -1,6 +1,6 @@
 # SJK(T) Connect — Architecture Map
 
-Last updated: Sprint 2.6 close (2 Mar 2026)
+Last updated: Sprint 2.7 close (2 Mar 2026)
 
 ## Stack
 
@@ -104,15 +104,18 @@ backend/
 │   │   └── urls.py       # /subscribers/ endpoints
 │   └── tests/
 │
-├── broadcasts/           # Broadcast messaging (Sprint 2.2-2.3)
+├── broadcasts/           # Broadcast messaging (Sprint 2.2-2.3, 2.7)
 │   ├── models.py         # Broadcast (draft/sent), BroadcastRecipient (per-recipient tracking)
 │   ├── services/
-│   │   └── sender.py     # Brevo transactional send, rate limiting, SENT/FAILED tracking
+│   │   ├── sender.py          # Brevo transactional send, rate limiting, SENT/FAILED tracking
+│   │   ├── audience.py        # Audience filtering (category, state, constituency, enrolment)
+│   │   └── blast_aggregator.py # Monthly blast: top 5 mentions, top 5 articles, top 3 scorecards
 │   ├── views.py          # Django admin views: compose, preview, list
 │   ├── forms.py          # BroadcastForm (audience filtering by scope)
-│   ├── templates/        # Admin compose/preview/list templates
+│   ├── templates/        # Admin compose/preview/list + monthly_blast.html email template
 │   ├── management/commands/
-│   │   └── send_broadcast.py  # Management command for sending broadcasts
+│   │   ├── send_broadcast.py        # Management command for sending broadcasts
+│   │   └── compose_monthly_blast.py # Auto-draft monthly digest (--month, --dry-run)
 │   └── tests/
 │
 └── newswatch/            # News monitoring pipeline (Sprint 2.5-2.6)
