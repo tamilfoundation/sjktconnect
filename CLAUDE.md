@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 3 in progress. Sprint 3.1 done.
-- **Last Sprint**: 3.1 (closed 2026-03-02, Data Quality + School Leadership)
-- **Tests**: 841 (662 backend + 179 frontend)
+- **Current Phase**: Phase 3 in progress. Sprint 3.2 done.
+- **Last Sprint**: 3.2 (closed 2026-03-02, Frontend Layout Redesign)
+- **Tests**: 846 (662 backend + 184 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -178,6 +178,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 2.7 | Done | Monthly Intelligence Blast: blast_aggregator service, compose_monthly_blast command (--month, --dry-run), monthly_blast.html email template (3 sections), reuses Broadcast infrastructure. 23 new backend tests (781 total). |
 | 2.8 | Done | News Watch Live + Cloud Scheduler Automation: public news API, real NewsWatchSection component, run_news_pipeline command, Cloud Run Jobs (news-pipeline, monthly-blast), Cloud Scheduler (daily-news, monthly-blast), clickable photo thumbnails. 25 new tests (800 total). |
 | 3.1 | Done | Data Quality + School Leadership: to_proper_case/format_phone utils, data migration (528 schools), SchoolLeader model (4 roles), admin inline, public API (name+role only), import scripts updated for data/ folder. 41 new tests (841 total). |
+| 3.2 | Done | Frontend Layout Redesign: side-by-side hero, stat cards (Students/Teachers/Grade), leadership section, enrolment breakdown, assistance type mapping. 5 new frontend tests (846 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -194,16 +195,14 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 3.2 — Frontend Layout Redesign** (school profile page):
-- Desktop: side-by-side hero (photo 60% left, school name + key stats right)
-- Mobile: compact stacked layout, remove redundant elements (full MOE name, duplicate code)
-- Stat cards: Students, Preschool, Special Needs, Teachers (remove SKM)
-- Detail section: separate enrolment breakdown (School: X, Preschool: Y, Special Needs: Z)
-- School leadership section: Board Chairman, Headmaster, PTA Chair, Alumni Chair (name+role only)
-- SchoolLeader TypeScript type, updated API client
-- Design doc: `docs/plans/2026-03-02-school-page-improvements-design.md`
-- Implementation plan: `docs/plans/2026-03-02-school-page-improvements-impl.md` (Tasks 8-11)
-- **Sprint 3.3** (after 3.2): i18n infrastructure with next-intl (trilingual: EN/TA/MS)
+**Sprint 3.3 — i18n Infrastructure** (trilingual: EN/TA/MS):
+- Install and configure next-intl (App Router setup)
+- Move pages under `app/[locale]/`, locale detection middleware
+- Extract ~140 hardcoded strings to `messages/en.json`
+- Tamil translations in `messages/ta.json` (follow `tamil-style-guide.md`)
+- Language switcher in Header (EN | தமிழ்)
+- Implementation plan: `docs/plans/2026-03-02-school-page-improvements-impl.md` (Tasks 12-15)
+- Frontend-only deploy (URL structure changes: `/school/X` → `/en/school/X`)
 
 ## Frontend (Sprint 1.3–2.4)
 - **Stack**: Next.js 14, App Router, Tailwind CSS, TypeScript

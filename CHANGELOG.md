@@ -1,5 +1,23 @@
 # Changelog
 
+## Sprint 3.2 — Frontend Layout Redesign (2026-03-02)
+
+### Changed
+- School page hero: side-by-side layout on desktop (photo 3/5, name + stats 2/5), stacked on mobile
+- Stat cards moved to hero: Students (primary + preschool combined), Teachers, Grade
+- Removed SKM stat card, MOE Code detail row, and Full Name detail row
+- Enrolment breakdown always shown: School, Preschool, Special Needs (even when 0)
+- Assistance type mapped: SBK → Government-Aided (SBK), SK → Government (SK)
+- Address format: postcode and city grouped together
+
+### Added
+- `SchoolLeader` TypeScript type
+- `leaders` field on `SchoolDetail` interface
+- School Leadership section in SchoolProfile (Board Chairman, Headmaster, PTA Chair, Alumni Chair)
+- 5 new frontend tests (184 total), all 846 tests passing (662 backend + 184 frontend)
+
+---
+
 ## Sprint 3.1 — Data Quality + School Leadership (2026-03-02)
 
 ### Added
