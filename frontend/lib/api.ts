@@ -129,6 +129,28 @@ export async function fetchSchoolNews(
 }
 
 /**
+ * Fetch paginated news articles with optional filters.
+ */
+export async function fetchNews(options?: {
+  category?: string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<PaginatedResponse<NewsArticle>> {
+  let url = `${BASE}/news/?page_size=${options?.pageSize ?? 20}`;
+  if (options?.category && options.category !== "all") {
+    url += `&category=${encodeURIComponent(options.category)}`;
+  }
+  if (options?.search) {
+    url += `&search=${encodeURIComponent(options.search)}`;
+  }
+  if (options?.page && options.page > 1) {
+    url += `&page=${options.page}`;
+  }
+  return fetchJSON<PaginatedResponse<NewsArticle>>(url);
+}
+
+/**
  * Fetch all constituencies with optional state filter.
  */
 export async function fetchConstituencies(

@@ -72,6 +72,11 @@ export interface SchoolMention {
   verbatim_quote: string;
 }
 
+export interface NewsArticleMention {
+  name: string;
+  moe_code: string;
+}
+
 export interface NewsArticle {
   id: number;
   title: string;
@@ -82,6 +87,7 @@ export interface NewsArticle {
   sentiment: string;
   is_urgent: boolean;
   urgent_reason: string;
+  mentioned_schools: NewsArticleMention[];
   created_at: string;
 }
 
