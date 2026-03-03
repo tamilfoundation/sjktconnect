@@ -26,7 +26,7 @@ describe("NationalStats", () => {
   it("renders stat labels", () => {
     render(<NationalStats stats={stats} />);
     expect(screen.getByText("Students")).toBeInTheDocument();
-    expect(screen.getByText("Preschool")).toBeInTheDocument();
+    expect(screen.getByText("Preschoolers")).toBeInTheDocument();
     expect(screen.getByText("Special Needs")).toBeInTheDocument();
     expect(screen.getByText("Teachers")).toBeInTheDocument();
     expect(screen.getByText("Schools Under 30 Students")).toBeInTheDocument();
