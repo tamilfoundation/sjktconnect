@@ -68,6 +68,9 @@ export default function SubscribeForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
+        {t("socialProof")}
+      </p>
       <div>
         <label htmlFor="subscribe-email" className="block text-sm font-medium text-gray-700 mb-1">
           {t("emailLabel")} <span className="text-red-500">*</span>

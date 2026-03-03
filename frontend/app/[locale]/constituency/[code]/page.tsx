@@ -114,13 +114,15 @@ export default async function ConstituencyPage({ params }: PageProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Boundary Map */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">
-              {t("boundary")}
-            </h2>
-            <BoundaryMap geoJSON={geoJSON} center={center} />
-          </div>
+          {/* Boundary Map — only show when boundary data exists */}
+          {geoJSON && (
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <h2 className="text-lg font-semibold text-gray-800 mb-3">
+                {t("boundary")}
+              </h2>
+              <BoundaryMap geoJSON={geoJSON} center={center} />
+            </div>
+          )}
 
           {/* School Table */}
           <SchoolTable schools={constituency.schools} />

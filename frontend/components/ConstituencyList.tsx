@@ -16,15 +16,29 @@ export default function ConstituencyList({
 }: ConstituencyListProps) {
   const t = useTranslations("constituency");
   const [selectedState, setSelectedState] = useState("");
+  const [showAll, setShowAll] = useState(false);
 
-  const filtered = selectedState
+  const stateFiltered = selectedState
     ? constituencies.filter((c) => c.state === selectedState)
     : constituencies;
 
-  const totalSchools = filtered.reduce(
+  const filtered = showAll
+    ? stateFiltered
+    : stateFiltered.filter((c) => (c.school_count ?? 0) > 0);
+
+  // Sort by school_count descending (most relevant first)
+  const sorted = [...filtered].sort(
+    (a, b) => (b.school_count ?? 0) - (a.school_count ?? 0)
+  );
+
+  const totalSchools = sorted.reduce(
     (sum, c) => sum + (c.school_count ?? 0),
     0
   );
+
+  const withSchoolsCount = stateFiltered.filter(
+    (c) => (c.school_count ?? 0) > 0
+  ).length;
 
   return (
     <div>
@@ -43,8 +57,17 @@ export default function ConstituencyList({
             </option>
           ))}
         </select>
+        <button
+          type="button"
+          onClick={() => setShowAll(!showAll)}
+          className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+        >
+          {showAll
+            ? t("showWithSchools", { count: withSchoolsCount })
+            : t("showAll", { count: stateFiltered.length })}
+        </button>
         <span className="text-sm text-gray-500">
-          {t("showingConstituencies", { count: filtered.length, total: totalSchools })}
+          {t("showingConstituencies", { count: sorted.length, total: totalSchools })}
         </span>
       </div>
 
@@ -63,7 +86,7 @@ export default function ConstituencyList({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((c) => (
+              {sorted.map((c) => (
                 <tr key={c.code} className="hover:bg-gray-50">
                   <td className="px-4 py-2.5 text-gray-500 font-mono text-xs">
                     {c.code}

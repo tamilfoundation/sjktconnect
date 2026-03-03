@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { NewsArticle } from "@/lib/types";
 
 interface Props {
@@ -38,9 +39,17 @@ export default function NewsWatchSection({ articles }: Props) {
       <h2 className="text-lg font-semibold text-gray-800 mb-3">{t("newsWatchHeading")}</h2>
 
       {articles.length === 0 ? (
-        <p className="text-sm text-gray-400 italic">
-          {t("noNews")}
-        </p>
+        <>
+          <p className="text-sm text-gray-500 mb-3">
+            {t("noNewsSubscribe")}
+          </p>
+          <Link
+            href="/subscribe"
+            className="inline-block text-sm text-primary-600 hover:text-primary-700 font-medium"
+          >
+            {t("subscribeCta")} →
+          </Link>
+        </>
       ) : (
         <ul className="space-y-4">
           {articles.map((article) => (

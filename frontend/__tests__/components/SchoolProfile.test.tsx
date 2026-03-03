@@ -88,7 +88,7 @@ describe("SchoolProfile", () => {
     expect(screen.getByText("3 students")).toBeInTheDocument();
   });
 
-  it("shows enrolment breakdown even when values are 0", () => {
+  it("hides zero-enrolment breakdown rows", () => {
     render(
       <SchoolProfile
         school={makeSchoolDetail({
@@ -100,8 +100,8 @@ describe("SchoolProfile", () => {
     );
     expect(screen.getByText("School")).toBeInTheDocument();
     expect(screen.getByText("50 students")).toBeInTheDocument();
-    expect(screen.getByText("Preschool")).toBeInTheDocument();
-    expect(screen.getByText("Special Needs")).toBeInTheDocument();
+    expect(screen.queryByText("Preschool")).not.toBeInTheDocument();
+    expect(screen.queryByText("Special Needs")).not.toBeInTheDocument();
   });
 
   it("does not render SKM stat card", () => {
@@ -122,18 +122,18 @@ describe("SchoolProfile", () => {
     expect(screen.queryByText("Full Name")).not.toBeInTheDocument();
   });
 
-  it("maps SBK assistance type to Government-Aided", () => {
+  it("maps SBK assistance type to Fully Government-Aided", () => {
     render(
       <SchoolProfile school={makeSchoolDetail({ assistance_type: "SBK" })} />
     );
-    expect(screen.getByText("Government-Aided (SBK)")).toBeInTheDocument();
+    expect(screen.getByText("Fully Government-Aided")).toBeInTheDocument();
   });
 
-  it("maps SK assistance type to Government", () => {
+  it("maps SK assistance type to Government School", () => {
     render(
       <SchoolProfile school={makeSchoolDetail({ assistance_type: "SK" })} />
     );
-    expect(screen.getByText("Government (SK)")).toBeInTheDocument();
+    expect(screen.getByText("Government School")).toBeInTheDocument();
   });
 
   it("renders school leadership section when leaders exist", () => {

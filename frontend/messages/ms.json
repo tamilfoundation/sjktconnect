@@ -19,11 +19,15 @@
     "schoolMap": "Peta Sekolah",
     "constituencies": "Kawasan Parlimen",
     "parliamentWatch": "Pemantauan Parlimen",
+    "about": "Mengenai",
     "toggleMenu": "Togol menu"
   },
   "footer": {
     "copyright": "\u00a9 {year} Tamil Foundation Malaysia. Data daripada KPM & Parlimen Malaysia.",
-    "subscribe": "Langgan Surat Perisikan"
+    "subscribe": "Langgan Surat Perisikan",
+    "about": "Mengenai",
+    "contact": "Hubungi",
+    "dataLastUpdated": "Data terakhir dikemaskini: Januari 2026"
   },
   "schoolProfile": {
     "schoolDetails": "Butiran Sekolah",
@@ -51,7 +55,8 @@
     "notFound": "Sekolah Tidak Ditemui",
     "notFoundTitle": "Sekolah Tidak Ditemui — SJK(T) Connect",
     "notFoundDescription": "Sekolah yang anda cari tidak wujud atau mungkin telah dialih keluar.",
-    "backToMap": "Kembali ke Peta Sekolah"
+    "backToMap": "Kembali ke Peta Sekolah",
+    "dataSource": "Sumber data: Kementerian Pendidikan Malaysia, Januari 2026"
   },
   "metadata": {
     "siteTitle": "SJK(T) Connect",
@@ -59,6 +64,24 @@
     "siteDescription": "Platform data interaktif untuk 528 sekolah Tamil di Malaysia. Pantau sebutan parlimen, kad skor MP, dan data sekolah.",
     "schoolTitle": "{name} — SJK(T) Connect",
     "schoolDescription": "{name} ({code}) di {state}. Enrolmen: {enrolment} murid, {teachers} guru. Gred {grade}."
+  },
+  "hero": {
+    "headline": "Setiap Sekolah Tamil di Malaysia",
+    "subheadline": "Dipantau. Dihubungkan. Didengari.",
+    "description": "Platform perisikan pertama yang memantau aktiviti parlimen, liputan media, dan keperluan komuniti untuk kesemua 528 sekolah Tamil.",
+    "findSchool": "Cari Sekolah Anda",
+    "subscribeIntel": "Langgan Perisikan",
+    "schoolsLabel": "Sekolah",
+    "statesLabel": "Negeri",
+    "constituenciesLabel": "Kawasan Parlimen"
+  },
+  "stats": {
+    "totalSchools": "Sekolah Tamil",
+    "totalStudents": "Murid",
+    "totalTeachers": "Guru",
+    "statesCovered": "Negeri",
+    "constituenciesCovered": "Kawasan Parlimen",
+    "schoolsUnder30": "Sekolah Bawah 30 Murid"
   },
   "home": {
     "apiKeyRequired": "Kunci API Google Maps Diperlukan",
@@ -100,6 +123,8 @@
     "dunNotFoundTitle": "DUN Tidak Ditemui — SJK(T) Connect",
     "allStates": "Semua Negeri",
     "filterByState": "Tapis mengikut negeri",
+    "showAll": "Tunjukkan semua {count} kawasan parlimen",
+    "showWithSchools": "Tunjukkan hanya yang ada sekolah Tamil ({count})",
     "showingConstituencies": "Menunjukkan {count} kawasan parlimen · {total} sekolah Tamil",
     "codeCol": "Kod",
     "constituencyCol": "Kawasan Parlimen",
@@ -146,7 +171,7 @@
     "goToSchool": "Pergi ke Halaman Sekolah Anda",
     "verificationError": "Pengesahan gagal.",
     "areYouFromSchool": "Adakah anda dari sekolah ini?",
-    "verifyAndUpdate": "Sahkan dan kemaskini maklumat sekolah anda supaya ia tepat.",
+    "verifyAndUpdate": "Tuntut halaman sekolah anda untuk menerima amaran parlimen, pemberitahuan geran, dan pemantauan berita — dihantar ke peti masuk anda setiap bulan.",
     "claimThisPage": "Tuntut Halaman Ini",
     "requiresMoeEmail": "Memerlukan alamat e-mel @moe.edu.my yang sah",
     "checkEmail": "Semak e-mel anda",
@@ -219,6 +244,7 @@
     "orgPlaceholder": "Organisasi anda (pilihan)",
     "updatesOn": "Anda akan menerima kemas kini tentang:",
     "allEnabled": "Semua kategori didayakan secara lalai. Anda boleh mengubahnya selepas melanggan.",
+    "socialProof": "Sertai pemimpin sekolah dan penyokong komuniti yang sentiasa mendapat maklumat tentang sekolah Tamil di seluruh Malaysia.",
     "subscribing": "Melanggan...",
     "subscribeButton": "Langgan",
     "unsubscribeTitle": "Berhenti Langgan",
@@ -245,6 +271,25 @@
     "mediaAlerts": "— liputan media yang mempengaruhi sekolah Tamil",
     "monthlyDigest": "— ringkasan perisikan bulanan yang komprehensif"
   },
+  "about": {
+    "title": "Mengenai SJK(T) Connect",
+    "pageDescription": "Ketahui tentang SJK(T) Connect, platform perisikan untuk 528 sekolah Tamil di Malaysia.",
+    "subtitle": "Platform perisikan pertama yang didedikasikan untuk sekolah Tamil Malaysia",
+    "whatWeDoTitle": "Apa Yang Kami Lakukan",
+    "whatWeDoP1": "SJK(T) Connect ialah platform data terbuka yang memantau, menghubungkan, dan menguatkan suara 528 sekolah rendah Tamil di Malaysia. Kami memantau prosiding parlimen, liputan media, dan perkembangan komuniti.",
+    "whatWeDoP2": "Dibina oleh Tamil Foundation Malaysia, platform ini melayani pemimpin sekolah, ibu bapa, wakil rakyat, wartawan, dan penyokong komuniti.",
+    "featureParliament": "Pemantauan Parlimen",
+    "featureParliamentDesc": "Analisis berkuasa AI bagi prosiding Hansard. Kami menjejaki setiap sebutan sekolah Tamil dalam Parlimen.",
+    "featureNews": "Pemantauan Berita",
+    "featureNewsDesc": "Pemantauan media harian dengan pemarkahan relevansi berkuasa AI.",
+    "featureDirectory": "Direktori Sekolah",
+    "featureDirectoryDesc": "Data komprehensif bagi kesemua 528 sekolah — enrolmen, kepimpinan, lokasi, dan perwakilan kawasan.",
+    "aboutTFTitle": "Mengenai Tamil Foundation Malaysia",
+    "aboutTFBody": "Tamil Foundation Malaysia ialah organisasi bukan untung yang didedikasikan untuk memelihara dan memajukan bahasa, pendidikan, dan budaya Tamil di Malaysia.",
+    "contactEmail": "info@tamilfoundation.org",
+    "dataSourceTitle": "Sumber Data",
+    "dataSourceBody": "Data sekolah daripada Kementerian Pendidikan Malaysia (Januari 2026). Data parlimen daripada Parlimen Malaysia. Data kawasan daripada Suruhanjaya Pilihan Raya Malaysia."
+  },
   "parliamentWatch": {
     "title": "Pemantauan Parlimen — SJK(T) Connect",
     "heading": "Pemantauan Parlimen",
@@ -255,6 +300,20 @@
     "and": "dan",
     "constituencyPages": "halaman kawasan parlimen",
     "noMentions": "Tiada sebutan parlimen ditemui untuk sekolah ini lagi.",
+    "noMentionsSubscribe": "Tiada sebutan parlimen ditemui lagi. Langgan untuk menerima amaran apabila kawasan parlimen sekolah anda dibincangkan di Parlimen.",
+    "noNewsSubscribe": "Tiada artikel berita lagi. Langgan untuk menerima amaran pemantauan media tentang sekolah Tamil.",
+    "subscribeCta": "Langgan Perisikan",
+    "whatWeTrack": "Apa Yang Dipantau Pemantauan Parlimen",
+    "trackMentions": "Sebutan Hansard",
+    "trackMentionsDesc": "Setiap sebutan sekolah Tamil dalam perbahasan parlimen, dikenal pasti dan dinilai oleh AI.",
+    "trackScorecards": "Kad Skor MP",
+    "trackScorecardsDesc": "Penilaian prestasi untuk MP berdasarkan penglibatan mereka dengan isu sekolah Tamil.",
+    "trackAlerts": "Amaran Kawasan",
+    "trackAlertsDesc": "Pemberitahuan apabila MP kawasan anda membincangkan hal pendidikan.",
+    "monitoringOngoing": "Pemantauan Berterusan",
+    "monitoringBody": "Pemantauan Parlimen sedang giat memantau prosiding Hansard. Langgan untuk menerima analisis apabila data persidangan baharu diproses.",
+    "exploreNow": "Terokai Data Tersedia",
+    "exploreBody": "Kad skor MP dan data kawasan tersedia sekarang. Lawati halaman kawasan parlimen untuk melihat data sekolah dan maklumat MP bagi setiap kawasan.",
     "significance": "Kepentingan: {score}/5",
     "newsWatchHeading": "Pemantauan Berita",
     "noNews": "Tiada artikel berita lagi.",

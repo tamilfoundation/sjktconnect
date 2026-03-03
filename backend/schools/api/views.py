@@ -1,6 +1,6 @@
 """API views for schools, constituencies, DUNs, and GeoJSON boundaries."""
 
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
 from rest_framework import status
@@ -269,6 +269,31 @@ class SearchView(APIView):
                 many=True,
             ).data,
         })
+
+
+class NationalStatsView(APIView):
+    """Return aggregate statistics for all active Tamil schools."""
+
+    def get(self, request):
+        schools = School.objects.filter(is_active=True)
+        stats = schools.aggregate(
+            total_schools=Count("moe_code"),
+            total_students=Sum("enrolment"),
+            total_teachers=Sum("teacher_count"),
+            states=Count("state", distinct=True),
+            schools_under_30_students=Count(
+                "moe_code", filter=Q(enrolment__lt=30)
+            ),
+        )
+        stats["total_students"] = stats["total_students"] or 0
+        stats["total_teachers"] = stats["total_teachers"] or 0
+        stats["constituencies_with_schools"] = (
+            schools.values("constituency__code")
+            .exclude(constituency__isnull=True)
+            .distinct()
+            .count()
+        )
+        return Response(stats)
 
 
 class ConstituencyGeoJSONView(APIView):

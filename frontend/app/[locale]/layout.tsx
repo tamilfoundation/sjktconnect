@@ -11,6 +11,13 @@ export const metadata: Metadata = {
   title: "SJK(T) Connect — Tamil School Intelligence Platform",
   description:
     "Interactive map and data platform for Malaysia's 528 Tamil schools. Track parliamentary mentions, MP scorecards, and school data.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default async function LocaleLayout({

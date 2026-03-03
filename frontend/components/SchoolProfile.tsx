@@ -2,6 +2,13 @@
 
 import { useTranslations } from "next-intl";
 import { SchoolDetail } from "@/lib/types";
+import {
+  ASSISTANCE_TYPE,
+  LOCATION_TYPE,
+  SESSION_TYPE,
+  isEmpty,
+  translate,
+} from "@/lib/translations";
 
 interface SchoolProfileProps {
   school: SchoolDetail;
@@ -9,12 +16,6 @@ interface SchoolProfileProps {
 
 export default function SchoolProfile({ school }: SchoolProfileProps) {
   const t = useTranslations("schoolProfile");
-
-  function formatAssistanceType(value: string): string {
-    if (value === "SBK") return t("governmentAided");
-    if (value === "SK") return t("government");
-    return value;
-  }
 
   return (
     <div className="space-y-6">
@@ -35,33 +36,45 @@ export default function SchoolProfile({ school }: SchoolProfileProps) {
             }
           />
           {school.email && <DetailRow label={t("email")} value={school.email} />}
-          {school.phone && <DetailRow label={t("phone")} value={school.phone} />}
-          <DetailRow label={t("locationType")} value={school.location_type || "—"} />
+          {!isEmpty(school.phone) && (
+            <DetailRow label={t("phone")} value={school.phone} />
+          )}
+          {!isEmpty(school.location_type) && (
+            <DetailRow
+              label={t("locationType")}
+              value={translate(school.location_type, LOCATION_TYPE)}
+            />
+          )}
           <DetailRow
             label={t("assistanceType")}
-            value={formatAssistanceType(school.assistance_type) || "—"}
+            value={translate(school.assistance_type, ASSISTANCE_TYPE) || "—"}
           />
-          <DetailRow
-            label={t("sessions")}
-            value={
-              school.session_count
-                ? `${school.session_count} (${school.session_type || "—"})`
-                : "—"
-            }
-          />
+          {!isEmpty(school.session_type) && (
+            <DetailRow
+              label={t("sessions")}
+              value={translate(school.session_type, SESSION_TYPE)}
+            />
+          )}
           <DetailRow
             label={t("school")}
             value={t("studentsCount", { count: school.enrolment ?? 0 })}
           />
-          <DetailRow
-            label={t("preschool")}
-            value={t("studentsCount", { count: school.preschool_enrolment ?? 0 })}
-          />
-          <DetailRow
-            label={t("specialNeeds")}
-            value={t("studentsCount", { count: school.special_enrolment ?? 0 })}
-          />
+          {school.preschool_enrolment > 0 && (
+            <DetailRow
+              label={t("preschool")}
+              value={t("studentsCount", { count: school.preschool_enrolment })}
+            />
+          )}
+          {school.special_enrolment > 0 && (
+            <DetailRow
+              label={t("specialNeeds")}
+              value={t("studentsCount", { count: school.special_enrolment })}
+            />
+          )}
         </dl>
+        <p className="text-xs text-gray-400 mt-4 pt-3 border-t border-gray-100">
+          {t("dataSource")}
+        </p>
       </div>
 
       {school.leaders && school.leaders.length > 0 && (

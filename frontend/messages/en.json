@@ -19,11 +19,15 @@
     "schoolMap": "School Map",
     "constituencies": "Constituencies",
     "parliamentWatch": "Parliament Watch",
+    "about": "About",
     "toggleMenu": "Toggle menu"
   },
   "footer": {
     "copyright": "\u00a9 {year} Tamil Foundation Malaysia. Data from MOE & Parliament of Malaysia.",
-    "subscribe": "Subscribe to Intelligence Blast"
+    "subscribe": "Subscribe to Intelligence Blast",
+    "about": "About",
+    "contact": "Contact",
+    "dataLastUpdated": "Data last updated: January 2026"
   },
   "schoolProfile": {
     "schoolDetails": "School Details",
@@ -51,7 +55,8 @@
     "notFound": "School Not Found",
     "notFoundTitle": "School Not Found — SJK(T) Connect",
     "notFoundDescription": "The school you're looking for doesn't exist or may have been removed.",
-    "backToMap": "Back to School Map"
+    "backToMap": "Back to School Map",
+    "dataSource": "Data source: Ministry of Education, January 2026"
   },
   "metadata": {
     "siteTitle": "SJK(T) Connect",
@@ -59,6 +64,24 @@
     "siteDescription": "Interactive map and data platform for Malaysia's 528 Tamil schools. Track parliamentary mentions, MP scorecards, and school data.",
     "schoolTitle": "{name} — SJK(T) Connect",
     "schoolDescription": "{name} ({code}) in {state}. Enrolment: {enrolment} students, {teachers} teachers. Grade {grade}."
+  },
+  "hero": {
+    "headline": "Every Tamil School in Malaysia",
+    "subheadline": "Tracked. Connected. Heard.",
+    "description": "The first intelligence platform monitoring parliamentary activity, media coverage, and community needs for all 528 Tamil schools.",
+    "findSchool": "Find Your School",
+    "subscribeIntel": "Subscribe to Intelligence",
+    "schoolsLabel": "Schools",
+    "statesLabel": "States",
+    "constituenciesLabel": "Constituencies"
+  },
+  "stats": {
+    "totalSchools": "Tamil Schools",
+    "totalStudents": "Students",
+    "totalTeachers": "Teachers",
+    "statesCovered": "States",
+    "constituenciesCovered": "Constituencies",
+    "schoolsUnder30": "Schools Under 30 Students"
   },
   "home": {
     "apiKeyRequired": "Google Maps API Key Required",
@@ -100,6 +123,8 @@
     "dunNotFoundTitle": "DUN Not Found — SJK(T) Connect",
     "allStates": "All States",
     "filterByState": "Filter by state",
+    "showAll": "Show all {count} constituencies",
+    "showWithSchools": "Show only with Tamil schools ({count})",
     "showingConstituencies": "Showing {count} constituencies · {total} Tamil schools",
     "codeCol": "Code",
     "constituencyCol": "Constituency",
@@ -146,7 +171,7 @@
     "goToSchool": "Go to Your School Page",
     "verificationError": "Verification failed.",
     "areYouFromSchool": "Are you from this school?",
-    "verifyAndUpdate": "Verify and update your school's information to keep it accurate.",
+    "verifyAndUpdate": "Claim your school's page to receive parliamentary alerts, grant notifications, and news monitoring — delivered to your inbox monthly.",
     "claimThisPage": "Claim This Page",
     "requiresMoeEmail": "Requires a valid @moe.edu.my email address",
     "checkEmail": "Check your email",
@@ -219,6 +244,7 @@
     "orgPlaceholder": "Your organisation (optional)",
     "updatesOn": "You'll receive updates on:",
     "allEnabled": "All categories are enabled by default. You can change these after subscribing.",
+    "socialProof": "Join school leaders and community advocates staying informed about Tamil schools across Malaysia.",
     "subscribing": "Subscribing...",
     "subscribeButton": "Subscribe",
     "unsubscribeTitle": "Unsubscribe",
@@ -245,6 +271,25 @@
     "mediaAlerts": "— media coverage affecting Tamil schools",
     "monthlyDigest": "— comprehensive monthly intelligence digest"
   },
+  "about": {
+    "title": "About SJK(T) Connect",
+    "pageDescription": "Learn about SJK(T) Connect, the intelligence platform for Malaysia's 528 Tamil schools.",
+    "subtitle": "The first intelligence platform dedicated to Malaysia's Tamil schools",
+    "whatWeDoTitle": "What We Do",
+    "whatWeDoP1": "SJK(T) Connect is an open data platform that tracks, connects, and amplifies the voices of Malaysia's 528 Tamil primary schools. We monitor parliamentary proceedings, media coverage, and community developments — so that no Tamil school goes unnoticed.",
+    "whatWeDoP2": "Built by Tamil Foundation Malaysia, this platform serves school leaders, parents, elected representatives, journalists, and community advocates who care about Tamil education.",
+    "featureParliament": "Parliament Watch",
+    "featureParliamentDesc": "AI-powered analysis of Hansard proceedings. We track every mention of Tamil schools in Parliament and score MPs on their engagement.",
+    "featureNews": "News Watch",
+    "featureNewsDesc": "Daily media monitoring with AI-powered relevance scoring. Stay informed about developments affecting Tamil schools.",
+    "featureDirectory": "School Directory",
+    "featureDirectoryDesc": "Comprehensive data on all 528 schools — enrolment, leadership, location, and constituency representation.",
+    "aboutTFTitle": "About Tamil Foundation Malaysia",
+    "aboutTFBody": "Tamil Foundation Malaysia is a non-profit organisation dedicated to preserving and advancing Tamil language, education, and culture in Malaysia. SJK(T) Connect is one of our flagship digital initiatives.",
+    "contactEmail": "info@tamilfoundation.org",
+    "dataSourceTitle": "Data Sources",
+    "dataSourceBody": "School data from the Ministry of Education (January 2026). Parliamentary data from the Parliament of Malaysia. Constituency data from the Election Commission of Malaysia."
+  },
   "parliamentWatch": {
     "title": "Parliament Watch — SJK(T) Connect",
     "heading": "Parliament Watch",
@@ -255,6 +300,20 @@
     "and": "and",
     "constituencyPages": "constituency pages",
     "noMentions": "No parliamentary mentions found for this school yet.",
+    "noMentionsSubscribe": "No parliamentary mentions found yet. Subscribe to receive alerts when your school's constituency is discussed in Parliament.",
+    "noNewsSubscribe": "No news articles yet. Subscribe to receive media monitoring alerts about Tamil schools.",
+    "subscribeCta": "Subscribe to Intelligence",
+    "whatWeTrack": "What Parliament Watch Tracks",
+    "trackMentions": "Hansard Mentions",
+    "trackMentionsDesc": "Every mention of Tamil schools in parliamentary debates, identified and scored by AI.",
+    "trackScorecards": "MP Scorecards",
+    "trackScorecardsDesc": "Performance ratings for MPs based on their engagement with Tamil school issues.",
+    "trackAlerts": "Constituency Alerts",
+    "trackAlertsDesc": "Notifications when your constituency's MP discusses education matters.",
+    "monitoringOngoing": "Monitoring Ongoing",
+    "monitoringBody": "Parliament Watch is actively monitoring Hansard proceedings. Subscribe to receive analysis as new sitting data is processed.",
+    "exploreNow": "Explore Available Data",
+    "exploreBody": "MP scorecards and constituency data are available now. Visit constituency pages to see school data and MP information for each area.",
     "significance": "Significance: {score}/5",
     "newsWatchHeading": "News Watch",
     "noNews": "No news articles yet.",

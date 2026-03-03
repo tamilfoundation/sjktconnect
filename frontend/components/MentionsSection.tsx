@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { SchoolMention } from "@/lib/types";
 
 interface MentionsSectionProps {
@@ -16,9 +17,15 @@ export default function MentionsSection({ mentions }: MentionsSectionProps) {
         <h2 className="text-lg font-semibold text-gray-800 mb-3">
           {t("heading")}
         </h2>
-        <p className="text-sm text-gray-500">
-          {t("noMentions")}
+        <p className="text-sm text-gray-500 mb-3">
+          {t("noMentionsSubscribe")}
         </p>
+        <Link
+          href="/subscribe"
+          className="inline-block text-sm text-primary-600 hover:text-primary-700 font-medium"
+        >
+          {t("subscribeCta")} →
+        </Link>
       </div>
     );
   }

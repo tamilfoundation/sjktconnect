@@ -7,6 +7,7 @@ import {
   GeoJSONFeature,
   GeoJSONFeatureCollection,
   MagicLinkResponse,
+  NationalStats,
   NewsArticle,
   PaginatedResponse,
   PreferenceUpdate,
@@ -388,4 +389,11 @@ export async function updatePreferences(
     throw new Error(data.detail || `API error: ${res.status}`);
   }
   return data;
+}
+
+/**
+ * Fetch national aggregate statistics for all active Tamil schools.
+ */
+export async function fetchNationalStats(): Promise<NationalStats> {
+  return fetchJSON<NationalStats>(`${BASE}/stats/national/`);
 }

@@ -229,6 +229,15 @@ export interface UnsubscribeResponse {
   email: string;
 }
 
+export interface NationalStats {
+  total_schools: number;
+  total_students: number;
+  total_teachers: number;
+  states: number;
+  constituencies_with_schools: number;
+  schools_under_30_students: number;
+}
+
 export interface PreferenceUpdate {
   PARLIAMENT_WATCH?: boolean;
   NEWS_WATCH?: boolean;

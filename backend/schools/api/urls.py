@@ -13,6 +13,7 @@ from schools.api.views import (
     DUNGeoJSONDetailView,
     DUNGeoJSONView,
     DUNListView,
+    NationalStatsView,
     SchoolConfirmView,
     SchoolDetailView,
     SchoolEditView,
@@ -40,6 +41,8 @@ urlpatterns = [
     path("duns/geojson/", DUNGeoJSONView.as_view(), name="dun-geojson-list"),
     path("duns/<int:pk>/geojson/", DUNGeoJSONDetailView.as_view(), name="dun-geojson-detail"),
     path("duns/<int:pk>/", DUNDetailView.as_view(), name="dun-detail"),
+    # Statistics
+    path("stats/national/", NationalStatsView.as_view(), name="national-stats"),
     # Search
     path("search/", SearchView.as_view(), name="search"),
     # Parliament (scorecards, briefs)

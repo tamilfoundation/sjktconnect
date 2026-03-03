@@ -11,7 +11,8 @@ describe("Footer", () => {
   it("includes current year", () => {
     render(<Footer />);
     const year = new Date().getFullYear().toString();
-    expect(screen.getByText(new RegExp(year))).toBeInTheDocument();
+    const matches = screen.getAllByText(new RegExp(year));
+    expect(matches.length).toBeGreaterThan(0);
   });
 
   it("mentions data sources", () => {
