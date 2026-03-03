@@ -301,6 +301,11 @@ export default function Header() {
                 );
               })}
 
+              {/* Language switcher */}
+              <div className="ml-2">
+                <LanguageSwitcher />
+              </div>
+
               {/* CTA buttons */}
               <Link
                 href="/subscribe"
@@ -314,11 +319,6 @@ export default function Header() {
               >
                 {t("donate")}
               </Link>
-
-              {/* Language switcher */}
-              <div className="ml-2">
-                <LanguageSwitcher />
-              </div>
             </nav>
 
             {/* ---- Hamburger button (mobile) ---- */}
@@ -398,6 +398,11 @@ export default function Header() {
                 );
               })}
 
+              {/* Language switcher */}
+              <div className="px-4 py-3 border-t border-gray-100">
+                <LanguageSwitcher />
+              </div>
+
               {/* CTA buttons */}
               <div className="px-4 py-3 space-y-2">
                 <Link
@@ -414,11 +419,6 @@ export default function Header() {
                 >
                   {t("donate")}
                 </Link>
-              </div>
-
-              {/* Language switcher */}
-              <div className="px-4 py-3 border-t border-gray-100">
-                <LanguageSwitcher />
               </div>
             </nav>
           </div>
