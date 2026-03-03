@@ -184,13 +184,20 @@ def _strip_prefix(name):
     ).strip()
 
 
-def _resolve_school_codes(mentioned_schools):
+def _resolve_school_codes(mentioned_schools, article=None):
     """Match mentioned school names against the database to fill in moe_codes.
 
     Strips SJKT/SJK(T) prefixes and matches the distinctive part against
-    School.short_name in the database.
+    School.short_name in the database. When multiple schools share the same
+    name (e.g. SJK(T) Saraswathy exists in 3 states), uses location clues
+    from the article text to disambiguate.
     """
     from schools.models import School
+
+    # Build location context from article text for disambiguation
+    location_text = ""
+    if article:
+        location_text = f"{article.title} {article.body_text}".lower()
 
     resolved = []
     for entry in mentioned_schools:
@@ -209,24 +216,61 @@ def _resolve_school_codes(mentioned_schools):
         distinctive = _strip_prefix(name)
 
         # Try exact match first
-        match = School.objects.filter(short_name__iexact=name).first()
-        if not match:
+        candidates = School.objects.filter(short_name__iexact=name)
+        if not candidates.exists():
             # Match with SJK(T) prefix + distinctive part
-            match = School.objects.filter(
+            candidates = School.objects.filter(
                 short_name__iexact=f"SJK(T) {distinctive}"
-            ).first()
-        if not match and distinctive:
+            )
+        if not candidates.exists() and distinctive:
             # Partial: distinctive part anywhere in short_name
-            match = School.objects.filter(
+            candidates = School.objects.filter(
                 short_name__icontains=distinctive
-            ).first()
+            )
 
-        if match:
+        if candidates.count() == 1:
+            match = candidates.first()
+            resolved.append({"name": match.short_name, "moe_code": match.moe_code})
+        elif candidates.count() > 1 and location_text:
+            # Disambiguate using location clues from article
+            match = _disambiguate_by_location(candidates, location_text)
+            resolved.append({"name": match.short_name, "moe_code": match.moe_code})
+        elif candidates.exists():
+            # Multiple matches, no location context — pick first but log it
+            match = candidates.first()
+            logger.warning(
+                "Ambiguous school match for '%s': %d candidates, picked %s",
+                name, candidates.count(), match.moe_code,
+            )
             resolved.append({"name": match.short_name, "moe_code": match.moe_code})
         else:
             resolved.append({"name": name, "moe_code": ""})
 
     return resolved
+
+
+def _disambiguate_by_location(candidates, location_text):
+    """Pick the best school from multiple candidates using article text.
+
+    Scores each candidate by how many of its location fields (state, city,
+    ppd) appear in the article text. Returns the highest-scoring match.
+    """
+    best = None
+    best_score = -1
+
+    for school in candidates:
+        score = 0
+        if school.state and school.state.lower() in location_text:
+            score += 2
+        if school.city and school.city.lower() in location_text:
+            score += 3  # City is more specific, higher weight
+        if school.ppd and school.ppd.lower() in location_text:
+            score += 1
+        if score > best_score:
+            best_score = score
+            best = school
+
+    return best
 
 
 def apply_analysis(article, analysis):
@@ -243,7 +287,9 @@ def apply_analysis(article, analysis):
     article.relevance_score = analysis["relevance_score"]
     article.sentiment = analysis["sentiment"]
     article.ai_summary = analysis["summary"]
-    article.mentioned_schools = _resolve_school_codes(analysis["mentioned_schools"])
+    article.mentioned_schools = _resolve_school_codes(
+        analysis["mentioned_schools"], article=article
+    )
     article.is_urgent = analysis["is_urgent"]
     article.urgent_reason = analysis["urgent_reason"]
     article.ai_raw_response = analysis.get("raw_response", {})
