@@ -24,7 +24,7 @@ export default function HeroSection({
   };
 
   return (
-    <section className="bg-gradient-to-br from-blue-950 via-blue-900 to-indigo-900 text-white">
+    <section className="bg-gradient-to-b from-blue-950 to-blue-900 text-white">
       <div className="max-w-7xl mx-auto px-4 py-12 sm:py-16 lg:py-20">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12 items-center">
           {/* Left: headline + CTAs */}
