@@ -172,6 +172,63 @@ def analyse_article(article):
     return result
 
 
+def _strip_prefix(name):
+    """Strip common school type prefixes to get the distinctive part.
+
+    e.g. "SJKT Kerajaan" -> "Kerajaan", "SJK(T) Ladang Highlands" -> "Ladang Highlands"
+    """
+    import re
+    return re.sub(
+        r"^(?:SJK\s*\(T\)|SJKT|SRK\(T\)|SRJK\(T\))\s*",
+        "", name, flags=re.IGNORECASE,
+    ).strip()
+
+
+def _resolve_school_codes(mentioned_schools):
+    """Match mentioned school names against the database to fill in moe_codes.
+
+    Strips SJKT/SJK(T) prefixes and matches the distinctive part against
+    School.short_name in the database.
+    """
+    from schools.models import School
+
+    resolved = []
+    for entry in mentioned_schools:
+        name = entry.get("name", "").strip()
+        code = entry.get("moe_code", "").strip()
+        if not name:
+            continue
+
+        # If Gemini already provided a code, verify it exists
+        if code:
+            if School.objects.filter(moe_code=code).exists():
+                resolved.append({"name": name, "moe_code": code})
+                continue
+
+        # Extract the distinctive part (e.g. "Kerajaan" from "SJKT Kerajaan")
+        distinctive = _strip_prefix(name)
+
+        # Try exact match first
+        match = School.objects.filter(short_name__iexact=name).first()
+        if not match:
+            # Match with SJK(T) prefix + distinctive part
+            match = School.objects.filter(
+                short_name__iexact=f"SJK(T) {distinctive}"
+            ).first()
+        if not match and distinctive:
+            # Partial: distinctive part anywhere in short_name
+            match = School.objects.filter(
+                short_name__icontains=distinctive
+            ).first()
+
+        if match:
+            resolved.append({"name": match.short_name, "moe_code": match.moe_code})
+        else:
+            resolved.append({"name": name, "moe_code": ""})
+
+    return resolved
+
+
 def apply_analysis(article, analysis):
     """Apply validated analysis dict to a NewsArticle and save.
 
@@ -186,7 +243,7 @@ def apply_analysis(article, analysis):
     article.relevance_score = analysis["relevance_score"]
     article.sentiment = analysis["sentiment"]
     article.ai_summary = analysis["summary"]
-    article.mentioned_schools = analysis["mentioned_schools"]
+    article.mentioned_schools = _resolve_school_codes(analysis["mentioned_schools"])
     article.is_urgent = analysis["is_urgent"]
     article.urgent_reason = analysis["urgent_reason"]
     article.ai_raw_response = analysis.get("raw_response", {})
