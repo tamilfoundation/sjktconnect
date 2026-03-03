@@ -1,5 +1,26 @@
 # Changelog
 
+## Sprint 3.5 — Tamil Translation Review + Deployment (2026-03-03)
+
+### Fixed
+- Tamil translations: 7 vallinam doubling corrections (ஊடகச், புலனாய்வுத், இயங்குப்/த், பள்ளிப், நடவடிக்கைகளைத், புலனாய்வுக்குச்)
+- Tamil translations: standardised நுண்ணறிவு → புலனாய்வு for "intelligence" consistency
+- Tamil translations: AI → செய்யறிவு (proper Tamil term for artificial intelligence)
+- Tamil translations: சந்தா செலுத்துங்கள் → இணையுங்கள் (join, not pay subscription)
+- Tamil translations: removed redundant இயங்கு from செய்யறிவு compounds
+- Frontend: updated @swc/helpers to 0.5.19 for next-intl compatibility
+
+### Deployed
+- Backend: revision sjktconnect-api-00016-vlb (all Sprint 3.3-3.4 changes)
+- Frontend: revision sjktconnect-web-00013-ff8 (i18n, hero, about, data provenance)
+- Cloud Run jobs updated to latest image (check-hansards, news-pipeline, monthly-blast)
+
+### Technical
+- 747 tests passing (532 backend + 215 frontend)
+- gcloud CLI fixed: CLOUDSDK_PYTHON updated to Python 3.13
+
+---
+
 ## Sprint 3.4 — Homepage, About, Data Provenance & UX (2026-03-03)
 
 ### Added

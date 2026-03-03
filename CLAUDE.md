@@ -11,8 +11,8 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 3 in progress. Sprint 3.4 done.
-- **Last Sprint**: 3.4 (closed 2026-03-03, Homepage, About, Data Provenance & UX)
+- **Current Phase**: Phase 3 in progress. Sprint 3.5 done.
+- **Last Sprint**: 3.5 (closed 2026-03-03, Tamil Translation Review + Deployment)
 - **Tests**: 747 (532 backend + 215 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
@@ -181,6 +181,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 3.2 | Done | Frontend Layout Redesign: side-by-side hero, stat cards (Students/Teachers/Grade), leadership section, enrolment breakdown, assistance type mapping. 5 new frontend tests (846 total). |
 | 3.3 | Done | i18n Infrastructure: next-intl trilingual (EN/TA/MS), pages under `app/[locale]/`, ~162 strings extracted, LanguageSwitcher, translation completeness tests. 6 new frontend tests (852 total). |
 | 3.4 | Done | Homepage, About, Data Provenance & UX: national stats API, hero section, About page, favicon/metadata, MOE jargon translation, CTA reframe, empty state improvements, zero-school constituency filter, data provenance. 25 new frontend + 1 backend test (747 total). |
+| 3.5 | Done | Tamil Translation Review + Deployment: 9 Tamil grammar/terminology fixes (vallinam, செய்யறிவு, புலனாய்வு consistency), deployed backend + frontend to production, updated 3 Cloud Run jobs. |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -197,12 +198,11 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 3.5 — Deployment + Tamil Translation Review**:
-- Deploy frontend with Sprint 3.3-3.4 changes (i18n URLs, hero, about page, data provenance)
-- Review Tamil translations against `tamil-style-guide.md` for accuracy
-- Test locale switching in production (EN/TA/MS)
-- Verify national stats endpoint works in production
-- Consider: Phase 3 platform features (AI review layer, field partner role)
+**Sprint 3.6 — TBD**:
+- Phase 3 platform features: AI review layer, field partner role, or Parliament Watch public page
+- All Sprint 3.3-3.5 changes now live in production
+- Tamil translations reviewed and corrected (9 fixes)
+- gcloud CLI requires `CLOUDSDK_PYTHON` env var pointing to Python 3.13
 
 ## Frontend (Sprint 1.3–3.3)
 - **Stack**: Next.js 14, App Router, Tailwind CSS, TypeScript, next-intl (i18n)
