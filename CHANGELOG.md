@@ -1,5 +1,26 @@
 # Changelog
 
+## Sprint 3.8 — News & Reports Page (2026-03-03)
+
+### Added
+- **Public News API**: `GET /api/v1/news/` — paginated list of approved articles with `?search=` and `?category=school|general` filters
+- **Auto-approve**: Articles with AI relevance score >= 3 are now automatically approved after analysis
+- **News & Reports page**: `/news` with tab filters (All / By School / General), search, article cards, subscribe CTA sidebar, and most mentioned schools sidebar
+- **NewsCard component**: Article card with title link, source/date, sentiment badge, AI summary, school chips (linked to school pages), and URGENT badge
+- **NewsList component**: Client-side filtering, search, and sidebar with subscribe CTA and top mentioned schools
+- **i18n**: 19 new translation keys in EN/MS/TA for the news page
+
+### Changed
+- **Navigation**: "Parliament Watch" renamed to "News & Reports" in header and footer (all 3 languages)
+- **NewsArticle API**: `mentioned_schools` field now included in serializer response
+
+### Technical
+- 785 tests passing (547 backend + 238 frontend) — 28 new tests
+- Backend and frontend deployed to Cloud Run
+- 7 commits
+
+---
+
 ## Sprint 3.7 — Map InfoWindow, School Page Polish & Enrolment Filter (2026-03-03)
 
 ### Fixed
