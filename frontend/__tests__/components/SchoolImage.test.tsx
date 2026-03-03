@@ -35,6 +35,7 @@ describe("SchoolImage", () => {
     );
     const img = screen.getByRole("img");
     expect(img.className).toContain("w-full");
+    expect(img.className).toContain("h-full");
     expect(img.className).toContain("object-cover");
   });
 
@@ -51,8 +52,8 @@ describe("SchoolImage", () => {
     ];
     render(<SchoolImage images={images} schoolName="Test School" />);
     const imgs = screen.getAllByRole("img");
-    // 1 hero + 2 thumbnails
-    expect(imgs).toHaveLength(3);
+    // 1 hero + 3 overlay thumbnails (all shown, active one highlighted)
+    expect(imgs).toHaveLength(4);
     expect(imgs[0]).toHaveAttribute("src", "https://example.com/1.jpg");
   });
 
@@ -67,8 +68,8 @@ describe("SchoolImage", () => {
     const allImgs = screen.getAllByRole("img");
     expect(allImgs[0]).toHaveAttribute("src", "https://example.com/1.jpg");
 
-    // Click the thumbnail (image 2)
-    fireEvent.click(allImgs[1]);
+    // Click the second thumbnail (image 2) — thumbnails start at index 1
+    fireEvent.click(allImgs[2]);
 
     // Now image 2 should be the hero
     const updatedImgs = screen.getAllByRole("img");

@@ -1,17 +1,22 @@
 interface StatCardProps {
   label: string;
   value: string | number;
-  icon?: string;
+  icon?: React.ReactNode;
+  iconColor?: string;
 }
 
-export default function StatCard({ label, value, icon }: StatCardProps) {
+export default function StatCard({ label, value, icon, iconColor = "text-primary-600" }: StatCardProps) {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 border-t-2 border-t-primary-500 p-4 text-center">
-      {icon && <div className="text-2xl mb-1">{icon}</div>}
-      <div className="text-2xl font-bold text-primary-700">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col items-center justify-center text-center">
+      {icon && (
+        <div className={`mb-1 ${iconColor}`}>
+          {icon}
+        </div>
+      )}
+      <div className="text-2xl font-bold text-gray-900">
         {typeof value === "number" ? value.toLocaleString() : value}
       </div>
-      <div className="text-sm text-gray-500 mt-1">{label}</div>
+      <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-1">{label}</div>
     </div>
   );
 }
