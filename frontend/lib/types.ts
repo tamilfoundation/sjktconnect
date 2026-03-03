@@ -15,6 +15,10 @@ export interface School {
   location_type: string;
   preschool_enrolment: number;
   special_enrolment: number;
+  dun_id: number | null;
+  dun_code: string | null;
+  dun_name: string | null;
+  image_url: string | null;
 }
 
 export interface SchoolImageData {

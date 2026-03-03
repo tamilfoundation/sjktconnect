@@ -432,5 +432,15 @@
     "locationInfo": "Schools are coloured by their location: urban (Bandar) or rural (Luar Bandar).",
     "programmesInfo": "Schools are coloured by whether they offer preschool, special needs, both, or neither.",
     "enrolmentInfo": "Schools at or below the threshold are highlighted in red."
+  },
+  "mapInfoWindow": {
+    "governmentAided": "Government-Aided",
+    "government": "Government",
+    "urban": "Urban",
+    "rural": "Rural",
+    "students": "Students",
+    "teachers": "Teachers",
+    "ratio": "Ratio",
+    "viewSchool": "View School →"
   }
 }

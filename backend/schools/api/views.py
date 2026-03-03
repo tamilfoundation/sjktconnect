@@ -43,7 +43,7 @@ class SchoolListView(ListAPIView):
     serializer_class = SchoolListSerializer
 
     def get_queryset(self):
-        qs = School.objects.select_related("constituency").filter(is_active=True)
+        qs = School.objects.select_related("constituency", "dun").prefetch_related("images").filter(is_active=True)
         state = self.request.query_params.get("state")
         ppd = self.request.query_params.get("ppd")
         constituency = self.request.query_params.get("constituency")

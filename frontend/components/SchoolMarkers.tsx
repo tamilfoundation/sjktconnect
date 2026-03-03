@@ -50,13 +50,26 @@ function getPinColour(
   }
 }
 
+function getAssistanceLabel(type: string): string {
+  return type === "SBK" || type === "SABK" ? "governmentAided" : "government";
+}
+
+function getLocationLabel(type: string): string {
+  return type === "Bandar" ? "urban" : "rural";
+}
+
+function getRatio(enrolment: number, teachers: number): string {
+  if (!teachers) return "—";
+  const ratio = Math.round(enrolment / teachers);
+  return `${ratio}:1`;
+}
+
 export default function SchoolMarkers({
   schools,
   colourMode,
   enrolmentThreshold,
 }: SchoolMarkersProps) {
-  const t = useTranslations("home");
-  const tc = useTranslations("common");
+  const t = useTranslations("mapInfoWindow");
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
 
   const handleClose = useCallback(() => setSelectedSchool(null), []);
@@ -93,43 +106,156 @@ export default function SchoolMarkers({
             lng: Number(selectedSchool.gps_lng),
           }}
           onCloseClick={handleClose}
+          headerDisabled
         >
-          <div className="info-window" style={{ maxWidth: 260 }}>
-            <h3>{selectedSchool.short_name || selectedSchool.name}</h3>
-            <p>
-              <strong>{t("code")}</strong> {selectedSchool.moe_code}
-            </p>
-            <p>
-              <strong>{t("state")}</strong> {selectedSchool.state}
-            </p>
-            <p>
-              <strong>{t("enrolment")}</strong>{" "}
-              {selectedSchool.enrolment?.toLocaleString() ?? tc("na")}
-            </p>
-            {selectedSchool.teacher_count > 0 && (
-              <p>
-                <strong>{t("teachers")}</strong> {selectedSchool.teacher_count}
-              </p>
+          <div style={{ width: 280 }}>
+            {/* School image or placeholder */}
+            {selectedSchool.image_url ? (
+              <img
+                src={selectedSchool.image_url}
+                alt={selectedSchool.short_name || selectedSchool.name}
+                style={{
+                  width: "100%",
+                  height: 130,
+                  objectFit: "cover",
+                  borderRadius: "8px 8px 0 0",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: "100%",
+                  height: 130,
+                  background: "linear-gradient(135deg, #e0e7ff, #c7d2fe)",
+                  borderRadius: "8px 8px 0 0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#6366f1",
+                  fontSize: 36,
+                }}
+              >
+                🏫
+              </div>
             )}
-            {selectedSchool.constituency_name && (
-              <p>
-                <strong>{t("constituencyLabel")}</strong>{" "}
-                {selectedSchool.constituency_name} (
-                {selectedSchool.constituency_code})
-              </p>
-            )}
-            <Link
-              href={`/school/${selectedSchool.moe_code}`}
-              style={{
-                display: "inline-block",
-                marginTop: 8,
-                color: "#4f46e5",
-                fontWeight: 600,
-                textDecoration: "none",
-              }}
-            >
-              {t("viewSchool")}
-            </Link>
+
+            {/* Content */}
+            <div style={{ padding: "10px 12px 12px" }}>
+              {/* School name */}
+              <h3 style={{ margin: "0 0 6px", fontSize: 15, fontWeight: 700, color: "#1e293b", lineHeight: 1.3 }}>
+                {selectedSchool.short_name || selectedSchool.name}
+              </h3>
+
+              {/* Badges */}
+              <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+                <span
+                  style={{
+                    display: "inline-block",
+                    padding: "2px 8px",
+                    borderRadius: 12,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "#fff",
+                    background: selectedSchool.assistance_type === "SBK" || selectedSchool.assistance_type === "SABK"
+                      ? "#7c3aed" : "#ea580c",
+                  }}
+                >
+                  {t(getAssistanceLabel(selectedSchool.assistance_type))}
+                </span>
+                <span
+                  style={{
+                    display: "inline-block",
+                    padding: "2px 8px",
+                    borderRadius: 12,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "#fff",
+                    background: selectedSchool.location_type === "Bandar" ? "#2563eb" : "#16a34a",
+                  }}
+                >
+                  {t(getLocationLabel(selectedSchool.location_type))}
+                </span>
+              </div>
+
+              {/* Stats row */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-around",
+                  padding: "8px 0",
+                  borderTop: "1px solid #e2e8f0",
+                  borderBottom: "1px solid #e2e8f0",
+                  marginBottom: 8,
+                }}
+              >
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>
+                    {selectedSchool.enrolment?.toLocaleString() ?? "—"}
+                  </div>
+                  <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    {t("students")}
+                  </div>
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>
+                    {selectedSchool.teacher_count || "—"}
+                  </div>
+                  <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    {t("teachers")}
+                  </div>
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>
+                    {getRatio(selectedSchool.enrolment ?? 0, selectedSchool.teacher_count)}
+                  </div>
+                  <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    {t("ratio")}
+                  </div>
+                </div>
+              </div>
+
+              {/* Constituency & DUN links */}
+              <div style={{ fontSize: 12, color: "#64748b", marginBottom: 10, lineHeight: 1.6 }}>
+                {selectedSchool.constituency_code && (
+                  <div>
+                    <Link
+                      href={`/constituency/${selectedSchool.constituency_code}`}
+                      style={{ color: "#4f46e5", textDecoration: "none", fontWeight: 500 }}
+                    >
+                      {selectedSchool.constituency_code} {selectedSchool.constituency_name}
+                    </Link>
+                  </div>
+                )}
+                {selectedSchool.dun_id && (
+                  <div>
+                    <Link
+                      href={`/dun/${selectedSchool.dun_id}`}
+                      style={{ color: "#4f46e5", textDecoration: "none", fontWeight: 500 }}
+                    >
+                      {selectedSchool.dun_code} {selectedSchool.dun_name}
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* View School button */}
+              <Link
+                href={`/school/${selectedSchool.moe_code}`}
+                style={{
+                  display: "block",
+                  textAlign: "center",
+                  padding: "8px 0",
+                  background: "#4f46e5",
+                  color: "#fff",
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  textDecoration: "none",
+                }}
+              >
+                {t("viewSchool")}
+              </Link>
+            </div>
           </div>
         </InfoWindow>
       )}

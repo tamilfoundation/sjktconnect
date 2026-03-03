@@ -432,5 +432,15 @@
     "locationInfo": "Sekolah diwarnakan mengikut lokasi: bandar atau luar bandar.",
     "programmesInfo": "Sekolah diwarnakan mengikut program: prasekolah, pendidikan khas, kedua-dua, atau tiada.",
     "enrolmentInfo": "Sekolah pada atau di bawah ambang disorot dalam merah."
+  },
+  "mapInfoWindow": {
+    "governmentAided": "Bantuan Kerajaan",
+    "government": "Kerajaan",
+    "urban": "Bandar",
+    "rural": "Luar Bandar",
+    "students": "Pelajar",
+    "teachers": "Guru",
+    "ratio": "Nisbah",
+    "viewSchool": "Lihat Sekolah →"
   }
 }

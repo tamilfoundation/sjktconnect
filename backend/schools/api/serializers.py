@@ -15,6 +15,10 @@ class SchoolListSerializer(serializers.ModelSerializer):
     constituency_name = serializers.CharField(
         source="constituency.name", default=None
     )
+    dun_id = serializers.IntegerField(source="dun.id", default=None)
+    dun_code = serializers.CharField(source="dun.code", default=None)
+    dun_name = serializers.CharField(source="dun.name", default=None)
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = School
@@ -26,6 +30,9 @@ class SchoolListSerializer(serializers.ModelSerializer):
             "ppd",
             "constituency_code",
             "constituency_name",
+            "dun_id",
+            "dun_code",
+            "dun_name",
             "enrolment",
             "teacher_count",
             "gps_lat",
@@ -35,7 +42,15 @@ class SchoolListSerializer(serializers.ModelSerializer):
             "location_type",
             "preschool_enrolment",
             "special_enrolment",
+            "image_url",
         ]
+
+    def get_image_url(self, obj):
+        """Return the primary image URL, or None."""
+        primary = obj.images.filter(is_primary=True).first()
+        if primary:
+            return primary.image_url
+        return None
 
 
 class SchoolImageSerializer(serializers.Serializer):
