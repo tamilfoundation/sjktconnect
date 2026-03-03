@@ -94,12 +94,12 @@ export default function SchoolMap() {
           return true;
         }
         case "enrolment":
-          return true;
+          return (school.enrolment ?? 0) <= enrolmentThreshold;
         default:
           return true;
       }
     });
-  }, [allSchools, searchResult, colourMode, toggles]);
+  }, [allSchools, searchResult, colourMode, toggles, enrolmentThreshold]);
 
   const handleToggleChange = useCallback((key: keyof FilterToggles) => {
     setToggles((prev) => ({ ...prev, [key]: !prev[key] }));

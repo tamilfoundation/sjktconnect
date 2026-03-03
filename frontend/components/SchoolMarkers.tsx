@@ -44,10 +44,7 @@ function getPinColour(
       return { background: "#6b7280", border: "#4b5563" }; // grey
     }
     case "enrolment":
-      if ((school.enrolment ?? 0) <= enrolmentThreshold) {
-        return { background: "#dc2626", border: "#b91c1c" }; // red
-      }
-      return { background: "#6b7280", border: "#4b5563" }; // grey
+      return { background: "#dc2626", border: "#b91c1c" }; // red (filtered to threshold)
     default:
       return { background: "#4f46e5", border: "#3730a3" }; // indigo default
   }
