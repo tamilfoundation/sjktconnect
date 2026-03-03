@@ -21,7 +21,32 @@
     "newsReports": "Berita & Laporan",
     "about": "Mengenai",
     "contact": "Hubungi",
-    "toggleMenu": "Togol menu"
+    "toggleMenu": "Togol menu",
+    "exploreLabel": "Terokai",
+    "intelligenceLabel": "Perisikan",
+    "resourcesLabel": "Sumber",
+    "aboutLabel": "Mengenai",
+    "schoolMapDesc": "Peta interaktif 528 sekolah Tamil",
+    "constituenciesDesc": "Kawasan parlimen dengan sekolah Tamil",
+    "aboutTamilSchoolsDesc": "Sejarah dan latar belakang sekolah Tamil",
+    "aboutTamilSchools": "Mengenai Sekolah Tamil",
+    "newsReportsDesc": "Pemantauan media dan analisis berkuasa AI",
+    "issuesDesc": "Isu-isu utama sekolah Tamil",
+    "issues": "Isu",
+    "parliamentWatchDesc": "Menjejaki sebutan sekolah Tamil di Parlimen",
+    "parliamentWatch": "Pemantauan Parlimen",
+    "ptaToolkit": "Kit PIBG",
+    "ptaToolkitDesc": "Sumber untuk jawatankuasa PIBG",
+    "lpsToolkit": "Kit LPS",
+    "lpsToolkitDesc": "Sumber untuk lembaga pengelola sekolah",
+    "dataDownloads": "Data & Muat Turun",
+    "dataDownloadsDesc": "Muat turun data sekolah dan laporan",
+    "faq": "Soalan Lazim",
+    "faqDesc": "Soalan yang sering ditanya",
+    "aboutDesc": "Mengenai SJK(T) Connect dan Tamil Foundation",
+    "contactDesc": "Hubungi kami",
+    "subscribe": "Langgan",
+    "donate": "Derma"
   },
   "footer": {
     "copyright": "© {year} SJK(T) Connect. Hak cipta terpelihara. Data daripada KPM & Parlimen Malaysia.",
@@ -36,7 +61,19 @@
     "legalTitle": "Undang-undang",
     "privacyPolicy": "Dasar Privasi",
     "termsOfService": "Terma Perkhidmatan",
-    "cookiePolicy": "Dasar Kuki"
+    "cookiePolicy": "Dasar Kuki",
+    "exploreTitle": "Terokai",
+    "intelligenceTitle": "Perisikan",
+    "resourcesTitle": "Sumber",
+    "aboutTitle": "Mengenai",
+    "aboutTamilSchools": "Mengenai Sekolah Tamil",
+    "issues": "Isu",
+    "parliamentWatch": "Pemantauan Parlimen",
+    "ptaToolkit": "Kit PIBG",
+    "lpsToolkit": "Kit LPS",
+    "dataDownloads": "Data & Muat Turun",
+    "faq": "Soalan Lazim",
+    "donate": "Derma"
   },
   "schoolProfile": {
     "schoolDetails": "Butiran Sekolah",
@@ -464,5 +501,54 @@
     "teachers": "Guru",
     "ratio": "Nisbah",
     "viewSchool": "Lihat Sekolah →"
+  },
+  "donate": {
+    "title": "Derma — SJK(T) Connect",
+    "heading": "Sokong Sekolah Tamil",
+    "intro": "Derma anda membantu mengekalkan platform ini dan menyokong komuniti sekolah Tamil di seluruh Malaysia.",
+    "comingSoon": "Akan Datang",
+    "comingSoonBody": "Derma dalam talian akan tersedia tidak lama lagi. Buat masa ini, hubungi kami di info@tamilfoundation.org."
+  },
+  "aboutTamilSchools": {
+    "title": "Mengenai Sekolah Tamil — SJK(T) Connect",
+    "heading": "Mengenai Sekolah Tamil di Malaysia",
+    "intro": "Memahami sejarah, cabaran, dan kepentingan 528 sekolah rendah Tamil Malaysia.",
+    "comingSoon": "Akan Datang",
+    "comingSoonBody": "Panduan komprehensif mengenai sejarah dan keadaan semasa sekolah Tamil di Malaysia sedang disediakan."
+  },
+  "issuesPage": {
+    "title": "Isu — SJK(T) Connect",
+    "heading": "Isu-isu Utama",
+    "intro": "Memahami cabaran yang dihadapi sekolah Tamil Malaysia — dari penurunan enrolmen hingga keperluan infrastruktur.",
+    "comingSoon": "Akan Datang",
+    "comingSoonBody": "Analisis terperinci mengenai isu-isu utama yang mempengaruhi sekolah Tamil sedang disusun."
+  },
+  "ptaToolkit": {
+    "title": "Kit PIBG — SJK(T) Connect",
+    "heading": "Kit PIBG",
+    "intro": "Sumber dan panduan untuk jawatankuasa PIBG di sekolah Tamil.",
+    "comingSoon": "Akan Datang",
+    "comingSoonBody": "Sumber PIBG sedang dibangunkan dengan kerjasama komuniti sekolah."
+  },
+  "lpsToolkit": {
+    "title": "Kit LPS — SJK(T) Connect",
+    "heading": "Kit LPS",
+    "intro": "Sumber untuk ahli Lembaga Pengelola Sekolah.",
+    "comingSoon": "Akan Datang",
+    "comingSoonBody": "Sumber LPS sedang dibangunkan untuk menyokong tadbir urus sekolah."
+  },
+  "dataPage": {
+    "title": "Data & Muat Turun — SJK(T) Connect",
+    "heading": "Data & Muat Turun",
+    "intro": "Muat turun data terbuka tentang sekolah Tamil Malaysia untuk penyelidikan dan advokasi.",
+    "comingSoon": "Akan Datang",
+    "comingSoonBody": "Set data yang boleh dimuat turun sedang disediakan untuk akses awam."
+  },
+  "faqPage": {
+    "title": "Soalan Lazim — SJK(T) Connect",
+    "heading": "Soalan Lazim",
+    "intro": "Jawapan kepada soalan lazim tentang SJK(T) Connect dan sekolah Tamil di Malaysia.",
+    "comingSoon": "Akan Datang",
+    "comingSoonBody": "Bahagian Soalan Lazim sedang disusun berdasarkan soalan komuniti."
   }
 }

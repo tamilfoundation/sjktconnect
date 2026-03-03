@@ -21,7 +21,32 @@
     "newsReports": "News & Reports",
     "about": "About",
     "contact": "Contact",
-    "toggleMenu": "Toggle menu"
+    "toggleMenu": "Toggle menu",
+    "exploreLabel": "Explore",
+    "intelligenceLabel": "Intelligence",
+    "resourcesLabel": "Resources",
+    "aboutLabel": "About",
+    "schoolMapDesc": "Interactive map of all 528 Tamil schools",
+    "constituenciesDesc": "Parliamentary constituencies with Tamil schools",
+    "aboutTamilSchoolsDesc": "History and background of Tamil schools",
+    "aboutTamilSchools": "About Tamil Schools",
+    "newsReportsDesc": "Media monitoring and AI-powered analysis",
+    "issuesDesc": "Key issues facing Tamil schools",
+    "issues": "Issues",
+    "parliamentWatchDesc": "Tracking Tamil school mentions in Parliament",
+    "parliamentWatch": "Parliament Watch",
+    "ptaToolkit": "PTA Toolkit",
+    "ptaToolkitDesc": "Resources for PTA committees",
+    "lpsToolkit": "LPS Toolkit",
+    "lpsToolkitDesc": "Resources for school boards",
+    "dataDownloads": "Data & Downloads",
+    "dataDownloadsDesc": "Download school data and reports",
+    "faq": "FAQ",
+    "faqDesc": "Frequently asked questions",
+    "aboutDesc": "About SJK(T) Connect and Tamil Foundation",
+    "contactDesc": "Get in touch with us",
+    "subscribe": "Subscribe",
+    "donate": "Donate"
   },
   "footer": {
     "copyright": "© {year} SJK(T) Connect. All rights reserved. Data from MOE & Parliament of Malaysia.",
@@ -36,7 +61,19 @@
     "legalTitle": "Legal",
     "privacyPolicy": "Privacy Policy",
     "termsOfService": "Terms of Service",
-    "cookiePolicy": "Cookie Policy"
+    "cookiePolicy": "Cookie Policy",
+    "exploreTitle": "Explore",
+    "intelligenceTitle": "Intelligence",
+    "resourcesTitle": "Resources",
+    "aboutTitle": "About",
+    "aboutTamilSchools": "About Tamil Schools",
+    "issues": "Issues",
+    "parliamentWatch": "Parliament Watch",
+    "ptaToolkit": "PTA Toolkit",
+    "lpsToolkit": "LPS Toolkit",
+    "dataDownloads": "Data & Downloads",
+    "faq": "FAQ",
+    "donate": "Donate"
   },
   "schoolProfile": {
     "schoolDetails": "School Details",
@@ -464,5 +501,54 @@
     "teachers": "Teachers",
     "ratio": "Ratio",
     "viewSchool": "View School →"
+  },
+  "donate": {
+    "title": "Donate — SJK(T) Connect",
+    "heading": "Support Tamil Schools",
+    "intro": "Your donation helps sustain this platform and support Tamil school communities across Malaysia.",
+    "comingSoon": "Coming Soon",
+    "comingSoonBody": "Online donations will be available soon. For now, please contact us at info@tamilfoundation.org."
+  },
+  "aboutTamilSchools": {
+    "title": "About Tamil Schools — SJK(T) Connect",
+    "heading": "About Tamil Schools in Malaysia",
+    "intro": "Understanding the history, challenges, and significance of Malaysia's 528 Tamil primary schools.",
+    "comingSoon": "Coming Soon",
+    "comingSoonBody": "A comprehensive guide to the history and current state of Tamil schools in Malaysia is being prepared."
+  },
+  "issuesPage": {
+    "title": "Issues — SJK(T) Connect",
+    "heading": "Key Issues",
+    "intro": "Understanding the challenges facing Malaysia's Tamil schools — from declining enrolment to infrastructure needs.",
+    "comingSoon": "Coming Soon",
+    "comingSoonBody": "Detailed analysis of key issues affecting Tamil schools is being compiled."
+  },
+  "ptaToolkit": {
+    "title": "PTA Toolkit — SJK(T) Connect",
+    "heading": "PTA Toolkit",
+    "intro": "Resources and guides for Parent-Teacher Association committees at Tamil schools.",
+    "comingSoon": "Coming Soon",
+    "comingSoonBody": "PTA resources are being developed in partnership with school communities."
+  },
+  "lpsToolkit": {
+    "title": "LPS Toolkit — SJK(T) Connect",
+    "heading": "LPS Toolkit",
+    "intro": "Resources for school board members (Lembaga Pengelola Sekolah).",
+    "comingSoon": "Coming Soon",
+    "comingSoonBody": "LPS resources are being developed to support school governance."
+  },
+  "dataPage": {
+    "title": "Data & Downloads — SJK(T) Connect",
+    "heading": "Data & Downloads",
+    "intro": "Download open data about Malaysia's Tamil schools for research and advocacy.",
+    "comingSoon": "Coming Soon",
+    "comingSoonBody": "Downloadable datasets are being prepared for public access."
+  },
+  "faqPage": {
+    "title": "FAQ — SJK(T) Connect",
+    "heading": "Frequently Asked Questions",
+    "intro": "Answers to common questions about SJK(T) Connect and Tamil schools in Malaysia.",
+    "comingSoon": "Coming Soon",
+    "comingSoonBody": "An FAQ section is being compiled based on community questions."
   }
 }

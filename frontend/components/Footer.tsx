@@ -9,9 +9,9 @@ export default function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-400">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Left: copyright + socials */}
-          <div className="md:col-span-1">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
+          {/* Column 1: Brand */}
+          <div className="col-span-2 md:col-span-1">
             <p className="text-white font-semibold text-sm mb-2">
               SJK(T) Connect
             </p>
@@ -49,70 +49,127 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Right columns */}
-          <div className="md:col-span-2 grid grid-cols-2 gap-8">
-            {/* Platform */}
-            <div>
-              <h3 className="text-white text-xs font-semibold uppercase tracking-wider mb-3">
-                {t("platformTitle")}
-              </h3>
-              <ul className="space-y-2">
-                <li>
-                  <Link href="/" className="text-xs hover:text-white transition-colors">
-                    {t("schoolMap")}
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/constituencies" className="text-xs hover:text-white transition-colors">
-                    {t("constituencies")}
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/news" className="text-xs hover:text-white transition-colors">
-                    {t("newsReports")}
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/subscribe" className="text-xs hover:text-white transition-colors">
-                    {t("subscribe")}
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/about" className="text-xs hover:text-white transition-colors">
-                    {t("about")}
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/contact" className="text-xs hover:text-white transition-colors">
-                    {t("contact")}
-                  </Link>
-                </li>
-              </ul>
-            </div>
+          {/* Column 2: Explore */}
+          <div>
+            <h3 className="text-white text-xs font-semibold uppercase tracking-wider mb-3">
+              {t("exploreTitle")}
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/" className="text-xs hover:text-white transition-colors">
+                  {t("schoolMap")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/constituencies" className="text-xs hover:text-white transition-colors">
+                  {t("constituencies")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/about-tamil-schools" className="text-xs hover:text-white transition-colors">
+                  {t("aboutTamilSchools")}
+                </Link>
+              </li>
+            </ul>
+          </div>
 
-            {/* Legal */}
-            <div>
-              <h3 className="text-white text-xs font-semibold uppercase tracking-wider mb-3">
-                {t("legalTitle")}
-              </h3>
-              <ul className="space-y-2">
-                <li>
-                  <Link href="/privacy" className="text-xs hover:text-white transition-colors">
-                    {t("privacyPolicy")}
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/terms" className="text-xs hover:text-white transition-colors">
-                    {t("termsOfService")}
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/cookies" className="text-xs hover:text-white transition-colors">
-                    {t("cookiePolicy")}
-                  </Link>
-                </li>
-              </ul>
-            </div>
+          {/* Column 3: Intelligence */}
+          <div>
+            <h3 className="text-white text-xs font-semibold uppercase tracking-wider mb-3">
+              {t("intelligenceTitle")}
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/news" className="text-xs hover:text-white transition-colors">
+                  {t("newsReports")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/issues" className="text-xs hover:text-white transition-colors">
+                  {t("issues")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/parliament-watch" className="text-xs hover:text-white transition-colors">
+                  {t("parliamentWatch")}
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 4: Resources */}
+          <div>
+            <h3 className="text-white text-xs font-semibold uppercase tracking-wider mb-3">
+              {t("resourcesTitle")}
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/resources/pta-toolkit" className="text-xs hover:text-white transition-colors">
+                  {t("ptaToolkit")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/resources/lps-toolkit" className="text-xs hover:text-white transition-colors">
+                  {t("lpsToolkit")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/data" className="text-xs hover:text-white transition-colors">
+                  {t("dataDownloads")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/faq" className="text-xs hover:text-white transition-colors">
+                  {t("faq")}
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 5: About & Legal */}
+          <div>
+            <h3 className="text-white text-xs font-semibold uppercase tracking-wider mb-3">
+              {t("aboutTitle")}
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/about" className="text-xs hover:text-white transition-colors">
+                  {t("about")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="text-xs hover:text-white transition-colors">
+                  {t("contact")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/subscribe" className="text-xs hover:text-white transition-colors">
+                  {t("subscribe")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/donate" className="text-xs hover:text-white transition-colors">
+                  {t("donate")}
+                </Link>
+              </li>
+            </ul>
+            <ul className="space-y-2 mt-4 pt-4 border-t border-gray-800">
+              <li>
+                <Link href="/privacy" className="text-xs hover:text-white transition-colors">
+                  {t("privacyPolicy")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="text-xs hover:text-white transition-colors">
+                  {t("termsOfService")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/cookies" className="text-xs hover:text-white transition-colors">
+                  {t("cookiePolicy")}
+                </Link>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
