@@ -34,6 +34,7 @@ django-cors-headers>=4.3
 feedparser>=6.0
 trafilatura>=2.0
 lxml_html_clean>=0.4
+googlenewsdecoder>=0.1
 
 # Testing
 pytest>=8.0
