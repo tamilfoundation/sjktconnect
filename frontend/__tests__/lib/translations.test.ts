@@ -60,8 +60,8 @@ describe("translations", () => {
     });
 
     it("SESSION_TYPE has expected entries", () => {
-      expect(SESSION_TYPE["1 (Pagi Sahaja)"]).toBe("Morning only");
-      expect(SESSION_TYPE["2 (Pagi & Petang)"]).toBe("Morning and afternoon");
+      expect(SESSION_TYPE["Pagi Sahaja"]).toBe("Morning only");
+      expect(SESSION_TYPE["Pagi dan Petang"]).toBe("Morning and afternoon");
     });
   });
 });

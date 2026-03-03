@@ -15,8 +15,8 @@ export const LOCATION_TYPE: Record<string, string> = {
 };
 
 export const SESSION_TYPE: Record<string, string> = {
-  "1 (Pagi Sahaja)": "Morning only",
-  "2 (Pagi & Petang)": "Morning and afternoon",
+  "Pagi Sahaja": "Morning only",
+  "Pagi dan Petang": "Morning and afternoon",
 };
 
 /**
