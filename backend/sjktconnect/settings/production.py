@@ -41,6 +41,12 @@ if DATABASE_URL:
 else:
     raise ValueError("DATABASE_URL is required in production")
 
+# News Watch — Google Alerts RSS feed URLs (comma-separated env var)
+_rss_feeds = os.environ.get("NEWS_WATCH_RSS_FEEDS", "")
+NEWS_WATCH_RSS_FEEDS = [
+    url.strip() for url in _rss_feeds.split(",") if url.strip()
+]
+
 # WhiteNoise for static files on Cloud Run
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa: F405
 STORAGES = {
