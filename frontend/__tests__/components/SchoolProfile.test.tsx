@@ -34,6 +34,7 @@ const makeSchoolDetail = (
   session_type: "Pagi",
   skm_eligible: false,
   location_type: "Luar Bandar",
+  dun_id: 1,
   dun_code: "N01",
   dun_name: "Buloh Kasap",
   last_verified: null,
@@ -63,11 +64,20 @@ describe("SchoolProfile", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders political representation", () => {
-    render(<SchoolProfile school={makeSchoolDetail()} />);
-    expect(screen.getByText("Political Representation")).toBeInTheDocument();
-    expect(screen.getByText(/P140 Segamat/)).toBeInTheDocument();
-    expect(screen.getByText(/N01 Buloh Kasap/)).toBeInTheDocument();
+  it("always shows preschool and special needs rows", () => {
+    render(
+      <SchoolProfile
+        school={makeSchoolDetail({
+          enrolment: 50,
+          preschool_enrolment: 0,
+          special_enrolment: 0,
+        })}
+      />
+    );
+    expect(screen.getByText("School")).toBeInTheDocument();
+    expect(screen.getByText("50 students")).toBeInTheDocument();
+    expect(screen.getByText("Preschool")).toBeInTheDocument();
+    expect(screen.getByText("Special Needs")).toBeInTheDocument();
   });
 
   it("always shows enrolment breakdown rows", () => {
@@ -86,22 +96,6 @@ describe("SchoolProfile", () => {
     expect(screen.getByText("15 students")).toBeInTheDocument();
     expect(screen.getByText("Special Needs")).toBeInTheDocument();
     expect(screen.getByText("3 students")).toBeInTheDocument();
-  });
-
-  it("hides zero-enrolment breakdown rows", () => {
-    render(
-      <SchoolProfile
-        school={makeSchoolDetail({
-          enrolment: 50,
-          preschool_enrolment: 0,
-          special_enrolment: 0,
-        })}
-      />
-    );
-    expect(screen.getByText("School")).toBeInTheDocument();
-    expect(screen.getByText("50 students")).toBeInTheDocument();
-    expect(screen.queryByText("Preschool")).not.toBeInTheDocument();
-    expect(screen.queryByText("Special Needs")).not.toBeInTheDocument();
   });
 
   it("does not render SKM stat card", () => {
@@ -162,8 +156,11 @@ describe("SchoolProfile", () => {
     expect(screen.getByText("Mrs. Devi")).toBeInTheDocument();
   });
 
-  it("hides school leadership section when no leaders", () => {
+  it("shows leadership section with placeholders when no leaders", () => {
     render(<SchoolProfile school={makeSchoolDetail({ leaders: [] })} />);
-    expect(screen.queryByText("School Leadership")).not.toBeInTheDocument();
+    expect(screen.getByText("School Leadership")).toBeInTheDocument();
+    expect(screen.getByText("Headmaster")).toBeInTheDocument();
+    expect(screen.getByText("PTA Chairman")).toBeInTheDocument();
+    expect(screen.getAllByText("Not Available")).toHaveLength(2);
   });
 });

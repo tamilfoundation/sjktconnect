@@ -44,6 +44,12 @@ export default function Header() {
             >
               {t("about")}
             </Link>
+            <Link
+              href="/contact"
+              className="text-sm font-medium text-gray-700 hover:text-primary-600"
+            >
+              {t("contact")}
+            </Link>
             <LanguageSwitcher />
           </nav>
 
@@ -92,6 +98,13 @@ export default function Header() {
             onClick={() => setMenuOpen(false)}
           >
             {t("about")}
+          </Link>
+          <Link
+            href="/contact"
+            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            onClick={() => setMenuOpen(false)}
+          >
+            {t("contact")}
           </Link>
           <div className="px-4 py-2">
             <LanguageSwitcher />

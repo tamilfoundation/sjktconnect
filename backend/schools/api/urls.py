@@ -9,6 +9,7 @@ from schools.api.views import (
     ConstituencyGeoJSONDetailView,
     ConstituencyGeoJSONView,
     ConstituencyListView,
+    ContactFormView,
     DUNDetailView,
     DUNGeoJSONDetailView,
     DUNGeoJSONView,
@@ -45,6 +46,8 @@ urlpatterns = [
     path("stats/national/", NationalStatsView.as_view(), name="national-stats"),
     # Search
     path("search/", SearchView.as_view(), name="search"),
+    # Contact
+    path("contact/", ContactFormView.as_view(), name="contact"),
     # Parliament (scorecards, briefs)
     path("", include("parliament.api.urls")),
 ]

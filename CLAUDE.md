@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 3 in progress. Sprint 3.5 done.
-- **Last Sprint**: 3.5 (closed 2026-03-03, Tamil Translation Review + Deployment)
-- **Tests**: 747 (532 backend + 215 frontend)
+- **Current Phase**: Phase 3 in progress. Sprint 3.6 done.
+- **Last Sprint**: 3.6 (closed 2026-03-03, Footer, Legal, Contact, School Page & Map Filters)
+- **Tests**: 757 (532 backend + 225 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -37,12 +37,12 @@
 # Development
 cd backend
 python manage.py runserver                    # Start dev server
-pytest                                        # Run backend tests (532 passing)
+python manage.py test --keepdb                 # Run backend tests (532 passing)
 
 # Frontend
 cd frontend
 npm run dev                                    # Start dev server (port 3000)
-npm test                                       # Run frontend tests (215 passing)
+npm test                                       # Run frontend tests (225 passing)
 npm run build                                  # Production build
 
 # AI Analysis (requires GEMINI_API_KEY env var)
@@ -182,6 +182,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 3.3 | Done | i18n Infrastructure: next-intl trilingual (EN/TA/MS), pages under `app/[locale]/`, ~162 strings extracted, LanguageSwitcher, translation completeness tests. 6 new frontend tests (852 total). |
 | 3.4 | Done | Homepage, About, Data Provenance & UX: national stats API, hero section, About page, favicon/metadata, MOE jargon translation, CTA reframe, empty state improvements, zero-school constituency filter, data provenance. 25 new frontend + 1 backend test (747 total). |
 | 3.5 | Done | Tamil Translation Review + Deployment: 9 Tamil grammar/terminology fixes (vallinam, செய்யறிவு, புலனாய்வு consistency), deployed backend + frontend to production, updated 3 Cloud Run jobs. |
+| 3.6 | Done | Footer, Legal, Contact, School Page & Map Filters: footer redesign, 3 legal pages, contact form + API, school page sidebar/leadership/stats redesign, MapFilterPanel with coloured pins (4 modes), SJKT search fix. 10 new tests (757 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -198,10 +199,12 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 3.6 — TBD**:
+**Sprint 3.7 — Deployment + TBD**:
+- Deploy Sprint 3.6 changes to Cloud Run (backend + frontend)
+- Sprint 3.6 adds: footer redesign, legal pages, contact form, school page redesign, map filter panel with coloured pins
+- Backend has new serializer fields + contact API endpoint — deploy backend first
+- Frontend has new pages (contact, privacy, terms, cookies) + redesigned components
 - Phase 3 platform features: AI review layer, field partner role, or Parliament Watch public page
-- All Sprint 3.3-3.5 changes now live in production
-- Tamil translations reviewed and corrected (9 fixes)
 - gcloud CLI requires `CLOUDSDK_PYTHON` env var pointing to Python 3.13
 
 ## Frontend (Sprint 1.3–3.3)
@@ -223,7 +226,12 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **About page** (Sprint 3.4): `/about/` — mission, methodology, team, data sources
 - **Data provenance** (Sprint 3.4): MOE source attribution on SchoolProfile and Footer, social proof on SubscribeForm
 - **MOE jargon translation** (Sprint 3.4): `lib/translations.ts` — translates enrolment categories, grade levels from Malay to English
-- **Tests**: Jest + React Testing Library (215 tests)
+- **Contact page** (Sprint 3.6): `/contact/` — ContactForm (name/email/subject/message), backend API via Brevo
+- **Legal pages** (Sprint 3.6): `/privacy/`, `/terms/`, `/cookies/` — trilingual
+- **Footer** (Sprint 3.6): Dark bg, copyright + social icons left, Platform + Legal link columns right
+- **Map filters** (Sprint 3.6): MapFilterPanel replaces StateFilter — 4 colour modes (Assistance/Location/Programmes/Enrolment), toggle switches, enrolment slider, dynamic pin colours
+- **School page** (Sprint 3.6): Sidebar with constituency/DUN links + MiniMap + nearby schools, leadership always shown, 5 stat cards
+- **Tests**: Jest + React Testing Library (225 tests)
 - **Build**: Standalone output, 107 kB first load JS
 - **Dockerfile**: Multi-stage (deps → build → runner), port 8080
 - **Env vars**: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID`
@@ -240,6 +248,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **Briefs**: `GET /api/v1/briefs/` (published only), `GET /api/v1/briefs/<pk>/`
 - **Search**: `GET /api/v1/search/?q=<query>` — searches schools (name, code) and constituencies (name, code, MP name). Min 2 chars.
 - **Subscribers** (Sprint 2.1, public): `POST /api/v1/subscribers/subscribe/` (create subscriber, idempotent), `GET /api/v1/subscribers/unsubscribe/<token>/` (one-click unsubscribe), `GET/PUT /api/v1/subscribers/preferences/<token>/` (view/update category toggles)
+- **Contact** (Sprint 3.6): `POST /api/v1/contact/` (name, email, subject, message → Brevo email, 3/hour rate limit)
 - CORS via `django-cors-headers` — origins from `CORS_ALLOWED_ORIGINS` env var
 - URL ordering: GeoJSON literal paths before `<str:code>` detail paths to avoid capture conflicts
 

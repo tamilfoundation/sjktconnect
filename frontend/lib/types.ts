@@ -11,6 +11,10 @@ export interface School {
   gps_lat: number | null;
   gps_lng: number | null;
   is_active: boolean;
+  assistance_type: string;
+  location_type: string;
+  preschool_enrolment: number;
+  special_enrolment: number;
 }
 
 export interface SchoolImageData {
@@ -43,6 +47,7 @@ export interface SchoolDetail extends School {
   session_type: string;
   skm_eligible: boolean;
   location_type: string;
+  dun_id: number | null;
   dun_code: string | null;
   dun_name: string | null;
   last_verified: string | null;

@@ -1,12 +1,20 @@
 """API views for schools, constituencies, DUNs, and GeoJSON boundaries."""
 
+import logging
+import os
+import re
+
+import requests as http_requests
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
 from rest_framework import status
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
+
+logger = logging.getLogger(__name__)
 
 from accounts.permissions import IsMagicLinkAuthenticated
 from core.models import AuditLog
@@ -251,9 +259,20 @@ class SearchView(APIView):
         if len(q) < 2:
             return Response({"error": "Query must be at least 2 characters"}, status=400)
 
+        # Normalise query: "SJKT" -> also search "SJK(T)" and vice versa
+        q_normalised = re.sub(r"[()]", "", q)  # strip parentheses
+        school_q = (
+            Q(name__icontains=q) | Q(short_name__icontains=q) | Q(moe_code__icontains=q)
+        )
+        if q_normalised != q:
+            school_q |= Q(name__icontains=q_normalised) | Q(short_name__icontains=q_normalised)
+        elif "sjkt" in q.lower():
+            # "SJKT" should also match "SJK(T)"
+            q_with_parens = q.lower().replace("sjkt", "SJK(T)")
+            school_q |= Q(name__icontains=q_with_parens) | Q(short_name__icontains=q_with_parens)
+
         schools = School.objects.filter(
-            Q(name__icontains=q) | Q(short_name__icontains=q) | Q(moe_code__icontains=q),
-            is_active=True,
+            school_q, is_active=True,
         ).select_related("constituency")[:10]
 
         constituencies = Constituency.objects.filter(
@@ -420,3 +439,66 @@ class DUNGeoJSONDetailView(APIView):
         if not feature:
             return Response({"error": "Invalid boundary data"}, status=500)
         return Response(feature)
+
+
+class ContactThrottle(AnonRateThrottle):
+    rate = "3/hour"
+
+
+class ContactFormView(APIView):
+    """Accept contact form submissions and send via Brevo."""
+
+    throttle_classes = [ContactThrottle]
+
+    BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
+
+    def post(self, request):
+        name = (request.data.get("name") or "").strip()
+        email = (request.data.get("email") or "").strip()
+        subject = (request.data.get("subject") or "").strip()
+        message = (request.data.get("message") or "").strip()
+
+        if not all([name, email, subject, message]):
+            return Response(
+                {"error": "All fields are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        api_key = os.environ.get("BREVO_API_KEY")
+        if not api_key:
+            logger.info(
+                "BREVO_API_KEY not set — logging contact form instead of sending.\n"
+                "From: %s <%s>\nSubject: %s\nMessage: %s",
+                name, email, subject, message,
+            )
+            return Response({"status": "sent"})
+
+        try:
+            resp = http_requests.post(
+                self.BREVO_API_URL,
+                headers={
+                    "api-key": api_key,
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "sender": {"name": "SJK(T) Connect", "email": "noreply@tamilschool.org"},
+                    "to": [{"email": "info@tamilfoundation.org", "name": "Tamil Foundation"}],
+                    "replyTo": {"email": email, "name": name},
+                    "subject": f"[Contact] {subject}",
+                    "htmlContent": (
+                        f"<p><strong>From:</strong> {name} ({email})</p>"
+                        f"<p><strong>Subject:</strong> {subject}</p>"
+                        f"<hr><p>{message}</p>"
+                    ),
+                },
+                timeout=10,
+            )
+            resp.raise_for_status()
+        except Exception:
+            logger.exception("Failed to send contact email via Brevo")
+            return Response(
+                {"error": "Failed to send message."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response({"status": "sent"})

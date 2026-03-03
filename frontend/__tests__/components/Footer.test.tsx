@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 describe("Footer", () => {
   it("renders copyright text", () => {
     render(<Footer />);
-    expect(screen.getByText(/Tamil Foundation Malaysia/)).toBeInTheDocument();
+    expect(screen.getByText(/All rights reserved/)).toBeInTheDocument();
   });
 
   it("includes current year", () => {
@@ -15,16 +15,35 @@ describe("Footer", () => {
     expect(matches.length).toBeGreaterThan(0);
   });
 
-  it("mentions data sources", () => {
+  it("has platform links", () => {
     render(<Footer />);
+    expect(screen.getByText("Platform")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /School Map/ })).toHaveAttribute(
+      "href",
+      "/"
+    );
     expect(
-      screen.getByText(/MOE.*Parliament of Malaysia/)
-    ).toBeInTheDocument();
+      screen.getByRole("link", { name: /Subscribe/ })
+    ).toHaveAttribute("href", "/subscribe");
   });
 
-  it("has subscribe link", () => {
+  it("has legal links", () => {
     render(<Footer />);
-    const link = screen.getByRole("link", { name: /Subscribe to Intelligence Blast/ });
-    expect(link).toHaveAttribute("href", "/subscribe");
+    expect(screen.getByText("Legal")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Privacy Policy/ })
+    ).toHaveAttribute("href", "/privacy");
+    expect(
+      screen.getByRole("link", { name: /Terms of Service/ })
+    ).toHaveAttribute("href", "/terms");
+    expect(
+      screen.getByRole("link", { name: /Cookie Policy/ })
+    ).toHaveAttribute("href", "/cookies");
+  });
+
+  it("has social media links", () => {
+    render(<Footer />);
+    expect(screen.getByLabelText("Facebook")).toBeInTheDocument();
+    expect(screen.getByLabelText("X (Twitter)")).toBeInTheDocument();
   });
 });

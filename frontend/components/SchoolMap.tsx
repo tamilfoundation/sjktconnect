@@ -1,26 +1,43 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { APIProvider, Map } from "@vis.gl/react-google-maps";
 import SchoolMarkers from "./SchoolMarkers";
-import StateFilter from "./StateFilter";
+import MapFilterPanel, {
+  ColourMode,
+  FilterToggles,
+} from "./MapFilterPanel";
 import SearchBox from "./SearchBox";
-import { fetchAllSchools, getUniqueStates } from "@/lib/api";
+import { fetchAllSchools } from "@/lib/api";
 import { School } from "@/lib/types";
 
 const MALAYSIA_CENTER = { lat: 4.2105, lng: 101.9758 };
 const DEFAULT_ZOOM = 7;
 
+const DEFAULT_TOGGLES: FilterToggles = {
+  governmentAided: true,
+  government: true,
+  urban: true,
+  rural: true,
+  preschool: true,
+  specialNeeds: true,
+  both: true,
+  none: true,
+};
+
 export default function SchoolMap() {
   const t = useTranslations("home");
   const tc = useTranslations("common");
   const [allSchools, setAllSchools] = useState<School[]>([]);
-  const [filteredSchools, setFilteredSchools] = useState<School[]>([]);
-  const [states, setStates] = useState<string[]>([]);
-  const [selectedState, setSelectedState] = useState<string>("");
+  const [searchResult, setSearchResult] = useState<School | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Filter state
+  const [colourMode, setColourMode] = useState<ColourMode>("assistance");
+  const [toggles, setToggles] = useState<FilterToggles>(DEFAULT_TOGGLES);
+  const [enrolmentThreshold, setEnrolmentThreshold] = useState(30);
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
   const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "";
@@ -34,11 +51,8 @@ export default function SchoolMap() {
     fetchAllSchools()
       .then((schools) => {
         if (cancelled) return;
-        // Only include schools with GPS coordinates
         const withGps = schools.filter((s) => s.gps_lat && s.gps_lng);
         setAllSchools(withGps);
-        setFilteredSchools(withGps);
-        setStates(getUniqueStates(withGps));
         setLoading(false);
       })
       .catch((err) => {
@@ -52,33 +66,59 @@ export default function SchoolMap() {
     };
   }, []);
 
-  // Filter by state
-  const handleStateChange = useCallback(
-    (state: string) => {
-      setSelectedState(state);
-      if (!state) {
-        setFilteredSchools(allSchools);
-      } else {
-        setFilteredSchools(allSchools.filter((s) => s.state === state));
-      }
-    },
-    [allSchools]
-  );
+  // Filter schools based on toggles and colour mode
+  const filteredSchools = useMemo(() => {
+    if (searchResult) return [searchResult];
 
-  // Search result selection — highlight on map
-  const handleSearchSelect = useCallback(
-    (school: School) => {
-      // Clear state filter and show just this school
-      setSelectedState("");
-      setFilteredSchools([school]);
-    },
-    []
-  );
+    return allSchools.filter((school) => {
+      switch (colourMode) {
+        case "assistance": {
+          const isAided = school.assistance_type === "SBK" || school.assistance_type === "SABK";
+          if (isAided && !toggles.governmentAided) return false;
+          if (!isAided && !toggles.government) return false;
+          return true;
+        }
+        case "location": {
+          const isUrban = school.location_type === "Bandar";
+          if (isUrban && !toggles.urban) return false;
+          if (!isUrban && !toggles.rural) return false;
+          return true;
+        }
+        case "programmes": {
+          const hasPreschool = (school.preschool_enrolment ?? 0) > 0;
+          const hasSpecial = (school.special_enrolment ?? 0) > 0;
+          if (hasPreschool && hasSpecial && !toggles.both) return false;
+          if (hasPreschool && !hasSpecial && !toggles.preschool) return false;
+          if (!hasPreschool && hasSpecial && !toggles.specialNeeds) return false;
+          if (!hasPreschool && !hasSpecial && !toggles.none) return false;
+          return true;
+        }
+        case "enrolment":
+          return true;
+        default:
+          return true;
+      }
+    });
+  }, [allSchools, searchResult, colourMode, toggles]);
+
+  const handleToggleChange = useCallback((key: keyof FilterToggles) => {
+    setToggles((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  const handleReset = useCallback(() => {
+    setColourMode("assistance");
+    setToggles(DEFAULT_TOGGLES);
+    setEnrolmentThreshold(30);
+    setSearchResult(null);
+  }, []);
+
+  const handleSearchSelect = useCallback((school: School) => {
+    setSearchResult(school);
+  }, []);
 
   const handleSearchClear = useCallback(() => {
-    setSelectedState("");
-    setFilteredSchools(allSchools);
-  }, [allSchools]);
+    setSearchResult(null);
+  }, []);
 
   if (!apiKey) {
     return (
@@ -103,11 +143,15 @@ export default function SchoolMap() {
           onSelect={handleSearchSelect}
           onClear={handleSearchClear}
         />
-        <StateFilter
-          states={states}
-          selectedState={selectedState}
-          onChange={handleStateChange}
-          schoolCount={filteredSchools.length}
+        <MapFilterPanel
+          colourMode={colourMode}
+          onColourModeChange={setColourMode}
+          toggles={toggles}
+          onToggleChange={handleToggleChange}
+          enrolmentThreshold={enrolmentThreshold}
+          onEnrolmentThresholdChange={setEnrolmentThreshold}
+          onReset={handleReset}
+          filteredCount={filteredSchools.length}
           totalCount={allSchools.length}
         />
       </div>
@@ -152,7 +196,11 @@ export default function SchoolMap() {
             mapTypeControl={false}
             streetViewControl={false}
           >
-            <SchoolMarkers schools={filteredSchools} />
+            <SchoolMarkers
+              schools={filteredSchools}
+              colourMode={colourMode}
+              enrolmentThreshold={enrolmentThreshold}
+            />
           </Map>
         </APIProvider>
       </div>

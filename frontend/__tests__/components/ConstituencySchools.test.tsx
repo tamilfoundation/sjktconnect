@@ -20,15 +20,18 @@ const makeSchool = (overrides: Partial<School> = {}): School => ({
 });
 
 describe("ConstituencySchools", () => {
-  it("returns null when no other schools", () => {
-    const { container } = render(
+  it("shows message when no other schools", () => {
+    render(
       <ConstituencySchools
         schools={[makeSchool()]}
         currentMoeCode="JBD0050"
         constituencyName="Segamat"
       />
     );
-    expect(container.firstChild).toBeNull();
+    expect(screen.getByText("Schools Nearby")).toBeInTheDocument();
+    expect(
+      screen.getByText(/only Tamil school in this constituency/)
+    ).toBeInTheDocument();
   });
 
   it("renders other schools in the constituency", () => {
@@ -46,7 +49,7 @@ describe("ConstituencySchools", () => {
       />
     );
 
-    expect(screen.getByText("Schools in Segamat")).toBeInTheDocument();
+    expect(screen.getByText("Schools Nearby")).toBeInTheDocument();
     expect(screen.getByText("SJK(T) Tenang")).toBeInTheDocument();
     expect(screen.getByText("SJK(T) Jabi")).toBeInTheDocument();
     // Current school should be excluded

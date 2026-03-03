@@ -1,5 +1,38 @@
 # Changelog
 
+## Sprint 3.6 — Footer, Legal, Contact, School Page & Map Filters (2026-03-03)
+
+### Added
+- **Footer redesign**: Dark bg, copyright + social media icons (left), Platform + Legal link columns (right)
+- **Legal pages**: Privacy Policy, Terms of Service, Cookie Policy — trilingual (EN/MS/TA)
+- **Contact page**: Form (name, email, subject, message) with backend API, sends via Brevo
+- **Contact API**: `POST /api/v1/contact/` with 3/hour rate limit, Brevo email integration
+- **MapFilterPanel**: Replaces StateFilter — 4 colour modes (Assistance, Location, Programmes, Enrolment), toggle switches, enrolment slider, counter, info note
+- **Coloured map pins**: Dynamic pin colours based on active filter mode (assistance: purple/orange, location: blue/green, programmes: purple/blue/orange/grey, enrolment: red/grey)
+- **MapFilterPanel tests**: 10 new tests covering all colour modes, toggles, slider, reset
+- Contact link in header nav (desktop + mobile)
+- `dun_id` field in SchoolDetailSerializer for DUN page linking
+- `assistance_type`, `location_type`, `preschool_enrolment`, `special_enrolment` fields in SchoolListSerializer for map filtering
+- `mapFilters` translation namespace (all 3 languages)
+
+### Changed
+- **School detail page**: Redesigned layout — political representation + MiniMap moved to right sidebar, 5 stat cards (Students, Teachers, Grade, Preschool, Special Ed)
+- **Leadership section**: Always shown — displays "Not Available" placeholders when no leaders data
+- **Constituency/DUN**: Now clickable links (→ `/constituency/P149`, → `/dun/{id}`)
+- **ConstituencySchools**: Shows "only Tamil school" message instead of returning null when empty
+- **StatCard**: Added top-border accent (`border-t-2 border-t-primary-500`)
+- **Section headers**: Added coloured left-border accents, person icons on leadership
+- **SchoolMap**: Uses MapFilterPanel instead of StateFilter, filtering by assistance/location/programmes/enrolment
+- **SchoolMarkers**: Accepts `colourMode` and `enrolmentThreshold` props for dynamic pin colouring
+- **Search**: "SJKT" now matches "SJK(T)" in search results (parenthesis normalisation)
+
+### Technical
+- 757 tests passing (532 backend + 225 frontend)
+- New components: MapFilterPanel, ContactForm
+- New pages: contact, privacy, terms, cookies
+
+---
+
 ## Sprint 3.5 — Tamil Translation Review + Deployment (2026-03-03)
 
 ### Fixed

@@ -31,6 +31,10 @@ class SchoolListSerializer(serializers.ModelSerializer):
             "gps_lat",
             "gps_lng",
             "is_active",
+            "assistance_type",
+            "location_type",
+            "preschool_enrolment",
+            "special_enrolment",
         ]
 
 
@@ -62,6 +66,7 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
     constituency_name = serializers.CharField(
         source="constituency.name", default=None
     )
+    dun_id = serializers.IntegerField(source="dun.id", default=None)
     dun_code = serializers.CharField(source="dun.code", default=None)
     dun_name = serializers.CharField(source="dun.name", default=None)
     phone = serializers.SerializerMethodField()
@@ -83,6 +88,7 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
             "ppd",
             "constituency_code",
             "constituency_name",
+            "dun_id",
             "dun_code",
             "dun_name",
             "email",
