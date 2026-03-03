@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 3 in progress. Sprint 3.3 done.
-- **Last Sprint**: 3.3 (closed 2026-03-03, i18n Infrastructure)
-- **Tests**: 852 (662 backend + 190 frontend)
+- **Current Phase**: Phase 3 in progress. Sprint 3.4 done.
+- **Last Sprint**: 3.4 (closed 2026-03-03, Homepage, About, Data Provenance & UX)
+- **Tests**: 747 (532 backend + 215 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -37,12 +37,12 @@
 # Development
 cd backend
 python manage.py runserver                    # Start dev server
-pytest                                        # Run backend tests (375 passing)
+pytest                                        # Run backend tests (532 passing)
 
 # Frontend
 cd frontend
 npm run dev                                    # Start dev server (port 3000)
-npm test                                       # Run frontend tests (134 passing)
+npm test                                       # Run frontend tests (215 passing)
 npm run build                                  # Production build
 
 # AI Analysis (requires GEMINI_API_KEY env var)
@@ -180,6 +180,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 3.1 | Done | Data Quality + School Leadership: to_proper_case/format_phone utils, data migration (528 schools), SchoolLeader model (4 roles), admin inline, public API (name+role only), import scripts updated for data/ folder. 41 new tests (841 total). |
 | 3.2 | Done | Frontend Layout Redesign: side-by-side hero, stat cards (Students/Teachers/Grade), leadership section, enrolment breakdown, assistance type mapping. 5 new frontend tests (846 total). |
 | 3.3 | Done | i18n Infrastructure: next-intl trilingual (EN/TA/MS), pages under `app/[locale]/`, ~162 strings extracted, LanguageSwitcher, translation completeness tests. 6 new frontend tests (852 total). |
+| 3.4 | Done | Homepage, About, Data Provenance & UX: national stats API, hero section, About page, favicon/metadata, MOE jargon translation, CTA reframe, empty state improvements, zero-school constituency filter, data provenance. 25 new frontend + 1 backend test (747 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -196,11 +197,11 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 3.4 — i18n Deployment + Tamil Translation Review**:
-- Deploy frontend with i18n changes (URL structure: `/school/X` → `/en/school/X`)
+**Sprint 3.5 — Deployment + Tamil Translation Review**:
+- Deploy frontend with Sprint 3.3-3.4 changes (i18n URLs, hero, about page, data provenance)
 - Review Tamil translations against `tamil-style-guide.md` for accuracy
 - Test locale switching in production (EN/TA/MS)
-- Update SEO metadata for locale-specific pages
+- Verify national stats endpoint works in production
 - Consider: Phase 3 platform features (AI review layer, field partner role)
 
 ## Frontend (Sprint 1.3–3.3)
@@ -218,14 +219,18 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **Subscriber pages** (Sprint 2.4): `/subscribe/` (form), `/unsubscribe/[token]/` (one-click), `/preferences/[token]/` (toggle categories). SubscribeForm, UnsubscribeConfirmation, PreferencesForm components. Footer subscribe link.
 - **Subscriber API**: `subscribe`, `unsubscribe`, `fetchPreferences`, `updatePreferences` — public, no auth required
 - **i18n** (Sprint 3.3): Trilingual (EN/TA/MS) via next-intl. Pages under `app/[locale]/`. ~162 strings in `messages/{en,ta,ms}.json`. LanguageSwitcher in Header. All links via `@/i18n/navigation`.
-- **Tests**: Jest + React Testing Library (190 tests)
+- **Homepage** (Sprint 3.4): HeroSection with mission statement, NationalStats bar (schools/students/constituencies from API), About link
+- **About page** (Sprint 3.4): `/about/` — mission, methodology, team, data sources
+- **Data provenance** (Sprint 3.4): MOE source attribution on SchoolProfile and Footer, social proof on SubscribeForm
+- **MOE jargon translation** (Sprint 3.4): `lib/translations.ts` — translates enrolment categories, grade levels from Malay to English
+- **Tests**: Jest + React Testing Library (215 tests)
 - **Build**: Standalone output, 107 kB first load JS
 - **Dockerfile**: Multi-stage (deps → build → runner), port 8080
 - **Env vars**: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID`
 
 ## REST API (Sprint 1.2+)
 - All endpoints under `/api/v1/` — paginated (50/page via `?page=N`)
-- **Schools**: `GET /api/v1/schools/` (filters: `?state=`, `?ppd=`, `?constituency=`, `?skm=true`, `?min_enrolment=`, `?max_enrolment=`), `GET /api/v1/schools/<moe_code>/` (includes `leaders` array: name + role_display, ordered: Chairman → HM → PTA → Alumni)
+- **Schools**: `GET /api/v1/schools/` (filters: `?state=`, `?ppd=`, `?constituency=`, `?skm=true`, `?min_enrolment=`, `?max_enrolment=`), `GET /api/v1/schools/<moe_code>/` (includes `leaders` array: name + role_display, ordered: Chairman → HM → PTA → Alumni), `GET /api/v1/schools/national-stats/` (total schools, students, teachers, constituencies — Sprint 3.4)
 - **School Mentions** (Sprint 1.10): `GET /api/v1/schools/<moe_code>/mentions/` (approved parliamentary mentions, public, no pagination)
 - **School News** (Sprint 2.8): `GET /api/v1/schools/<moe_code>/news/` (approved news articles mentioning a school, public)
 - **School Edit** (Sprint 1.7, Magic Link auth): `GET/PUT /api/v1/schools/<moe_code>/edit/` (view/update school data), `POST /api/v1/schools/<moe_code>/confirm/` (2-click verify)

@@ -30,3 +30,4 @@ Cross-cutting lessons from SJK(T) Connect development. Project-specific decision
 - gcloud CLI hardcodes Python path — if you upgrade Python versions, set CLOUDSDK_PYTHON env var to the new path (Sprint 2.8)
 - Django JSONField __contains doesn't work on SQLite — use vendor-specific branching or LIKE fallback for tests (Sprint 2.8)
 - Large sprints (14+ tasks) at high context usage (>85%) risk data loss on crash — push commits frequently and use a branch for safety when the plan is big (Sprint 3.3)
+- Supabase Supavisor (connection pooler) holds idle sessions to `test_postgres` that prevent Django's test runner from dropping/recreating the test DB — use `--keepdb` flag or manually terminate Supavisor sessions via `pg_terminate_backend` before running tests (Sprint 3.4)

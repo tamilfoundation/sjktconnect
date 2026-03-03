@@ -1,5 +1,37 @@
 # Changelog
 
+## Sprint 3.4 — Homepage, About, Data Provenance & UX (2026-03-03)
+
+### Added
+- National summary statistics API endpoint (`GET /api/v1/schools/national-stats/`)
+- Homepage hero section with mission statement and national stats bar (528 schools, 75k students, 222 constituencies)
+- About page (`/about/`) with mission, methodology, and team information
+- Favicon and site metadata (apple-touch-icon, Open Graph, manifest icons)
+- Data provenance notes on SchoolProfile ("Data source: MOE, January 2026") and Footer ("Data last updated: January 2026")
+- Social proof text on subscribe form
+- `translations.ts` utility for translating MOE jargon (enrolment categories, grade levels)
+- HeroSection and NationalStats components
+- 6 new frontend tests (HeroSection, NationalStats, About page, translations)
+- 1 new backend test (national stats endpoint)
+
+### Changed
+- School profile: enrolment categories translated from Malay (e.g. "ENROLMEN PRASEKOLAH" → "Preschool Enrolment")
+- School profile: grade levels translated (e.g. "GRED A" → "Grade A")
+- Claim This Page CTA reframed — emphasises community benefit over claiming
+- Parliament Watch page: improved empty state with constructive messaging
+- NewsWatchSection: improved empty state with explanation text
+- MentionsSection: added context for empty mentions state
+- ConstituencyList: filters out constituencies with zero schools
+- Constituency page: hides boundary map when no GeoJSON available
+- Footer: added About link alongside Subscribe and Contact
+- Header: added About link to navigation
+
+### Technical
+- 747 tests passing (532 backend + 215 frontend)
+- 33 files changed, +1,037 lines
+
+---
+
 ## Sprint 3.3 — i18n Infrastructure (2026-03-03)
 
 ### Added
