@@ -7,17 +7,6 @@ interface NationalStatsProps {
   stats: NationalStatsType;
 }
 
-function formatImpactNumber(value: number): string {
-  if (value >= 1000) {
-    const floored = Math.floor(value / 1000) * 1000;
-    if (floored === value) {
-      return value.toLocaleString();
-    }
-    return floored.toLocaleString() + "+";
-  }
-  return value.toLocaleString();
-}
-
 export default function NationalStats({ stats }: NationalStatsProps) {
   const t = useTranslations("stats");
 
@@ -62,7 +51,7 @@ export default function NationalStats({ stats }: NationalStatsProps) {
               className={`bg-gray-50 rounded-lg p-4 border-l-4 ${item.accent}`}
             >
               <div className="text-2xl sm:text-3xl font-bold text-blue-900">
-                {formatImpactNumber(item.value)}
+                {item.value.toLocaleString()}
               </div>
               <div className="text-sm text-gray-500 mt-1">{item.label}</div>
             </div>

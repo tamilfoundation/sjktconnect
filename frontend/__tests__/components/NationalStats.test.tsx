@@ -19,13 +19,13 @@ describe("NationalStats", () => {
     expect(screen.getByText("National Key Metrics")).toBeInTheDocument();
   });
 
-  it("renders impact-formatted stat values", () => {
+  it("renders exact stat values", () => {
     render(<NationalStats stats={stats} />);
-    expect(screen.getByText("85,000")).toBeInTheDocument(); // exact multiple of 1000
-    expect(screen.getByText("3,000+")).toBeInTheDocument(); // 3200 rounded
-    expect(screen.getByText("150")).toBeInTheDocument(); // under 1000
-    expect(screen.getByText("8,000+")).toBeInTheDocument(); // 8500 rounded
-    expect(screen.getByText("42")).toBeInTheDocument(); // under 1000
+    expect(screen.getByText("85,000")).toBeInTheDocument();
+    expect(screen.getByText("3,200")).toBeInTheDocument();
+    expect(screen.getByText("150")).toBeInTheDocument();
+    expect(screen.getByText("8,500")).toBeInTheDocument();
+    expect(screen.getByText("42")).toBeInTheDocument();
   });
 
   it("renders stat labels", () => {
