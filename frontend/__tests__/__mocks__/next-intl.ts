@@ -3,7 +3,7 @@ const messages = require("../../messages/en.json");
 
 function useTranslations(namespace: string) {
   const ns = (messages as Record<string, Record<string, string>>)[namespace] || {};
-  return function t(key: string, values?: Record<string, unknown>) {
+  function t(key: string, values?: Record<string, unknown>) {
     let result = ns[key] || key;
     if (values) {
       Object.entries(values).forEach(([k, v]) => {
@@ -11,7 +11,11 @@ function useTranslations(namespace: string) {
       });
     }
     return result;
+  }
+  t.has = function (key: string) {
+    return key in ns;
   };
+  return t;
 }
 
 function useLocale() {

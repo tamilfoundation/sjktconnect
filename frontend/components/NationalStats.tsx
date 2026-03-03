@@ -11,10 +11,10 @@ export default function NationalStats({ stats }: NationalStatsProps) {
   const t = useTranslations("stats");
 
   const items = [
-    { value: stats.total_schools, label: t("totalSchools") },
     { value: stats.total_students, label: t("totalStudents") },
+    { value: stats.total_preschool, label: t("totalPreschool") },
+    { value: stats.total_special_needs, label: t("totalSpecialNeeds") },
     { value: stats.total_teachers, label: t("totalTeachers") },
-    { value: stats.states, label: t("statesCovered") },
     { value: stats.schools_under_30_students, label: t("schoolsUnder30") },
   ];
 

@@ -122,11 +122,11 @@ describe("SchoolProfile", () => {
     expect(screen.queryByText("Full Name")).not.toBeInTheDocument();
   });
 
-  it("maps SBK assistance type to Fully Government-Aided", () => {
+  it("maps SBK assistance type to Government-Aided", () => {
     render(
       <SchoolProfile school={makeSchoolDetail({ assistance_type: "SBK" })} />
     );
-    expect(screen.getByText("Fully Government-Aided")).toBeInTheDocument();
+    expect(screen.getByText("Government-Aided")).toBeInTheDocument();
   });
 
   it("maps SK assistance type to Government School", () => {

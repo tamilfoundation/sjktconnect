@@ -233,6 +233,8 @@ export interface NationalStats {
   total_schools: number;
   total_students: number;
   total_teachers: number;
+  total_preschool: number;
+  total_special_needs: number;
   states: number;
   constituencies_with_schools: number;
   schools_under_30_students: number;

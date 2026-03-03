@@ -2,13 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { SchoolDetail } from "@/lib/types";
-import {
-  ASSISTANCE_TYPE,
-  LOCATION_TYPE,
-  SESSION_TYPE,
-  isEmpty,
-  translate,
-} from "@/lib/translations";
+import { isEmpty } from "@/lib/translations";
 
 interface SchoolProfileProps {
   school: SchoolDetail;
@@ -42,17 +36,17 @@ export default function SchoolProfile({ school }: SchoolProfileProps) {
           {!isEmpty(school.location_type) && (
             <DetailRow
               label={t("locationType")}
-              value={translate(school.location_type, LOCATION_TYPE)}
+              value={t.has(`location_${school.location_type}`) ? t(`location_${school.location_type}`) : school.location_type}
             />
           )}
           <DetailRow
             label={t("assistanceType")}
-            value={translate(school.assistance_type, ASSISTANCE_TYPE) || "—"}
+            value={t.has(`assistance_${school.assistance_type}`) ? t(`assistance_${school.assistance_type}`) : school.assistance_type || "—"}
           />
           {!isEmpty(school.session_type) && (
             <DetailRow
               label={t("sessions")}
-              value={translate(school.session_type, SESSION_TYPE)}
+              value={t.has(`session_${school.session_type}`) ? t(`session_${school.session_type}`) : school.session_type}
             />
           )}
           <DetailRow

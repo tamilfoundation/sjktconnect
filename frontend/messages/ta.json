@@ -49,6 +49,13 @@
     "governmentAided": "அரசு உதவி (SBK)",
     "government": "அரசு (SK)",
     "location": "இடம்",
+    "location_Bandar": "நகர்ப்புறம்",
+    "location_Luar Bandar": "ஊரகம்",
+    "assistance_SBK": "அரசு உதவி",
+    "assistance_SK": "அரசுப் பள்ளி",
+    "assistance_SABK": "அரசு உதவி சமயப் பள்ளி",
+    "session_1 (Pagi Sahaja)": "காலை மட்டும்",
+    "session_2 (Pagi & Petang)": "காலையும் மாலையும்",
     "studentsLabel": "மாணவர்கள்",
     "teachersLabel": "ஆசிரியர்கள்",
     "gradeLabel": "கிரேடு",
@@ -76,12 +83,12 @@
     "constituenciesLabel": "தொகுதிகள்"
   },
   "stats": {
-    "totalSchools": "தமிழ்ப்பள்ளிகள்",
     "totalStudents": "மாணவர்கள்",
+    "totalPreschool": "பாலர் வகுப்பு",
+    "totalSpecialNeeds": "சிறப்புக் கல்வி",
     "totalTeachers": "ஆசிரியர்கள்",
-    "statesCovered": "மாநிலங்கள்",
     "constituenciesCovered": "தொகுதிகள்",
-    "schoolsUnder30": "30க்கும் குறைவான மாணவர்களைக் கொண்ட பள்ளிகள்"
+    "schoolsUnder30": "30 மாணவருக்கும் குறைந்த பள்ளிகள்"
   },
   "home": {
     "apiKeyRequired": "Google Maps API விசை தேவை",

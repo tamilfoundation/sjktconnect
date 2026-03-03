@@ -280,6 +280,8 @@ class NationalStatsView(APIView):
             total_schools=Count("moe_code"),
             total_students=Sum("enrolment"),
             total_teachers=Sum("teacher_count"),
+            total_preschool=Sum("preschool_enrolment"),
+            total_special_needs=Sum("special_enrolment"),
             states=Count("state", distinct=True),
             schools_under_30_students=Count(
                 "moe_code", filter=Q(enrolment__lt=30)
@@ -287,6 +289,8 @@ class NationalStatsView(APIView):
         )
         stats["total_students"] = stats["total_students"] or 0
         stats["total_teachers"] = stats["total_teachers"] or 0
+        stats["total_preschool"] = stats["total_preschool"] or 0
+        stats["total_special_needs"] = stats["total_special_needs"] or 0
         stats["constituencies_with_schools"] = (
             schools.values("constituency__code")
             .exclude(constituency__isnull=True)

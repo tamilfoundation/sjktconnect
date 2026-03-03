@@ -3,6 +3,7 @@
 from rest_framework import serializers
 
 from schools.models import Constituency, DUN, School, SchoolLeader
+from schools.utils import format_phone
 
 
 class SchoolListSerializer(serializers.ModelSerializer):
@@ -63,6 +64,7 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
     )
     dun_code = serializers.CharField(source="dun.code", default=None)
     dun_name = serializers.CharField(source="dun.name", default=None)
+    phone = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
     leaders = serializers.SerializerMethodField()
@@ -105,6 +107,10 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
             "images",
             "leaders",
         ]
+
+    def get_phone(self, obj):
+        """Return formatted phone number."""
+        return format_phone(obj.phone)
 
     def get_image_url(self, obj):
         """Return the primary image URL for this school, or None."""

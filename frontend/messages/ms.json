@@ -49,6 +49,13 @@
     "governmentAided": "Bantuan Kerajaan (SBK)",
     "government": "Kerajaan (SK)",
     "location": "Lokasi",
+    "location_Bandar": "Bandar",
+    "location_Luar Bandar": "Luar Bandar",
+    "assistance_SBK": "Bantuan Kerajaan",
+    "assistance_SK": "Sekolah Kerajaan",
+    "assistance_SABK": "Bantuan Kerajaan Agama",
+    "session_1 (Pagi Sahaja)": "Pagi Sahaja",
+    "session_2 (Pagi & Petang)": "Pagi & Petang",
     "studentsLabel": "Murid",
     "teachersLabel": "Guru",
     "gradeLabel": "Gred",
@@ -76,10 +83,10 @@
     "constituenciesLabel": "Kawasan Parlimen"
   },
   "stats": {
-    "totalSchools": "Sekolah Tamil",
     "totalStudents": "Murid",
+    "totalPreschool": "Prasekolah",
+    "totalSpecialNeeds": "Pendidikan Khas",
     "totalTeachers": "Guru",
-    "statesCovered": "Negeri",
     "constituenciesCovered": "Kawasan Parlimen",
     "schoolsUnder30": "Sekolah Bawah 30 Murid"
   },

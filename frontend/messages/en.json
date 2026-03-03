@@ -49,6 +49,13 @@
     "governmentAided": "Government-Aided (SBK)",
     "government": "Government (SK)",
     "location": "Location",
+    "location_Bandar": "Urban",
+    "location_Luar Bandar": "Rural",
+    "assistance_SBK": "Government-Aided",
+    "assistance_SK": "Government School",
+    "assistance_SABK": "Government-Aided Religious",
+    "session_1 (Pagi Sahaja)": "Morning Only",
+    "session_2 (Pagi & Petang)": "Morning & Afternoon",
     "studentsLabel": "Students",
     "teachersLabel": "Teachers",
     "gradeLabel": "Grade",
@@ -76,10 +83,10 @@
     "constituenciesLabel": "Constituencies"
   },
   "stats": {
-    "totalSchools": "Tamil Schools",
     "totalStudents": "Students",
+    "totalPreschool": "Preschool",
+    "totalSpecialNeeds": "Special Needs",
     "totalTeachers": "Teachers",
-    "statesCovered": "States",
     "constituenciesCovered": "Constituencies",
     "schoolsUnder30": "Schools Under 30 Students"
   },
