@@ -14,13 +14,18 @@ describe("NationalStats", () => {
     schools_under_30_students: 42,
   };
 
-  it("renders all stat values", () => {
+  it("renders the section heading", () => {
     render(<NationalStats stats={stats} />);
-    expect(screen.getByText("85,000")).toBeInTheDocument();
-    expect(screen.getByText("3,200")).toBeInTheDocument();
-    expect(screen.getByText("150")).toBeInTheDocument();
-    expect(screen.getByText("8,500")).toBeInTheDocument();
-    expect(screen.getByText("42")).toBeInTheDocument();
+    expect(screen.getByText("National Key Metrics")).toBeInTheDocument();
+  });
+
+  it("renders impact-formatted stat values", () => {
+    render(<NationalStats stats={stats} />);
+    expect(screen.getByText("85,000")).toBeInTheDocument(); // exact multiple of 1000
+    expect(screen.getByText("3,000+")).toBeInTheDocument(); // 3200 rounded
+    expect(screen.getByText("150")).toBeInTheDocument(); // under 1000
+    expect(screen.getByText("8,000+")).toBeInTheDocument(); // 8500 rounded
+    expect(screen.getByText("42")).toBeInTheDocument(); // under 1000
   });
 
   it("renders stat labels", () => {
@@ -29,6 +34,12 @@ describe("NationalStats", () => {
     expect(screen.getByText("Preschoolers")).toBeInTheDocument();
     expect(screen.getByText("Special Needs")).toBeInTheDocument();
     expect(screen.getByText("Teachers")).toBeInTheDocument();
-    expect(screen.getByText("Schools Under 30 Students")).toBeInTheDocument();
+    expect(screen.getByText("Under-Enrolled Schools")).toBeInTheDocument();
+  });
+
+  it("renders coloured accent borders", () => {
+    const { container } = render(<NationalStats stats={stats} />);
+    const cards = container.querySelectorAll(".border-l-4");
+    expect(cards.length).toBe(5);
   });
 });

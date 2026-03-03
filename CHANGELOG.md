@@ -1,5 +1,18 @@
 # Changelog
 
+## Homepage Hero Redesign (2026-03-03)
+
+### Fixed
+- **InfoWindow close button**: Removed `headerDisabled` prop so the X button works again on map popups
+
+### Changed
+- **HeroSection redesign**: Gradient background (blue-950 → indigo-900), glass-morphism stat cards with backdrop-blur, asymmetric layout (1 large Schools card + 2 smaller), search icon on "Find School" button
+- **NationalStats redesign**: "National Key Metrics" heading, coloured left-border accent bars (red/blue/green/amber/rose), impact number formatting (e.g. "85,000" → "85,000", "3,200" → "3,000+"), left-aligned card layout
+- **Hero description**: Community-driven copy instead of Tamil Foundation branding
+- **i18n**: Updated hero description and stats labels in EN/MS/TA — added `stats.heading`, renamed `schoolsUnder30` → `underEnrolled`
+
+---
+
 ## Sprint 3.8 — News & Reports Page (2026-03-03)
 
 ### Added

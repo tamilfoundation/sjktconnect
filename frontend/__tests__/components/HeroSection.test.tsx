@@ -42,4 +42,10 @@ describe("HeroSection", () => {
     expect(screen.getByText("States")).toBeInTheDocument();
     expect(screen.getByText("Constituencies")).toBeInTheDocument();
   });
+
+  it("renders the search icon in Find School button", () => {
+    const { container } = render(<HeroSection {...defaultProps} />);
+    const svg = container.querySelector("button svg");
+    expect(svg).toBeInTheDocument();
+  });
 });

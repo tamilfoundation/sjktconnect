@@ -93,7 +93,7 @@
   "hero": {
     "headline": "Setiap Sekolah Tamil di Malaysia",
     "subheadline": "Dipantau. Dihubungkan. Didengari.",
-    "description": "Platform perisikan pertama yang memantau aktiviti parlimen, liputan media, dan keperluan komuniti untuk kesemua 528 sekolah Tamil.",
+    "description": "Platform perisikan komuniti yang memantau aktiviti parlimen, liputan media, dan keperluan sekolah untuk kesemua 528 sekolah Tamil di Malaysia.",
     "findSchool": "Cari Sekolah Anda",
     "subscribeIntel": "Langgan Perisikan",
     "schoolsLabel": "Sekolah",
@@ -101,12 +101,13 @@
     "constituenciesLabel": "Kawasan Parlimen"
   },
   "stats": {
+    "heading": "Metrik Utama Kebangsaan",
     "totalStudents": "Murid",
     "totalPreschool": "Murid Prasekolah",
     "totalSpecialNeeds": "Pendidikan Khas",
     "totalTeachers": "Guru",
     "constituenciesCovered": "Kawasan Parlimen",
-    "schoolsUnder30": "Sekolah Bawah 30 Murid"
+    "underEnrolled": "Sekolah Kurang Murid"
   },
   "home": {
     "apiKeyRequired": "Kunci API Google Maps Diperlukan",

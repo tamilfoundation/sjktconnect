@@ -93,7 +93,7 @@
   "hero": {
     "headline": "Every Tamil School in Malaysia",
     "subheadline": "Tracked. Connected. Heard.",
-    "description": "The first intelligence platform monitoring parliamentary activity, media coverage, and community needs for all 528 Tamil schools.",
+    "description": "A community-driven intelligence platform monitoring parliamentary activity, media coverage, and school needs for all 528 Tamil schools across Malaysia.",
     "findSchool": "Find Your School",
     "subscribeIntel": "Subscribe to Intelligence",
     "schoolsLabel": "Schools",
@@ -101,12 +101,13 @@
     "constituenciesLabel": "Constituencies"
   },
   "stats": {
+    "heading": "National Key Metrics",
     "totalStudents": "Students",
     "totalPreschool": "Preschoolers",
     "totalSpecialNeeds": "Special Needs",
     "totalTeachers": "Teachers",
     "constituenciesCovered": "Constituencies",
-    "schoolsUnder30": "Schools Under 30 Students"
+    "underEnrolled": "Under-Enrolled Schools"
   },
   "home": {
     "apiKeyRequired": "Google Maps API Key Required",

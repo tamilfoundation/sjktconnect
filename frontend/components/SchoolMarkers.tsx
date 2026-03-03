@@ -106,7 +106,6 @@ export default function SchoolMarkers({
             lng: Number(selectedSchool.gps_lng),
           }}
           onCloseClick={handleClose}
-          headerDisabled
         >
           <div style={{ width: 280 }}>
             {/* School image or placeholder */}
