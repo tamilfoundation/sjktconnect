@@ -2,7 +2,7 @@
 
 from django.urls import include, path
 
-from newswatch.api.views import SchoolNewsView
+from newswatch.api.views import NewsListView, SchoolNewsView
 from parliament.api.views import SchoolMentionsView
 from schools.api.views import (
     ConstituencyDetailView,
@@ -46,6 +46,8 @@ urlpatterns = [
     path("stats/national/", NationalStatsView.as_view(), name="national-stats"),
     # Search
     path("search/", SearchView.as_view(), name="search"),
+    # News (public list)
+    path("news/", NewsListView.as_view(), name="news-list"),
     # Contact
     path("contact/", ContactFormView.as_view(), name="contact"),
     # Parliament (scorecards, briefs)

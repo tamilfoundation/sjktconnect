@@ -16,5 +16,6 @@ class NewsArticleSerializer(serializers.ModelSerializer):
             "sentiment",
             "is_urgent",
             "urgent_reason",
+            "mentioned_schools",
             "created_at",
         ]

@@ -1,4 +1,8 @@
-"""Tests for GET /api/v1/schools/<moe_code>/news/ endpoint."""
+"""Tests for news API endpoints.
+
+- GET /api/v1/schools/<moe_code>/news/  (school-specific news)
+- GET /api/v1/news/                     (public news list)
+"""
 
 import datetime
 
@@ -135,3 +139,137 @@ class SchoolNewsAPITest(TestCase):
         resp2 = self.client.get("/api/v1/schools/JBD7777/news/")
         assert any(a["title"] == "Two schools mentioned" for a in resp1.json())
         assert any(a["title"] == "Two schools mentioned" for a in resp2.json())
+
+
+class PublicNewsListAPITest(TestCase):
+    """Tests for GET /api/v1/news/ — public paginated news list."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.school = School.objects.create(
+            moe_code="JBD0050",
+            name="SJK(T) Ladang Bikam",
+            short_name="SJK(T) Ladang Bikam",
+            state="Johor",
+        )
+        cls.approved_school_article = NewsArticle.objects.create(
+            url="https://example.com/school-news-1",
+            title="School gets funding",
+            source_name="The Star",
+            published_date=datetime.datetime(2026, 3, 1, 10, 0, tzinfo=datetime.timezone.utc),
+            body_text="Article about school funding.",
+            status="ANALYSED",
+            ai_summary="Funding approved for SJK(T) Ladang Bikam.",
+            sentiment="POSITIVE",
+            relevance_score=4,
+            mentioned_schools=[
+                {"name": "SJK(T) Ladang Bikam", "moe_code": "JBD0050"},
+            ],
+            review_status="APPROVED",
+        )
+        cls.approved_general_article = NewsArticle.objects.create(
+            url="https://example.com/general-news-1",
+            title="Tamil education policy update",
+            source_name="Malaysiakini",
+            published_date=datetime.datetime(2026, 2, 15, 8, 0, tzinfo=datetime.timezone.utc),
+            body_text="General education policy article.",
+            status="ANALYSED",
+            ai_summary="New education policy announced.",
+            sentiment="NEUTRAL",
+            mentioned_schools=[],
+            review_status="APPROVED",
+        )
+        cls.pending_article = NewsArticle.objects.create(
+            url="https://example.com/pending",
+            title="Pending review article",
+            status="ANALYSED",
+            mentioned_schools=[],
+            review_status="PENDING",
+        )
+        cls.rejected_article = NewsArticle.objects.create(
+            url="https://example.com/rejected",
+            title="Rejected article",
+            status="ANALYSED",
+            mentioned_schools=[],
+            review_status="REJECTED",
+        )
+        cls.non_analysed_article = NewsArticle.objects.create(
+            url="https://example.com/not-analysed",
+            title="Not yet analysed",
+            status="EXTRACTED",
+            mentioned_schools=[],
+            review_status="APPROVED",
+        )
+
+    def test_returns_approved_articles(self):
+        resp = self.client.get("/api/v1/news/")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "count" in data
+        assert "results" in data
+        assert data["count"] == 2
+        titles = [a["title"] for a in data["results"]]
+        assert "School gets funding" in titles
+        assert "Tamil education policy update" in titles
+
+    def test_excludes_pending(self):
+        resp = self.client.get("/api/v1/news/")
+        titles = [a["title"] for a in resp.json()["results"]]
+        assert "Pending review article" not in titles
+
+    def test_excludes_rejected(self):
+        resp = self.client.get("/api/v1/news/")
+        titles = [a["title"] for a in resp.json()["results"]]
+        assert "Rejected article" not in titles
+
+    def test_excludes_non_analysed(self):
+        resp = self.client.get("/api/v1/news/")
+        titles = [a["title"] for a in resp.json()["results"]]
+        assert "Not yet analysed" not in titles
+
+    def test_search_filter_title(self):
+        resp = self.client.get("/api/v1/news/?search=funding")
+        data = resp.json()
+        assert data["count"] == 1
+        assert data["results"][0]["title"] == "School gets funding"
+
+    def test_search_filter_ai_summary(self):
+        resp = self.client.get("/api/v1/news/?search=education+policy+announced")
+        data = resp.json()
+        assert data["count"] == 1
+        assert data["results"][0]["title"] == "Tamil education policy update"
+
+    def test_category_school_filter(self):
+        resp = self.client.get("/api/v1/news/?category=school")
+        data = resp.json()
+        assert data["count"] == 1
+        assert data["results"][0]["title"] == "School gets funding"
+
+    def test_category_general_filter(self):
+        resp = self.client.get("/api/v1/news/?category=general")
+        data = resp.json()
+        assert data["count"] == 1
+        assert data["results"][0]["title"] == "Tamil education policy update"
+
+    def test_ordered_by_published_date_descending(self):
+        resp = self.client.get("/api/v1/news/")
+        data = resp.json()
+        assert data["results"][0]["title"] == "School gets funding"
+        assert data["results"][1]["title"] == "Tamil education policy update"
+
+    def test_serializer_includes_mentioned_schools(self):
+        resp = self.client.get("/api/v1/news/")
+        data = resp.json()
+        school_article = next(
+            a for a in data["results"] if a["title"] == "School gets funding"
+        )
+        assert "mentioned_schools" in school_article
+        assert school_article["mentioned_schools"] == [
+            {"name": "SJK(T) Ladang Bikam", "moe_code": "JBD0050"},
+        ]
+
+    def test_pagination_works(self):
+        resp = self.client.get("/api/v1/news/?page_size=1")
+        data = resp.json()
+        assert len(data["results"]) == 1
+        assert data["next"] is not None
