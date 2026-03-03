@@ -11,8 +11,8 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 3 in progress. Sprint 3.6 done.
-- **Last Sprint**: 3.6 (closed 2026-03-03, Footer, Legal, Contact, School Page & Map Filters)
+- **Current Phase**: Phase 3 in progress. Sprint 3.7 done.
+- **Last Sprint**: 3.7 (closed 2026-03-03, Map InfoWindow, School Page Polish & Enrolment Filter)
 - **Tests**: 757 (532 backend + 225 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
@@ -183,6 +183,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 3.4 | Done | Homepage, About, Data Provenance & UX: national stats API, hero section, About page, favicon/metadata, MOE jargon translation, CTA reframe, empty state improvements, zero-school constituency filter, data provenance. 25 new frontend + 1 backend test (747 total). |
 | 3.5 | Done | Tamil Translation Review + Deployment: 9 Tamil grammar/terminology fixes (vallinam, செய்யறிவு, புலனாய்வு consistency), deployed backend + frontend to production, updated 3 Cloud Run jobs. |
 | 3.6 | Done | Footer, Legal, Contact, School Page & Map Filters: footer redesign, 3 legal pages, contact form + API, school page sidebar/leadership/stats redesign, MapFilterPanel with coloured pins (4 modes), SJKT search fix. 10 new tests (757 total). |
+| 3.7 | Done | Map InfoWindow, School Page Polish & Enrolment Filter: enrolment filter hides (not greys) schools above threshold, InfoWindow redesign (image, badges, stats, DUN link), school page 12-col grid with elevated stat cards + info bar + taller gallery with overlay thumbnails. mapInfoWindow i18n namespace. 757 tests (unchanged). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -199,11 +200,9 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 3.7 — Deployment + TBD**:
-- Deploy Sprint 3.6 changes to Cloud Run (backend + frontend)
-- Sprint 3.6 adds: footer redesign, legal pages, contact form, school page redesign, map filter panel with coloured pins
-- Backend has new serializer fields + contact API endpoint — deploy backend first
-- Frontend has new pages (contact, privacy, terms, cookies) + redesigned components
+**Sprint 3.8 — TBD**:
+- All Sprint 3.6 + 3.7 changes deployed to Cloud Run (both services)
+- DUN boundary data: `import_constituencies` command needs run to populate `boundary_wkt` for DUN maps (data exists in HalaTuju project CSV)
 - Phase 3 platform features: AI review layer, field partner role, or Parliament Watch public page
 - gcloud CLI requires `CLOUDSDK_PYTHON` env var pointing to Python 3.13
 
@@ -229,8 +228,9 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **Contact page** (Sprint 3.6): `/contact/` — ContactForm (name/email/subject/message), backend API via Brevo
 - **Legal pages** (Sprint 3.6): `/privacy/`, `/terms/`, `/cookies/` — trilingual
 - **Footer** (Sprint 3.6): Dark bg, copyright + social icons left, Platform + Legal link columns right
-- **Map filters** (Sprint 3.6): MapFilterPanel replaces StateFilter — 4 colour modes (Assistance/Location/Programmes/Enrolment), toggle switches, enrolment slider, dynamic pin colours
-- **School page** (Sprint 3.6): Sidebar with constituency/DUN links + MiniMap + nearby schools, leadership always shown, 5 stat cards
+- **Map filters** (Sprint 3.6): MapFilterPanel replaces StateFilter — 4 colour modes (Assistance/Location/Programmes/Enrolment), toggle switches, enrolment slider, dynamic pin colours. Enrolment mode hides schools above threshold (Sprint 3.7).
+- **Map InfoWindow** (Sprint 3.7): School image/placeholder, assistance + location badges, 3-stat row (students, teachers, ratio), constituency + DUN links, "View School" CTA button. `mapInfoWindow` i18n namespace.
+- **School page** (Sprint 3.6-3.7): 12-col grid (7/5 split), 3 elevated stat cards with SVG icons, preschool/special info bar, top-aligned title, metadata chip, taller gallery (400px) with overlay thumbnails, sidebar with constituency/DUN links + MiniMap + nearby schools, leadership always shown
 - **Tests**: Jest + React Testing Library (225 tests)
 - **Build**: Standalone output, 107 kB first load JS
 - **Dockerfile**: Multi-stage (deps → build → runner), port 8080

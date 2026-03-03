@@ -1,5 +1,28 @@
 # Changelog
 
+## Sprint 3.7 — Map InfoWindow, School Page Polish & Enrolment Filter (2026-03-03)
+
+### Fixed
+- **Enrolment filter**: Schools above the enrolment threshold are now hidden entirely instead of shown as grey pins — reduces visual clutter on the map
+
+### Changed
+- **Map InfoWindow redesign**: New popup with school image (or placeholder), assistance/location badges, 3-stat row (students, teachers, ratio), constituency + DUN links, full-width "View School" button
+- **School detail page redesign**: 12-col grid layout (7/5 split), 3 elevated stat cards with SVG icons (students, teachers, grade), preschool/special ed info bar, top-aligned title, metadata chip with primary-coloured MOE code
+- **SchoolPhotoGallery**: Taller image (400px on desktop), clickable thumbnails overlaid inside the image at bottom-left, attribution overlay with backdrop blur
+- **StatCard**: Elevated design with rounded-xl, border, shadow, React.ReactNode icon support with configurable colour
+- **SchoolListSerializer**: Added `dun_id`, `dun_code`, `dun_name`, `image_url` fields for map InfoWindow
+- **SchoolListView**: Added `select_related("dun")` and `prefetch_related("images")` to avoid N+1 queries
+
+### Added
+- `mapInfoWindow` translation namespace (EN/MS/TA) with keys for badges, stats, and CTA
+
+### Technical
+- 757 tests passing (532 backend + 225 frontend)
+- Both backend and frontend deployed to Cloud Run
+- 3 commits: enrolment filter fix, InfoWindow redesign, school page redesign
+
+---
+
 ## Sprint 3.6 — Footer, Legal, Contact, School Page & Map Filters (2026-03-03)
 
 ### Added
