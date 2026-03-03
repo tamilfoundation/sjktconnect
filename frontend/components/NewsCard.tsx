@@ -59,12 +59,19 @@ export default function NewsCard({ article }: Props) {
 
       {article.mentioned_schools.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {article.mentioned_schools.map((school) => (
-            <Link key={school.moe_code} href={`/school/${school.moe_code}`}
-                  className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full hover:bg-primary-100">
-              {school.name}
-            </Link>
-          ))}
+          {article.mentioned_schools.map((school, idx) =>
+            school.moe_code ? (
+              <Link key={school.moe_code} href={`/school/${school.moe_code}`}
+                    className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full hover:bg-primary-100">
+                {school.name}
+              </Link>
+            ) : (
+              <span key={`${school.name}-${idx}`}
+                    className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                {school.name}
+              </span>
+            )
+          )}
         </div>
       )}
     </div>

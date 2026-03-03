@@ -40,10 +40,12 @@ Analyse the article and return a JSON object with these fields:
 - summary: 2-3 sentence English summary focused on what this means for Tamil schools.
   Be specific about names, locations, and figures mentioned.
 
-- mentioned_schools: Array of objects, each with:
+- mentioned_schools: Array of objects for SJK(T) / Tamil schools ONLY.
+  Do NOT include non-Tamil schools (SK, SMK, SJK(C), SRJK(C), etc.).
+  Each object has:
   - name: School name as mentioned in the article (string)
   - moe_code: MOE code if identifiable (string, or "" if unknown)
-  Keep empty array [] if no specific schools are named.
+  Keep empty array [] if no specific Tamil schools are named.
 
 - is_urgent: Boolean. True ONLY if the article reports:
   - School closure or merger threat
