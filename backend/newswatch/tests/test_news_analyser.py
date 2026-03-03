@@ -169,6 +169,90 @@ class ApplyAnalysisTest(TestCase):
         self.assertEqual(article.urgent_reason, "School closure mentioned.")
 
 
+class AutoApproveTest(TestCase):
+    """Test auto-approve logic in apply_analysis."""
+
+    def test_high_relevance_auto_approved(self):
+        article = NewsArticle.objects.create(
+            url="https://example.com/auto-approve-high",
+            title="Relevant article",
+            body_text="Article about Tamil school.",
+            status=NewsArticle.EXTRACTED,
+        )
+        analysis = {
+            "relevance_score": 4,
+            "sentiment": "POSITIVE",
+            "summary": "Good news.",
+            "mentioned_schools": [],
+            "is_urgent": False,
+            "urgent_reason": "",
+            "raw_response": {},
+        }
+        apply_analysis(article, analysis)
+        article.refresh_from_db()
+        assert article.review_status == "APPROVED"
+
+    def test_relevance_3_auto_approved(self):
+        article = NewsArticle.objects.create(
+            url="https://example.com/auto-approve-3",
+            title="Moderately relevant",
+            body_text="Some text.",
+            status=NewsArticle.EXTRACTED,
+        )
+        analysis = {
+            "relevance_score": 3,
+            "sentiment": "NEUTRAL",
+            "summary": "Moderate relevance.",
+            "mentioned_schools": [],
+            "is_urgent": False,
+            "urgent_reason": "",
+            "raw_response": {},
+        }
+        apply_analysis(article, analysis)
+        article.refresh_from_db()
+        assert article.review_status == "APPROVED"
+
+    def test_low_relevance_stays_pending(self):
+        article = NewsArticle.objects.create(
+            url="https://example.com/auto-approve-low",
+            title="Irrelevant article",
+            body_text="Not about Tamil schools.",
+            status=NewsArticle.EXTRACTED,
+        )
+        analysis = {
+            "relevance_score": 2,
+            "sentiment": "NEUTRAL",
+            "summary": "Not relevant.",
+            "mentioned_schools": [],
+            "is_urgent": False,
+            "urgent_reason": "",
+            "raw_response": {},
+        }
+        apply_analysis(article, analysis)
+        article.refresh_from_db()
+        assert article.review_status == "PENDING"
+
+    def test_relevance_1_stays_pending(self):
+        article = NewsArticle.objects.create(
+            url="https://example.com/auto-approve-1",
+            title="Completely irrelevant",
+            body_text="Unrelated content.",
+            status=NewsArticle.EXTRACTED,
+        )
+        analysis = {
+            "relevance_score": 1,
+            "sentiment": "NEUTRAL",
+            "summary": "Irrelevant.",
+            "mentioned_schools": [],
+            "is_urgent": False,
+            "urgent_reason": "",
+            "raw_response": {},
+        }
+        apply_analysis(article, analysis)
+        article.refresh_from_db()
+        assert article.review_status == "PENDING"
+
+
 class AnalysePendingArticlesTest(TestCase):
     @patch("newswatch.services.news_analyser.analyse_article")
     def test_analyses_extracted_articles(self, mock_analyse):
