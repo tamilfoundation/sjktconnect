@@ -68,8 +68,8 @@ export default function Footer() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/parliament-watch" className="text-xs hover:text-white transition-colors">
-                    {t("parliamentWatch")}
+                  <Link href="/news" className="text-xs hover:text-white transition-colors">
+                    {t("newsReports")}
                   </Link>
                 </li>
                 <li>

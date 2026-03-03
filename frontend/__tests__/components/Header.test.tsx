@@ -14,9 +14,9 @@ describe("Header", () => {
     expect(links.length).toBeGreaterThan(0);
   });
 
-  it("renders Parliament Watch link", () => {
+  it("renders News & Reports link", () => {
     render(<Header />);
-    const links = screen.getAllByText("Parliament Watch");
+    const links = screen.getAllByText("News & Reports");
     expect(links.length).toBeGreaterThan(0);
   });
 

@@ -33,10 +33,10 @@ export default function Header() {
               {t("constituencies")}
             </Link>
             <Link
-              href="/parliament-watch"
+              href="/news"
               className="text-sm font-medium text-gray-700 hover:text-primary-600"
             >
-              {t("parliamentWatch")}
+              {t("newsReports")}
             </Link>
             <Link
               href="/about"
@@ -86,11 +86,11 @@ export default function Header() {
             {t("constituencies")}
           </Link>
           <Link
-            href="/parliament-watch"
+            href="/news"
             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
             onClick={() => setMenuOpen(false)}
           >
-            {t("parliamentWatch")}
+            {t("newsReports")}
           </Link>
           <Link
             href="/about"
