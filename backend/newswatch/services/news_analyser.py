@@ -188,9 +188,9 @@ def _strip_prefix(name):
     - "தேசிய வகை சரஸ்வதி தமிழ்ப்பள்ளி" -> "சரஸ்வதி"
     """
     import re
-    # English prefixes
+    # English prefixes (handles "SJK(T)", "SJK (T)", "SJKT", etc.)
     name = re.sub(
-        r"^(?:SJK\s*\(T\)|SJKT|SRK\(T\)|SRJK\(T\))\s*",
+        r"^(?:SJK\s*\(?\s*T\s*\)?|SJKT|SRK\s*\(T\)|SRJK\s*\(T\))\s*",
         "", name, flags=re.IGNORECASE,
     ).strip()
     # Tamil suffixes: தமிழ்ப்பள்ளி (Tamil school)
@@ -204,6 +204,34 @@ def _strip_prefix(name):
         "", name,
     ).strip()
     return name
+
+
+# Common abbreviation variants in Malaysian school names
+_ABBREV_MAP = {
+    "Ladang": "Ldg",
+    "Sungai": "Sg",
+    "Kampung": "Kg",
+    "Jalan": "Jln",
+}
+# Build reverse map too (Ldg → Ladang)
+_ABBREV_MAP.update({v: k for k, v in _ABBREV_MAP.items()})
+
+
+def _normalise_abbreviations(text):
+    """Swap common abbreviation variants for matching.
+
+    E.g. "Ladang Kinrara" → "Ldg Kinrara", "Sg Siput" → "Sungai Siput".
+    """
+    words = text.split()
+    result = []
+    for w in words:
+        # Check case-insensitive match
+        for full, abbrev in _ABBREV_MAP.items():
+            if w.lower() == full.lower():
+                w = abbrev
+                break
+        result.append(w)
+    return " ".join(result)
 
 
 def _resolve_school_codes(mentioned_schools, article=None):
@@ -249,6 +277,23 @@ def _resolve_school_codes(mentioned_schools, article=None):
             candidates = School.objects.filter(
                 short_name__icontains=distinctive
             )
+        if not candidates.exists() and distinctive:
+            # Try normalised abbreviations (Ladang↔Ldg, Sungai↔Sg, etc.)
+            normalised = _normalise_abbreviations(distinctive)
+            if normalised != distinctive:
+                candidates = School.objects.filter(
+                    short_name__icontains=normalised
+                )
+        if not candidates.exists() and distinctive:
+            # Try matching each word individually for multi-word names
+            # Catches "Melaka Kubu" matching "Melaka (Kubu)"
+            words = distinctive.split()
+            if len(words) >= 2:
+                from django.db.models import Q
+                q = Q(short_name__icontains=words[0])
+                for w in words[1:]:
+                    q &= Q(short_name__icontains=w)
+                candidates = School.objects.filter(q)
 
         if candidates.count() == 1:
             match = candidates.first()

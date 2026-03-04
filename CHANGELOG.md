@@ -1,5 +1,37 @@
 # Changelog
 
+## Post-Sprint 3.8 Fixes (2026-03-04)
+
+### Added
+- **Historical news backfill**: `backfill_news` management command — searches Google News RSS for Tamil school articles (English + Tamil queries), decodes Google News redirect URLs via `googlenewsdecoder`, creates NewsArticle records with deduplication
+- **Tamil language news support**: 4 Tamil-script RSS queries (`தமிழ்ப்பள்ளி`, `தமிழ் பள்ளி மலேசியா`, `SJKT தமிழ்`, `தமிழ் பள்ளி ஆசிரியர்`) with correct locale params (`hl=ta`, `ceid=MY:ta`)
+- **School name resolution**: AI-extracted school names now matched against database to populate `moe_code` — enables school chip links on news cards
+- **School disambiguation**: When multiple schools share a name (e.g. "SJK(T) Saraswathy"), article location clues resolve the correct one
+- **Abbreviation matching**: `Ladang↔Ldg`, `Sungai↔Sg`, `Kampung↔Kg`, `Jalan↔Jln` variants matched automatically
+- **Multi-word matching**: School names like "Melaka Kubu" now match "Melaka (Kubu)" in database
+- **`rematch_schools` command**: Re-resolve unmatched school mentions after matching improvements
+- **Mega-menu header**: Data-driven dropdown navigation with grouped items (Explore, Intelligence, Resources, About), desktop dropdowns + mobile accordion, Subscribe/Donate CTAs, 7 stub pages for future routes
+- **YMHA migration**: Fix abbreviation casing `Ymha` → `YMHA` for school ABD6101
+
+### Fixed
+- **Gemini model upgrade**: `gemini-2.0-flash` → `gemini-2.5-flash` for better analysis accuracy
+- **NEWS_WATCH_RSS_FEEDS**: Added missing env var to production settings (was causing empty feed fetches)
+- **Non-Tamil school filtering**: News tags now exclude non-Tamil schools; missing `moe_code` renders grey badge instead of broken link
+- **Tamil query time filter**: `when:` parameter breaks Google News RSS for non-ASCII queries — now auto-skipped
+- **Tamil school name handling**: `_strip_prefix()` handles Tamil suffixes (`தமிழ்ப்பள்ளி`) and prefixes (`தேசிய வகை`); Gemini prompt transliterates Tamil school names to English
+- **Header language switcher**: Moved before Subscribe/Donate buttons for correct visual order
+- **YMHA abbreviation**: Added to `_UPPER_ABBREVS` set in `schools/utils.py`
+- **SJK prefix regex**: Now handles `SJK(T)`, `SJK (T)`, `SJK T` variants
+
+### Data
+- 88 English articles + 253 Tamil articles backfilled (March 2025 onwards)
+- 297 extracted, all analysed; 183 auto-approved, 191 filtered as irrelevant (Indian school news)
+
+### Dependencies
+- Added `googlenewsdecoder>=0.1` to requirements.txt
+
+---
+
 ## Homepage Hero Redesign (2026-03-03)
 
 ### Fixed

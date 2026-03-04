@@ -5,7 +5,7 @@ import re
 # ── Title Case Configuration ─────────────────────────────────────────────
 
 # Abbreviations that must stay UPPERCASE
-_UPPER_ABBREVS = {"SJK(T)", "PPD", "PPW", "JPN", "D/A", "H/D"}
+_UPPER_ABBREVS = {"SJK(T)", "PPD", "PPW", "JPN", "D/A", "H/D", "YMHA"}
 
 # Roman numerals that must stay UPPERCASE
 _ROMAN_NUMERALS = {"II", "III", "IV", "V", "VI"}
