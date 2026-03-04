@@ -1,5 +1,30 @@
 # Changelog
 
+## Sprint 4.1–4.2: Donations Feature (2026-03-04)
+
+### Added
+- **School bank details**: 3 new fields on School model (`bank_name`, `bank_account_number`, `bank_account_name`), imported from TF Excel for 202 schools
+- **`import_bank_details` command**: Import school bank details from TF Excel database (`data/பள்ளிகள் - மாநிலம்.xlsx`)
+- **DuitNow QR endpoint**: `GET /api/v1/schools/<moe_code>/duitnow-qr/` — generates PNG QR code with school's bank details
+- **Support This School card**: Sidebar card on school pages showing bank name, account number (with copy button), account name, and DuitNow QR code. Only shown for schools with bank data (202/528). Editable via magic link claim.
+- **Donations Django app**: New `donations` app with Donation model (UUID PK, order ID, Toyyib Pay fields), Toyyib Pay service (create_bill, verify_callback_hash, process_callback), 3 API endpoints (create donation, callback, status)
+- **Donate page**: `/donate` page with preset amounts (RM 10/50/100/250), custom amount, donor info form, Toyyib Pay redirect. Thank-you page with payment status check.
+- **DonationForm component**: Client component with amount selection, validation, loading states, error handling
+- **Admin panel**: DonationAdmin with list/filter/search/readonly fields
+- **i18n**: All donation strings in EN/TA/MS (20 keys in `donate` namespace, 7 keys in `schoolProfile` namespace)
+
+### Dependencies
+- Added `qrcode[pil]>=7.0` to backend requirements
+
+### Tests
+- 47 new tests: 33 backend (model, service, API, QR) + 14 frontend (SupportSchoolCard, DonationForm)
+- Total: 979 tests (714 backend + 265 frontend)
+
+### Configuration (pending deployment)
+- Toyyib Pay env vars needed on Cloud Run: `TOYYIBPAY_SECRET_KEY`, `TOYYIBPAY_CATEGORY_CODE`, `TOYYIBPAY_BASE_URL`
+
+---
+
 ## Post-Sprint 3.8 Fixes (2026-03-04)
 
 ### Added

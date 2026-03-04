@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 3 in progress. Sprint 3.7 done.
-- **Last Sprint**: 3.7 (closed 2026-03-03, Map InfoWindow, School Page Polish & Enrolment Filter)
-- **Tests**: 757 (532 backend + 225 frontend)
+- **Current Phase**: Phase 4 (Donations). Sprint 4.1–4.2 done (not yet deployed).
+- **Last Sprint**: 4.1–4.2 (2026-03-04, Donations feature — school bank details + DuitNow QR + Toyyib Pay)
+- **Tests**: 979 (714 backend + 265 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -30,6 +30,7 @@
 | `subscribers` | Subscriber, SubscriptionPreference, subscribe/unsubscribe/preferences API | 2.1 |
 | `broadcasts` | Broadcast, BroadcastRecipient, audience filtering, compose/preview/list UI, monthly blast aggregator | 2.2, 2.7 |
 | `newswatch` | NewsArticle, RSS fetcher, article extractor, Gemini AI analysis, admin review queue | 2.5-2.6 |
+| `donations` | Donation model, Toyyib Pay service, create/callback/status API | 4.1-4.2 |
 
 ## Commands
 
@@ -90,6 +91,11 @@ python manage.py extract_articles --batch-size 50           # Custom batch size
 python manage.py analyse_news_articles                      # AI-analyse extracted articles (batch of 10)
 python manage.py analyse_news_articles --batch-size 25      # Custom batch size
 
+# Donations (Sprint 4.1-4.2)
+python manage.py import_bank_details                        # Import bank details from TF Excel
+python manage.py import_bank_details --dry-run              # Preview without saving
+python manage.py import_bank_details --file path/to/file    # Custom Excel file
+
 # News Pipeline (Sprint 2.8)
 python manage.py run_news_pipeline                          # Full pipeline: fetch → extract → analyse
 
@@ -126,6 +132,9 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | `NEXT_PUBLIC_API_URL` | Frontend | Backend API URL (default: `http://localhost:8000`) |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Frontend | Google Maps JavaScript API key |
 | `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` | Frontend | Google Maps Map ID (for AdvancedMarker styling) |
+| `TOYYIBPAY_BASE_URL` | Sprint 4.1+ | Toyyib Pay base URL (default: `https://toyyibpay.com`) |
+| `TOYYIBPAY_SECRET_KEY` | Sprint 4.1+ (prod) | Toyyib Pay user secret key |
+| `TOYYIBPAY_CATEGORY_CODE` | Sprint 4.1+ (prod) | Toyyib Pay bill category code |
 | `BREVO_API_KEY` | Sprint 1.6+ (prod) | Brevo transactional email API key (logs to console in dev if absent) |
 | `FRONTEND_URL` | Sprint 1.6+ (prod) | Next.js frontend URL for magic link emails (default: `http://localhost:3000`) |
 | `GOOGLE_MAPS_API_KEY` | Sprint 1.8+ | Backend Google Maps API key for image harvesting (falls back to `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`) |
@@ -184,6 +193,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 3.5 | Done | Tamil Translation Review + Deployment: 9 Tamil grammar/terminology fixes (vallinam, செய்யறிவு, புலனாய்வு consistency), deployed backend + frontend to production, updated 3 Cloud Run jobs. |
 | 3.6 | Done | Footer, Legal, Contact, School Page & Map Filters: footer redesign, 3 legal pages, contact form + API, school page sidebar/leadership/stats redesign, MapFilterPanel with coloured pins (4 modes), SJKT search fix. 10 new tests (757 total). |
 | 3.7 | Done | Map InfoWindow, School Page Polish & Enrolment Filter: enrolment filter hides (not greys) schools above threshold, InfoWindow redesign (image, badges, stats, DUN link), school page 12-col grid with elevated stat cards + info bar + taller gallery with overlay thumbnails. mapInfoWindow i18n namespace. 757 tests (unchanged). |
+| 4.1-4.2 | Done | Donations feature: bank_name/bank_account_number/bank_account_name on School, import_bank_details command (202 schools), DuitNow QR endpoint, SupportSchoolCard sidebar, donations Django app (Toyyib Pay), /donate page + thank-you page, DonationForm. 47 new tests (979 total). Not yet deployed. |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -200,10 +210,12 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 3.8 — TBD**:
-- All Sprint 3.6 + 3.7 changes deployed to Cloud Run (both services)
-- DUN boundary data: `import_constituencies` command needs run to populate `boundary_wkt` for DUN maps (data exists in HalaTuju project CSV)
-- Phase 3 platform features: AI review layer, field partner role, or Parliament Watch public page
+**Deploy Sprint 4.1–4.2 (Donations)**:
+- Push code (7 commits ready), deploy backend + frontend to Cloud Run
+- Set Toyyib Pay env vars on Cloud Run: `TOYYIBPAY_SECRET_KEY`, `TOYYIBPAY_CATEGORY_CODE`, `TOYYIBPAY_BASE_URL` (use Thulivellam sandbox credentials first)
+- Run `import_bank_details` on production if bank data not already in Supabase (it was imported locally against remote DB so should be there)
+- End-to-end test: school page bank card, donate page → Toyyib sandbox
+- **Urgent Response System**: Design approved, marinating. See `docs/plans/2026-03-04-urgent-response-system-design.md`
 - gcloud CLI requires `CLOUDSDK_PYTHON` env var pointing to Python 3.13
 
 ## Frontend (Sprint 1.3–3.3)
@@ -231,7 +243,9 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **Map filters** (Sprint 3.6): MapFilterPanel replaces StateFilter — 4 colour modes (Assistance/Location/Programmes/Enrolment), toggle switches, enrolment slider, dynamic pin colours. Enrolment mode hides schools above threshold (Sprint 3.7).
 - **Map InfoWindow** (Sprint 3.7): School image/placeholder, assistance + location badges, 3-stat row (students, teachers, ratio), constituency + DUN links, "View School" CTA button. `mapInfoWindow` i18n namespace.
 - **School page** (Sprint 3.6-3.7): 12-col grid (7/5 split), 3 elevated stat cards with SVG icons, preschool/special info bar, top-aligned title, metadata chip, taller gallery (400px) with overlay thumbnails, sidebar with constituency/DUN links + MiniMap + nearby schools, leadership always shown
-- **Tests**: Jest + React Testing Library (225 tests)
+- **Donate page** (Sprint 4.2): `/donate/` — DonationForm (preset amounts, custom, donor info → Toyyib Pay), `/donate/thank-you/` — payment status display
+- **SupportSchoolCard** (Sprint 4.1): Sidebar card on school pages showing bank details + DuitNow QR. Hidden for schools without bank data. Bank fields editable via SchoolEditForm.
+- **Tests**: Jest + React Testing Library (265 tests)
 - **Build**: Standalone output, 107 kB first load JS
 - **Dockerfile**: Multi-stage (deps → build → runner), port 8080
 - **Env vars**: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID`
@@ -249,6 +263,8 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **Search**: `GET /api/v1/search/?q=<query>` — searches schools (name, code) and constituencies (name, code, MP name). Min 2 chars.
 - **Subscribers** (Sprint 2.1, public): `POST /api/v1/subscribers/subscribe/` (create subscriber, idempotent), `GET /api/v1/subscribers/unsubscribe/<token>/` (one-click unsubscribe), `GET/PUT /api/v1/subscribers/preferences/<token>/` (view/update category toggles)
 - **Contact** (Sprint 3.6): `POST /api/v1/contact/` (name, email, subject, message → Brevo email, 3/hour rate limit)
+- **DuitNow QR** (Sprint 4.1): `GET /api/v1/schools/<moe_code>/duitnow-qr/` (PNG QR code with bank details, 404 if no bank data)
+- **Donations** (Sprint 4.2): `POST /api/v1/donations/` (create donation → Toyyib redirect URL), `POST /api/v1/donations/callback/` (Toyyib server callback), `GET /api/v1/donations/status/?order_id=` (check payment status)
 - CORS via `django-cors-headers` — origins from `CORS_ALLOWED_ORIGINS` env var
 - URL ordering: GeoJSON literal paths before `<str:code>` detail paths to avoid capture conflicts
 
