@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 4 (Donations). Sprint 4.1–4.2 done (not yet deployed).
-- **Last Sprint**: 4.1–4.2 (2026-03-04, Donations feature — school bank details + DuitNow QR + Toyyib Pay)
-- **Tests**: 979 (714 backend + 265 frontend)
+- **Current Phase**: Phase 4 (Donations). Sprint 4.1–4.2 done (not yet deployed). Hansard backfill complete.
+- **Last Sprint**: Hansard Pipeline Backfill (2026-03-04, 5 parliament sessions → 97 sittings, 193 mentions, 36 scorecards, 33 briefs)
+- **Tests**: 980 (715 backend + 265 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -38,7 +38,8 @@
 # Development
 cd backend
 python manage.py runserver                    # Start dev server
-python manage.py test --keepdb                 # Run backend tests (532 passing)
+python manage.py test --keepdb                 # Run backend tests (581 via Django runner)
+pytest                                         # Run backend tests (715 via pytest, more thorough)
 
 # Frontend
 cd frontend
@@ -122,7 +123,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | Yes (prod) | Supabase PostgreSQL connection string (transaction pooler, port 6543) |
+| `DATABASE_URL` | Yes (prod) | Supabase PostgreSQL connection string. Use direct connection (port 5432) for bulk writes; transaction pooler (port 6543) can silently drop writes |
 | `SECRET_KEY` | Yes (prod) | Django secret key |
 | `DJANGO_SETTINGS_MODULE` | Yes | `sjktconnect.settings.development` or `.production` |
 | `GEMINI_API_KEY` | Sprint 0.4+ | Google AI Studio API key |
@@ -154,7 +155,8 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 - Supabase free tier: 500 MB storage, Tamil Foundation org
 - Region: Southeast Asia (Singapore) — matches Cloud Run asia-southeast1
-- Transaction pooler (port 6543) recommended for Cloud Run serverless
+- Transaction pooler (port 6543) recommended for Cloud Run serverless **read-heavy** workloads
+- **CAUTION**: Pooler (port 6543) can silently drop sequential writes. Use direct connection (port 5432) for bulk data operations (Hansard batch processing, AI analysis). Add `connection.close()` after writes if using pooler.
 - Supports pg_trgm (needed for Sprint 0.3 fuzzy matching)
 - Django connects via `DATABASE_URL` using dj-database-url
 
@@ -210,11 +212,12 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Deploy Sprint 4.1–4.2 (Donations)**:
-- Push code (7 commits ready), deploy backend + frontend to Cloud Run
-- Set Toyyib Pay env vars on Cloud Run: `TOYYIBPAY_SECRET_KEY`, `TOYYIBPAY_CATEGORY_CODE`, `TOYYIBPAY_BASE_URL` (use Thulivellam sandbox credentials first)
-- Run `import_bank_details` on production if bank data not already in Supabase (it was imported locally against remote DB so should be there)
+**Deploy Sprint 4.1–4.2 (Donations) + Hansard Backfill**:
+- Deploy backend + frontend to Cloud Run (donations code + hansard pipeline fixes)
+- Set Toyyib Pay env vars on Cloud Run: `TOYYIBPAY_SECRET_KEY`, `TOYYIBPAY_CATEGORY_CODE`, `TOYYIBPAY_BASE_URL`
 - End-to-end test: school page bank card, donate page → Toyyib sandbox
+- DB state: 97 sittings, 193 mentions (all analysed), 36 scorecards, 33 briefs already in Supabase
+- **Trigram school matching**: 125 mentions have unmatched schools (exact match got 68). Trigram too slow over remote DB — consider batch approach or local processing
 - **Urgent Response System**: Design approved, marinating. See `docs/plans/2026-03-04-urgent-response-system-design.md`
 - gcloud CLI requires `CLOUDSDK_PYTHON` env var pointing to Python 3.13
 
@@ -289,7 +292,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Gemini AI Notes
 - Uses `google.genai` SDK (not deprecated `google.generativeai`)
-- Model: `gemini-2.0-flash` with JSON response mode and temperature 0.1
+- Model: `gemini-2.5-flash` with JSON response mode and temperature 0.1 (Paid Tier 1: 1000 RPM, 10K RPD)
 - Token budgeting: sends mention + context only (~1500 chars), never full Hansard
 - Structured output: mp_name, constituency, party, mention_type, significance (1-5), sentiment, change_indicator, summary
 - All Gemini calls are mocked in tests — no API key needed for test suite
@@ -300,7 +303,9 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - parlimen.gov.my has invalid SSL cert — downloader uses verify=False for that domain
 - PDF date format: DR-DDMMYYYY.pdf (e.g. DR-26012026.pdf = 26 Jan 2026)
 - Real variants found so far: "sjk(t)", "sekolah jenis kebangsaan tamil"
-- Not every sitting mentions Tamil schools — the Jan-Mar 2026 session had 2/15 sittings with mentions
+- Not every sitting mentions Tamil schools — out of 97 sittings across 5 sessions (Feb 2025 – Mar 2026), 33 had mentions
+- parlimen.gov.my now blocks HEAD requests (403) — scraper uses ranged GET (`Range: bytes=0-0`) instead
+- Non-sitting days (Fridays, recesses) return HTML (HTTP 200) instead of PDF — pdfplumber fails with "No /Root object". These are correctly marked FAILED.
 - Normaliser handles: SJK(T), SJKT, S.J.K.(T), S.J.K(T), non-breaking spaces, whitespace collapse
 
 ## School Matching Notes
