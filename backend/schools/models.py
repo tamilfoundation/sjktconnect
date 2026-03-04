@@ -90,6 +90,12 @@ class School(models.Model):
     email = models.EmailField(blank=True, default="")
     phone = models.CharField(max_length=30, blank=True, default="")
     fax = models.CharField(max_length=30, blank=True, default="")
+
+    # ── Bank Details (for donations) ─────────────────────────────────
+    bank_name = models.CharField(max_length=100, blank=True, default="")
+    bank_account_number = models.CharField(max_length=50, blank=True, default="")
+    bank_account_name = models.CharField(max_length=200, blank=True, default="")
+
     gps_lat = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     gps_lng = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     gps_verified = models.BooleanField(default=False)
