@@ -21,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function NewsPage() {
   const t = await getTranslations("news");
-  const data = await fetchNews({ pageSize: 50 });
+  const data = await fetchNews({ pageSize: 500 });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
