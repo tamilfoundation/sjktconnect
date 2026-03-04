@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "subscribers",
     "broadcasts",
     "newswatch",
+    "donations",
 ]
 
 MIDDLEWARE = [
@@ -138,3 +139,8 @@ AUDIT_LOG_MODELS = [
 # Magic Link Authentication
 BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+
+# Toyyib Pay
+TOYYIBPAY_BASE_URL = os.environ.get("TOYYIBPAY_BASE_URL", "https://toyyibpay.com")
+TOYYIBPAY_SECRET_KEY = os.environ.get("TOYYIBPAY_SECRET_KEY", "")
+TOYYIBPAY_CATEGORY_CODE = os.environ.get("TOYYIBPAY_CATEGORY_CODE", "")

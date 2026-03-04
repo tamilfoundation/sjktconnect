@@ -21,4 +21,5 @@ urlpatterns = [
     path("", include("schools.urls")),
     path("", include("parliament.urls")),
     path("", include("newswatch.urls")),
+    path("api/v1/donations/", include("donations.api.urls")),
 ]
