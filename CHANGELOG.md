@@ -1,5 +1,25 @@
 # Changelog
 
+## Hansard Pipeline: Full Parliament Backfill (2026-03-04)
+
+### Data
+- **97 sittings processed** across 5 parliament sessions (Feb 2025 – Mar 2026)
+- **193 mentions** of Tamil schools found, all AI-analysed with Gemini 2.5 Flash
+- **36 MP scorecards** created/updated
+- **33 sitting briefs** generated for all sittings with mentions
+- 34 non-sitting days correctly identified and marked as failed
+
+### Fixed
+- **Scraper: parlimen.gov.my blocks HEAD requests** — switched `_pdf_exists()` from HEAD to ranged GET (`Range: bytes=0-0`) to detect PDF availability
+- **Gemini client: rate limit handling** — added retry with exponential backoff on 429 errors, switched to gemini-2.5-flash model
+- **Analysis filter bug** — `analyse_mentions` command used `mp_name=''` to detect unanalysed mentions, but Gemini legitimately returns empty MP names when the speaker can't be identified from the quote. Changed to `ai_summary=''`
+- **Brief generator filter** — same fix applied to `generate_brief()`, now uses `ai_summary` instead of `mp_name` to determine if a mention has been analysed
+
+### Changed
+- `analyse_mentions` command: added `connection.close()` after each write to prevent stale DB connections
+
+---
+
 ## Sprint 4.1–4.2: Donations Feature (2026-03-04)
 
 ### Added

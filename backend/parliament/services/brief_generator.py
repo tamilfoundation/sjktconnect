@@ -43,12 +43,14 @@ def generate_brief(sitting):
         SittingBrief instance (created or updated), or None if no mentions.
     """
     # Prefer approved mentions, fall back to all analysed
+    # A mention is "analysed" if it has an AI summary (mp_name may be
+    # empty when the speaker couldn't be identified from the quote).
     mentions = sitting.mentions.filter(
         review_status="APPROVED",
-    ).exclude(mp_name="")
+    ).exclude(ai_summary="")
 
     if not mentions.exists():
-        mentions = sitting.mentions.exclude(mp_name="")
+        mentions = sitting.mentions.exclude(ai_summary="")
 
     if not mentions.exists():
         logger.warning(

@@ -8,8 +8,10 @@ Usage:
 """
 
 import logging
+import time
 
 from django.core.management.base import BaseCommand
+from django.db import connection
 
 from hansard.models import HansardMention
 from parliament.services.gemini_client import analyse_mention, apply_analysis
@@ -38,8 +40,9 @@ class Command(BaseCommand):
         )
 
     def handle(self, **options):
-        # Unanalysed = mp_name is empty (AI hasn't processed yet)
-        qs = HansardMention.objects.filter(mp_name="")
+        # Unanalysed = no AI summary yet (mp_name may be empty if
+        # the speaker couldn't be identified from the quote)
+        qs = HansardMention.objects.filter(ai_summary="")
 
         if options["sitting_date"]:
             qs = qs.filter(sitting__sitting_date=options["sitting_date"])
@@ -80,6 +83,9 @@ class Command(BaseCommand):
             analysis = analyse_mention(mention)
             if analysis:
                 apply_analysis(mention, analysis)
+                # Close DB connection after each write to prevent stale
+                # pooled connections from silently dropping writes
+                connection.close()
                 self.stdout.write(
                     f" {analysis['mention_type']} "
                     f"(sig={analysis['significance']}, {analysis['sentiment']})"
@@ -88,6 +94,9 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(" FAILED")
                 failed += 1
+
+            # Paid tier 1: 1000 RPM — minimal delay to be polite
+            time.sleep(0.5)
 
         self.stdout.write(
             self.style.SUCCESS(

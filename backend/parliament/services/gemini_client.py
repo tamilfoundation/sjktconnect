@@ -14,6 +14,7 @@ Uses the google.genai SDK (not the deprecated google.generativeai).
 import json
 import logging
 import os
+import time
 
 from google import genai
 from google.genai import types
@@ -142,19 +143,27 @@ def analyse_mention(mention):
     excerpt = _build_excerpt(mention)
     prompt = ANALYSIS_PROMPT.format(excerpt=excerpt)
 
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0.1,
-            ),
-        )
-        raw_text = response.text.strip()
-    except Exception:
-        logger.exception("Gemini API call failed for mention %s", mention.pk)
-        return None
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.1,
+                ),
+            )
+            raw_text = response.text.strip()
+            break
+        except Exception as e:
+            if "429" in str(e) and attempt < max_retries - 1:
+                wait = 15 * (attempt + 1)
+                logger.info("Rate limited, waiting %ds...", wait)
+                time.sleep(wait)
+                continue
+            logger.exception("Gemini API call failed for mention %s", mention.pk)
+            return None
 
     try:
         data = json.loads(raw_text)

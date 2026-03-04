@@ -1,4 +1,4 @@
-"""Tests for the Hansard PDF scraper (discovery via HEAD requests)."""
+"""Tests for the Hansard PDF scraper (discovery via ranged GET requests)."""
 
 from datetime import date
 from unittest.mock import MagicMock, patch
@@ -31,31 +31,37 @@ class BuildUrlTests(TestCase):
 
 
 class PdfExistsTests(TestCase):
-    """Test HEAD request probing."""
+    """Test ranged GET request probing."""
 
-    @patch("hansard.pipeline.scraper.requests.head")
-    def test_returns_true_on_200(self, mock_head):
-        mock_head.return_value = MagicMock(status_code=200)
+    @patch("hansard.pipeline.scraper.requests.get")
+    def test_returns_true_on_200(self, mock_get):
+        mock_get.return_value = MagicMock(status_code=200)
         self.assertTrue(_pdf_exists("https://example.com/test.pdf"))
 
-    @patch("hansard.pipeline.scraper.requests.head")
-    def test_returns_false_on_404(self, mock_head):
-        mock_head.return_value = MagicMock(status_code=404)
+    @patch("hansard.pipeline.scraper.requests.get")
+    def test_returns_true_on_206(self, mock_get):
+        mock_get.return_value = MagicMock(status_code=206)
+        self.assertTrue(_pdf_exists("https://example.com/test.pdf"))
+
+    @patch("hansard.pipeline.scraper.requests.get")
+    def test_returns_false_on_404(self, mock_get):
+        mock_get.return_value = MagicMock(status_code=404)
         self.assertFalse(_pdf_exists("https://example.com/test.pdf"))
 
-    @patch("hansard.pipeline.scraper.requests.head")
-    def test_returns_false_on_network_error(self, mock_head):
+    @patch("hansard.pipeline.scraper.requests.get")
+    def test_returns_false_on_network_error(self, mock_get):
         import requests
-        mock_head.side_effect = requests.ConnectionError("timeout")
+        mock_get.side_effect = requests.ConnectionError("timeout")
         self.assertFalse(_pdf_exists("https://example.com/test.pdf"))
 
-    @patch("hansard.pipeline.scraper.requests.head")
-    def test_ssl_verify_disabled(self, mock_head):
-        mock_head.return_value = MagicMock(status_code=200)
+    @patch("hansard.pipeline.scraper.requests.get")
+    def test_ssl_verify_disabled(self, mock_get):
+        mock_get.return_value = MagicMock(status_code=200)
         _pdf_exists("https://www.parlimen.gov.my/files/hindex/pdf/DR-26012026.pdf")
-        mock_head.assert_called_once()
-        _, kwargs = mock_head.call_args
+        mock_get.assert_called_once()
+        _, kwargs = mock_get.call_args
         self.assertFalse(kwargs["verify"])
+        self.assertEqual(kwargs["headers"]["Range"], "bytes=0-0")
 
 
 class DiscoverNewPdfsTests(TestCase):

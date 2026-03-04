@@ -69,14 +69,25 @@ def _build_filename(sitting_date: date) -> str:
 
 
 def _pdf_exists(url: str) -> bool:
-    """Check if a PDF exists at the URL via HEAD request."""
+    """Check if a PDF exists at the URL.
+
+    Uses a ranged GET request (bytes=0-0) instead of HEAD because
+    parlimen.gov.my blocks HEAD requests with 403.
+    """
     verify_ssl = "parlimen.gov.my" not in url
     try:
-        response = requests.head(url, timeout=HEAD_TIMEOUT, verify=verify_ssl)
-        exists = response.status_code == 200
+        response = requests.get(
+            url,
+            timeout=HEAD_TIMEOUT,
+            verify=verify_ssl,
+            headers={"Range": "bytes=0-0"},
+            stream=True,
+        )
+        response.close()
+        exists = response.status_code in (200, 206)
         if exists:
             logger.info("Found: %s", url)
         return exists
     except requests.RequestException as e:
-        logger.warning("HEAD request failed for %s: %s", url, e)
+        logger.warning("Request failed for %s: %s", url, e)
         return False
