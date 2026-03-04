@@ -43,7 +43,13 @@ Analyse the article and return a JSON object with these fields:
 - mentioned_schools: Array of objects for SJK(T) / Tamil schools ONLY.
   Do NOT include non-Tamil schools (SK, SMK, SJK(C), SRJK(C), etc.).
   Each object has:
-  - name: School name as mentioned in the article (string)
+  - name: School name in ENGLISH/ROMANISED form as "SJK(T) <Name>" (string).
+    If the article is in Tamil, transliterate the school name to English.
+    Examples: "சரஸ்வதி தமிழ்ப்பள்ளி" → "SJK(T) Saraswathy",
+    "கின்ராரா தோட்டத் தமிழ்ப்பள்ளி" → "SJK(T) Ladang Kinrara",
+    "எல்ஃபில் தோட்டத் தமிழ்ப்பள்ளி" → "SJK(T) Ladang Elphil",
+    "ரந்தாவ் தமிழ்ப்பள்ளி" → "SJK(T) Rantau".
+    Note: "தோட்ட" means "Ladang" (estate).
   - moe_code: MOE code if identifiable (string, or "" if unknown)
   Keep empty array [] if no specific Tamil schools are named.
 
@@ -175,13 +181,29 @@ def analyse_article(article):
 def _strip_prefix(name):
     """Strip common school type prefixes to get the distinctive part.
 
-    e.g. "SJKT Kerajaan" -> "Kerajaan", "SJK(T) Ladang Highlands" -> "Ladang Highlands"
+    Handles both English and Tamil prefixes:
+    - "SJKT Kerajaan" -> "Kerajaan"
+    - "SJK(T) Ladang Highlands" -> "Ladang Highlands"
+    - "சரஸ்வதி தமிழ்ப்பள்ளி" -> "சரஸ்வதி"
+    - "தேசிய வகை சரஸ்வதி தமிழ்ப்பள்ளி" -> "சரஸ்வதி"
     """
     import re
-    return re.sub(
+    # English prefixes
+    name = re.sub(
         r"^(?:SJK\s*\(T\)|SJKT|SRK\(T\)|SRJK\(T\))\s*",
         "", name, flags=re.IGNORECASE,
     ).strip()
+    # Tamil suffixes: தமிழ்ப்பள்ளி (Tamil school)
+    name = re.sub(
+        r"\s*(?:தேசிய\s+வகை\s+)?தமிழ்ப்பள்ளி\s*$",
+        "", name,
+    ).strip()
+    # Tamil prefixes: தேசிய வகை (national type)
+    name = re.sub(
+        r"^தேசிய\s+வகை\s*",
+        "", name,
+    ).strip()
+    return name
 
 
 def _resolve_school_codes(mentioned_schools, article=None):

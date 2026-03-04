@@ -25,22 +25,25 @@ from newswatch.models import NewsArticle
 logger = logging.getLogger(__name__)
 
 # Google News RSS search queries for Tamil school news
+# Each tuple: (query, hl, ceid) — hl/ceid control the language of results
 SEARCH_QUERIES = [
-    'SJKT',
-    '"SJK(T)"',
-    '"sekolah Tamil" Malaysia',
-    '"Tamil school" Malaysia',
+    ('SJKT', 'en-MY', 'MY:en'),
+    ('"SJK(T)"', 'en-MY', 'MY:en'),
+    ('"sekolah Tamil" Malaysia', 'en-MY', 'MY:en'),
+    ('"Tamil school" Malaysia', 'en-MY', 'MY:en'),
+    # Tamil script queries for Tamil-language sources
+    ('\u0ba4\u0bae\u0bbf\u0bb4\u0bcd\u0baa\u0bcd\u0baa\u0bb3\u0bcd\u0bb3\u0bbf', 'ta', 'MY:ta'),  # தமிழ்ப்பள்ளி
 ]
 
 
-def _build_google_news_url(query, months=3):
+def _build_google_news_url(query, months=3, hl='en-MY', ceid='MY:en'):
     """Build a Google News RSS search URL with time filter."""
     from urllib.parse import quote
     when = f"{months}m" if months <= 12 else f"{months // 12}y"
     return (
         f"https://news.google.com/rss/search?"
         f"q={quote(query)}+when:{when}"
-        f"&hl=en-MY&gl=MY&ceid=MY:en"
+        f"&hl={hl}&gl=MY&ceid={ceid}"
     )
 
 
@@ -103,9 +106,10 @@ class Command(BaseCommand):
         # Collect all entries from all queries, dedup by Google News URL
         all_entries = {}  # google_url -> entry dict
 
-        for query in SEARCH_QUERIES:
-            url = _build_google_news_url(query, months)
-            self.stdout.write(f"Fetching: {query}...")
+        for query, hl, ceid in SEARCH_QUERIES:
+            url = _build_google_news_url(query, months, hl=hl, ceid=ceid)
+            safe_query = query.encode("ascii", "replace").decode()
+            self.stdout.write(f"Fetching: {safe_query} (hl={hl})...")
             feed = feedparser.parse(url)
             count = 0
             for entry in feed.entries:
