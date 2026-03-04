@@ -31,18 +31,31 @@ SEARCH_QUERIES = [
     ('"SJK(T)"', 'en-MY', 'MY:en'),
     ('"sekolah Tamil" Malaysia', 'en-MY', 'MY:en'),
     ('"Tamil school" Malaysia', 'en-MY', 'MY:en'),
-    # Tamil script queries for Tamil-language sources
+    # Tamil script queries for Tamil-language sources (no time filter — when: breaks Tamil queries)
     ('\u0ba4\u0bae\u0bbf\u0bb4\u0bcd\u0baa\u0bcd\u0baa\u0bb3\u0bcd\u0bb3\u0bbf', 'ta', 'MY:ta'),  # தமிழ்ப்பள்ளி
+    ('\u0ba4\u0bae\u0bbf\u0bb4\u0bcd \u0baa\u0bb3\u0bcd\u0bb3\u0bbf \u0bae\u0bb2\u0bc7\u0b9a\u0bbf\u0baf\u0bbe', 'ta', 'MY:ta'),  # தமிழ் பள்ளி மலேசியா
+    ('SJKT \u0ba4\u0bae\u0bbf\u0bb4\u0bcd', 'ta', 'MY:ta'),  # SJKT தமிழ்
+    ('\u0ba4\u0bae\u0bbf\u0bb4\u0bcd \u0baa\u0bb3\u0bcd\u0bb3\u0bbf \u0b86\u0b9a\u0bbf\u0bb0\u0bbf\u0baf\u0bb0\u0bcd', 'ta', 'MY:ta'),  # தமிழ் பள்ளி ஆசிரியர்
 ]
 
 
 def _build_google_news_url(query, months=3, hl='en-MY', ceid='MY:en'):
-    """Build a Google News RSS search URL with time filter."""
+    """Build a Google News RSS search URL with time filter.
+
+    Note: the when: time filter breaks Tamil script queries on Google News RSS,
+    so we skip it for non-ASCII queries.
+    """
     from urllib.parse import quote
-    when = f"{months}m" if months <= 12 else f"{months // 12}y"
+    # when: filter doesn't work with Tamil script queries
+    has_non_ascii = any(ord(c) > 127 for c in query)
+    if has_non_ascii:
+        time_param = ""
+    else:
+        when = f"{months}m" if months <= 12 else f"{months // 12}y"
+        time_param = f"+when:{when}"
     return (
         f"https://news.google.com/rss/search?"
-        f"q={quote(query)}+when:{when}"
+        f"q={quote(query)}{time_param}"
         f"&hl={hl}&gl=MY&ceid={ceid}"
     )
 
