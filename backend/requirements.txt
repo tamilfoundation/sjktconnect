@@ -36,6 +36,9 @@ trafilatura>=2.0
 lxml_html_clean>=0.4
 googlenewsdecoder>=0.1
 
+# QR code generation
+qrcode[pil]>=7.0
+
 # Testing
 pytest>=8.0
 pytest-django>=4.7

@@ -1,15 +1,20 @@
 """API views for schools, constituencies, DUNs, and GeoJSON boundaries."""
 
+import io
 import logging
 import os
 import re
 
+import qrcode
 import requests as http_requests
 from django.db.models import Count, Q, Sum
+from django.http import HttpResponse
 from django.utils import timezone
 
 from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.generics import ListAPIView, RetrieveAPIView
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
@@ -439,6 +444,37 @@ class DUNGeoJSONDetailView(APIView):
         if not feature:
             return Response({"error": "Invalid boundary data"}, status=500)
         return Response(feature)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def duitnow_qr(request, moe_code):
+    """Generate a DuitNow QR code PNG for a school's bank account."""
+    try:
+        school = School.objects.get(moe_code=moe_code)
+    except School.DoesNotExist:
+        return HttpResponse(status=404)
+
+    if not school.bank_account_number:
+        return HttpResponse(status=404)
+
+    # DuitNow QR payload: account number + bank name
+    qr_data = (
+        f"Bank: {school.bank_name}\n"
+        f"Account: {school.bank_account_number}\n"
+        f"Name: {school.bank_account_name}"
+    )
+
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+
+    return HttpResponse(buf.getvalue(), content_type="image/png")
 
 
 class ContactThrottle(AnonRateThrottle):
