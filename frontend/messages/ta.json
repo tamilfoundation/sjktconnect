@@ -118,7 +118,14 @@
     "viewConstituency": "தொகுதியைக் காண்க",
     "viewDun": "DUN-ஐக் காண்க",
     "nearbySchools": "அருகிலுள்ள பள்ளிகள்",
-    "noNearbySchools": "இந்தத் தொகுதியில் உள்ள ஒரே தமிழ்ப் பள்ளி இதுதான்."
+    "noNearbySchools": "இந்தத் தொகுதியில் உள்ள ஒரே தமிழ்ப் பள்ளி இதுதான்.",
+    "supportSchool": "இந்தப் பள்ளிக்கு உதவுங்கள்",
+    "bankName": "வங்கி",
+    "accountName": "கணக்குப் பெயர்",
+    "accountNumber": "கணக்கு எண்",
+    "copy": "நகலெடு",
+    "copied": "நகலெடுக்கப்பட்டது!",
+    "scanToDonate": "உங்கள் வங்கிச் செயலியால் வருடவும்"
   },
   "metadata": {
     "siteTitle": "SJK(T) இணைப்பு",
@@ -282,7 +289,10 @@
     "onlyYourSchool": "உங்கள் சொந்தப் பள்ளியை மட்டுமே திருத்தலாம்.",
     "failedToLoad": "பள்ளித் தரவை ஏற்ற இயலவில்லை.",
     "accessDenied": "அணுகல் மறுக்கப்பட்டது",
-    "backToSchool": "பள்ளிப் பக்கத்திற்குத் திரும்பு"
+    "backToSchool": "பள்ளிப் பக்கத்திற்குத் திரும்பு",
+    "bankName": "வங்கிப் பெயர்",
+    "bankAccountName": "வங்கிக் கணக்குப் பெயர்",
+    "bankAccountNumber": "வங்கிக் கணக்கு எண்"
   },
   "subscribe": {
     "title": "பதிவு",

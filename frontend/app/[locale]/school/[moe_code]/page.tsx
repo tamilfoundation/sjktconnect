@@ -18,6 +18,7 @@ import MentionsSection from "@/components/MentionsSection";
 import ConstituencySchools from "@/components/ConstituencySchools";
 import NewsWatchSection from "@/components/NewsWatchSection";
 import SchoolHistory from "@/components/SchoolHistory";
+import SupportSchoolCard from "@/components/SupportSchoolCard";
 import { Link } from "@/i18n/navigation";
 
 // ISR: revalidate every hour
@@ -165,6 +166,14 @@ export default async function SchoolPage({ params }: PageProps) {
 
         {/* Right column: sidebar */}
         <div className="space-y-6">
+          {/* Support This School */}
+          <SupportSchoolCard
+            bankName={school.bank_name}
+            bankAccountNumber={school.bank_account_number}
+            bankAccountName={school.bank_account_name}
+            moeCode={school.moe_code}
+          />
+
           {/* Constituency & DUN card */}
           {school.constituency_code && (
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">

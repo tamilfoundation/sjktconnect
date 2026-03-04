@@ -118,7 +118,14 @@
     "viewConstituency": "Lihat Kawasan",
     "viewDun": "Lihat DUN",
     "nearbySchools": "Sekolah Berhampiran",
-    "noNearbySchools": "Ini satu-satunya sekolah Tamil di kawasan parlimen ini."
+    "noNearbySchools": "Ini satu-satunya sekolah Tamil di kawasan parlimen ini.",
+    "supportSchool": "Sokong Sekolah Ini",
+    "bankName": "Bank",
+    "accountName": "Nama Akaun",
+    "accountNumber": "Nombor Akaun",
+    "copy": "Salin",
+    "copied": "Disalin!",
+    "scanToDonate": "Imbas dengan aplikasi bank anda"
   },
   "metadata": {
     "siteTitle": "SJK(T) Connect",
@@ -282,7 +289,10 @@
     "onlyYourSchool": "Anda hanya boleh mengedit sekolah anda sendiri.",
     "failedToLoad": "Gagal memuatkan data sekolah.",
     "accessDenied": "Akses Dinafikan",
-    "backToSchool": "Kembali ke Halaman Sekolah"
+    "backToSchool": "Kembali ke Halaman Sekolah",
+    "bankName": "Nama Bank",
+    "bankAccountName": "Nama Akaun Bank",
+    "bankAccountNumber": "Nombor Akaun Bank"
   },
   "subscribe": {
     "title": "Langgan",

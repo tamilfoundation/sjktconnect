@@ -118,7 +118,14 @@
     "viewConstituency": "View Constituency",
     "viewDun": "View DUN",
     "nearbySchools": "Schools Nearby",
-    "noNearbySchools": "This is the only Tamil school in this constituency."
+    "noNearbySchools": "This is the only Tamil school in this constituency.",
+    "supportSchool": "Support This School",
+    "bankName": "Bank",
+    "accountName": "Account Name",
+    "accountNumber": "Account Number",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "scanToDonate": "Scan with your banking app"
   },
   "metadata": {
     "siteTitle": "SJK(T) Connect",
@@ -282,7 +289,10 @@
     "onlyYourSchool": "You can only edit your own school.",
     "failedToLoad": "Failed to load school data.",
     "accessDenied": "Access Denied",
-    "backToSchool": "Back to School Page"
+    "backToSchool": "Back to School Page",
+    "bankName": "Bank Name",
+    "bankAccountName": "Bank Account Name",
+    "bankAccountNumber": "Bank Account Number"
   },
   "subscribe": {
     "title": "Subscribe",

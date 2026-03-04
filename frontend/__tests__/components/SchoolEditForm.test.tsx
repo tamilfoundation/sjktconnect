@@ -32,6 +32,9 @@ const mockSchool: SchoolEditData = {
   session_type: "Pagi",
   last_verified: null,
   verified_by: "",
+  bank_name: "",
+  bank_account_name: "",
+  bank_account_number: "",
 };
 
 beforeEach(() => {

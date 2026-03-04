@@ -58,6 +58,9 @@ export interface SchoolDetail extends School {
   image_url: string | null;
   images: SchoolImageData[];
   leaders: SchoolLeader[];
+  bank_name: string;
+  bank_account_number: string;
+  bank_account_name: string;
 }
 
 export interface SchoolMention {
@@ -216,6 +219,9 @@ export interface SchoolEditData {
   session_type: string;
   last_verified: string | null;
   verified_by: string;
+  bank_name: string;
+  bank_account_name: string;
+  bank_account_number: string;
 }
 
 export interface SchoolConfirmResponse {

@@ -34,6 +34,9 @@ const FIELDS: FieldConfig[] = [
   { key: "teacher_count", labelKey: "teacherCount", type: "number" },
   { key: "session_count", labelKey: "sessionsPerDay", type: "number" },
   { key: "session_type", labelKey: "sessionType", type: "text" },
+  { key: "bank_name", labelKey: "bankName", type: "text" },
+  { key: "bank_account_name", labelKey: "bankAccountName", type: "text" },
+  { key: "bank_account_number", labelKey: "bankAccountNumber", type: "text" },
 ];
 
 export default function SchoolEditForm({ school }: SchoolEditFormProps) {
