@@ -1,11 +1,11 @@
-"""Tests for GET /api/v1/schools/<moe_code>/mentions/ endpoint."""
+"""Tests for school and constituency mentions API endpoints."""
 
 import datetime
 
 from django.test import TestCase
 
 from hansard.models import HansardMention, HansardSitting, MentionedSchool
-from schools.models import School
+from schools.models import Constituency, School
 
 
 class SchoolMentionsAPITest(TestCase):
@@ -58,7 +58,7 @@ class SchoolMentionsAPITest(TestCase):
         assert mention["ai_summary"] == "MP raised school infrastructure issue."
         assert mention["verbatim_quote"] == "SJK(T) Ladang Bikam needs repairs."
 
-    def test_excludes_pending_mentions(self):
+    def test_includes_pending_mentions(self):
         pending = HansardMention.objects.create(
             sitting=self.sitting,
             verbatim_quote="Pending mention.",
@@ -70,7 +70,7 @@ class SchoolMentionsAPITest(TestCase):
         )
         resp = self.client.get("/api/v1/schools/JBD0050/mentions/")
         quotes = [m["verbatim_quote"] for m in resp.json()]
-        assert "Pending mention." not in quotes
+        assert "Pending mention." in quotes
 
     def test_excludes_rejected_mentions(self):
         rejected = HansardMention.objects.create(
@@ -122,3 +122,72 @@ class SchoolMentionsAPITest(TestCase):
         assert len(data) == 2
         assert data[0]["sitting_date"] == "2026-02-26"
         assert data[1]["sitting_date"] == "2026-01-15"
+
+
+class ConstituencyMentionsAPITest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.constituency = Constituency.objects.create(
+            code="P150",
+            name="Segamat",
+            state="Johor",
+        )
+        cls.sitting = HansardSitting.objects.create(
+            sitting_date=datetime.date(2026, 2, 26),
+            pdf_url="https://example.com/DR-26022026.pdf",
+            pdf_filename="DR-26022026.pdf",
+            status="COMPLETED",
+        )
+        cls.mention = HansardMention.objects.create(
+            sitting=cls.sitting,
+            verbatim_quote="Tamil schools in Segamat.",
+            mp_name="Yuneswaran",
+            mp_constituency="Segamat",
+            mp_party="PH (PKR)",
+            mention_type="QUESTION",
+            significance=4,
+            sentiment="NEGATIVE",
+            ai_summary="MP raised school infrastructure issue.",
+            review_status="PENDING",
+        )
+
+    def test_returns_mentions_for_constituency(self):
+        resp = self.client.get("/api/v1/constituencies/P150/mentions/")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["mp_name"] == "Yuneswaran"
+        assert data[0]["ai_summary"] == "MP raised school infrastructure issue."
+
+    def test_excludes_rejected(self):
+        HansardMention.objects.create(
+            sitting=self.sitting,
+            verbatim_quote="Rejected.",
+            mp_name="Other MP",
+            mp_constituency="Segamat",
+            review_status="REJECTED",
+        )
+        resp = self.client.get("/api/v1/constituencies/P150/mentions/")
+        names = [m["mp_name"] for m in resp.json()]
+        assert "Other MP" not in names
+
+    def test_excludes_empty_mp_name(self):
+        HansardMention.objects.create(
+            sitting=self.sitting,
+            verbatim_quote="No MP identified.",
+            mp_name="",
+            mp_constituency="Segamat",
+            review_status="PENDING",
+        )
+        resp = self.client.get("/api/v1/constituencies/P150/mentions/")
+        assert len(resp.json()) == 1
+
+    def test_404_for_nonexistent_constituency(self):
+        resp = self.client.get("/api/v1/constituencies/P999/mentions/")
+        assert resp.status_code == 404
+
+    def test_empty_for_no_mentions(self):
+        Constituency.objects.create(code="P001", name="No Mentions", state="KL")
+        resp = self.client.get("/api/v1/constituencies/P001/mentions/")
+        assert resp.status_code == 200
+        assert resp.json() == []

@@ -1,6 +1,10 @@
 import { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
+import { fetchBriefs } from "@/lib/api";
+import BriefsList from "@/components/BriefsList";
+
+export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("parliamentWatch");
@@ -12,6 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ParliamentWatchPage() {
   const t = await getTranslations("parliamentWatch");
+  const briefs = await fetchBriefs();
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
@@ -42,6 +47,9 @@ export default async function ParliamentWatchPage() {
           </div>
         </div>
       </div>
+
+      {/* Sitting Briefs */}
+      {briefs.length > 0 && <BriefsList briefs={briefs} />}
 
       {/* Status + CTA */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">

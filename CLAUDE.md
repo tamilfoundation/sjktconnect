@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 4 (Donations). Sprint 4.1–4.2 done (not yet deployed). Hansard backfill complete.
-- **Last Sprint**: Hansard Pipeline Backfill (2026-03-04, 5 parliament sessions → 97 sittings, 193 mentions, 36 scorecards, 33 briefs)
-- **Tests**: 980 (715 backend + 265 frontend)
+- **Current Phase**: Phase 4 (Donations). Sprint 4.1–4.2 + UI polish done, deploying.
+- **Last Sprint**: UI Polish + Hansard Display Fix (2026-03-04)
+- **Tests**: 988 (725 backend + 263 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -195,7 +195,8 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 3.5 | Done | Tamil Translation Review + Deployment: 9 Tamil grammar/terminology fixes (vallinam, செய்யறிவு, புலனாய்வு consistency), deployed backend + frontend to production, updated 3 Cloud Run jobs. |
 | 3.6 | Done | Footer, Legal, Contact, School Page & Map Filters: footer redesign, 3 legal pages, contact form + API, school page sidebar/leadership/stats redesign, MapFilterPanel with coloured pins (4 modes), SJKT search fix. 10 new tests (757 total). |
 | 3.7 | Done | Map InfoWindow, School Page Polish & Enrolment Filter: enrolment filter hides (not greys) schools above threshold, InfoWindow redesign (image, badges, stats, DUN link), school page 12-col grid with elevated stat cards + info bar + taller gallery with overlay thumbnails. mapInfoWindow i18n namespace. 757 tests (unchanged). |
-| 4.1-4.2 | Done | Donations feature: bank_name/bank_account_number/bank_account_name on School, import_bank_details command (202 schools), DuitNow QR endpoint, SupportSchoolCard sidebar, donations Django app (Toyyib Pay), /donate page + thank-you page, DonationForm. 47 new tests (979 total). Not yet deployed. |
+| 4.1-4.2 | Done | Donations feature: bank_name/bank_account_number/bank_account_name on School, import_bank_details command (202 schools), DuitNow QR endpoint, SupportSchoolCard sidebar, donations Django app (Toyyib Pay), /donate page + thank-you page, DonationForm. 47 new tests (979 total). |
+| UI Polish | Done | Hansard display fix (PENDING→visible, briefs ungated), constituency mentions API, news pagination, collapsible map filters, footer social icons, school leadership empty state, news school matching improvement. 8 new tests (988 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -212,11 +213,8 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Deploy Sprint 4.1–4.2 (Donations) + Hansard Backfill**:
-- Deploy backend + frontend to Cloud Run (donations code + hansard pipeline fixes)
-- Set Toyyib Pay env vars on Cloud Run: `TOYYIBPAY_SECRET_KEY`, `TOYYIBPAY_CATEGORY_CODE`, `TOYYIBPAY_BASE_URL`
-- End-to-end test: school page bank card, donate page → Toyyib sandbox
-- DB state: 97 sittings, 193 mentions (all analysed), 36 scorecards, 33 briefs already in Supabase
+**Post-deploy tasks**:
+- End-to-end test: donate page → Toyyib sandbox, school bank card display
 - **Trigram school matching**: 125 mentions have unmatched schools (exact match got 68). Trigram too slow over remote DB — consider batch approach or local processing
 - **Urgent Response System**: Design approved, marinating. See `docs/plans/2026-03-04-urgent-response-system-design.md`
 - gcloud CLI requires `CLOUDSDK_PYTHON` env var pointing to Python 3.13
@@ -259,7 +257,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **School Mentions** (Sprint 1.10): `GET /api/v1/schools/<moe_code>/mentions/` (approved parliamentary mentions, public, no pagination)
 - **School News** (Sprint 2.8): `GET /api/v1/schools/<moe_code>/news/` (approved news articles mentioning a school, public)
 - **School Edit** (Sprint 1.7, Magic Link auth): `GET/PUT /api/v1/schools/<moe_code>/edit/` (view/update school data), `POST /api/v1/schools/<moe_code>/confirm/` (2-click verify)
-- **Constituencies**: `GET /api/v1/constituencies/` (filter: `?state=`, includes `school_count`), `GET /api/v1/constituencies/<code>/` (nested schools + scorecard)
+- **Constituencies**: `GET /api/v1/constituencies/` (filter: `?state=`, includes `school_count`), `GET /api/v1/constituencies/<code>/` (nested schools + scorecard), `GET /api/v1/constituencies/<code>/mentions/` (Hansard mentions for constituency MP, excludes rejected)
 - **DUNs**: `GET /api/v1/duns/` (filters: `?state=`, `?constituency=`), `GET /api/v1/duns/<pk>/` (nested schools)
 - **Scorecards**: `GET /api/v1/scorecards/` (filters: `?constituency=`, `?party=`), `GET /api/v1/scorecards/<pk>/`
 - **Briefs**: `GET /api/v1/briefs/` (published only), `GET /api/v1/briefs/<pk>/`

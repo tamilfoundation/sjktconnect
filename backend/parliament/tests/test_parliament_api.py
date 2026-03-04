@@ -82,7 +82,7 @@ class SittingBriefAPITest(TestCase):
             is_published=True,
             published_at=timezone.now(),
         )
-        # Unpublished brief — should not appear
+        # Unpublished brief with content — should appear (content gate, not publish gate)
         sitting2 = HansardSitting.objects.create(
             sitting_date=datetime.date(2026, 2, 25),
             pdf_url="https://example.com/DR-25022026.pdf",
@@ -96,13 +96,27 @@ class SittingBriefAPITest(TestCase):
             summary_html="<p>Draft</p>",
             is_published=False,
         )
+        # Empty brief — should NOT appear
+        sitting3 = HansardSitting.objects.create(
+            sitting_date=datetime.date(2026, 2, 24),
+            pdf_url="https://example.com/DR-24022026.pdf",
+            pdf_filename="DR-24022026.pdf",
+            status="COMPLETED",
+            mention_count=0,
+        )
+        SittingBrief.objects.create(
+            sitting=sitting3,
+            title="Empty brief",
+            summary_html="",
+            is_published=False,
+        )
 
-    def test_brief_list_shows_published_only(self):
+    def test_brief_list_shows_all_with_content(self):
         resp = self.client.get("/api/v1/briefs/")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["count"] == 1
-        assert data["results"][0]["title"] == "Tamil schools discussed on 26 Feb 2026"
+        # 2 briefs have content (published + draft), 1 empty excluded
+        assert data["count"] == 2
 
     def test_brief_list_has_sitting_date(self):
         resp = self.client.get("/api/v1/briefs/")
@@ -117,9 +131,9 @@ class SittingBriefAPITest(TestCase):
         assert data["title"] == "Tamil schools discussed on 26 Feb 2026"
         assert "<p>Summary</p>" in data["summary_html"]
 
-    def test_brief_detail_unpublished_returns_404(self):
-        unpublished = SittingBrief.objects.get(is_published=False)
-        resp = self.client.get(f"/api/v1/briefs/{unpublished.pk}/")
+    def test_brief_detail_empty_returns_404(self):
+        empty = SittingBrief.objects.get(summary_html="")
+        resp = self.client.get(f"/api/v1/briefs/{empty.pk}/")
         assert resp.status_code == 404
 
     def test_brief_detail_not_found(self):

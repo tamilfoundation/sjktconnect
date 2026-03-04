@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import {
   fetchConstituencyDetail,
   fetchConstituencyGeoJSON,
+  fetchConstituencyMentions,
   fetchDUNs,
 } from "@/lib/api";
 import Breadcrumb from "@/components/Breadcrumb";
@@ -48,9 +49,10 @@ export default async function ConstituencyPage({ params }: PageProps) {
     notFound();
   }
 
-  const [geoJSON, duns] = await Promise.all([
+  const [geoJSON, duns, mentions] = await Promise.all([
     fetchConstituencyGeoJSON(params.code),
     fetchDUNs({ constituency: params.code }),
+    fetchConstituencyMentions(params.code),
   ]);
 
   const totalEnrolment = constituency.schools.reduce(
@@ -134,6 +136,7 @@ export default async function ConstituencyPage({ params }: PageProps) {
           <ScorecardCard
             scorecard={constituency.scorecard}
             mpName={constituency.mp_name}
+            mentions={mentions}
           />
 
           {/* Demographics */}

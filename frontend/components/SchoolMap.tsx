@@ -138,7 +138,7 @@ export default function SchoolMap() {
   return (
     <div className="relative">
       {/* Controls overlay */}
-      <div className="absolute top-4 left-4 z-10 flex flex-col gap-3 w-72">
+      <div className="absolute top-4 left-4 z-10 flex flex-col gap-3 w-64 md:w-72">
         <SearchBox
           onSelect={handleSearchSelect}
           onClear={handleSearchClear}

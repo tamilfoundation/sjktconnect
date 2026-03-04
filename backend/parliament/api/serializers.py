@@ -48,8 +48,19 @@ class SchoolMentionSerializer(serializers.Serializer):
     verbatim_quote = serializers.CharField()
 
 
+class ConstituencyMentionSerializer(serializers.Serializer):
+    """Hansard mention for a constituency's MP."""
+
+    sitting_date = serializers.DateField(source="sitting.sitting_date")
+    mp_name = serializers.CharField()
+    mp_party = serializers.CharField()
+    mention_type = serializers.CharField()
+    significance = serializers.IntegerField()
+    ai_summary = serializers.CharField()
+
+
 class SittingBriefSerializer(serializers.ModelSerializer):
-    """Published sitting brief."""
+    """Sitting brief."""
 
     sitting_date = serializers.DateField(source="sitting.sitting_date")
     mention_count = serializers.IntegerField(source="sitting.mention_count")

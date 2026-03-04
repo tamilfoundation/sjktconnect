@@ -2,6 +2,7 @@ import {
   AuthUser,
   Constituency,
   ConstituencyDetail,
+  ConstituencyMention,
   DUN,
   DUNDetail,
   GeoJSONFeature,
@@ -17,6 +18,7 @@ import {
   SchoolEditData,
   SchoolMention,
   SearchResults,
+  SittingBrief,
   SubscribeRequest,
   SubscriberResponse,
   UnsubscribeResponse,
@@ -418,4 +420,33 @@ export async function updatePreferences(
  */
 export async function fetchNationalStats(): Promise<NationalStats> {
   return fetchJSON<NationalStats>(`${BASE}/stats/national/`);
+}
+
+/**
+ * Fetch Hansard mentions for a constituency's MP.
+ */
+export async function fetchConstituencyMentions(
+  code: string
+): Promise<ConstituencyMention[]> {
+  try {
+    return await fetchJSON<ConstituencyMention[]>(
+      `${BASE}/constituencies/${code}/mentions/`
+    );
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Fetch sitting briefs (parliament watch summaries).
+ */
+export async function fetchBriefs(): Promise<SittingBrief[]> {
+  try {
+    const page = await fetchJSON<PaginatedResponse<SittingBrief>>(
+      `${BASE}/briefs/`
+    );
+    return page.results;
+  } catch {
+    return [];
+  }
 }

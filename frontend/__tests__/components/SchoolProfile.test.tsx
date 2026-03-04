@@ -41,6 +41,9 @@ const makeSchoolDetail = (
   image_url: null,
   images: [],
   leaders: [],
+  bank_name: "",
+  bank_account_number: "",
+  bank_account_name: "",
   ...overrides,
 });
 
@@ -62,40 +65,6 @@ describe("SchoolProfile", () => {
     expect(
       screen.getByText(/Ladang Bikam, Segamat, 85000 Segamat, Johor/)
     ).toBeInTheDocument();
-  });
-
-  it("always shows preschool and special needs rows", () => {
-    render(
-      <SchoolProfile
-        school={makeSchoolDetail({
-          enrolment: 50,
-          preschool_enrolment: 0,
-          special_enrolment: 0,
-        })}
-      />
-    );
-    expect(screen.getByText("School")).toBeInTheDocument();
-    expect(screen.getByText("50 students")).toBeInTheDocument();
-    expect(screen.getByText("Preschool")).toBeInTheDocument();
-    expect(screen.getByText("Special Needs")).toBeInTheDocument();
-  });
-
-  it("always shows enrolment breakdown rows", () => {
-    render(
-      <SchoolProfile
-        school={makeSchoolDetail({
-          enrolment: 120,
-          preschool_enrolment: 15,
-          special_enrolment: 3,
-        })}
-      />
-    );
-    expect(screen.getByText("School")).toBeInTheDocument();
-    expect(screen.getByText("120 students")).toBeInTheDocument();
-    expect(screen.getByText("Preschool")).toBeInTheDocument();
-    expect(screen.getByText("15 students")).toBeInTheDocument();
-    expect(screen.getByText("Special Needs")).toBeInTheDocument();
-    expect(screen.getByText("3 students")).toBeInTheDocument();
   });
 
   it("does not render SKM stat card", () => {
@@ -161,6 +130,8 @@ describe("SchoolProfile", () => {
     expect(screen.getByText("School Leadership")).toBeInTheDocument();
     expect(screen.getByText("Headmaster")).toBeInTheDocument();
     expect(screen.getByText("PTA Chairman")).toBeInTheDocument();
-    expect(screen.getAllByText("Not Available")).toHaveLength(2);
+    expect(screen.getByText("LPS Chairman")).toBeInTheDocument();
+    expect(screen.getByText("Alumni Chairman")).toBeInTheDocument();
+    expect(screen.getAllByText("Not Available")).toHaveLength(4);
   });
 });

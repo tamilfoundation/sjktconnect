@@ -112,6 +112,8 @@
     "dataSource": "Data source: Ministry of Education, January 2026",
     "headmaster": "Headmaster",
     "ptaChairman": "PTA Chairman",
+    "boardChairman": "LPS Chairman",
+    "alumniChairman": "Alumni Chairman",
     "notAvailable": "Not Available",
     "preschoolLabel": "Preschool",
     "specialEdLabel": "Special Ed",
@@ -221,7 +223,8 @@
     "avgIncome": "Avg. Income",
     "povertyRate": "Poverty Rate",
     "giniIndex": "Gini Index",
-    "unemployment": "Unemployment"
+    "unemployment": "Unemployment",
+    "recentMentions": "Recent Mentions"
   },
   "claim": {
     "title": "Claim Your School",
@@ -363,7 +366,11 @@
     "urgent": "URGENT",
     "readMore": "Read full article",
     "source": "Source",
-    "showingCount": "Showing {count} of {total} articles"
+    "showingCount": "Showing {from}–{to} of {total} articles",
+    "perPage": "per page",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {page} of {totalPages}"
   },
   "about": {
     "title": "About SJK(T) Connect",
@@ -418,7 +425,9 @@
     "contactUs": "Contact us to contribute →",
     "noPhoto": "No photo available. Know this school? Help us by sharing a photo.",
     "photoCredit": "Photo:",
-    "editSchoolData": "Edit School Data"
+    "editSchoolData": "Edit School Data",
+    "sittingBriefs": "Sitting Summaries",
+    "mentionsLabel": "mentions"
   },
   "legal": {
     "lastUpdated": "Last updated: March 2026",

@@ -5,12 +5,13 @@ from rest_framework.generics import ListAPIView, RetrieveAPIView
 
 from hansard.models import HansardMention
 from parliament.api.serializers import (
+    ConstituencyMentionSerializer,
     MPScorecardSerializer,
     SchoolMentionSerializer,
     SittingBriefSerializer,
 )
 from parliament.models import MPScorecard, SittingBrief
-from schools.models import School
+from schools.models import Constituency, School
 
 
 class MPScorecardListView(ListAPIView):
@@ -40,25 +41,25 @@ class MPScorecardDetailView(RetrieveAPIView):
 
 
 class SittingBriefListView(ListAPIView):
-    """List published sitting briefs only."""
+    """List sitting briefs (all that have content)."""
 
     serializer_class = SittingBriefSerializer
-    queryset = SittingBrief.objects.filter(
-        is_published=True,
-    ).select_related("sitting")
+    queryset = (
+        SittingBrief.objects.exclude(summary_html="")
+        .select_related("sitting")
+        .order_by("-sitting__sitting_date")
+    )
 
 
 class SittingBriefDetailView(RetrieveAPIView):
-    """Retrieve a single published sitting brief."""
+    """Retrieve a single sitting brief."""
 
     serializer_class = SittingBriefSerializer
-    queryset = SittingBrief.objects.filter(
-        is_published=True,
-    ).select_related("sitting")
+    queryset = SittingBrief.objects.exclude(summary_html="").select_related("sitting")
 
 
 class SchoolMentionsView(ListAPIView):
-    """List approved Hansard mentions for a school."""
+    """List Hansard mentions for a school (excludes rejected)."""
 
     serializer_class = SchoolMentionSerializer
     authentication_classes = []
@@ -70,8 +71,31 @@ class SchoolMentionsView(ListAPIView):
         return (
             HansardMention.objects.filter(
                 matched_schools__school=school,
-                review_status="APPROVED",
             )
+            .exclude(review_status="REJECTED")
+            .select_related("sitting")
+            .order_by("-sitting__sitting_date")
+        )
+
+
+class ConstituencyMentionsView(ListAPIView):
+    """List Hansard mentions for a constituency's MP."""
+
+    serializer_class = ConstituencyMentionSerializer
+    authentication_classes = []
+    permission_classes = []
+    pagination_class = None
+
+    def get_queryset(self):
+        constituency = get_object_or_404(
+            Constituency, code=self.kwargs["code"]
+        )
+        return (
+            HansardMention.objects.filter(
+                mp_constituency__icontains=constituency.name,
+            )
+            .exclude(review_status="REJECTED")
+            .exclude(mp_name="")
             .select_related("sitting")
             .order_by("-sitting__sitting_date")
         )

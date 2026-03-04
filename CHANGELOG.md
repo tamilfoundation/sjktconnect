@@ -1,5 +1,29 @@
 # Changelog
 
+## UI Polish + Hansard Display Fix (2026-03-04)
+
+### Added
+- **Parliament Watch data display**: School pages now show Hansard mentions (were hidden behind APPROVED gate — all 193 mentions were PENDING). Constituency pages show recent mentions below scorecard numbers. `/parliament-watch` page shows sitting briefs.
+- **Constituency mentions API**: `GET /api/v1/constituencies/<code>/mentions/` — lists Hansard mentions for a constituency's MP
+- **BriefsList component**: Renders sitting briefs with title, mention count, summary, and date
+- **News pagination**: Per-page dropdown (5/10/25), page numbers with ellipsis (desktop), compact prev/next (mobile)
+- **School leadership empty state**: Added LPS Chairman and Alumni Chairman placeholders
+- **Footer social icons**: Instagram and YouTube replace X/Twitter
+
+### Changed
+- **SchoolMentionsView**: Now excludes only REJECTED mentions (was: only shows APPROVED). PENDING mentions are now visible.
+- **SittingBriefListView**: Now shows all briefs with content (was: only published). Removes manual publish gate.
+- **ScorecardCard**: Accepts optional `mentions` prop to show recent mention summaries below scorecard numbers
+- **MapFilterPanel**: Collapsible on mobile with chevron toggle, starts collapsed
+- **SchoolProfile**: Removed duplicate enrolment numbers from School Details section (already shown in stat cards)
+
+### Fixed
+- **News school matching**: Improved `_resolve_school_codes` with abbreviation mapping (Estate↔Ldg, East↔Timur, etc.), noise word stripping, number format normalisation. Matching improved from 76% to 87%.
+- **Missing Cloud Run env vars**: Previous deployment wiped env vars — restored SECRET_KEY, DATABASE_URL, GEMINI_API_KEY etc.
+- **www.tamilschool.org**: Added domain mapping for www subdomain + CNAME record
+
+---
+
 ## Hansard Pipeline: Full Parliament Backfill (2026-03-04)
 
 ### Data

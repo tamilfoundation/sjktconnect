@@ -112,6 +112,8 @@
     "dataSource": "Sumber data: Kementerian Pendidikan Malaysia, Januari 2026",
     "headmaster": "Guru Besar",
     "ptaChairman": "Pengerusi PIBG",
+    "boardChairman": "Pengerusi LPS",
+    "alumniChairman": "Pengerusi Persatuan Alumni",
     "notAvailable": "Tiada Maklumat",
     "preschoolLabel": "Prasekolah",
     "specialEdLabel": "Pendidikan Khas",
@@ -221,7 +223,8 @@
     "avgIncome": "Pendapatan Purata",
     "povertyRate": "Kadar Kemiskinan",
     "giniIndex": "Indeks Gini",
-    "unemployment": "Pengangguran"
+    "unemployment": "Pengangguran",
+    "recentMentions": "Sebutan Terkini"
   },
   "claim": {
     "title": "Tuntut Sekolah Anda",
@@ -363,7 +366,11 @@
     "urgent": "SEGERA",
     "readMore": "Baca artikel penuh",
     "source": "Sumber",
-    "showingCount": "{count} daripada {total} artikel dipaparkan"
+    "showingCount": "Memaparkan {from}–{to} daripada {total} artikel",
+    "perPage": "setiap halaman",
+    "previous": "Sebelumnya",
+    "next": "Seterusnya",
+    "page": "Halaman {page} daripada {totalPages}"
   },
   "about": {
     "title": "Mengenai SJK(T) Connect",
@@ -418,7 +425,9 @@
     "contactUs": "Hubungi kami untuk menyumbang →",
     "noPhoto": "Tiada foto tersedia. Kenal sekolah ini? Bantu kami dengan berkongsi foto.",
     "photoCredit": "Foto:",
-    "editSchoolData": "Edit Data Sekolah"
+    "editSchoolData": "Edit Data Sekolah",
+    "sittingBriefs": "Ringkasan Persidangan",
+    "mentionsLabel": "sebutan"
   },
   "legal": {
     "lastUpdated": "Kemaskini terakhir: Mac 2026",

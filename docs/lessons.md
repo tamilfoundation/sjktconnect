@@ -35,3 +35,5 @@ Cross-cutting lessons from SJK(T) Connect development. Project-specific decision
 - Supabase transaction pooler (port 6543) can silently drop sequential writes — use direct connection (port 5432) for bulk operations, and add `connection.close()` after each write as defence (Hansard Backfill)
 - When an AI returns empty fields, verify it's actually a write failure before assuming DB issues — Gemini legitimately returns empty `mp_name` when the speaker can't be identified from the quote. Check the right field (`ai_summary` not `mp_name`) to determine if analysis was done (Hansard Backfill)
 - Government websites may block specific HTTP methods (HEAD) while allowing others (GET) — when a probe fails, try alternative methods before assuming the resource doesn't exist (Hansard Backfill)
+- `gcloud run deploy --set-env-vars` replaces ALL env vars, `--update-env-vars` merges — always use `--update-env-vars` or `--env-vars-file` to avoid wiping existing vars (UI Polish)
+- Review-gated APIs (e.g. `review_status=APPROVED`) with no approval workflow create invisible data — if no one is reviewing, nothing shows. Either auto-approve or show pending data (UI Polish)

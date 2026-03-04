@@ -266,3 +266,21 @@ export interface PreferenceUpdate {
   NEWS_WATCH?: boolean;
   MONTHLY_BLAST?: boolean;
 }
+
+export interface ConstituencyMention {
+  sitting_date: string;
+  mp_name: string;
+  mp_party: string;
+  mention_type: string;
+  significance: number | null;
+  ai_summary: string;
+}
+
+export interface SittingBrief {
+  id: number;
+  sitting_date: string;
+  title: string;
+  summary_html: string;
+  mention_count: number;
+  published_at: string | null;
+}

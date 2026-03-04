@@ -54,18 +54,6 @@ export default function SchoolProfile({ school }: SchoolProfileProps) {
                 value={t.has(`session_${school.session_type}`) ? t(`session_${school.session_type}`) : school.session_type}
               />
             )}
-            <DetailRow
-              label={t("school")}
-              value={t("studentsCount", { count: school.enrolment ?? 0 })}
-            />
-            <DetailRow
-              label={t("preschool")}
-              value={t("studentsCount", { count: school.preschool_enrolment ?? 0 })}
-            />
-            <DetailRow
-              label={t("specialNeeds")}
-              value={t("studentsCount", { count: school.special_enrolment ?? 0 })}
-            />
           </dl>
           <p className="text-xs text-gray-400 mt-4 pt-3 border-t border-gray-100">
             {t("dataSource")}
@@ -96,6 +84,8 @@ export default function SchoolProfile({ school }: SchoolProfileProps) {
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
               <LeaderRow role={t("headmaster")} name={t("notAvailable")} />
               <LeaderRow role={t("ptaChairman")} name={t("notAvailable")} />
+              <LeaderRow role={t("boardChairman")} name={t("notAvailable")} />
+              <LeaderRow role={t("alumniChairman")} name={t("notAvailable")} />
             </dl>
           )}
         </div>

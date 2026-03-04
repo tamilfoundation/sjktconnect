@@ -3,7 +3,7 @@
 from django.urls import include, path
 
 from newswatch.api.views import NewsListView, SchoolNewsView
-from parliament.api.views import SchoolMentionsView
+from parliament.api.views import ConstituencyMentionsView, SchoolMentionsView
 from schools.api.views import (
     ConstituencyDetailView,
     ConstituencyGeoJSONDetailView,
@@ -38,6 +38,7 @@ urlpatterns = [
     path("constituencies/", ConstituencyListView.as_view(), name="constituency-list"),
     path("constituencies/geojson/", ConstituencyGeoJSONView.as_view(), name="constituency-geojson-list"),
     path("constituencies/<str:code>/geojson/", ConstituencyGeoJSONDetailView.as_view(), name="constituency-geojson-detail"),
+    path("constituencies/<str:code>/mentions/", ConstituencyMentionsView.as_view(), name="constituency-mentions"),
     path("constituencies/<str:code>/", ConstituencyDetailView.as_view(), name="constituency-detail"),
     # DUNs — GeoJSON before detail
     path("duns/", DUNListView.as_view(), name="dun-list"),

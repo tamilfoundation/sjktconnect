@@ -98,6 +98,7 @@ describe("Footer", () => {
   it("has social media links", () => {
     render(<Footer />);
     expect(screen.getByLabelText("Facebook")).toBeInTheDocument();
-    expect(screen.getByLabelText("X (Twitter)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Instagram")).toBeInTheDocument();
+    expect(screen.getByLabelText("YouTube")).toBeInTheDocument();
   });
 });

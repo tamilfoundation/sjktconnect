@@ -212,36 +212,103 @@ _ABBREV_MAP = {
     "Sungai": "Sg",
     "Kampung": "Kg",
     "Jalan": "Jln",
+    "Estate": "Ldg",
+    "Island": "Pulau",
+    "East": "Timur",
+    "West": "Barat",
+    "South": "Selatan",
+    "North": "Utara",
 }
-# Build reverse map too (Ldg → Ladang)
-_ABBREV_MAP.update({v: k for k, v in _ABBREV_MAP.items()})
+# Build reverse map too (Ldg → Ladang, Timur → East, etc.)
+_ABBREV_REVERSE = {v: k for k, v in _ABBREV_MAP.items()}
+_ABBREV_ALL = {**_ABBREV_MAP, **_ABBREV_REVERSE}
+
+# Words to strip from Gemini's school names before matching
+_NOISE_WORDS = {
+    "tamil", "school", "primary", "in", "at", "the", "sekolah",
+}
 
 
-def _normalise_abbreviations(text):
-    """Swap common abbreviation variants for matching.
+def _normalise_for_matching(text):
+    """Normalise a school name for fuzzy matching.
 
-    E.g. "Ladang Kinrara" → "Ldg Kinrara", "Sg Siput" → "Sungai Siput".
+    - Strips noise words (Tamil, School, Estate, in, at)
+    - Strips commas and location suffixes after commas
+    - Normalises apostrophes (curly → straight)
+    - Strips quotes and parenthesised numbers like (1) → 1
+    - Swaps abbreviation variants (Ladang↔Ldg, East↔Timur, etc.)
     """
+    import re
+    # Strip everything after comma (location qualifiers like ", Brickfields")
+    text = text.split(",")[0].strip()
+    # Normalise apostrophes
+    text = text.replace("\u2018", "'").replace("\u2019", "'")
+    text = text.replace("\u201c", "'").replace("\u201d", "'")
+    # Strip quotes around words: 'Barat' → Barat
+    text = re.sub(r"['\"]", "", text)
+    # Remove noise words
     words = text.split()
+    words = [w for w in words if w.lower() not in _NOISE_WORDS]
+    # Swap abbreviation variants
     result = []
     for w in words:
-        # Check case-insensitive match
-        for full, abbrev in _ABBREV_MAP.items():
+        replaced = False
+        for full, abbrev in _ABBREV_ALL.items():
             if w.lower() == full.lower():
-                w = abbrev
+                result.append(abbrev)
+                replaced = True
                 break
-        result.append(w)
+        if not replaced:
+            result.append(w)
     return " ".join(result)
+
+
+def _generate_name_variants(distinctive):
+    """Generate multiple search variants from a distinctive name.
+
+    Returns a list of strings to try matching against the database.
+    E.g. "Ladang Boh 1" → ["Ladang Boh 1", "Ldg Boh 1", "Ldg Boh (1)",
+    "Ladang Boh (1)"]
+    """
+    import re
+    variants = [distinctive]
+
+    # Normalised form
+    normalised = _normalise_for_matching(distinctive)
+    if normalised != distinctive:
+        variants.append(normalised)
+
+    # Add parenthesised number variant: "Boh 1" → "Boh (1)"
+    num_match = re.search(r"\s(\d+)$", distinctive)
+    if num_match:
+        paren_form = distinctive[:num_match.start()] + f" ({num_match.group(1)})"
+        variants.append(paren_form)
+        norm_paren = _normalise_for_matching(paren_form)
+        if norm_paren not in variants:
+            variants.append(norm_paren)
+
+    # Strip "Jalan"/"Jln" prefix: "Jalan Fletcher" → "Fletcher"
+    stripped_jalan = re.sub(
+        r"^(?:Jalan|Jln)\s+", "", distinctive, flags=re.IGNORECASE
+    ).strip()
+    if stripped_jalan != distinctive:
+        variants.append(stripped_jalan)
+
+    return list(dict.fromkeys(variants))  # dedupe, preserve order
 
 
 def _resolve_school_codes(mentioned_schools, article=None):
     """Match mentioned school names against the database to fill in moe_codes.
 
-    Strips SJKT/SJK(T) prefixes and matches the distinctive part against
-    School.short_name in the database. When multiple schools share the same
-    name (e.g. SJK(T) Saraswathy exists in 3 states), uses location clues
-    from the article text to disambiguate.
+    Strips SJKT/SJK(T) prefixes and uses multiple matching strategies:
+    1. Exact match on short_name
+    2. SJK(T) + distinctive part exact match
+    3. Partial (icontains) match on distinctive part
+    4. Name variant generation (abbreviation swaps, number formats)
+    5. Multi-word AND search
+    6. Location-based disambiguation for multiple matches
     """
+    from django.db.models import Q
     from schools.models import School
 
     # Build location context from article text for disambiguation
@@ -265,36 +332,65 @@ def _resolve_school_codes(mentioned_schools, article=None):
         # Extract the distinctive part (e.g. "Kerajaan" from "SJKT Kerajaan")
         distinctive = _strip_prefix(name)
 
-        # Try exact match first
+        candidates = School.objects.none()
+
+        # Strategy 1: Exact match on short_name as given
         candidates = School.objects.filter(short_name__iexact=name)
-        if not candidates.exists():
-            # Match with SJK(T) prefix + distinctive part
+
+        # Strategy 2: SJK(T) + distinctive exact match
+        if not candidates.exists() and distinctive:
             candidates = School.objects.filter(
                 short_name__iexact=f"SJK(T) {distinctive}"
             )
+
+        # Strategy 3: Try all name variants (abbreviations, number formats, etc.)
         if not candidates.exists() and distinctive:
-            # Partial: distinctive part anywhere in short_name
-            candidates = School.objects.filter(
-                short_name__icontains=distinctive
-            )
-        if not candidates.exists() and distinctive:
-            # Try normalised abbreviations (Ladang↔Ldg, Sungai↔Sg, etc.)
-            normalised = _normalise_abbreviations(distinctive)
-            if normalised != distinctive:
+            for variant in _generate_name_variants(distinctive):
                 candidates = School.objects.filter(
-                    short_name__icontains=normalised
+                    short_name__iexact=f"SJK(T) {variant}"
                 )
+                if candidates.exists():
+                    break
+                # Also try partial match
+                candidates = School.objects.filter(
+                    short_name__icontains=variant
+                )
+                if candidates.exists():
+                    break
+
+        # Strategy 4: Multi-word AND search (catches "Melaka (Kubu)" from "Melaka Kubu")
         if not candidates.exists() and distinctive:
-            # Try matching each word individually for multi-word names
-            # Catches "Melaka Kubu" matching "Melaka (Kubu)"
-            words = distinctive.split()
+            # Use normalised form for word search
+            normalised = _normalise_for_matching(distinctive)
+            words = [w for w in normalised.split() if len(w) >= 3]
             if len(words) >= 2:
-                from django.db.models import Q
                 q = Q(short_name__icontains=words[0])
                 for w in words[1:]:
                     q &= Q(short_name__icontains=w)
                 candidates = School.objects.filter(q)
 
+        # Strategy 5: Last resort — try just the most distinctive word (longest)
+        # Only use words >= 6 chars and skip common geographic terms
+        if not candidates.exists() and distinctive:
+            _GENERIC_WORDS = {
+                "ladang", "estate", "jalan", "bandar", "taman", "kampung",
+                "sungai", "pulau", "island", "teluk", "bukit", "tanjung",
+                "bagan", "barat", "timur", "selatan", "utara", "bidor",
+                "tangkak", "convent",
+            }
+            words = [
+                w for w in distinctive.split()
+                if len(w) >= 6 and w.lower() not in _GENERIC_WORDS
+            ]
+            words.sort(key=len, reverse=True)
+            for w in words[:2]:
+                candidates = School.objects.filter(short_name__icontains=w)
+                if candidates.count() == 1:
+                    break
+                # Don't use ambiguous single-word matches
+                candidates = School.objects.none()
+
+        # Resolve candidates
         if candidates.count() == 1:
             match = candidates.first()
             resolved.append({"name": match.short_name, "moe_code": match.moe_code})
