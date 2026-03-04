@@ -513,11 +513,26 @@
     "viewSchool": "View School →"
   },
   "donate": {
-    "title": "Donate — SJK(T) Connect",
-    "heading": "Support Tamil Schools",
-    "intro": "Your donation helps sustain this platform and support Tamil school communities across Malaysia.",
-    "comingSoon": "Coming Soon",
-    "comingSoonBody": "Online donations will be available soon. For now, please contact us at info@tamilfoundation.org."
+    "pageTitle": "Donate to Tamil Foundation",
+    "pageDescription": "Support Tamil education in Malaysia",
+    "title": "Support Tamil Education",
+    "subtitle": "Your donation to the Malaysian Community Education Foundation helps strengthen Tamil schools across Malaysia.",
+    "selectAmount": "Select an amount (RM)",
+    "customAmount": "Or enter a custom amount",
+    "yourName": "Your name",
+    "yourEmail": "Your email",
+    "yourPhone": "Phone number (optional)",
+    "optionalMessage": "Leave a message (optional)",
+    "donate": "Donate",
+    "processing": "Processing...",
+    "paymentError": "Payment service is temporarily unavailable. Please try again later.",
+    "schoolDonationCta": "Want to donate directly to a specific school?",
+    "findSchool": "Find a school",
+    "thankYou": "Thank You!",
+    "paymentProcessing": "Payment Processing",
+    "receivedFrom": "received from",
+    "referenceId": "Reference",
+    "backToHome": "Back to Home"
   },
   "aboutTamilSchools": {
     "title": "About Tamil Schools — SJK(T) Connect",

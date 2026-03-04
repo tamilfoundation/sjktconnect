@@ -513,11 +513,26 @@
     "viewSchool": "Lihat Sekolah →"
   },
   "donate": {
-    "title": "Derma — SJK(T) Connect",
-    "heading": "Sokong Sekolah Tamil",
-    "intro": "Derma anda membantu mengekalkan platform ini dan menyokong komuniti sekolah Tamil di seluruh Malaysia.",
-    "comingSoon": "Akan Datang",
-    "comingSoonBody": "Derma dalam talian akan tersedia tidak lama lagi. Buat masa ini, hubungi kami di info@tamilfoundation.org."
+    "pageTitle": "Derma kepada Yayasan Tamil",
+    "pageDescription": "Sokong pendidikan Tamil di Malaysia",
+    "title": "Sokong Pendidikan Tamil",
+    "subtitle": "Derma anda kepada Yayasan Pendidikan Komuniti Malaysia membantu mengukuhkan sekolah Tamil di seluruh Malaysia.",
+    "selectAmount": "Pilih jumlah (RM)",
+    "customAmount": "Atau masukkan jumlah tersuai",
+    "yourName": "Nama anda",
+    "yourEmail": "E-mel anda",
+    "yourPhone": "Nombor telefon (pilihan)",
+    "optionalMessage": "Tinggalkan mesej (pilihan)",
+    "donate": "Derma",
+    "processing": "Memproses...",
+    "paymentError": "Perkhidmatan pembayaran tidak tersedia buat sementara waktu. Sila cuba lagi kemudian.",
+    "schoolDonationCta": "Ingin menderma terus kepada sekolah tertentu?",
+    "findSchool": "Cari sekolah",
+    "thankYou": "Terima Kasih!",
+    "paymentProcessing": "Pembayaran Sedang Diproses",
+    "receivedFrom": "diterima daripada",
+    "referenceId": "Rujukan",
+    "backToHome": "Kembali ke Laman Utama"
   },
   "aboutTamilSchools": {
     "title": "Mengenai Sekolah Tamil — SJK(T) Connect",
