@@ -276,11 +276,41 @@ export interface ConstituencyMention {
   ai_summary: string;
 }
 
+export interface HansardMention {
+  id: number;
+  sitting_date: string;
+  mp_name: string;
+  mp_constituency: string;
+  mp_party: string;
+  mention_type: string;
+  significance: number | null;
+  sentiment: string;
+  ai_summary: string;
+  schools: { name: string; moe_code: string }[];
+}
+
 export interface SittingBrief {
   id: number;
   sitting_date: string;
   title: string;
   summary_html: string;
   mention_count: number;
+  published_at: string | null;
+}
+
+export interface MeetingReport {
+  id: number;
+  name: string;
+  short_name: string;
+  term: number;
+  session: number;
+  year: number;
+  start_date: string;
+  end_date: string;
+  report_html: string;
+  executive_summary: string;
+  social_post_text: string;
+  sitting_count: number;
+  total_mentions: number;
   published_at: string | null;
 }

@@ -13,6 +13,12 @@ class HansardSitting(models.Model):
         FAILED = "FAILED", "Failed"
 
     sitting_date = models.DateField(unique=True, db_index=True)
+    meeting = models.ForeignKey(
+        "parliament.ParliamentaryMeeting",
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="sittings",
+    )
     session = models.CharField(max_length=50, blank=True, default="")
     meeting_number = models.CharField(max_length=50, blank=True, default="")
     pdf_url = models.URLField(max_length=500)

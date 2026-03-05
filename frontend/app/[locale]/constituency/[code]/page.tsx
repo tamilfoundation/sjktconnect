@@ -13,6 +13,7 @@ import ScorecardCard from "@/components/ScorecardCard";
 import DemographicsCard from "@/components/DemographicsCard";
 import SchoolTable from "@/components/SchoolTable";
 import BoundaryMap from "@/components/BoundaryMap";
+import MentionsList from "@/components/MentionsList";
 import { Link } from "@/i18n/navigation";
 
 export const revalidate = 3600;
@@ -128,6 +129,14 @@ export default async function ConstituencyPage({ params }: PageProps) {
 
           {/* School Table */}
           <SchoolTable schools={constituency.schools} />
+
+          {/* Hansard Mentions */}
+          {mentions.length > 0 && (
+            <MentionsList
+              mentions={mentions}
+              title={t("hansardMentions")}
+            />
+          )}
         </div>
 
         {/* Right column */}
@@ -136,7 +145,6 @@ export default async function ConstituencyPage({ params }: PageProps) {
           <ScorecardCard
             scorecard={constituency.scorecard}
             mpName={constituency.mp_name}
-            mentions={mentions}
           />
 
           {/* Demographics */}

@@ -224,7 +224,8 @@
     "povertyRate": "Poverty Rate",
     "giniIndex": "Gini Index",
     "unemployment": "Unemployment",
-    "recentMentions": "Recent Mentions"
+    "recentMentions": "Recent Mentions",
+    "hansardMentions": "Hansard Mentions"
   },
   "claim": {
     "title": "Claim Your School",
@@ -427,7 +428,22 @@
     "photoCredit": "Photo:",
     "editSchoolData": "Edit School Data",
     "sittingBriefs": "Sitting Summaries",
-    "mentionsLabel": "mentions"
+    "mentionsLabel": "mentions",
+    "meetingReports": "Meeting Reports",
+    "meetingReportsDesc": "Executive policy briefings synthesising all sittings from each parliamentary meeting period.",
+    "sittingBriefsDesc": "Comprehensive reports from each parliamentary sitting where Tamil schools were discussed.",
+    "readFullReport": "Read full report",
+    "collapseReport": "Collapse report",
+    "sittingsTracked": "Sittings tracked",
+    "mpsTracked": "MPs identified",
+    "schoolsMentioned": "Schools mentioned",
+    "hansardMentions": "Hansard Mentions",
+    "totalMentionsCount": "mentions",
+    "noMentionsYet": "No parliamentary mentions found yet.",
+    "showingCount": "Showing {from}–{to} of {total}",
+    "perPage": "per page",
+    "previous": "Previous",
+    "next": "Next"
   },
   "legal": {
     "lastUpdated": "Last updated: March 2026",

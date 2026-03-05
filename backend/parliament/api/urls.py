@@ -3,6 +3,9 @@
 from django.urls import path
 
 from parliament.api.views import (
+    AllMentionsListView,
+    MeetingReportDetailView,
+    MeetingReportListView,
     MPScorecardDetailView,
     MPScorecardListView,
     SittingBriefDetailView,
@@ -31,5 +34,20 @@ urlpatterns = [
         "briefs/<int:pk>/",
         SittingBriefDetailView.as_view(),
         name="brief-detail",
+    ),
+    path(
+        "meetings/",
+        MeetingReportListView.as_view(),
+        name="meeting-list",
+    ),
+    path(
+        "meetings/<int:pk>/",
+        MeetingReportDetailView.as_view(),
+        name="meeting-detail",
+    ),
+    path(
+        "mentions/",
+        AllMentionsListView.as_view(),
+        name="mention-list",
     ),
 ]

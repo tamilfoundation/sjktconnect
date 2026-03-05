@@ -4,6 +4,57 @@ from hansard.models import HansardSitting
 from schools.models import Constituency
 
 
+class ParliamentaryMeeting(models.Model):
+    """A parliamentary meeting period (not a single sitting).
+
+    Represents a meeting within a parliamentary term, e.g. "First Meeting
+    of the Fourth Term 2025". Contains multiple sittings and an AI-generated
+    executive-grade policy report synthesising all sitting summaries.
+    """
+
+    name = models.CharField(
+        max_length=200,
+        help_text="e.g. First Meeting of the Fourth Term 2025",
+    )
+    short_name = models.CharField(
+        max_length=50,
+        help_text="e.g. 1st Meeting 2025",
+    )
+    term = models.PositiveIntegerField(
+        help_text="Parliamentary term (4 = 2025, 5 = 2026)",
+    )
+    session = models.PositiveIntegerField(
+        help_text="Meeting number within term (1, 2, 3, or 0 for Special)",
+    )
+    year = models.PositiveIntegerField()
+    start_date = models.DateField(help_text="First sitting date")
+    end_date = models.DateField(help_text="Last sitting date")
+    report_html = models.TextField(
+        blank=True, default="",
+        help_text="Gemini-generated 7-point meeting report (HTML)",
+    )
+    executive_summary = models.TextField(
+        blank=True, default="",
+        help_text="First 2-3 paragraphs for preview/cards",
+    )
+    social_post_text = models.TextField(
+        blank=True, default="",
+        help_text="280-char social summary",
+    )
+    is_published = models.BooleanField(default=False)
+    published_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [("term", "session", "year")]
+        ordering = ["-start_date"]
+
+    def __str__(self):
+        status = "Published" if self.is_published else "Draft"
+        return f"{self.short_name} ({status})"
+
+
 class MPScorecard(models.Model):
     """Aggregated engagement scorecard for a Member of Parliament.
 

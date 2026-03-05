@@ -23,15 +23,35 @@ function formatDate(dateStr: string | null): string {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
 
+/** Strip trailing source name from title (e.g. " - bernama", " - The Star | Malaysia") */
+function cleanTitle(title: string, sourceName: string): string {
+  // Remove " - Source" or " - Source | Extra" from end of title
+  const patterns = [
+    ` - ${sourceName}`,
+    ` | ${sourceName}`,
+  ];
+  let cleaned = title;
+  for (const p of patterns) {
+    if (cleaned.toLowerCase().endsWith(p.toLowerCase())) {
+      cleaned = cleaned.slice(0, -p.length);
+      break;
+    }
+  }
+  // Also strip trailing " | Country" or " - Source | Country" patterns
+  cleaned = cleaned.replace(/\s*[-|]\s*[A-Z][a-z]+(\s*\|\s*[A-Z][a-z]+)*\s*$/, "");
+  return cleaned || title;
+}
+
 export default function NewsCard({ article }: Props) {
   const t = useTranslations("news");
+  const displayTitle = cleanTitle(article.title, article.source_name);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-sm transition-shadow">
       <div className="flex items-start justify-between gap-2">
         <a href={article.url} target="_blank" rel="noopener noreferrer"
            className="text-base font-medium text-blue-700 hover:underline leading-snug">
-          {article.title}
+          {displayTitle}
         </a>
         {article.is_urgent && (
           <span className="shrink-0 text-xs bg-red-600 text-white px-2 py-0.5 rounded-full font-medium">

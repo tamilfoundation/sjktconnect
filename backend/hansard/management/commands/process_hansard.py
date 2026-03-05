@@ -117,6 +117,8 @@ class Command(BaseCommand):
                     context_before=match["context_before"],
                     context_after=match["context_after"],
                     keyword_matched=match["keyword_matched"],
+                    mp_name=match.get("speaker_name", ""),
+                    mp_constituency=match.get("speaker_constituency", ""),
                 ))
             HansardMention.objects.bulk_create(mentions)
 

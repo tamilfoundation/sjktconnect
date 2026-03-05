@@ -7,7 +7,9 @@ import {
   DUNDetail,
   GeoJSONFeature,
   GeoJSONFeatureCollection,
+  HansardMention,
   MagicLinkResponse,
+  MeetingReport,
   NationalStats,
   NewsArticle,
   PaginatedResponse,
@@ -446,6 +448,32 @@ export async function fetchBriefs(): Promise<SittingBrief[]> {
       `${BASE}/briefs/`
     );
     return page.results;
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchAllMentions(): Promise<HansardMention[]> {
+  try {
+    const results: HansardMention[] = [];
+    let url: string | null = `${BASE}/mentions/`;
+    while (url) {
+      const page = await fetchJSON<PaginatedResponse<HansardMention>>(url);
+      results.push(...page.results);
+      url = page.next;
+    }
+    return results;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Fetch parliamentary meeting reports.
+ */
+export async function fetchMeetingReports(): Promise<MeetingReport[]> {
+  try {
+    return await fetchJSON<MeetingReport[]>(`${BASE}/meetings/`);
   } catch {
     return [];
   }

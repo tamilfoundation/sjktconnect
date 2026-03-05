@@ -224,7 +224,8 @@
     "povertyRate": "Kadar Kemiskinan",
     "giniIndex": "Indeks Gini",
     "unemployment": "Pengangguran",
-    "recentMentions": "Sebutan Terkini"
+    "recentMentions": "Sebutan Terkini",
+    "hansardMentions": "Sebutan Hansard"
   },
   "claim": {
     "title": "Tuntut Sekolah Anda",
@@ -426,8 +427,23 @@
     "noPhoto": "Tiada foto tersedia. Kenal sekolah ini? Bantu kami dengan berkongsi foto.",
     "photoCredit": "Foto:",
     "editSchoolData": "Edit Data Sekolah",
+    "meetingReports": "Laporan Mesyuarat",
+    "meetingReportsDesc": "Taklimat dasar eksekutif yang merangkum semua persidangan daripada setiap tempoh mesyuarat parlimen.",
     "sittingBriefs": "Ringkasan Persidangan",
-    "mentionsLabel": "sebutan"
+    "mentionsLabel": "sebutan",
+    "hansardMentions": "Sebutan Hansard",
+    "totalMentionsCount": "sebutan",
+    "noMentionsYet": "Tiada sebutan parlimen ditemui lagi.",
+    "showingCount": "Menunjukkan {from}–{to} daripada {total}",
+    "perPage": "setiap halaman",
+    "previous": "Sebelumnya",
+    "next": "Seterusnya",
+    "sittingBriefsDesc": "Laporan komprehensif daripada setiap persidangan parlimen.",
+    "readFullReport": "Baca laporan penuh",
+    "collapseReport": "Ringkaskan laporan",
+    "sittingsTracked": "Persidangan dijejaki",
+    "mpsTracked": "Ahli Parlimen dikenal pasti",
+    "schoolsMentioned": "Sekolah disebut"
   },
   "legal": {
     "lastUpdated": "Kemaskini terakhir: Mac 2026",
