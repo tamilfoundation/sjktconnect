@@ -57,13 +57,19 @@ python manage.py update_scorecards             # Recalculate all MP scorecards
 python manage.py import_constituencies        # Load constituencies from data/
 python manage.py import_schools               # Load schools from data/ (proper case applied)
 
-# Hansard Pipeline
-python manage.py process_hansard <url>                        # Full pipeline
+# Full Hansard Pipeline (Sprint 5.1 — replaces check_new_hansards --auto-process)
+python manage.py run_hansard_pipeline              # Full pipeline (7 steps)
+python manage.py run_hansard_pipeline --dry-run     # Preview what each step would do
+python manage.py run_hansard_pipeline --skip-calendar  # Skip parlimen.gov.my calendar sync
+python manage.py run_hansard_pipeline --skip-analysis  # Skip Gemini AI analysis
+
+# Hansard Pipeline (individual commands)
+python manage.py process_hansard <url>                        # Process a single PDF
 python manage.py process_hansard <url> --sitting-date YYYY-MM-DD
 python manage.py process_hansard <url> --catalogue-variants   # Print variant catalogue
 python manage.py process_hansard <url> --skip-matching        # Skip school matching step
 
-# Hansard Discovery (Sprint 0.6)
+# Hansard Discovery
 python manage.py check_new_hansards              # Discover new PDFs (last 14 days)
 python manage.py check_new_hansards --days 30    # Last 30 days
 python manage.py check_new_hansards --auto-process  # Discover + process automatically
@@ -197,6 +203,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 3.7 | Done | Map InfoWindow, School Page Polish & Enrolment Filter: enrolment filter hides (not greys) schools above threshold, InfoWindow redesign (image, badges, stats, DUN link), school page 12-col grid with elevated stat cards + info bar + taller gallery with overlay thumbnails. mapInfoWindow i18n namespace. 757 tests (unchanged). |
 | 4.1-4.2 | Done | Donations feature: bank_name/bank_account_number/bank_account_name on School, import_bank_details command (202 schools), DuitNow QR endpoint, SupportSchoolCard sidebar, donations Django app (Toyyib Pay), /donate page + thank-you page, DonationForm. 47 new tests (979 total). |
 | UI Polish | Done | Hansard display fix (PENDING→visible, briefs ungated), constituency mentions API, news pagination, collapsible map filters, footer social icons, school leadership empty state, news school matching improvement. 8 new tests (988 total). |
+| 5.1 | Done | Pipeline Automation: calendar scraper (parlimen.gov.my), auto brief generator, Gemini meeting report generator, unified `run_hansard_pipeline` command (7 steps), WAT workflow. 30 new tests. |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -213,9 +220,21 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Post-deploy tasks**:
+**Sprint 5.1 (Pipeline Automation) — DONE**:
+- Calendar scraper (parlimen.gov.my), auto brief generator, meeting report generator (Gemini)
+- Unified `run_hansard_pipeline` command (7 steps: calendar → discover → match → analyse → scorecards → briefs → reports)
+- WAT workflow at `_workflows/hansard-pipeline.md`
+- Design doc at `docs/plans/2026-03-05-hansard-pipeline-automation-design.md`
+
+**Sprint 5.2 (Historical Rebuild) — NEXT**:
+- Improve speaker extraction in `hansard/pipeline/searcher.py` (capture MP name from Hansard format)
+- Tighten Gemini prompts (substance-driven length, no padding)
+- `rebuild_all_hansards` command to re-process all 97 sittings with improved extraction
+- Schedule overnight run to regenerate all mentions, briefs, and reports
+
+**Pending (not sprint-specific)**:
+- Deploy pipeline: update Cloud Run job from `check_new_hansards` to `run_hansard_pipeline`, set `GEMINI_API_KEY` env var
 - End-to-end test: donate page → Toyyib sandbox, school bank card display
-- **Trigram school matching**: 125 mentions have unmatched schools (exact match got 68). Trigram too slow over remote DB — consider batch approach or local processing
 - **Urgent Response System**: Design approved, marinating. See `docs/plans/2026-03-04-urgent-response-system-design.md`
 - gcloud CLI requires `CLOUDSDK_PYTHON` env var pointing to Python 3.13
 
