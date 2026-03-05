@@ -94,9 +94,12 @@ def parse_mymp_sitemap(html: str) -> dict[str, str]:
     """Parse the mymp.org.my sitemap page and return {name: slug} mapping."""
     soup = BeautifulSoup(html, "html.parser")
     slugs = {}
-    for link in soup.select("a[href^='/p/']"):
+    for link in soup.select("a[href*='/p/']"):
         href = link.get("href", "")
-        slug = href.replace("/p/", "").strip("/")
+        match = re.search(r"/p/([\w-]+)", href)
+        if not match:
+            continue
+        slug = match.group(1)
         name = link.get_text(strip=True).lower()
         if slug and name:
             slugs[name] = slug
