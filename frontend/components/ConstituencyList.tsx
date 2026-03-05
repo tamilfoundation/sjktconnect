@@ -103,7 +103,7 @@ export default function ConstituencyList({
                   <td className="px-4 py-2.5 text-gray-700">{c.mp_name}</td>
                   <td className="px-4 py-2.5">
                     <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                      {c.mp_party}
+                      {c.mp_party?.replace("(", " (")}
                     </span>
                   </td>
                   <td className="px-4 py-2.5 text-right text-gray-700">

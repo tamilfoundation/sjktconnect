@@ -122,7 +122,7 @@ export default function MentionsList({ mentions, showSchools = false, title }: M
                       {mention.mp_name}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {[mention.mp_constituency, mention.mp_party].filter(Boolean).join(" · ")}
+                      {[mention.mp_constituency, mention.mp_party?.replace("(", " (")].filter(Boolean).join(" · ")}
                     </p>
                   </div>
                 </div>

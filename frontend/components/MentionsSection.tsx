@@ -67,7 +67,7 @@ export default function MentionsSection({ mentions }: MentionsSectionProps) {
               </span>
               {mention.mp_party && (
                 <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                  {mention.mp_party}
+                  {mention.mp_party?.replace("(", " (")}
                 </span>
               )}
               {mention.significance && (

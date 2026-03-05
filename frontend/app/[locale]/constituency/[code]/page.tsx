@@ -10,7 +10,6 @@ import {
 import Breadcrumb from "@/components/Breadcrumb";
 import StatCard from "@/components/StatCard";
 import ScorecardCard from "@/components/ScorecardCard";
-import DemographicsCard from "@/components/DemographicsCard";
 import ElectoralInfluenceCard from "@/components/ElectoralInfluenceCard";
 import SchoolTable from "@/components/SchoolTable";
 import BoundaryMap from "@/components/BoundaryMap";
@@ -88,31 +87,64 @@ export default async function ConstituencyPage({ params }: PageProps) {
       <Breadcrumb
         items={[
           { label: tc("home"), href: "/" },
-          { label: t("title"), href: "/constituencies" },
+          { label: constituency.state, href: `/constituencies?state=${encodeURIComponent(constituency.state)}` },
           { label: `${constituency.code} ${constituency.name}` },
         ]}
       />
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900">
           {constituency.code} {constituency.name}
         </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          {constituency.state} · {t("mp")} {constituency.mp_name} ({constituency.mp_party}
-          {constituency.mp_coalition
-            ? ` / ${constituency.mp_coalition}`
-            : ""}
-          )
-        </p>
+        <div className="flex items-center gap-3 mt-2">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-amber-600 text-white uppercase tracking-wide">
+            {constituency.mp_party.replace("(", " (")}
+          </span>
+          <span className="text-sm text-gray-600">
+            YB {constituency.mp_name}
+          </span>
+        </div>
       </div>
 
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <StatCard label={t("tamilSchools")} value={constituency.schools.length} />
-        <StatCard label={t("totalStudents")} value={totalEnrolment} />
-        <StatCard label={t("totalTeachers")} value={totalTeachers} />
-        <StatCard label={t("duns")} value={duns.length} />
+        <StatCard
+          label={t("tamilSchools")}
+          value={constituency.schools.length}
+          icon={
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342" />
+            </svg>
+          }
+        />
+        <StatCard
+          label={t("totalStudents")}
+          value={totalEnrolment}
+          icon={
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
+            </svg>
+          }
+        />
+        <StatCard
+          label={t("totalTeachers")}
+          value={totalTeachers}
+          icon={
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+            </svg>
+          }
+        />
+        <StatCard
+          label={t("duns")}
+          value={duns.length}
+          icon={
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+            </svg>
+          }
+        />
       </div>
 
       {/* Main content */}
@@ -162,16 +194,6 @@ export default async function ConstituencyPage({ params }: PageProps) {
           <ScorecardCard
             scorecard={constituency.scorecard}
             mpName={constituency.mp_name}
-          />
-
-          {/* Demographics */}
-          <DemographicsCard
-            indianPopulation={constituency.indian_population}
-            indianPercentage={constituency.indian_percentage}
-            avgIncome={constituency.avg_income}
-            povertyRate={constituency.poverty_rate}
-            gini={constituency.gini}
-            unemploymentRate={constituency.unemployment_rate}
           />
 
           {/* DUN list */}

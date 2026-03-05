@@ -177,7 +177,7 @@ export default function SearchBox({ onSelect, onClear }: SearchBoxProps) {
                     {c.code} {c.name}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {c.mp_name} ({c.mp_party}) &middot; {c.school_count} {tc("schools")}
+                    {c.mp_name} ({c.mp_party?.replace("(", " (")}) &middot; {c.school_count} {tc("schools")}
                   </p>
                 </Link>
               ))}
