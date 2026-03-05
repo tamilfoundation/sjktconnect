@@ -1,5 +1,24 @@
 # Changelog
 
+## Sprint 5.3: MP Contact Card (2026-03-05)
+
+### Added
+- **MP model** (`parliament/models.py`): OneToOne to Constituency, stores name, photo, party, email, phone, fax, social media URLs, service centre address, parlimen profile ID, MyMP slug.
+- **MP scrapers** (`parliament/services/mp_scraper.py`): Parsers for parlimen.gov.my listing + profile pages and mymp.org.my sitemap. Handles invalid SSL cert with `verify=False`.
+- **`import_mp_profiles` command**: Scrapes both sources, matches to constituencies, creates/updates MP records. Supports `--dry-run` and `--constituency` flags.
+- **MP data in API**: `GET /api/v1/constituencies/<code>/` now includes nested `mp` object with contact details and profile URLs.
+- **ContactMPCard component**: Constituency sidebar card with circular photo, party badge, Email/Call/Facebook action buttons, service centre address, Parliament + MyMP profile links. Hidden when no MP data.
+- **Trilingual i18n**: 5 new strings in EN/TA/MS for the contact card.
+- **Shared PaginationBar**: Extracted from 6 components into reusable component (done prior to this sprint).
+- **24 new tests** (16 backend + 8 frontend), 1037 total (766 backend + 271 frontend)
+- **222 MPs imported** to production (100% with photo/email, 75% with phone, 65% with MyMP slug)
+
+### Changed
+- Constituency page sidebar: ContactMPCard sits above ScorecardCard
+- `ConstituencyDetailSerializer` includes `mp` field
+
+---
+
 ## Sprint 5.1: Pipeline Automation (2026-03-05)
 
 ### Added

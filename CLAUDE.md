@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 4 (Donations). Sprint 4.1–4.2 + UI polish done, deploying.
-- **Last Sprint**: UI Polish + Hansard Display Fix (2026-03-04)
-- **Tests**: 988 (725 backend + 263 frontend)
+- **Current Phase**: Phase 5 (Parliament Watch). Sprint 5.3 (MP Contact Card) done.
+- **Last Sprint**: MP Contact Card (2026-03-05)
+- **Tests**: 1037 (766 backend + 271 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -24,7 +24,7 @@
 | `core` | AuditLog, middleware | 0.1 |
 | `schools` | School, Constituency, DUN, SchoolLeader models + import commands + utils | 0.1, 3.1 |
 | `hansard` | Hansard pipeline (download, extract, search, match, discover) | 0.2-0.3, 0.6 |
-| `parliament` | MP Scorecard, review UI, content publishing | 0.4-0.5 |
+| `parliament` | MP model + scrapers, MP Scorecard, review UI, content publishing | 0.4-0.5, 5.3 |
 | `accounts` | Magic Link auth, SchoolContact, token/email services | 1.6 |
 | `outreach` | SchoolImage, OutreachEmail, image harvesting, email campaigns | 1.8 |
 | `subscribers` | Subscriber, SubscriptionPreference, subscribe/unsubscribe/preferences API | 2.1 |
@@ -102,6 +102,11 @@ python manage.py analyse_news_articles --batch-size 25      # Custom batch size
 python manage.py import_bank_details                        # Import bank details from TF Excel
 python manage.py import_bank_details --dry-run              # Preview without saving
 python manage.py import_bank_details --file path/to/file    # Custom Excel file
+
+# MP Profiles (Sprint 5.3)
+python manage.py import_mp_profiles                         # Scrape parlimen.gov.my + mymp.org.my
+python manage.py import_mp_profiles --dry-run               # Preview without saving
+python manage.py import_mp_profiles --constituency P078     # Single constituency
 
 # News Pipeline (Sprint 2.8)
 python manage.py run_news_pipeline                          # Full pipeline: fetch → extract → analyse
@@ -204,6 +209,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 4.1-4.2 | Done | Donations feature: bank_name/bank_account_number/bank_account_name on School, import_bank_details command (202 schools), DuitNow QR endpoint, SupportSchoolCard sidebar, donations Django app (Toyyib Pay), /donate page + thank-you page, DonationForm. 47 new tests (979 total). |
 | UI Polish | Done | Hansard display fix (PENDING→visible, briefs ungated), constituency mentions API, news pagination, collapsible map filters, footer social icons, school leadership empty state, news school matching improvement. 8 new tests (988 total). |
 | 5.1 | Done | Pipeline Automation: calendar scraper (parlimen.gov.my), auto brief generator, Gemini meeting report generator, unified `run_hansard_pipeline` command (7 steps), WAT workflow. 30 new tests. |
+| 5.3 | Done | MP Contact Card: MP model, scrapers (parlimen.gov.my + mymp.org.my), import_mp_profiles command, ContactMPCard sidebar component, API nesting, trilingual i18n. 222 MPs imported. 24 new tests (1037 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -220,12 +226,6 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 5.1 (Pipeline Automation) — DONE**:
-- Calendar scraper (parlimen.gov.my), auto brief generator, meeting report generator (Gemini)
-- Unified `run_hansard_pipeline` command (7 steps: calendar → discover → match → analyse → scorecards → briefs → reports)
-- WAT workflow at `_workflows/hansard-pipeline.md`
-- Design doc at `docs/plans/2026-03-05-hansard-pipeline-automation-design.md`
-
 **Sprint 5.2 (Historical Rebuild) — NEXT**:
 - Improve speaker extraction in `hansard/pipeline/searcher.py` (capture MP name from Hansard format)
 - Tighten Gemini prompts (substance-driven length, no padding)
@@ -236,6 +236,9 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - Deploy pipeline: update Cloud Run job from `check_new_hansards` to `run_hansard_pipeline`, set `GEMINI_API_KEY` env var
 - End-to-end test: donate page → Toyyib sandbox, school bank card display
 - **Urgent Response System**: Design approved, marinating. See `docs/plans/2026-03-04-urgent-response-system-design.md`
+- Pre-filled advocacy message templates per school ("Dear YB, as a parent at SJK(T) X...")
+- Dedicated MP profile page combining Hansard data with contact info
+- Improve Facebook URL scraping (parlimen.gov.my gives generic Parliament page, not personal)
 - gcloud CLI requires `CLOUDSDK_PYTHON` env var pointing to Python 3.13
 
 ## Frontend (Sprint 1.3–3.3)
@@ -244,7 +247,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **API client**: `lib/api.ts` — auto-paginates, school/constituency/DUN detail, GeoJSON, mentions, edit/confirm
 - **School profiles**: `/school/[moe_code]` — ISR, SEO, SchoolPhotoGallery (hero + thumbnails), Breadcrumb, ClaimButton, EditSchoolLink, SchoolProfile, MiniMap, MentionsSection, NewsWatchSection, SchoolHistory CTA, ConstituencySchools sidebar
 - **School edit**: `/school/[moe_code]/edit/` — pre-filled edit form, confirm (2-click) + edit actions, auth-gated
-- **Constituency pages**: `/constituency/[code]` — ISR, scorecard, boundary map, demographics, school table, DUN list
+- **Constituency pages**: `/constituency/[code]` — ISR, ContactMPCard (photo + email/call/Facebook), scorecard, boundary map, demographics, school table, DUN list
 - **DUN pages**: `/dun/[id]` — ISR, demographics, boundary map, school table, constituency link
 - **Constituencies index**: `/constituencies/` — filterable table with state dropdown
 - **Claim flow**: `/claim/` (email form), `/claim/verify/[token]/` (verification). ClaimForm component with pre-fill, loading/success/error states.
@@ -276,7 +279,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **School Mentions** (Sprint 1.10): `GET /api/v1/schools/<moe_code>/mentions/` (approved parliamentary mentions, public, no pagination)
 - **School News** (Sprint 2.8): `GET /api/v1/schools/<moe_code>/news/` (approved news articles mentioning a school, public)
 - **School Edit** (Sprint 1.7, Magic Link auth): `GET/PUT /api/v1/schools/<moe_code>/edit/` (view/update school data), `POST /api/v1/schools/<moe_code>/confirm/` (2-click verify)
-- **Constituencies**: `GET /api/v1/constituencies/` (filter: `?state=`, includes `school_count`), `GET /api/v1/constituencies/<code>/` (nested schools + scorecard), `GET /api/v1/constituencies/<code>/mentions/` (Hansard mentions for constituency MP, excludes rejected)
+- **Constituencies**: `GET /api/v1/constituencies/` (filter: `?state=`, includes `school_count`), `GET /api/v1/constituencies/<code>/` (nested schools + scorecard + mp contact data), `GET /api/v1/constituencies/<code>/mentions/` (Hansard mentions for constituency MP, excludes rejected)
 - **DUNs**: `GET /api/v1/duns/` (filters: `?state=`, `?constituency=`), `GET /api/v1/duns/<pk>/` (nested schools)
 - **Scorecards**: `GET /api/v1/scorecards/` (filters: `?constituency=`, `?party=`), `GET /api/v1/scorecards/<pk>/`
 - **Briefs**: `GET /api/v1/briefs/` (published only), `GET /api/v1/briefs/<pk>/`
