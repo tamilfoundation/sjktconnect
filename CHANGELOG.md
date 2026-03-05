@@ -1,5 +1,20 @@
 # Changelog
 
+## Sprint 5.1: Pipeline Automation (2026-03-05)
+
+### Added
+- **Calendar scraper** (`hansard/pipeline/calendar_scraper.py`): Scrapes parlimen.gov.my for meeting date ranges and individual sitting dates. Creates/updates ParliamentaryMeeting records automatically.
+- **Auto brief generator** (`generate_all_pending_briefs()`): Finds sittings with analysed mentions but no SittingBrief, generates briefs automatically.
+- **Meeting report generator** (`parliament/services/report_generator.py`): Gemini-powered executive reports for completed meetings. Structure: Key Findings, MP Activity, Policy Signals, What to Watch.
+- **Unified pipeline command** (`run_hansard_pipeline`): Single management command orchestrating 7 steps — calendar sync, PDF discovery, school matching, Gemini analysis, scorecards, sitting briefs, meeting reports. Supports `--dry-run`, `--skip-calendar`, `--skip-analysis`.
+- **WAT workflow** (`_workflows/hansard-pipeline.md`): Living SOP for the Hansard pipeline with lessons learned.
+- **30 new backend tests** (750 total backend)
+
+### Changed
+- Cloud Run job `sjktconnect-check-hansards` should now run `run_hansard_pipeline` instead of `check_new_hansards --auto-process` (deployment pending)
+
+---
+
 ## UI Polish + Hansard Display Fix (2026-03-04)
 
 ### Added
