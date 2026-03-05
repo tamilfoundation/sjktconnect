@@ -27,9 +27,12 @@ CONTEXT_CHARS = 500
 SPEAKER_PATTERN = re.compile(
     r'(?:^|\n)\s*'  # Start of line
     r'('
-    r'(?:Tuan|Puan|Dato\'?|Datuk|Tan Sri|Dr\.|Y\.?B\.?|Yang Berhormat'
+    r'(?:YAB|Y\.?A\.?B\.?'
+    r'|Tuan|Puan|Dato\'?|Datuk|Tan Sri|Tun|Dr\.'
+    r'|Y\.?B\.?|Yang Berhormat'
     r'|Timbalan (?:Menteri|Yang di-Pertua)'
-    r'|Menteri|Setiausaha Parlimen'
+    r'|Menteri(?:\s+Besar)?'
+    r'|Setiausaha Parlimen'
     r'|Tuan Yang di-Pertua)'
     r'[^:\n]{2,120}'  # Name + optional [constituency], 2-120 chars
     r')'
@@ -155,8 +158,11 @@ def _find_speaker(
     except ValueError:
         return "", ""
 
-    if page_idx > 0:
-        prev_page_num = page_nums[page_idx - 1]
+    for lookback in range(1, 3):  # 1 and 2 pages back
+        prev_idx = page_idx - lookback
+        if prev_idx < 0:
+            break
+        prev_page_num = page_nums[prev_idx]
         prev_text = page_texts.get(prev_page_num, "")
         if prev_text:
             speaker, constituency = _extract_last_speaker(prev_text)
@@ -211,6 +217,8 @@ def _clean_speaker_name(raw: str) -> str:
     generic_titles = [
         "tuan yang di-pertua",
         "timbalan yang di-pertua",
+        "tuan pengerusi",
+        "puan pengerusi",
     ]
     if name.lower() in generic_titles:
         return ""
@@ -222,7 +230,7 @@ def _clean_speaker_name(raw: str) -> str:
     if inner_match:
         lower = name.lower()
         if any(lower.startswith(t) for t in [
-            "menteri", "timbalan menteri", "setiausaha parlimen",
+            "yab", "menteri", "timbalan menteri", "setiausaha parlimen",
         ]):
             name = inner_match.group(1).strip()
 

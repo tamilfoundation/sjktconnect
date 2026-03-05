@@ -113,3 +113,53 @@ class SearchKeywordsTests(TestCase):
         pages = self._make_pages("sjk(t) ladang bikam and SJK(T) LADANG BIKAM")
         matches = search_keywords(pages, ["sjk(t)"])
         self.assertEqual(len(matches), 2)
+
+    def test_speaker_extraction_yab(self):
+        """YAB title should be captured."""
+        pages = self._make_pages(
+            "YAB Perdana Menteri [Dato' Sri Anwar Ibrahim]: "
+            "Kerajaan akan membaiki SJK(T) di seluruh negara."
+        )
+        matches = search_keywords(pages, ["sjk(t)"])
+        self.assertEqual(len(matches), 1)
+        self.assertIn("Anwar Ibrahim", matches[0]["speaker_name"])
+
+    def test_speaker_extraction_dato_seri(self):
+        """Dato' Seri title should be captured."""
+        pages = self._make_pages(
+            "Dato' Seri Dr. Mah Hang Soon [Jempol]: "
+            "SJK(T) di kawasan saya memerlukan peruntukan."
+        )
+        matches = search_keywords(pages, ["sjk(t)"])
+        self.assertEqual(len(matches), 1)
+        self.assertIn("Mah Hang Soon", matches[0]["speaker_name"])
+
+    def test_speaker_extraction_tuan_pengerusi(self):
+        """Tuan Pengerusi is a generic title, should return empty speaker."""
+        pages = self._make_pages(
+            "Tuan Pengerusi: SJK(T) Ladang Bikam perlu dibaiki."
+        )
+        matches = search_keywords(pages, ["sjk(t)"])
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches[0]["speaker_name"], "")
+
+    def test_speaker_two_pages_back(self):
+        """Speaker started 2 pages before the keyword — should still find them."""
+        pages = self._make_pages(
+            "Tuan Ganabatirau a/l Veraman [Klang]: Saya ingin bertanya...",
+            "...sambungan ucapan tentang pendidikan...",
+            "...khususnya SJK(T) di kawasan saya."
+        )
+        matches = search_keywords(pages, ["sjk(t)"])
+        self.assertEqual(len(matches), 1)
+        self.assertIn("Ganabatirau", matches[0]["speaker_name"])
+
+    def test_speaker_menteri_besar(self):
+        """Menteri Besar title should be captured."""
+        pages = self._make_pages(
+            "Menteri Besar Perak [Dato' Saarani Mohamad]: "
+            "Kerajaan negeri akan bantu SJK(T) di Perak."
+        )
+        matches = search_keywords(pages, ["sjk(t)"])
+        self.assertEqual(len(matches), 1)
+        self.assertIn("Saarani", matches[0]["speaker_name"])
