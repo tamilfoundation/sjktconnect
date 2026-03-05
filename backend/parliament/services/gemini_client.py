@@ -30,24 +30,31 @@ ANALYSIS_PROMPT = """\
 You are analysing a Malaysian parliamentary Hansard excerpt that mentions Tamil schools (SJK(T)).
 
 Extract the following fields as a JSON object:
-- mp_name: Name of the MP speaking (string, or "" if unclear)
-- mp_constituency: Parliamentary constituency of the MP (string, or "" if unclear)
-- mp_party: Political party of the MP (string, or "" if unclear)
+- mp_name: Full name of the MP speaking (string, or "" if unclear). Use the speaker hint if provided.
+- mp_constituency: Parliamentary constituency code or name (string, or "" if unclear)
+- mp_party: Political party (string, or "" if unknown — do NOT guess)
 - mention_type: One of BUDGET, QUESTION, POLICY, COMMITMENT, THROWAWAY, OTHER
-  - BUDGET: Allocation, funding, or financial request
-  - QUESTION: Parliamentary question (oral or written)
-  - POLICY: Policy discussion, proposal, or announcement
-  - COMMITMENT: Specific promise or pledge by MP/minister
-  - THROWAWAY: Passing mention without substance
+  - BUDGET: Allocation, funding, or financial request for schools
+  - QUESTION: Parliamentary question (oral or written) about Tamil schools
+  - POLICY: Policy discussion, proposal, or announcement affecting Tamil schools
+  - COMMITMENT: Specific promise or pledge by MP/minister for Tamil schools
+  - THROWAWAY: Passing mention without substance (e.g. listing school types)
   - OTHER: Does not fit the above categories
-- significance: Integer 1-5 (1 = trivial passing mention, 5 = major debate/commitment)
+- significance: Integer 1-5
+  - 1: Passing mention, no substance (school name listed without discussion)
+  - 2: Brief reference with minimal context (one sentence)
+  - 3: Substantive discussion (specific issue raised, question asked)
+  - 4: Detailed debate with specific data, allocations, or commitments
+  - 5: Major policy announcement, large budget allocation, or national-level commitment
 - sentiment: One of ADVOCATING, DEFLECTING, PROMISING, NEUTRAL, CRITICAL
+  - ADVOCATING: Actively pushing for resources/improvements for Tamil schools
+  - DEFLECTING: Avoiding direct answers or redirecting responsibility
+  - PROMISING: Making specific commitments or pledges
+  - NEUTRAL: Factual statement without clear position
+  - CRITICAL: Criticising government/policy handling of Tamil school issues
 - change_indicator: One of NEW, REPEAT, ESCALATION, REVERSAL
-  - NEW: First time this topic is raised in this context
-  - REPEAT: Previously raised, no change in stance
-  - ESCALATION: Stronger language or urgency than before
-  - REVERSAL: Changed position from previous stance
-- summary: 1-2 sentence English summary of what was said about Tamil schools
+  - Default to NEW unless the excerpt explicitly references a previous discussion
+- summary: 1-2 sentence English summary focused on the MP's stated position or request. Be specific — include amounts, school names, and actions mentioned. Do not pad with filler.
 
 Return ONLY valid JSON, no markdown fences, no extra text.
 
@@ -72,9 +79,18 @@ def _build_excerpt(mention):
     """Build a token-budgeted excerpt from a mention.
 
     Concatenates context_before + verbatim_quote + context_after,
-    truncating to ~1500 chars total.
+    truncating to ~1500 chars total. Prepends speaker hint if available.
     """
     parts = []
+
+    # Add speaker hint from regex extraction (if available)
+    if mention.mp_name:
+        hint = f"[Speaker detected: {mention.mp_name}"
+        if mention.mp_constituency:
+            hint += f", constituency: {mention.mp_constituency}"
+        hint += "]"
+        parts.append(hint)
+
     if mention.context_before:
         parts.append(mention.context_before.strip())
     parts.append(mention.verbatim_quote.strip())

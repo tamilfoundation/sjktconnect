@@ -54,6 +54,18 @@ class BuildExcerptTests(TestCase):
         self.assertLessEqual(len(excerpt), 1504)  # 1500 + "..."
         self.assertTrue(excerpt.endswith("..."))
 
+    def test_excerpt_includes_speaker_hint(self):
+        """When mention has mp_name from regex, excerpt should include it as a hint."""
+        mention = self._make_mention(
+            quote="SJK(T) Ladang Bikam needs repairs.",
+            before="Tuan Ganabatirau a/l Veraman [Klang]:",
+        )
+        mention.mp_name = "Tuan Ganabatirau a/l Veraman"
+        mention.mp_constituency = "Klang"
+        mention.save()
+        excerpt = _build_excerpt(mention)
+        self.assertIn("[Speaker detected: Tuan Ganabatirau a/l Veraman", excerpt)
+
 
 class ValidateResponseTests(TestCase):
     """Test validation and normalisation of Gemini output."""
