@@ -225,7 +225,12 @@
     "giniIndex": "ஜினி குறியீடு",
     "unemployment": "வேலையின்மை",
     "recentMentions": "சமீபத்திய குறிப்புகள்",
-    "hansardMentions": "ஹான்சார்ட் குறிப்புகள்"
+    "hansardMentions": "ஹான்சார்ட் குறிப்புகள்",
+    "contactYourMP": "உங்கள் நாடாளுமன்ற உறுப்பினரைத் தொடர்புகொள்ளுங்கள்",
+    "emailMP": "மின்னஞ்சல் அனுப்புங்கள்",
+    "callServiceCentre": "சேவை மையத்தை அழையுங்கள்",
+    "parliamentProfile": "நாடாளுமன்ற விவரக்குறிப்பு",
+    "mympProfile": "MyMP விவரக்குறிப்பு"
   },
   "claim": {
     "title": "உங்கள் பள்ளியைக் கோருங்கள்",

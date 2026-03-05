@@ -14,6 +14,7 @@ import DemographicsCard from "@/components/DemographicsCard";
 import SchoolTable from "@/components/SchoolTable";
 import BoundaryMap from "@/components/BoundaryMap";
 import MentionsList from "@/components/MentionsList";
+import ContactMPCard from "@/components/ContactMPCard";
 import { Link } from "@/i18n/navigation";
 
 export const revalidate = 3600;
@@ -141,6 +142,13 @@ export default async function ConstituencyPage({ params }: PageProps) {
 
         {/* Right column */}
         <div className="space-y-6">
+          {/* Contact Your MP */}
+          <ContactMPCard
+            mp={constituency.mp}
+            constituencyCode={constituency.code}
+            constituencyName={constituency.name}
+          />
+
           {/* Scorecard */}
           <ScorecardCard
             scorecard={constituency.scorecard}

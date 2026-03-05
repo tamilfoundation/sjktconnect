@@ -225,7 +225,12 @@
     "giniIndex": "Gini Index",
     "unemployment": "Unemployment",
     "recentMentions": "Recent Mentions",
-    "hansardMentions": "Hansard Mentions"
+    "hansardMentions": "Hansard Mentions",
+    "contactYourMP": "Contact Your MP",
+    "emailMP": "Email MP",
+    "callServiceCentre": "Call Service Centre",
+    "parliamentProfile": "Parliament profile",
+    "mympProfile": "MyMP profile"
   },
   "claim": {
     "title": "Claim Your School",
