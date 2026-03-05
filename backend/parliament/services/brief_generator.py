@@ -29,6 +29,30 @@ def _format_date(d, fmt_long=True):
     return f"{d.day} {d.strftime(month_fmt)} {d.year}"
 
 
+def generate_all_pending_briefs() -> dict:
+    """Generate briefs for all sittings that have analysed mentions but no brief.
+
+    Returns dict with count: generated.
+    """
+    sittings = (
+        HansardSitting.objects.filter(
+            status="COMPLETED",
+            mentions__ai_summary__gt="",
+        )
+        .exclude(brief__isnull=False)
+        .distinct()
+    )
+
+    generated = 0
+    for sitting in sittings:
+        result = generate_brief(sitting)
+        if result is not None:
+            generated += 1
+
+    logger.info("generate_all_pending_briefs: %d briefs generated", generated)
+    return {"generated": generated}
+
+
 def generate_brief(sitting):
     """Generate a SittingBrief for a HansardSitting.
 

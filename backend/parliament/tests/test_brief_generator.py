@@ -7,6 +7,7 @@ from parliament.models import SittingBrief
 from parliament.services.brief_generator import (
     _build_social_post,
     _build_title,
+    generate_all_pending_briefs,
     generate_brief,
 )
 
@@ -172,3 +173,71 @@ class BuildSocialPostTests(TestCase):
         mentions = self.sitting.mentions.exclude(mp_name="")
         post = _build_social_post(self.sitting, mentions)
         self.assertLessEqual(len(post), 280)
+
+
+class GenerateAllPendingBriefsTests(TestCase):
+    """Tests for generate_all_pending_briefs."""
+
+    def test_generates_only_for_missing_briefs(self):
+        """sitting1 has mentions + no brief → generated;
+        sitting2 has mentions + existing brief → skipped."""
+        sitting1 = HansardSitting.objects.create(
+            sitting_date="2026-04-01",
+            pdf_url="https://example.com/s1.pdf",
+            pdf_filename="s1.pdf",
+            status="COMPLETED",
+        )
+        HansardMention.objects.create(
+            sitting=sitting1, verbatim_quote="Q1", page_number=1,
+            mp_name="YB Arul", ai_summary="Budget request for Tamil school.",
+            review_status="APPROVED",
+        )
+
+        sitting2 = HansardSitting.objects.create(
+            sitting_date="2026-04-02",
+            pdf_url="https://example.com/s2.pdf",
+            pdf_filename="s2.pdf",
+            status="COMPLETED",
+        )
+        HansardMention.objects.create(
+            sitting=sitting2, verbatim_quote="Q2", page_number=2,
+            mp_name="YB Kumar", ai_summary="Teacher shortage query.",
+            review_status="APPROVED",
+        )
+        # Pre-create a brief for sitting2
+        SittingBrief.objects.create(
+            sitting=sitting2,
+            title="Existing brief",
+            summary_html="<p>Already exists</p>",
+            social_post_text="Already exists",
+        )
+
+        result = generate_all_pending_briefs()
+
+        self.assertEqual(result["generated"], 1)
+        # sitting1 now has a brief
+        self.assertTrue(SittingBrief.objects.filter(sitting=sitting1).exists())
+        # sitting2 brief unchanged
+        self.assertEqual(
+            SittingBrief.objects.get(sitting=sitting2).title,
+            "Existing brief",
+        )
+
+    def test_skips_sittings_without_analysed_mentions(self):
+        """Sitting with mentions that have empty ai_summary → skipped."""
+        sitting = HansardSitting.objects.create(
+            sitting_date="2026-04-03",
+            pdf_url="https://example.com/s3.pdf",
+            pdf_filename="s3.pdf",
+            status="COMPLETED",
+        )
+        HansardMention.objects.create(
+            sitting=sitting, verbatim_quote="Q1", page_number=1,
+            mp_name="YB Test", ai_summary="",
+            review_status="APPROVED",
+        )
+
+        result = generate_all_pending_briefs()
+
+        self.assertEqual(result["generated"], 0)
+        self.assertFalse(SittingBrief.objects.filter(sitting=sitting).exists())
