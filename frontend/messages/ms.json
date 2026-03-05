@@ -225,7 +225,12 @@
     "giniIndex": "Indeks Gini",
     "unemployment": "Pengangguran",
     "recentMentions": "Sebutan Terkini",
-    "hansardMentions": "Sebutan Hansard"
+    "hansardMentions": "Sebutan Hansard",
+    "contactYourMP": "Hubungi Ahli Parlimen Anda",
+    "emailMP": "E-mel Ahli Parlimen",
+    "callServiceCentre": "Hubungi Pusat Khidmat",
+    "parliamentProfile": "Profil Parlimen",
+    "mympProfile": "Profil MyMP"
   },
   "claim": {
     "title": "Tuntut Sekolah Anda",

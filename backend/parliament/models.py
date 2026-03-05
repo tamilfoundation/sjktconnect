@@ -136,3 +136,43 @@ class SittingBrief(models.Model):
     def __str__(self):
         status = "Published" if self.is_published else "Draft"
         return f"Brief: {self.sitting.sitting_date} ({status})"
+
+
+class MP(models.Model):
+    """Member of Parliament profile with contact details."""
+    constituency = models.OneToOneField(
+        Constituency, on_delete=models.CASCADE, related_name="mp",
+    )
+    name = models.CharField(max_length=200)
+    photo_url = models.URLField(max_length=500, blank=True, default="")
+    party = models.CharField(max_length=100, blank=True, default="")
+    email = models.EmailField(null=True, blank=True)
+    phone = models.CharField(max_length=50, null=True, blank=True)
+    fax = models.CharField(max_length=50, null=True, blank=True)
+    facebook_url = models.URLField(max_length=500, null=True, blank=True)
+    twitter_url = models.URLField(max_length=500, null=True, blank=True)
+    instagram_url = models.URLField(max_length=500, null=True, blank=True)
+    website_url = models.URLField(max_length=500, null=True, blank=True)
+    service_centre_address = models.TextField(null=True, blank=True)
+    parlimen_profile_id = models.CharField(max_length=20, blank=True, default="")
+    mymp_slug = models.CharField(max_length=200, blank=True, default="")
+    last_scraped = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "MP"
+        verbose_name_plural = "MPs"
+
+    def __str__(self):
+        return f"{self.name} ({self.constituency.code})"
+
+    @property
+    def parlimen_profile_url(self):
+        if self.parlimen_profile_id:
+            return f"https://www.parlimen.gov.my/profile-ahli.html?uweb=dr&id={self.parlimen_profile_id}"
+        return None
+
+    @property
+    def mymp_profile_url(self):
+        if self.mymp_slug:
+            return f"https://mymp.org.my/p/{self.mymp_slug}"
+        return None

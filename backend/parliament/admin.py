@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from .models import MPScorecard, SittingBrief
+from .models import MP, MPScorecard, SittingBrief
+
+
+@admin.register(MP)
+class MPAdmin(admin.ModelAdmin):
+    list_display = ["name", "constituency", "party", "email", "phone"]
+    list_filter = ["party"]
+    search_fields = ["name", "constituency__code", "constituency__name"]
+    raw_id_fields = ["constituency"]
 
 
 @admin.register(MPScorecard)

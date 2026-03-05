@@ -2,6 +2,7 @@
 
 from rest_framework import serializers
 
+from parliament.models import MP
 from schools.models import Constituency, DUN, School, SchoolLeader
 from schools.utils import format_phone
 
@@ -271,11 +272,36 @@ class ConstituencyListSerializer(serializers.ModelSerializer):
         ]
 
 
+class MPSerializer(serializers.ModelSerializer):
+    """Read-only MP contact details nested in constituency responses."""
+
+    parlimen_profile_url = serializers.CharField(read_only=True)
+    mymp_profile_url = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = MP
+        fields = [
+            "name",
+            "photo_url",
+            "party",
+            "email",
+            "phone",
+            "facebook_url",
+            "twitter_url",
+            "instagram_url",
+            "website_url",
+            "service_centre_address",
+            "parlimen_profile_url",
+            "mymp_profile_url",
+        ]
+
+
 class ConstituencyDetailSerializer(serializers.ModelSerializer):
     """Full constituency profile with nested schools and scorecard."""
 
     schools = SchoolListSerializer(many=True, read_only=True)
     scorecard = serializers.SerializerMethodField()
+    mp = serializers.SerializerMethodField()
 
     class Meta:
         model = Constituency
@@ -294,6 +320,7 @@ class ConstituencyDetailSerializer(serializers.ModelSerializer):
             "unemployment_rate",
             "schools",
             "scorecard",
+            "mp",
         ]
 
     def get_scorecard(self, obj):
@@ -307,3 +334,9 @@ class ConstituencyDetailSerializer(serializers.ModelSerializer):
             "commitments_made": scorecard.commitments_made,
             "last_mention_date": scorecard.last_mention_date,
         }
+
+    def get_mp(self, obj):
+        try:
+            return MPSerializer(obj.mp).data
+        except MP.DoesNotExist:
+            return None
