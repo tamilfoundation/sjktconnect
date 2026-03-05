@@ -40,8 +40,9 @@ def process_single_sitting(sitting, keywords, skip_matching=False):
     # Search
     matches = search_keywords(pages, keywords)
 
-    # Delete old mentions
+    # Delete old mentions and close stale connection
     sitting.mentions.all().delete()
+    connection.close()
 
     # Store new mentions
     mentions = []
@@ -57,6 +58,7 @@ def process_single_sitting(sitting, keywords, skip_matching=False):
             mp_constituency=match.get("speaker_constituency", ""),
         ))
     HansardMention.objects.bulk_create(mentions)
+    connection.close()
 
     # Match to schools
     matched_count = 0
@@ -64,6 +66,7 @@ def process_single_sitting(sitting, keywords, skip_matching=False):
         mention_qs = HansardMention.objects.filter(sitting=sitting)
         result = match_mentions(mention_qs)
         matched_count = result.get("matched", 0)
+        connection.close()
 
     # Update sitting
     sitting.mention_count = len(mentions)
@@ -99,6 +102,10 @@ class Command(BaseCommand):
             help="Include FAILED sittings in the rebuild.",
         )
         parser.add_argument(
+            "--skip-matching", action="store_true",
+            help="Skip school name matching (run extraction only, match later via pipeline).",
+        )
+        parser.add_argument(
             "--limit", type=int, default=0,
             help="Process only the first N sittings (for testing).",
         )
@@ -106,6 +113,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
         skip_analysis = options["skip_analysis"]
+        skip_matching = options["skip_matching"]
         include_failed = options["include_failed"]
         limit = options["limit"]
 
@@ -154,7 +162,7 @@ class Command(BaseCommand):
                 f"({sitting.pdf_filename})..."
             )
             try:
-                result = process_single_sitting(sitting, keywords)
+                result = process_single_sitting(sitting, keywords, skip_matching=skip_matching)
                 total_mentions += result["mentions"]
                 self.stdout.write(self.style.SUCCESS(
                     f"  OK: {result['pages']} pages, "
