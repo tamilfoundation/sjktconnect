@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 5 (Parliament Watch). Sprint 5.3 (MP Contact Card) done.
-- **Last Sprint**: MP Contact Card (2026-03-05)
-- **Tests**: 1037 (766 backend + 271 frontend)
+- **Current Phase**: Phase 5 (Parliament Watch). Sprint 5.4 (Electoral Influence + GPS) done.
+- **Last Sprint**: Electoral Influence + GPS Pin Correction (2026-03-06)
+- **Tests**: 1053 (771 backend + 282 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -107,6 +107,17 @@ python manage.py import_bank_details --file path/to/file    # Custom Excel file
 python manage.py import_mp_profiles                         # Scrape parlimen.gov.my + mymp.org.my
 python manage.py import_mp_profiles --dry-run               # Preview without saving
 python manage.py import_mp_profiles --constituency P078     # Single constituency
+
+# GE15 Election Data (Sprint 5.4)
+python manage.py scrape_ge15_results                         # Scrape undi.info API for all constituencies
+python manage.py scrape_ge15_results --dry-run               # Preview without saving
+python manage.py import_ge15_results data/ge15_results.csv   # Import from CSV fallback
+
+# GPS Pin Verification (Sprint 5.4)
+python manage.py verify_school_pins                          # Verify all schools vs Google Places
+python manage.py verify_school_pins --state Perak            # Filter by state
+python manage.py verify_school_pins --apply --skip CBD7093   # Apply Google coords, skip specific schools
+python manage.py verify_school_pins --output data/pins.xlsx  # Custom output path
 
 # News Pipeline (Sprint 2.8)
 python manage.py run_news_pipeline                          # Full pipeline: fetch → extract → analyse
@@ -210,6 +221,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | UI Polish | Done | Hansard display fix (PENDING→visible, briefs ungated), constituency mentions API, news pagination, collapsible map filters, footer social icons, school leadership empty state, news school matching improvement. 8 new tests (988 total). |
 | 5.1 | Done | Pipeline Automation: calendar scraper (parlimen.gov.my), auto brief generator, Gemini meeting report generator, unified `run_hansard_pipeline` command (7 steps), WAT workflow. 30 new tests. |
 | 5.3 | Done | MP Contact Card: MP model, scrapers (parlimen.gov.my + mymp.org.my), import_mp_profiles command, ContactMPCard sidebar component, API nesting, trilingual i18n. 222 MPs imported. 24 new tests (1037 total). |
+| 5.4 | Done | Electoral Influence + GPS: GE15 election fields, electoral influence API (ratio/verdict), ElectoralInfluenceCard with capsule power meter + DOSM/Wikipedia links, scrape/import GE15 commands, verify_school_pins command (Google Places), 519 schools GPS-corrected, constituency page redesign, clickable MiniMap pin. 16 new tests (1053 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 

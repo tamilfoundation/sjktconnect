@@ -1,5 +1,28 @@
 # Changelog
 
+## Sprint 5.4: Electoral Influence + GPS Pin Correction (2026-03-06)
+
+### Added
+- **GE15 election fields** on Constituency model: winning margin, total voters, Indian voter percentage
+- **Electoral influence API**: computed `electoral_influence` field with ratio and verdict (kingmaker/significant/safe_seat)
+- **ElectoralInfluenceCard** component: capsule power meter with gradient fills, DOSM Kawasanku + Wikipedia links
+- **`scrape_ge15_results` command**: scrapes undi.info API for all 222 constituencies (GE15 margins, GE14 ethnic voter fallback)
+- **`import_ge15_results` command**: CSV fallback for GE15 data import
+- **`verify_school_pins` command**: Google Places API comparison for all 528 schools, Excel output with clickable links, `--apply` flag with name-match/duplicate safety checks
+- **Clickable MiniMap pin**: opens Google Maps in new tab
+- **16 new tests** (5 backend + 11 frontend)
+
+### Changed
+- **GPS coordinates corrected**: 519 schools updated to Google Places coordinates, 9 manually corrected
+- **Constituency page redesign**: larger title, party badge (amber), icons on stat cards, label-above-number layout
+- **Breadcrumb**: now links to state-filtered constituencies list
+- **Party badge formatting**: space before parenthesis across all components (e.g. "PH (PKR)" not "PH(PKR)")
+
+### Removed
+- DemographicsCard from constituency page (replaced by ElectoralInfluenceCard)
+
+---
+
 ## Sprint 5.3: MP Contact Card (2026-03-05)
 
 ### Added
