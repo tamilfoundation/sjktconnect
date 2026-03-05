@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { NewsArticle } from "@/lib/types";
 import NewsCard from "./NewsCard";
+import PaginationBar from "./PaginationBar";
 
 interface Props {
   articles: NewsArticle[];
@@ -12,8 +13,6 @@ interface Props {
 }
 
 type Category = "all" | "school" | "general";
-
-const PAGE_SIZE_OPTIONS = [5, 10, 25];
 
 export default function NewsList({ articles, totalCount }: Props) {
   const t = useTranslations("news");
@@ -130,44 +129,15 @@ export default function NewsList({ articles, totalCount }: Props) {
 
         {/* Pagination */}
         {filtered.length > 0 && (
-          <div className="mt-6 space-y-3">
-            {/* Top row: showing count + per-page selector */}
-            <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-gray-500">
-              <span>
-                {t("showingCount", {
-                  from: startIndex + 1,
-                  to: Math.min(startIndex + pageSize, filtered.length),
-                  total: filtered.length,
-                })}
-              </span>
-              <div className="flex items-center gap-2">
-                <select
-                  value={pageSize}
-                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className="border border-gray-300 rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  {PAGE_SIZE_OPTIONS.map((size) => (
-                    <option key={size} value={size}>
-                      {size}
-                    </option>
-                  ))}
-                </select>
-                <span className="text-gray-400">{t("perPage")}</span>
-              </div>
-            </div>
-
-            {/* Page navigation */}
-            {totalPages > 1 && (
-              <Pagination
-                currentPage={safePage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-                prevLabel={t("previous")}
-                nextLabel={t("next")}
-                pageLabel={(page, total) => t("page", { page, totalPages: total })}
-              />
-            )}
-          </div>
+          <PaginationBar
+            currentPage={safePage}
+            totalPages={totalPages}
+            totalItems={filtered.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={handlePageSizeChange}
+            showingLabel={(from, to, total) => t("showingCount", { from, to, total })}
+          />
         )}
       </div>
 
@@ -213,119 +183,4 @@ export default function NewsList({ articles, totalCount }: Props) {
       </div>
     </div>
   );
-}
-
-/* ─── Pagination component ─── */
-
-interface PaginationProps {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-  prevLabel: string;
-  nextLabel: string;
-  pageLabel: (page: number, total: number) => string;
-}
-
-function Pagination({
-  currentPage,
-  totalPages,
-  onPageChange,
-  prevLabel,
-  nextLabel,
-  pageLabel,
-}: PaginationProps) {
-  const pages = getPageNumbers(currentPage, totalPages);
-
-  return (
-    <nav aria-label="Pagination">
-      {/* Desktop: full page numbers */}
-      <div className="hidden sm:flex items-center justify-center gap-1">
-        <button
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="px-3 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 hover:bg-gray-100"
-        >
-          {prevLabel}
-        </button>
-
-        {pages.map((page, i) =>
-          page === "..." ? (
-            <span key={`ellipsis-${i}`} className="px-2 py-2 text-sm text-gray-400">
-              ...
-            </span>
-          ) : (
-            <button
-              key={page}
-              onClick={() => onPageChange(page as number)}
-              className={`w-9 h-9 text-sm font-medium rounded-lg transition-colors ${
-                currentPage === page
-                  ? "bg-primary-600 text-white"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              {page}
-            </button>
-          )
-        )}
-
-        <button
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="px-3 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 hover:bg-gray-100"
-        >
-          {nextLabel}
-        </button>
-      </div>
-
-      {/* Mobile: compact prev/page/next */}
-      <div className="flex sm:hidden items-center justify-between">
-        <button
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 hover:bg-gray-50"
-        >
-          {prevLabel}
-        </button>
-
-        <span className="text-sm text-gray-500">
-          {pageLabel(currentPage, totalPages)}
-        </span>
-
-        <button
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 hover:bg-gray-50"
-        >
-          {nextLabel}
-        </button>
-      </div>
-    </nav>
-  );
-}
-
-/** Generate page numbers with ellipsis for large page counts */
-function getPageNumbers(current: number, total: number): (number | "...")[] {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-  }
-
-  const pages: (number | "...")[] = [1];
-
-  if (current > 3) {
-    pages.push("...");
-  }
-
-  const start = Math.max(2, current - 1);
-  const end = Math.min(total - 1, current + 1);
-
-  for (let i = start; i <= end; i++) {
-    pages.push(i);
-  }
-
-  if (current < total - 2) {
-    pages.push("...");
-  }
-
-  pages.push(total);
-  return pages;
 }

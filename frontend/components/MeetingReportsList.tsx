@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { MeetingReport } from "@/lib/types";
+import PaginationBar from "./PaginationBar";
 
 interface MeetingReportsListProps {
   reports: MeetingReport[];
@@ -17,20 +18,6 @@ function formatDateRange(start: string, end: string): string {
     year: "numeric",
   };
   return `${s.toLocaleDateString("en-GB", opts)} – ${e.toLocaleDateString("en-GB", opts)}`;
-}
-
-const PAGE_SIZE_OPTIONS = [5, 10, 25];
-
-function getPageNumbers(current: number, total: number): (number | "...")[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages: (number | "...")[] = [1];
-  if (current > 3) pages.push("...");
-  const start = Math.max(2, current - 1);
-  const end = Math.min(total - 1, current + 1);
-  for (let i = start; i <= end; i++) pages.push(i);
-  if (current < total - 2) pages.push("...");
-  pages.push(total);
-  return pages;
 }
 
 export default function MeetingReportsList({ reports }: MeetingReportsListProps) {
@@ -142,63 +129,15 @@ export default function MeetingReportsList({ reports }: MeetingReportsListProps)
 
       {/* Pagination */}
       {reports.length > 5 && (
-        <div className="mt-6 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-gray-500">
-            <span>
-              {t("showingCount", {
-                from: startIndex + 1,
-                to: Math.min(startIndex + pageSize, reports.length),
-                total: reports.length,
-              })}
-            </span>
-            <div className="flex items-center gap-2">
-              <select
-                value={pageSize}
-                onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
-                className="border border-gray-300 rounded-lg px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                {PAGE_SIZE_OPTIONS.map((size) => (
-                  <option key={size} value={size}>{size}</option>
-                ))}
-              </select>
-              <span className="text-gray-400">{t("perPage")}</span>
-            </div>
-          </div>
-
-          {totalPages > 1 && (
-            <nav aria-label="Pagination" className="flex items-center justify-center gap-1">
-              <button
-                onClick={() => setCurrentPage(safePage - 1)}
-                disabled={safePage === 1}
-                className="px-3 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 hover:bg-gray-100"
-              >
-                {t("previous")}
-              </button>
-              {getPageNumbers(safePage, totalPages).map((page, i) =>
-                page === "..." ? (
-                  <span key={`ellipsis-${i}`} className="px-2 py-2 text-sm text-gray-400">...</span>
-                ) : (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page as number)}
-                    className={`w-9 h-9 text-sm font-medium rounded-lg transition-colors ${
-                      safePage === page ? "bg-primary-600 text-white" : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                )
-              )}
-              <button
-                onClick={() => setCurrentPage(safePage + 1)}
-                disabled={safePage === totalPages}
-                className="px-3 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 hover:bg-gray-100"
-              >
-                {t("next")}
-              </button>
-            </nav>
-          )}
-        </div>
+        <PaginationBar
+          currentPage={safePage}
+          totalPages={totalPages}
+          totalItems={reports.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }}
+          showingLabel={(from, to, total) => t("showingCount", { from, to, total })}
+        />
       )}
     </div>
   );
