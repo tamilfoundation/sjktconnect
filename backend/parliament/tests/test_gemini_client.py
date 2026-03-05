@@ -6,6 +6,8 @@ from unittest.mock import MagicMock, patch
 from django.test import TestCase
 
 from hansard.models import HansardMention, HansardSitting
+from parliament.models import MP
+from schools.models import Constituency
 from parliament.services.gemini_client import (
     _build_excerpt,
     _validate_response,
@@ -219,3 +221,38 @@ class ApplyAnalysisTests(TestCase):
         self.assertEqual(mention.significance, 3)
         self.assertEqual(mention.ai_summary, "Test summary.")
         self.assertEqual(mention.ai_raw_response, {"mp_name": "YB Test"})
+
+
+class ApplyAnalysisWithResolverTests(TestCase):
+    """Test that analysis pipeline enriches MP data from database."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.constituency = Constituency.objects.create(
+            code="P078", name="Klang", state="Selangor",
+        )
+        cls.mp = MP.objects.create(
+            constituency=cls.constituency,
+            name="Tuan Ganabatirau a/l Veraman",
+            party="PH(DAP)",
+        )
+
+    def test_resolver_enriches_party_after_analysis(self):
+        from parliament.services.mp_resolver import resolve_mp
+
+        analysis = {
+            "mp_name": "Ganabatirau",
+            "mp_constituency": "Klang",
+            "mp_party": "",
+            "mention_type": "QUESTION",
+            "significance": 3,
+            "sentiment": "ADVOCATING",
+            "change_indicator": "NEW",
+            "summary": "Asked about SJK(T) funding.",
+        }
+        resolved = resolve_mp(
+            analysis["mp_name"], analysis["mp_constituency"], analysis["mp_party"]
+        )
+        analysis.update(resolved)
+        self.assertEqual(analysis["mp_party"], "PH(DAP)")
+        self.assertEqual(analysis["mp_name"], "Tuan Ganabatirau a/l Veraman")

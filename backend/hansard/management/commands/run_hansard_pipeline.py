@@ -32,6 +32,7 @@ def run_analysis() -> dict:
     """Run Gemini analysis on all un-analysed mentions."""
     from django.db import connection
     from parliament.services.gemini_client import analyse_mention, apply_analysis
+    from parliament.services.mp_resolver import resolve_mp
 
     mentions = list(
         HansardMention.objects.filter(ai_summary="")
@@ -46,6 +47,14 @@ def run_analysis() -> dict:
     for mention in mentions:
         analysis = analyse_mention(mention)
         if analysis:
+            # Cross-reference against MP database
+            resolved = resolve_mp(
+                analysis["mp_name"], analysis["mp_constituency"], analysis["mp_party"]
+            )
+            analysis["mp_name"] = resolved["mp_name"]
+            analysis["mp_constituency"] = resolved["mp_constituency"]
+            analysis["mp_party"] = resolved["mp_party"]
+
             apply_analysis(mention, analysis)
             connection.close()
             success += 1
