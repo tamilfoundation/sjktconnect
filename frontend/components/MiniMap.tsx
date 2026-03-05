@@ -32,7 +32,16 @@ export default function MiniMap({ lat, lng, schoolName }: MiniMapProps) {
           disableDefaultUI={true}
           zoomControl={true}
         >
-          <AdvancedMarker position={{ lat: Number(lat), lng: Number(lng) }} title={schoolName}>
+          <AdvancedMarker
+            position={{ lat: Number(lat), lng: Number(lng) }}
+            title={schoolName}
+            onClick={() => {
+              window.open(
+                `https://www.google.com/maps/search/?api=1&query=${Number(lat)},${Number(lng)}&query_place_id=${encodeURIComponent(schoolName)}`,
+                "_blank"
+              );
+            }}
+          >
             <Pin background="#4f46e5" glyphColor="#fff" borderColor="#3730a3" />
           </AdvancedMarker>
         </Map>

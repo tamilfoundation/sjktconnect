@@ -11,6 +11,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import StatCard from "@/components/StatCard";
 import ScorecardCard from "@/components/ScorecardCard";
 import DemographicsCard from "@/components/DemographicsCard";
+import ElectoralInfluenceCard from "@/components/ElectoralInfluenceCard";
 import SchoolTable from "@/components/SchoolTable";
 import BoundaryMap from "@/components/BoundaryMap";
 import MentionsList from "@/components/MentionsList";
@@ -147,6 +148,14 @@ export default async function ConstituencyPage({ params }: PageProps) {
             mp={constituency.mp}
             constituencyCode={constituency.code}
             constituencyName={constituency.name}
+          />
+
+          {/* Electoral Influence */}
+          <ElectoralInfluenceCard
+            influence={constituency.electoral_influence}
+            constituencyName={constituency.name}
+            constituencyCode={constituency.code}
+            state={constituency.state}
           />
 
           {/* Scorecard */}

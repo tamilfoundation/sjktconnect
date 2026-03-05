@@ -230,7 +230,13 @@
     "emailMP": "E-mel Ahli Parlimen",
     "callServiceCentre": "Hubungi Pusat Khidmat",
     "parliamentProfile": "Profil Parlimen",
-    "mympProfile": "Profil MyMP"
+    "mympProfile": "Profil MyMP",
+    "electoralInfluence": "Pengaruh Pilihan Raya",
+    "indianVoters": "Pengundi India",
+    "winningMargin": "Margin GE15",
+    "verdict_kingmaker": "Penentu",
+    "verdict_significant": "Ketara",
+    "verdict_safe_seat": "Kerusi Selamat"
   },
   "claim": {
     "title": "Tuntut Sekolah Anda",

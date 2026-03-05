@@ -116,9 +116,20 @@ export interface ConstituencyDetail {
   poverty_rate: number | null;
   gini: number | null;
   unemployment_rate: number | null;
+  ge15_winning_margin: number | null;
+  ge15_total_voters: number | null;
+  ge15_indian_voter_pct: number | null;
+  electoral_influence: ElectoralInfluence | null;
   schools: School[];
   scorecard: Scorecard | null;
   mp: MPProfile | null;
+}
+
+export interface ElectoralInfluence {
+  indian_voters: number;
+  winning_margin: number;
+  ratio: number;
+  verdict: "kingmaker" | "significant" | "safe_seat";
 }
 
 export interface MPProfile {

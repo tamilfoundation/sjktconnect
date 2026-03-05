@@ -230,7 +230,13 @@
     "emailMP": "Email MP",
     "callServiceCentre": "Call Service Centre",
     "parliamentProfile": "Parliament profile",
-    "mympProfile": "MyMP profile"
+    "mympProfile": "MyMP profile",
+    "electoralInfluence": "Electoral Influence",
+    "indianVoters": "Indian Voters",
+    "winningMargin": "GE15 Margin",
+    "verdict_kingmaker": "Kingmaker",
+    "verdict_significant": "Significant",
+    "verdict_safe_seat": "Safe Seat"
   },
   "claim": {
     "title": "Claim Your School",

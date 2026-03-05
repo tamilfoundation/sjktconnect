@@ -16,6 +16,21 @@ class Constituency(models.Model):
     poverty_rate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     gini = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True)
     unemployment_rate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+
+    # ── GE15 Election Data ────────────────────────────────────────
+    ge15_winning_margin = models.IntegerField(
+        null=True, blank=True,
+        help_text="Vote margin between winner and runner-up in GE15 (2022)",
+    )
+    ge15_total_voters = models.IntegerField(
+        null=True, blank=True,
+        help_text="Total registered/eligible voters in GE15 (2022)",
+    )
+    ge15_indian_voter_pct = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True,
+        help_text="Percentage of Indian voters in GE15 (from undi.info)",
+    )
+
     boundary_wkt = models.TextField(
         blank=True, default="",
         help_text="Boundary polygon in OGC WKT format. Computed by unioning DUN boundaries.",

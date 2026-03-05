@@ -302,6 +302,7 @@ class ConstituencyDetailSerializer(serializers.ModelSerializer):
     schools = SchoolListSerializer(many=True, read_only=True)
     scorecard = serializers.SerializerMethodField()
     mp = serializers.SerializerMethodField()
+    electoral_influence = serializers.SerializerMethodField()
 
     class Meta:
         model = Constituency
@@ -318,9 +319,13 @@ class ConstituencyDetailSerializer(serializers.ModelSerializer):
             "poverty_rate",
             "gini",
             "unemployment_rate",
+            "ge15_winning_margin",
+            "ge15_total_voters",
+            "ge15_indian_voter_pct",
             "schools",
             "scorecard",
             "mp",
+            "electoral_influence",
         ]
 
     def get_scorecard(self, obj):
@@ -340,3 +345,26 @@ class ConstituencyDetailSerializer(serializers.ModelSerializer):
             return MPSerializer(obj.mp).data
         except MP.DoesNotExist:
             return None
+
+    def get_electoral_influence(self, obj):
+        margin = obj.ge15_winning_margin
+        total_voters = obj.ge15_total_voters
+        indian_pct = obj.ge15_indian_voter_pct
+        if not margin or not total_voters or not indian_pct:
+            return None
+        indian_voters = int(float(total_voters) * float(indian_pct) / 100)
+        ratio = round(indian_voters / margin, 1) if margin > 0 else None
+        if ratio is None:
+            verdict = None
+        elif ratio > 5:
+            verdict = "kingmaker"
+        elif ratio >= 1:
+            verdict = "significant"
+        else:
+            verdict = "safe_seat"
+        return {
+            "indian_voters": indian_voters,
+            "winning_margin": margin,
+            "ratio": ratio,
+            "verdict": verdict,
+        }

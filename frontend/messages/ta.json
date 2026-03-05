@@ -230,7 +230,13 @@
     "emailMP": "மின்னஞ்சல் அனுப்புங்கள்",
     "callServiceCentre": "சேவை மையத்தை அழையுங்கள்",
     "parliamentProfile": "நாடாளுமன்ற விவரக்குறிப்பு",
-    "mympProfile": "MyMP விவரக்குறிப்பு"
+    "mympProfile": "MyMP விவரக்குறிப்பு",
+    "electoralInfluence": "தேர்தல் செல்வாக்கு",
+    "indianVoters": "இந்திய வாக்காளர்கள்",
+    "winningMargin": "GE15 வெற்றி வித்தியாசம்",
+    "verdict_kingmaker": "கிங்மேக்கர்",
+    "verdict_significant": "குறிப்பிடத்தக்கது",
+    "verdict_safe_seat": "பாதுகாப்பான இடம்"
   },
   "claim": {
     "title": "உங்கள் பள்ளியைக் கோருங்கள்",
