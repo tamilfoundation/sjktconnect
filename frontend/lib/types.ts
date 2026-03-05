@@ -118,6 +118,22 @@ export interface ConstituencyDetail {
   unemployment_rate: number | null;
   schools: School[];
   scorecard: Scorecard | null;
+  mp: MPProfile | null;
+}
+
+export interface MPProfile {
+  name: string;
+  photo_url: string;
+  party: string;
+  email: string | null;
+  phone: string | null;
+  facebook_url: string | null;
+  twitter_url: string | null;
+  instagram_url: string | null;
+  website_url: string | null;
+  service_centre_address: string | null;
+  parlimen_profile_url: string | null;
+  mymp_profile_url: string | null;
 }
 
 export interface Scorecard {
