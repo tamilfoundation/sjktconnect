@@ -23,9 +23,30 @@ function extractSummary(html: string): string {
   return plain.length > 300 ? plain.slice(0, 300) + "..." : plain;
 }
 
+const PAGE_SIZE_OPTIONS = [5, 10, 25];
+
+function getPageNumbers(current: number, total: number): (number | "...")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages: (number | "...")[] = [1];
+  if (current > 3) pages.push("...");
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (current < total - 2) pages.push("...");
+  pages.push(total);
+  return pages;
+}
+
 export default function BriefsList({ briefs }: BriefsListProps) {
   const t = useTranslations("parliamentWatch");
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [pageSize, setPageSize] = useState(5);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(briefs.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+  const paged = briefs.slice(startIndex, startIndex + pageSize);
 
   return (
     <div className="mb-8">
@@ -36,7 +57,7 @@ export default function BriefsList({ briefs }: BriefsListProps) {
         {t("sittingBriefsDesc")}
       </p>
       <div className="space-y-4">
-        {briefs.map((brief) => {
+        {paged.map((brief) => {
           const isExpanded = expandedId === brief.id;
           return (
             <article
@@ -111,6 +132,67 @@ export default function BriefsList({ briefs }: BriefsListProps) {
           );
         })}
       </div>
+
+      {/* Pagination */}
+      {briefs.length > 5 && (
+        <div className="mt-6 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-gray-500">
+            <span>
+              {t("showingCount", {
+                from: startIndex + 1,
+                to: Math.min(startIndex + pageSize, briefs.length),
+                total: briefs.length,
+              })}
+            </span>
+            <div className="flex items-center gap-2">
+              <select
+                value={pageSize}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                className="border border-gray-300 rounded-lg px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <option key={size} value={size}>{size}</option>
+                ))}
+              </select>
+              <span className="text-gray-400">{t("perPage")}</span>
+            </div>
+          </div>
+
+          {totalPages > 1 && (
+            <nav aria-label="Pagination" className="flex items-center justify-center gap-1">
+              <button
+                onClick={() => setCurrentPage(safePage - 1)}
+                disabled={safePage === 1}
+                className="px-3 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 hover:bg-gray-100"
+              >
+                {t("previous")}
+              </button>
+              {getPageNumbers(safePage, totalPages).map((page, i) =>
+                page === "..." ? (
+                  <span key={`ellipsis-${i}`} className="px-2 py-2 text-sm text-gray-400">...</span>
+                ) : (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page as number)}
+                    className={`w-9 h-9 text-sm font-medium rounded-lg transition-colors ${
+                      safePage === page ? "bg-primary-600 text-white" : "text-gray-600 hover:bg-gray-100"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
+              <button
+                onClick={() => setCurrentPage(safePage + 1)}
+                disabled={safePage === totalPages}
+                className="px-3 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 hover:bg-gray-100"
+              >
+                {t("next")}
+              </button>
+            </nav>
+          )}
+        </div>
+      )}
     </div>
   );
 }

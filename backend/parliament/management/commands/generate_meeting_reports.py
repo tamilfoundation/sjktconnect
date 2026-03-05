@@ -5,8 +5,10 @@ them to Gemini to produce a 7-point policy briefing suitable for school
 boards, PTA leaders, and community stakeholders.
 """
 
+import html
 import logging
 import os
+import re
 import time
 
 import markdown
@@ -18,6 +20,15 @@ from google.genai import types
 from parliament.models import ParliamentaryMeeting, SittingBrief
 
 logger = logging.getLogger(__name__)
+
+
+def html_to_plain(text: str) -> str:
+    """Strip HTML tags and decode entities to plain text."""
+    text = html.unescape(text)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
 
 MEETING_REPORT_PROMPT = """\
 You are a senior policy analyst writing an executive-grade parliamentary meeting
@@ -122,7 +133,7 @@ class Command(BaseCommand):
         meeting_filter = options["meeting"]
         process_all = options["all"]
 
-        api_key = os.environ.get("GEMINI_API_KEY", "")
+        api_key = os.environ.get("GEMINI_API_KEY", "").split("#")[0].strip()
         if not api_key and not dry_run:
             self.stderr.write(self.style.ERROR("GEMINI_API_KEY not set."))
             return
@@ -181,9 +192,10 @@ class Command(BaseCommand):
                 date_str = brief.sitting.sitting_date.strftime("%d %B %Y")
                 mention_count = brief.sitting.mention_count
                 total_mentions += mention_count
+                plain_text = html_to_plain(brief.summary_html)
                 summaries_parts.append(
                     f"--- Sitting: {date_str} ({mention_count} mentions) ---\n"
-                    f"{brief.summary_html}"
+                    f"{plain_text}"
                 )
 
             all_summaries = "\n\n".join(summaries_parts)
