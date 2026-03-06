@@ -22,6 +22,7 @@ from broadcasts.models import Broadcast
 from broadcasts.services.blast_aggregator import aggregate_month
 from broadcasts.services.image_generator import generate_hero_image
 from broadcasts.services.monthly_analyst import generate_monthly_analysis
+from broadcasts.services.sender import send_broadcast
 
 
 class Command(BaseCommand):
@@ -38,6 +39,11 @@ class Command(BaseCommand):
             "--dry-run",
             action="store_true",
             help="Print what would be included without creating a broadcast",
+        )
+        parser.add_argument(
+            "--auto-send",
+            action="store_true",
+            help="Automatically send the broadcast after composing (for cron jobs)",
         )
 
     def handle(self, *args, **options):
@@ -114,6 +120,12 @@ class Command(BaseCommand):
                 f"{scorecard_count} scorecard items"
             )
         )
+
+        if options["auto_send"]:
+            send_broadcast(broadcast.pk)
+            self.stdout.write(
+                self.style.SUCCESS(f"Broadcast {broadcast.pk} sent.")
+            )
 
     def _parse_month(self, month_str: str) -> tuple[int, int]:
         """Parse YYYY-MM string or default to previous month."""

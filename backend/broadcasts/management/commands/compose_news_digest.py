@@ -21,6 +21,7 @@ from django.utils.html import strip_tags
 from broadcasts.models import Broadcast
 from broadcasts.services.image_generator import generate_hero_image
 from broadcasts.services.news_digest import generate_news_digest
+from broadcasts.services.sender import send_broadcast
 
 
 class Command(BaseCommand):
@@ -37,6 +38,11 @@ class Command(BaseCommand):
             "--dry-run",
             action="store_true",
             help="Print what would be generated without creating a broadcast",
+        )
+        parser.add_argument(
+            "--auto-send",
+            action="store_true",
+            help="Automatically send the broadcast after composing (for cron jobs)",
         )
 
     def handle(self, *args, **options):
@@ -113,3 +119,9 @@ class Command(BaseCommand):
                 f"News Watch ({period_label})"
             )
         )
+
+        if options["auto_send"]:
+            send_broadcast(broadcast.pk)
+            self.stdout.write(
+                self.style.SUCCESS(f"Broadcast {broadcast.pk} sent.")
+            )
