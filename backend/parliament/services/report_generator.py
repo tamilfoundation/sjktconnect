@@ -17,35 +17,39 @@ logger = logging.getLogger(__name__)
 
 REPORT_PROMPT = """\
 You are writing an executive intelligence brief about Tamil schools (SJK(T)) \
-in the Malaysian parliament for Tamil school stakeholders — parents, teachers, \
-NGOs, and community leaders.
+in the Malaysian parliament for stakeholders - parents, teachers, NGOs, \
+community leaders.
 
-Below are the sitting-by-sitting summaries from {meeting_name} \
-({start_date} to {end_date}, {sitting_count} sittings with Tamil school mentions).
+Meeting: {meeting_name} ({start_date} to {end_date}).
+{sitting_count} sitting(s) had Tamil school mentions. Summary of each below.
 
-Write a meeting report with these sections:
-1. **Key Findings** — the 3-5 most important takeaways
-2. **MP Activity** — which MPs raised Tamil school issues, how substantive
-3. **Policy Signals** — any policy changes, commitments, or budget allocations
-4. **What to Watch** — issues likely to resurface or need community attention
+Write a meeting report. STRICT word limits:
+- 1-2 sittings: 300-500 words
+- 3-5 sittings: 500-800 words
+- 6+ sittings: 800-1,000 words max
+Do NOT exceed the upper limit. Cut ruthlessly.
+
+Sections (use <h2> tags):
+1. Key Findings - 3-5 bullet points, most important takeaways
+2. MP Scorecard - table of MPs who spoke, party, what they pushed for (use <table>)
+3. Policy Signals - commitments, allocations, or policy shifts (skip if none)
+4. What to Watch - 2-3 issues for community attention
 
 Rules:
-- Be factual and analytical. Every sentence must add information or insight.
-- Length must match substance. A quiet meeting: 200 words. A significant one: up to 1,000.
-- Do not repeat what individual briefs say — synthesise and draw connections.
-- Do not pad, ramble, or use filler phrases.
-- Write in British English.
-- Output valid HTML (use <h2>, <p>, <ul>, <li> tags). No markdown.
+- Synthesise and connect, do not summarise each sitting separately
+- Every sentence must add information. No filler, no preamble
+- British English. Valid HTML (<h2>, <p>, <ul>, <li>, <table>). No markdown.
+- Be specific: amounts, school names, MP names, constituency
 
 Also provide:
-- executive_summary: 2-3 sentences for a preview card (plain text, no HTML)
-- social_post_text: max 280 characters for social media
+- executive_summary: 2-3 sentences, max 300 characters, plain text
+- social_post_text: max 280 characters
 
-Return as JSON with keys: report_html, executive_summary, social_post_text
+Return as JSON: {{"report_html": "...", "executive_summary": "...", "social_post_text": "..."}}
 
---- SITTING SUMMARIES ---
+--- SITTING BULLET POINTS ---
 {briefs}
---- END SUMMARIES ---
+--- END ---
 """
 
 
@@ -67,6 +71,7 @@ def _call_gemini(prompt: str) -> dict | None:
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 temperature=0.2,
+                max_output_tokens=2048,
             ),
         )
         data = json.loads(response.text.strip())
@@ -95,11 +100,17 @@ def generate_meeting_report(meeting: ParliamentaryMeeting) -> bool:
     if not briefs.exists():
         return False
 
-    # Build the brief text block
+    # Build condensed bullet points from briefs (not full HTML)
+    import re
     brief_texts = []
     for brief in briefs:
+        # Strip HTML tags to get plain text, then take first 500 chars
+        plain = re.sub(r'<[^>]+>', ' ', brief.summary_html or '')
+        plain = re.sub(r'\s+', ' ', plain).strip()
+        if len(plain) > 500:
+            plain = plain[:500] + "..."
         brief_texts.append(
-            f"### {brief.sitting.sitting_date}\n{brief.summary_html}"
+            f"### {brief.sitting.sitting_date}\n{plain}"
         )
     briefs_block = "\n\n".join(brief_texts)
 

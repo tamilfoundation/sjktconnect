@@ -1,5 +1,36 @@
 # Changelog
 
+## Sprint 5.5: Intelligence Report Quality (2026-03-06)
+
+### Added
+- **Editorial cartoon illustrations**: Imagen 4.0 generates editorial cartoons (The Economist/New Yorker style) for meeting reports. Stored as BinaryField, served via `/api/v1/meetings/<id>/illustration/`
+- **Illustration API endpoint** (`parliament/api/views.py`): Serves PNG illustration bytes with correct content type
+- **`illustration_url` field** on MeetingReport serializer: Builds absolute URL when illustration exists
+- **Frontend illustration display** (`MeetingReportsList.tsx`): Shows cartoon when report is expanded
+
+### Changed
+- **Meeting report prompt rewritten** (`generate_meeting_reports.py`): Journalistic style — report don't analyse, Key Findings bullets, MP Scorecard table, Policy Signals, What to Watch sections. Word count scaled by sitting count.
+- **Sitting brief prompt rewritten** (`regenerate_briefs.py`): JSON response mode (`headline`, `blurb`, `body_md`, `social`). Descriptive headlines instead of generic "X Tamil School Mentions". MP label format: `**Name, Constituency** —`. Verbatim Malay quotes in blockquotes.
+- **Gemini thinking budget**: Set `thinking_budget=1024` for both briefs and reports to prevent output truncation (thinking tokens consume output budget)
+- **Executive summary extraction**: Plain text from Key Findings bullets instead of HTML
+- **Social post extraction**: Strips bullet markers, takes first finding sentence
+- **Removed `smarty` markdown extension**: Caused `&rsquo;` raw text in rendered HTML
+- **News auto-triage**: Low-relevance articles (score < 3) now auto-rejected instead of staying PENDING
+
+### Fixed
+- **Double brackets**: Added prompt rule "Write SJK(T) on its own, never inside extra brackets"
+- **Name repetition in briefs**: Added "Do NOT repeat the MP name in the paragraph text"
+- **Double-quoted blockquotes**: Added "Do NOT wrap the quote in double-quotes"
+- **JSON parse failures**: Added retry logic for Gemini JSON mode (~9% failure rate on first attempt)
+- **Blurb running into body**: Instructed Gemini to start body_md with lead paragraph instead of prepending blurb
+
+### Deployment
+- Backend deployed to Cloud Run (migration 0005_add_illustration applied)
+- Frontend deployed to Cloud Run (illustration display in expanded reports)
+- 1st Meeting 2023 (13 Feb – 4 Apr) used as quality test case: 22 sittings, 8 briefs regenerated, 1 meeting report + illustration generated
+
+---
+
 ## Sprint 5.2: Historical Rebuild (2026-03-06)
 
 ### Added

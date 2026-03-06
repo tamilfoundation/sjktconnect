@@ -37,3 +37,5 @@ Cross-cutting lessons from SJK(T) Connect development. Project-specific decision
 - Government websites may block specific HTTP methods (HEAD) while allowing others (GET) — when a probe fails, try alternative methods before assuming the resource doesn't exist (Hansard Backfill)
 - `gcloud run deploy --set-env-vars` replaces ALL env vars, `--update-env-vars` merges — always use `--update-env-vars` or `--env-vars-file` to avoid wiping existing vars (UI Polish)
 - Review-gated APIs (e.g. `review_status=APPROVED`) with no approval workflow create invisible data — if no one is reviewing, nothing shows. Either auto-approve or show pending data (UI Polish)
+- Gemini 2.5 Flash thinking tokens consume the output token budget — set `thinking_budget` explicitly (1024 for report-length content) or output will be truncated. `thinking_budget=0` produces degenerate output (Sprint 5.5)
+- The `smarty` markdown extension converts `'` to `&rsquo;` HTML entities which display as raw text when tags are stripped but entities aren't decoded — avoid `smarty` unless rendering full HTML (Sprint 5.5)

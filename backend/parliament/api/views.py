@@ -1,6 +1,7 @@
 """API views for MPScorecard, SittingBrief, ParliamentaryMeeting, and SchoolMentions."""
 
 from django.db.models import Count, Sum
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 
@@ -149,3 +150,14 @@ class MeetingReportDetailView(RetrieveAPIView):
             _sitting_count=Count("sittings"),
             _total_mentions=Sum("sittings__mention_count"),
         )
+
+
+def meeting_illustration_view(request, pk):
+    """Serve the meeting illustration as a PNG image."""
+    meeting = get_object_or_404(ParliamentaryMeeting, pk=pk)
+    if not meeting.illustration:
+        return HttpResponse(status=404)
+    return HttpResponse(
+        bytes(meeting.illustration),
+        content_type="image/png",
+    )

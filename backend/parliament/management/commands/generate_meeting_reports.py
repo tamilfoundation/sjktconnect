@@ -31,63 +31,48 @@ def html_to_plain(text: str) -> str:
 
 
 MEETING_REPORT_PROMPT = """\
-You are a senior policy analyst writing an executive-grade parliamentary meeting
-report about Tamil school (SJK(T)) discussions in the Malaysian Parliament.
+You are a parliamentary reporter writing a meeting report about Tamil school
+(SJK(T)) discussions in the Malaysian Parliament.
 
-Below are the sitting summaries from {meeting_name} ({start_date} to {end_date}).
-This meeting had {sitting_count} sittings with Tamil school mentions and
-{total_mentions} individual mentions across those sittings.
+Meeting: {meeting_name} ({start_date} to {end_date}).
+{sitting_count} sittings had Tamil school mentions, {total_mentions} total mentions.
 
-Produce a comprehensive meeting report in English (1500-2500 words) following
-this 7-point framework:
+Word guide based on sittings:
+- 1-3 sittings: 400-600 words
+- 4-7 sittings: 600-900 words
+- 8+ sittings: 900-1,200 words (minimum 900)
 
-## 1. Executive Summary
-Sittings count, total mentions, overall tone, and the big takeaways from this
-meeting period. 2-3 paragraphs.
+Structure (use ## headings):
 
-## 2. Key Policy Developments
-Concrete commitments, budget allocations, policy changes, or ministerial
-statements affecting Tamil schools. Be specific with numbers and details.
+## Key Findings
+3-5 bullet points. The most important takeaways, with specific amounts,
+names, and dates. Lead with the biggest news. Report facts, not opinions.
 
-## 3. Most Active MPs
-A table of MPs who spoke about Tamil schools, with columns:
-| MP Name | Constituency | Party | Mentions | Assessment |
+## MP Scorecard
+Markdown table: | MP Name | Constituency | Topic | Assessment |
+- Do NOT include a Party column — constituency is sufficient.
+- Topic: max 8 words (e.g. "School funding allocation").
+- Assessment: one word — Substantive / Routine / Performative.
+- One row per MP. If an MP raised multiple topics, combine into one row.
 
-The Assessment column should be one line: was their advocacy substantive,
-routine, or performative?
+## Policy Signals
+Budget commitments, policy shifts, or ministerial promises. Report what
+was said, not what it might mean. Skip this section if nothing concrete.
 
-## 4. Issue Tracker
-Group all discussions by policy theme. Standard buckets include:
-- **Funding & Allocations** (maintenance, development, per-capita grants)
-- **Infrastructure** (buildings, facilities, land)
-- **Teacher Supply** (vacancies, transfers, Tamil-qualified teachers)
-- **Enrolment & Access** (declining numbers, transport, catchment)
-- **Special Education** (OKU provisions, inclusion)
-- **Curriculum & Quality** (standards, UPSR/PT3 results, co-curriculum)
-- **Other** (anything that doesn't fit above)
+## What to Watch
+2-3 bullet points for community stakeholders. Be specific and actionable.
 
-For each theme, summarise what was raised and by whom.
-
-## 5. Government Response Assessment
-Did ministers engage substantively or deflect? Were questions answered? Were
-commitments made? Rate the overall government responsiveness.
-
-## 6. Comparison with Previous Meeting
 {previous_context}
 
-## 7. Implications & Recommendations
-What should school leaders, PTA committees, and community stakeholders watch
-for? What actions can they take based on this meeting's outcomes?
+Style rules:
+- Report, do not analyse. What was said, by whom, in what context.
+- No editorial assessment ("This was substantive advocacy...").
+- Short paragraphs. Simple, clear language. British English.
+- No filler, no preamble. Lead with substance.
+- Write "SJK(T)" on its own, never inside extra brackets. Wrong: "(SJK(T))".
+  If you need a parenthetical abbreviation, write "Tamil schools (SJKT)".
 
-Writing style:
-- Factual, analytical, authoritative — like The Economist or a policy think-tank
-- Engaging — the audience is Tamil school parents, board members, and community leaders
-- Prioritise "substantive advocacy" over routine or procedural references
-- Use specific names, numbers, and dates wherever available
-- Tables should use markdown format
-
-Return the report as plain text with markdown headings (##, ###) and tables.
-Do NOT wrap in code fences.
+Return as plain text with markdown headings and tables. No code fences.
 
 --- SITTING SUMMARIES ---
 {summaries}
@@ -105,6 +90,41 @@ that emerged in this meeting."""
 PREVIOUS_CONTEXT_NO_REPORT = """\
 This is the first meeting being analysed, so no previous meeting report is
 available. Note this and focus on establishing baseline themes and patterns."""
+
+ILLUSTRATION_PROMPT = """\
+A single-panel editorial cartoon in the style of The Economist or The New Yorker.
+Black ink line drawing with minimal colour wash.
+
+Scene inspired by these parliamentary findings about Tamil schools in Malaysia:
+{findings}
+
+Requirements:
+- Clean line art, crosshatching for shadows, slightly satirical, understated
+- The Malaysian Parliament dome should be visible in the background
+- A Tamil school building with "SJK(T)" on it should be central
+- Include people (MPs, parents, teachers) relevant to the themes
+- No speech bubbles. No caption text. Let the image speak.
+- No text in the image except "SJK(T)" on the school building
+"""
+
+
+def _generate_illustration(client, key_findings: str) -> bytes | None:
+    """Generate an editorial cartoon based on the Key Findings."""
+    prompt = ILLUSTRATION_PROMPT.format(findings=key_findings[:500])
+    try:
+        response = client.models.generate_images(
+            model="imagen-4.0-generate-001",
+            prompt=prompt,
+            config=types.GenerateImagesConfig(
+                number_of_images=1,
+                output_mime_type="image/png",
+            ),
+        )
+        if response.generated_images:
+            return response.generated_images[0].image.image_bytes
+    except Exception:
+        logger.exception("Illustration generation failed")
+    return None
 
 
 class Command(BaseCommand):
@@ -237,6 +257,10 @@ class Command(BaseCommand):
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         temperature=0.4,
+                        max_output_tokens=8192,
+                        thinking_config=types.ThinkingConfig(
+                            thinking_budget=1024,
+                        ),
                     ),
                 )
                 report_md = response.text.strip()
@@ -254,44 +278,66 @@ class Command(BaseCommand):
             # Convert to HTML
             report_html = markdown.markdown(
                 report_md,
-                extensions=["tables", "smarty"],
+                extensions=["tables"],
             )
 
-            # Extract executive summary (first section up to ## 2)
+            # Extract executive summary as plain text from Key Findings
             exec_summary = ""
             lines = report_md.split("\n")
             in_exec = False
             exec_lines = []
             for line in lines:
-                if line.startswith("## 1."):
+                if line.startswith("## Key Findings"):
                     in_exec = True
                     continue
-                if line.startswith("## 2."):
+                if in_exec and line.startswith("## "):
                     break
                 if in_exec:
-                    exec_lines.append(line)
+                    # Strip bullet markers and bold for plain text
+                    clean = line.strip().lstrip("*-").strip()
+                    clean = re.sub(r"\*\*(.+?)\*\*", r"\1", clean)
+                    if clean:
+                        exec_lines.append(clean)
             if exec_lines:
-                exec_md = "\n".join(exec_lines).strip()
-                exec_summary = markdown.markdown(exec_md, extensions=["smarty"])
+                # Take first 2-3 findings as plain text summary
+                exec_summary = " ".join(exec_lines[:3])
+                if len(exec_summary) > 500:
+                    exec_summary = exec_summary[:497] + "..."
 
-            # Build social post
+            # Build social post from first finding
             social = (
                 f"{meeting.short_name}: {len(briefs)} sittings, "
                 f"{total_mentions} Tamil school mentions in Parliament."
             )
-            if len(social) < 250:
-                # Add first sentence of executive summary
-                plain = exec_md.split(".")[0] if exec_lines else ""
-                if plain and len(social) + len(plain) + 2 <= 280:
-                    social += " " + plain + "."
+            if exec_lines and len(social) < 250:
+                first = exec_lines[0].split(".")[0]
+                if first and len(social) + len(first) + 2 <= 280:
+                    social += " " + first + "."
 
             meeting.report_html = report_html
             meeting.executive_summary = exec_summary
             meeting.social_post_text = social[:280]
-            meeting.save(update_fields=[
+
+            # Generate editorial cartoon illustration
+            findings_text = " ".join(exec_lines) if exec_lines else ""
+            if findings_text:
+                self.stdout.write(
+                    f"  Generating illustration for {meeting.short_name}..."
+                )
+                img_bytes = _generate_illustration(client, findings_text)
+                if img_bytes:
+                    meeting.illustration = img_bytes
+                    self.stdout.write(
+                        f"  Illustration: {len(img_bytes)} bytes"
+                    )
+
+            update_fields = [
                 "report_html", "executive_summary", "social_post_text",
                 "updated_at",
-            ])
+            ]
+            if meeting.illustration:
+                update_fields.append("illustration")
+            meeting.save(update_fields=update_fields)
 
             self.stdout.write(
                 self.style.SUCCESS(

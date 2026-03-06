@@ -105,6 +105,7 @@ class MeetingReportSerializer(serializers.ModelSerializer):
 
     sitting_count = serializers.SerializerMethodField()
     total_mentions = serializers.SerializerMethodField()
+    illustration_url = serializers.SerializerMethodField()
 
     class Meta:
         model = ParliamentaryMeeting
@@ -122,6 +123,7 @@ class MeetingReportSerializer(serializers.ModelSerializer):
             "social_post_text",
             "sitting_count",
             "total_mentions",
+            "illustration_url",
             "published_at",
         ]
 
@@ -136,3 +138,12 @@ class MeetingReportSerializer(serializers.ModelSerializer):
         return obj.sittings.aggregate(
             total=Sum("mention_count")
         )["total"] or 0
+
+    def get_illustration_url(self, obj):
+        if obj.illustration:
+            request = self.context.get("request")
+            path = f"/api/v1/meetings/{obj.pk}/illustration/"
+            if request:
+                return request.build_absolute_uri(path)
+            return path
+        return None

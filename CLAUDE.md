@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 5 (Parliament Watch). Sprint 5.2 (Historical Rebuild) done. Ready for v1.0.
-- **Last Sprint**: Historical Rebuild (2026-03-06)
-- **Tests**: 1071 (789 backend + 282 frontend)
+- **Current Phase**: Phase 5 (Parliament Watch). Sprint 5.5 (Intelligence Report Quality) done.
+- **Last Sprint**: Intelligence Report Quality (2026-03-06)
+- **Tests**: 1120 (838 backend + 282 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -223,6 +223,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 5.3 | Done | MP Contact Card: MP model, scrapers (parlimen.gov.my + mymp.org.my), import_mp_profiles command, ContactMPCard sidebar component, API nesting, trilingual i18n. 222 MPs imported. 24 new tests (1037 total). |
 | 5.4 | Done | Electoral Influence + GPS: GE15 election fields, electoral influence API (ratio/verdict), ElectoralInfluenceCard with capsule power meter + DOSM/Wikipedia links, scrape/import GE15 commands, verify_school_pins command (Google Places), 519 schools GPS-corrected, constituency page redesign, clickable MiniMap pin. 16 new tests (1053 total). |
 | 5.2 | Done | Historical Rebuild: improved speaker extraction (YAB/Tun/Menteri Besar, 2-page lookback), tightened Gemini prompt (significance scale, speaker hint), MP resolver (cross-ref 222 MPs), rebuild_all_hansards command, full rebuild of 97 sittings → 193 mentions, 193 AI-analysed, 165 MP-resolved, 32 scorecards. 18 new tests. |
+| 5.5 | Done | Intelligence Report Quality: rewritten brief/report prompts (journalistic style, JSON response mode), Imagen 4.0 editorial cartoons, illustration API + frontend display, Gemini thinking budget fix, news auto-triage. Deployed to production. |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -239,13 +240,13 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**v1.0 Release — NEXT**:
-- Deploy backend + frontend to production (Cloud Run)
+**Quality Rollout — NEXT**:
+- Generate reports + illustrations for all remaining meetings (4 meetings: 1st 2025, 2nd 2025, 3rd 2025, 1st 2026)
+- Review output quality, iterate prompts if needed
 - Update Cloud Run job from `check_new_hansards` to `run_hansard_pipeline`, set `GEMINI_API_KEY` env var
-- Final smoke test on tamilschool.org
+- Fix pre-existing test failures on `feature/intelligence-reports` branch (11 tests in broadcasts/feedback)
 
 **Pending (not sprint-specific)**:
-- Deploy pipeline: update Cloud Run job from `check_new_hansards` to `run_hansard_pipeline`, set `GEMINI_API_KEY` env var
 - End-to-end test: donate page → Toyyib sandbox, school bank card display
 - **Urgent Response System**: Design approved, marinating. See `docs/plans/2026-03-04-urgent-response-system-design.md`
 - Pre-filled advocacy message templates per school ("Dear YB, as a parent at SJK(T) X...")
@@ -295,6 +296,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **DUNs**: `GET /api/v1/duns/` (filters: `?state=`, `?constituency=`), `GET /api/v1/duns/<pk>/` (nested schools)
 - **Scorecards**: `GET /api/v1/scorecards/` (filters: `?constituency=`, `?party=`), `GET /api/v1/scorecards/<pk>/`
 - **Briefs**: `GET /api/v1/briefs/` (published only), `GET /api/v1/briefs/<pk>/`
+- **Meetings** (Sprint 5.1+): `GET /api/v1/meetings/` (reports with sitting/mention counts), `GET /api/v1/meetings/<pk>/`, `GET /api/v1/meetings/<pk>/illustration/` (PNG editorial cartoon, 404 if none)
 - **Search**: `GET /api/v1/search/?q=<query>` — searches schools (name, code) and constituencies (name, code, MP name). Min 2 chars.
 - **Subscribers** (Sprint 2.1, public): `POST /api/v1/subscribers/subscribe/` (create subscriber, idempotent), `GET /api/v1/subscribers/unsubscribe/<token>/` (one-click unsubscribe), `GET/PUT /api/v1/subscribers/preferences/<token>/` (view/update category toggles)
 - **Contact** (Sprint 3.6): `POST /api/v1/contact/` (name, email, subject, message → Brevo email, 3/hour rate limit)

@@ -10,6 +10,7 @@ from parliament.api.views import (
     MPScorecardListView,
     SittingBriefDetailView,
     SittingBriefListView,
+    meeting_illustration_view,
 )
 
 app_name = "parliament-api"
@@ -44,6 +45,11 @@ urlpatterns = [
         "meetings/<int:pk>/",
         MeetingReportDetailView.as_view(),
         name="meeting-detail",
+    ),
+    path(
+        "meetings/<int:pk>/illustration/",
+        meeting_illustration_view,
+        name="meeting-illustration",
     ),
     path(
         "mentions/",

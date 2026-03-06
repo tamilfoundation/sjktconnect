@@ -134,9 +134,12 @@ def _find_speaker(
 ) -> tuple[str, str]:
     """Find the speaker by searching backwards for a Hansard speaker pattern.
 
-    Looks through the current page text before the keyword match. If no
-    speaker is found, searches the previous page's text as well (speakers
-    often start on one page and their speech continues to the next).
+    Scans the current page text before the keyword, then walks backwards
+    through previous pages looking for a speaker identification line
+    (bold name + colon). In long speeches an MP may start speaking many
+    pages before the Tamil school keyword appears, so we look back up to
+    20 pages — the same way a human would skip content and scan for the
+    speaker label.
 
     Returns:
         (speaker_name, constituency) — empty strings if not found.
@@ -152,13 +155,13 @@ def _find_speaker(
     if speaker:
         return speaker, constituency
 
-    # If not found, try previous page
+    # If not found, walk backwards through previous pages (up to 20)
     try:
         page_idx = page_nums.index(page_num)
     except ValueError:
         return "", ""
 
-    for lookback in range(1, 3):  # 1 and 2 pages back
+    for lookback in range(1, 21):  # up to 20 pages back
         prev_idx = page_idx - lookback
         if prev_idx < 0:
             break

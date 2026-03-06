@@ -41,6 +41,10 @@ class ParliamentaryMeeting(models.Model):
         blank=True, default="",
         help_text="280-char social summary",
     )
+    illustration = models.BinaryField(
+        blank=True, default=b"",
+        help_text="Gemini-generated editorial cartoon (PNG bytes)",
+    )
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

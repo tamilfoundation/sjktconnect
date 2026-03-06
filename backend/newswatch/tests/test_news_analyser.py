@@ -212,7 +212,7 @@ class AutoApproveTest(TestCase):
         article.refresh_from_db()
         assert article.review_status == "APPROVED"
 
-    def test_low_relevance_stays_pending(self):
+    def test_low_relevance_auto_rejected(self):
         article = NewsArticle.objects.create(
             url="https://example.com/auto-approve-low",
             title="Irrelevant article",
@@ -230,9 +230,9 @@ class AutoApproveTest(TestCase):
         }
         apply_analysis(article, analysis)
         article.refresh_from_db()
-        assert article.review_status == "PENDING"
+        assert article.review_status == "REJECTED"
 
-    def test_relevance_1_stays_pending(self):
+    def test_relevance_1_auto_rejected(self):
         article = NewsArticle.objects.create(
             url="https://example.com/auto-approve-1",
             title="Completely irrelevant",
@@ -250,7 +250,7 @@ class AutoApproveTest(TestCase):
         }
         apply_analysis(article, analysis)
         article.refresh_from_db()
-        assert article.review_status == "PENDING"
+        assert article.review_status == "REJECTED"
 
 
 class AnalysePendingArticlesTest(TestCase):

@@ -458,9 +458,11 @@ def apply_analysis(article, analysis):
     article.ai_raw_response = analysis.get("raw_response", {})
     article.status = NA.ANALYSED
 
-    # Auto-approve articles with relevance_score >= 3
+    # Auto-triage by relevance score
     if article.relevance_score and article.relevance_score >= 3:
         article.review_status = NA.APPROVED
+    else:
+        article.review_status = NA.REJECTED
 
     article.save(update_fields=[
         "relevance_score", "sentiment", "ai_summary", "mentioned_schools",

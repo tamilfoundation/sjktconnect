@@ -339,5 +339,6 @@ export interface MeetingReport {
   social_post_text: string;
   sitting_count: number;
   total_mentions: number;
+  illustration_url: string | null;
   published_at: string | null;
 }

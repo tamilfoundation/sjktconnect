@@ -22,46 +22,57 @@ from parliament.models import SittingBrief
 logger = logging.getLogger(__name__)
 
 BRIEF_PROMPT = """\
-You are a policy analyst writing a concise but comprehensive sitting report about
-Tamil school (SJK(T)) mentions in the Malaysian Parliament.
+You are a parliamentary reporter writing a brief about Tamil school (SJK(T))
+mentions in the Malaysian Parliament on {date}.
 
-Below are excerpts from the Hansard of {date}. Each excerpt contains a mention
-of Tamil schools by an MP during this parliamentary sitting.
+{mention_count} mention(s) found. Length guide:
+- 1 mention: 150-250 words
+- 2-3 mentions: 300-450 words
+- 4+ mentions: 500-700 words (minimum 300 even if mentions overlap)
 
-Write a report in English (500-800 words) with this structure:
+Return valid JSON with this structure:
+{{
+  "headline": "Short descriptive headline (max 12 words). NOT 'X Tamil School
+    Mentions in Parliament'. Describe what happened, e.g. 'Dilapidated
+    Infrastructure Undermines High-Performing Tamil School in Segamat'.",
+  "blurb": "Two-sentence summary, max 30 words total. What happened and why
+    it matters. This is the first thing readers see.",
+  "body_md": "The full brief as markdown (see structure below). Start with
+    the blurb as a lead paragraph before the first ### heading.",
+  "social": "One clean sentence for social media, max 200 characters.
+    No bullet points, no markdown."
+}}
 
-## Summary
-One paragraph overview: how many mentions, what the main topics were, and the
-overall tone (supportive, critical, routine).
+Structure for body_md:
 
-## Key Discussions
+For each distinct topic (group overlapping mentions into one):
 
-For each distinct topic raised (group related mentions together, do NOT repeat
-the same point), write a subsection:
+### [Short topic heading]
 
-### [Topic Title]
-- **Who spoke**: MP name (constituency, party) — if the speaker cannot be
-  identified from the text, write "Unidentified MP"
-- **What they said**: 2-3 sentences summarising the substance. Be specific —
-  include numbers, school names, policy details mentioned.
-- **Key quote**: One short, impactful verbatim quote in the original Malay,
-  with your English translation in parentheses.
-- **Assessment**: Was this substantive advocacy, a routine reference, or a
-  deflection? Was the argument well-made? Did the Minister respond?
+**[MP Name, Constituency]** — One short paragraph reporting what the MP said
+or raised. Do NOT repeat the MP name in the paragraph text (it is already in
+the bold label). Be specific: amounts, school names, actions. Keep it factual —
+report what happened, do not analyse or editorially assess. Short sentences.
+Simple language. White space between ideas.
 
-## Implications for Tamil Schools
-2-3 sentences: What does this sitting mean practically for Tamil schools?
-Any new commitments, policy shifts, or concerns raised?
+If there was a debate or ministerial response, report that too as a separate
+short paragraph.
 
-Writing style:
-- Factual and analytical, like The Economist or ProPublica
-- Engaging — assume the reader is a Tamil school parent or community leader
-- Group duplicate/overlapping mentions into one discussion (do NOT list the
-  same speech point multiple times)
-- If an MP's name cannot be identified, say so honestly rather than guessing
+> Verbatim Malay quote from the Hansard. Not translated. Not truncated.
+> Do NOT wrap the quote in double-quotes — the blockquote prefix is sufficient.
 
-Return the report as plain text with markdown headings (##, ###). Do NOT
-wrap in code fences.
+End the entire brief with one sentence on what this means practically for
+Tamil schools.
+
+Rules:
+- Do NOT include party names — constituency is sufficient.
+- Do NOT add editorial assessment like "This was substantive advocacy..."
+- Do NOT translate Malay quotes — readers are fluent in Malay.
+- Do NOT use preamble like "The parliamentary sitting on X featured..."
+- Report, do not analyse. What was said, by whom, in what context.
+- Short paragraphs (2-3 sentences max). Make it inviting to read.
+- Write "SJK(T)" on its own, never inside extra brackets. Wrong: "(SJK(T))".
+  If you need a parenthetical abbreviation, write "Tamil schools (SJKT)".
 
 --- HANSARD EXCERPTS ---
 {excerpts}
@@ -150,7 +161,11 @@ class Command(BaseCommand):
             except (ValueError, AttributeError):
                 date_str = sitting.sitting_date.strftime("%d %B %Y").lstrip("0")
 
-            prompt = BRIEF_PROMPT.format(date=date_str, excerpts=all_excerpts)
+            prompt = BRIEF_PROMPT.format(
+                date=date_str,
+                excerpts=all_excerpts,
+                mention_count=len(mentions),
+            )
 
             self.stdout.write(
                 f"  {sitting.sitting_date}: generating report "
@@ -162,10 +177,34 @@ class Command(BaseCommand):
                     model="gemini-2.5-flash",
                     contents=prompt,
                     config=types.GenerateContentConfig(
-                        temperature=0.4,  # Slightly creative for engaging writing
+                        response_mime_type="application/json",
+                        temperature=0.3,
+                        max_output_tokens=4096,
+                        thinking_config=types.ThinkingConfig(
+                            thinking_budget=1024,
+                        ),
                     ),
                 )
-                report_md = response.text.strip()
+                raw = response.text.strip()
+                try:
+                    data = json.loads(raw)
+                except json.JSONDecodeError:
+                    # Retry once without JSON mode if Gemini broke JSON
+                    self.stdout.write("  JSON parse failed, retrying...")
+                    time.sleep(2)
+                    response = client.models.generate_content(
+                        model="gemini-2.5-flash",
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            temperature=0.2,
+                            max_output_tokens=4096,
+                            thinking_config=types.ThinkingConfig(
+                                thinking_budget=1024,
+                            ),
+                        ),
+                    )
+                    data = json.loads(response.text.strip())
             except Exception as e:
                 if "429" in str(e):
                     self.stdout.write("  Rate limited, waiting 30s...")
@@ -175,26 +214,23 @@ class Command(BaseCommand):
                 time.sleep(2)
                 continue
 
-            # Convert markdown to HTML
+            headline = data.get("headline", "").strip()
+            blurb = data.get("blurb", "").strip()
+            body_md = data.get("body_md", "").strip()
+            social = data.get("social", "").strip()[:280]
+
+            # Convert body markdown to HTML
             report_html = markdown.markdown(
-                report_md,
-                extensions=["tables", "smarty"],
+                body_md,
+                extensions=["tables"],
             )
 
-            # Build title from first line or generate one
-            count = len(mentions)
-            title = (
+            # Use headline as title, with date suffix
+            title = f"{headline} — {date_str}" if headline else (
                 f"Tamil School Mention in Parliament — {date_str}"
-                if count == 1
-                else f"{count} Tamil School Mentions in Parliament — {date_str}"
+                if len(mentions) == 1
+                else f"{len(mentions)} Tamil School Mentions in Parliament — {date_str}"
             )
-
-            # Build social post
-            # Extract first sentence of summary for social
-            first_line = report_md.split("\n")[0].replace("## ", "").replace("# ", "")
-            social = f"{count} Tamil school mention{'s' if count > 1 else ''} in Parliament on {date_str}."
-            if len(social) + len(first_line) + 2 <= 280:
-                social += " " + first_line
 
             brief, created = SittingBrief.objects.update_or_create(
                 sitting=sitting,
