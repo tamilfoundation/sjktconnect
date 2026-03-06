@@ -138,6 +138,25 @@ class TestSendBroadcast:
         assert recipient.brevo_message_id == "msg-123"
 
     @patch("broadcasts.services.sender.requests.post")
+    def test_reply_to_header_included_in_brevo_payload(
+        self, mock_post, draft_broadcast, subscriber_a
+    ):
+        """Brevo API payload includes replyTo with feedback address."""
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"messageId": "msg-456"}
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        with patch.dict("os.environ", {"BREVO_API_KEY": "test-key"}):
+            with patch("broadcasts.services.sender.time.sleep"):
+                send_broadcast(draft_broadcast.pk)
+
+        payload = mock_post.call_args[1]["json"]
+        assert "replyTo" in payload
+        assert payload["replyTo"]["email"] == "feedback@tamilschool.org"
+        assert payload["replyTo"]["name"] == "SJK(T) Connect"
+
+    @patch("broadcasts.services.sender.requests.post")
     def test_production_mode_handles_api_failure(
         self, mock_post, draft_broadcast, subscriber_a
     ):
