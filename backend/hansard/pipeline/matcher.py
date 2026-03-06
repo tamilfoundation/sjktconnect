@@ -63,11 +63,16 @@ def _extract_school_name_candidates(text: str) -> list[str]:
 
         name_words = []
         for word in rest.split():
-            if word in _BOUNDARY_WORDS:
+            # Strip trailing punctuation before checking boundaries
+            clean_word = word.rstrip(",.;:!?)")
+            if clean_word in _BOUNDARY_WORDS:
                 break
-            if word.startswith("rm") and len(word) > 2:
+            if clean_word.startswith("rm") and len(clean_word) > 2:
                 break
-            name_words.append(word)
+            name_words.append(clean_word)
+            # Stop if we hit punctuation (comma = end of school name)
+            if word != clean_word:
+                break
             if len(name_words) >= 6:
                 break
 
