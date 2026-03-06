@@ -108,8 +108,14 @@ class Command(BaseCommand):
             # Delete any previous mentions for this sitting (in case of reprocess)
             sitting.mentions.all().delete()
 
+            # Deduplicate: keep one mention per page per keyword
+            seen = set()
             mentions = []
             for match in matches:
+                dedup_key = (match["page_number"], match["keyword_matched"])
+                if dedup_key in seen:
+                    continue
+                seen.add(dedup_key)
                 mentions.append(HansardMention(
                     sitting=sitting,
                     page_number=match["page_number"],

@@ -37,6 +37,11 @@ discussions in the Malaysian Parliament.
 Meeting: {meeting_name} ({start_date} to {end_date}).
 {sitting_count} sittings had Tamil school mentions, {total_mentions} total mentions.
 
+National baseline (use to contextualise individual cases):
+- 528 SJK(T) schools nationwide, 69,900 students, 5,460 teachers
+- 154 schools are under-enrolled (fewer than 150 students)
+- Schools span 222 parliamentary constituencies across 13 states
+
 Word guide based on sittings:
 - 1-3 sittings: 400-600 words
 - 4-7 sittings: 600-900 words
@@ -58,19 +63,40 @@ Lead with the story.]
 ## Key Findings
 3-5 bullet points. The most important takeaways, with specific amounts,
 names, and dates. Lead with the biggest news.
+When a school's infrastructure or enrolment is mentioned, contextualise it
+against the national baseline (e.g. "one of 154 under-enrolled SJK(T)s").
 
 ## MP Scorecard
+This table tracks ONLY backbench and opposition MPs who raised Tamil school
+issues. Do NOT include Ministers or Deputy Ministers answering on behalf of
+the government — their responses belong in the Executive Responses section.
+
 Markdown table with these exact columns:
-| MP Name | Constituency | Topic | Stance | Impact | Ministerial Response |
+| MP Name | Constituency | Topic | Stance | Impact |
 
 Column definitions (use ONLY these values):
 - Topic: max 8 words describing what was raised.
 - Stance: Advocacy / Inquiry / Critical (pick one).
 - Impact: Policy Shift / Budget Allocation / Localised Issue / General Rhetoric (pick one).
-- Ministerial Response: Commitment Made / Resolved / Deflected / Unanswered (pick one).
 
 One row per MP. If an MP raised multiple topics, use the most significant one.
 Do NOT include a Party column.
+
+## Executive Responses
+Track how the government responded to issues raised. Markdown table:
+| Minister/Deputy | Portfolio | Response To | Verdict | Date |
+
+Column definitions:
+- Response To: max 8 words summarising the issue addressed.
+- Verdict: Commitment Made / Resolved / Deflected / Unanswered (pick one).
+- Date: the sitting date of the response.
+
+IMPORTANT: If a Minister's response occurs in a different sitting than the
+original inquiry, explicitly note the time-lag. For example, write
+"Written reply on 27 Mar to question raised 4 Feb (51-day lag)" in the
+Response To column. This delay is a key metric of government responsiveness.
+
+Skip this section if no ministerial responses were recorded.
 
 ## Policy Signals
 Budget commitments, policy shifts, or ministerial promises with specific
@@ -127,6 +153,74 @@ Visual requirements:
 - The image must contain ONLY the text "SJK(T)" on the school building.
   No other words, labels, captions, signs, banners, or speech bubbles anywhere.
 """
+
+
+def _linkify_schools(html: str) -> str:
+    """Replace SJK(T) school names in report HTML with links to school pages."""
+    from schools.models import School
+
+    frontend_url = os.environ.get("FRONTEND_URL", "https://tamilschool.org")
+    # Build lookup: lowercase short name → moe_code
+    lookup = {}
+    for s in School.objects.all():
+        short = re.sub(
+            r"^Sekolah Jenis Kebangsaan \(Tamil\)\s*",
+            "", s.name, flags=re.IGNORECASE,
+        ).strip()
+        if short and len(short) > 2:
+            lookup[short.lower()] = s.moe_code
+
+    # Sort by length descending so longer names match first
+    sorted_names = sorted(lookup.keys(), key=len, reverse=True)
+    for name in sorted_names:
+        code = lookup[name]
+        url = f"{frontend_url}/school/{code}"
+        pattern = re.compile(
+            r"(SJK\(T\)\s+" + re.escape(name) + r")",
+            re.IGNORECASE,
+        )
+
+        def _replace(m, _url=url):
+            # Skip if already inside a link
+            start = m.start()
+            preceding = html[max(0, start - 50):start]
+            if "<a " in preceding and "</a>" not in preceding:
+                return m.group(0)
+            return f'<a href="{_url}">{m.group(1)}</a>'
+
+        html = pattern.sub(_replace, html)
+    return html
+
+
+def _linkify_constituencies(html: str) -> str:
+    """Replace constituency names in MP Scorecard table cells with links.
+
+    Finds <td> cells that match a known constituency name and wraps
+    the text in a link to /constituency/<code>.
+    """
+    from schools.models import Constituency
+
+    frontend_url = os.environ.get("FRONTEND_URL", "https://tamilschool.org")
+    # Build lookup: lowercase name → code
+    lookup = {}
+    for c in Constituency.objects.values_list("name", "code"):
+        lookup[c[0].lower()] = c[1]
+
+    def _replace_td(match):
+        name = match.group(1).strip()
+        code = lookup.get(name.lower())
+        if code:
+            url = f"{frontend_url}/constituency/{code}"
+            return f'<td style="text-align: left;"><a href="{url}">{name}</a></td>'
+        return match.group(0)
+
+    # Match <td> cells — the constituency column is the 2nd column in each row
+    # We target cells containing known constituency names
+    return re.sub(
+        r'<td style="text-align: left;">([^<]+)</td>',
+        _replace_td,
+        html,
+    )
 
 
 def _generate_illustration(client, key_findings: str) -> bytes | None:
@@ -305,11 +399,15 @@ class Command(BaseCommand):
                 extensions=["tables"],
             )
 
+            # Linkify constituency and school names
+            report_html = _linkify_constituencies(report_html)
+            report_html = _linkify_schools(report_html)
+
             # Extract headline from first ## heading
             headline = ""
             lines = report_md.split("\n")
             for line in lines:
-                if line.startswith("## ") and "Key Findings" not in line and "MP Scorecard" not in line and "Policy Signals" not in line and "What to Watch" not in line:
+                if line.startswith("## ") and "Key Findings" not in line and "MP Scorecard" not in line and "Executive Responses" not in line and "Policy Signals" not in line and "What to Watch" not in line:
                     headline = line.lstrip("#").strip()
                     break
 

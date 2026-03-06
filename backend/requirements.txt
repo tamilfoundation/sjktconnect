@@ -24,6 +24,10 @@ beautifulsoup4>=4.12
 google-genai>=1.0
 markdown>=3.6
 
+# Gmail API (feedback inbox)
+google-api-python-client>=2.0
+google-auth>=2.0
+
 # GeoJSON / boundary polygons
 shapely>=2.0
 

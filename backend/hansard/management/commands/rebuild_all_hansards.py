@@ -44,9 +44,14 @@ def process_single_sitting(sitting, keywords, skip_matching=False):
     sitting.mentions.all().delete()
     connection.close()
 
-    # Store new mentions
+    # Store new mentions (deduplicated: one per page per keyword)
+    seen = set()
     mentions = []
     for match in matches:
+        dedup_key = (match["page_number"], match["keyword_matched"])
+        if dedup_key in seen:
+            continue
+        seen.add(dedup_key)
         mentions.append(HansardMention(
             sitting=sitting,
             page_number=match["page_number"],

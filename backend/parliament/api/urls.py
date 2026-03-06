@@ -11,6 +11,7 @@ from parliament.api.views import (
     SittingBriefDetailView,
     SittingBriefListView,
     meeting_illustration_view,
+    meeting_pdf_view,
 )
 
 app_name = "parliament-api"
@@ -50,6 +51,11 @@ urlpatterns = [
         "meetings/<int:pk>/illustration/",
         meeting_illustration_view,
         name="meeting-illustration",
+    ),
+    path(
+        "meetings/<int:pk>/download/",
+        meeting_pdf_view,
+        name="meeting-pdf",
     ),
     path(
         "mentions/",

@@ -230,6 +230,12 @@ class Command(BaseCommand):
                 extensions=["tables"],
             )
 
+            # Linkify school names
+            from parliament.management.commands.generate_meeting_reports import (
+                _linkify_schools,
+            )
+            report_html = _linkify_schools(report_html)
+
             # Use headline as title, with date suffix
             title = f"{headline} — {date_str}" if headline else (
                 f"Tamil School Mention in Parliament — {date_str}"
