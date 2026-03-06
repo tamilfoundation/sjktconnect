@@ -32,7 +32,7 @@ You are analysing a Malaysian parliamentary Hansard excerpt that mentions Tamil 
 Extract the following fields as a JSON object:
 - mp_name: Full name of the MP speaking (string, or "" if unclear). Use the speaker hint if provided.
 - mp_constituency: Parliamentary constituency code or name (string, or "" if unclear)
-- mp_party: Political party (string, or "" if unknown — do NOT guess)
+- mp_party: Political party (string, or "" if unknown - do NOT guess)
 - mention_type: One of BUDGET, QUESTION, POLICY, COMMITMENT, THROWAWAY, OTHER
   - BUDGET: Allocation, funding, or financial request for schools
   - QUESTION: Parliamentary question (oral or written) about Tamil schools
@@ -54,7 +54,7 @@ Extract the following fields as a JSON object:
   - CRITICAL: Criticising government/policy handling of Tamil school issues
 - change_indicator: One of NEW, REPEAT, ESCALATION, REVERSAL
   - Default to NEW unless the excerpt explicitly references a previous discussion
-- summary: 1-2 sentence English summary focused on the MP's stated position or request. Be specific — include amounts, school names, and actions mentioned. Do not pad with filler.
+- summary: 1-2 sentence English summary focused on the MP's stated position or request. Be specific - include amounts, school names, and actions mentioned. Do not pad with filler.
 
 Return ONLY valid JSON, no markdown fences, no extra text.
 

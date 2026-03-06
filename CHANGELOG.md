@@ -1,5 +1,28 @@
 # Changelog
 
+## Sprint 5.2: Historical Rebuild (2026-03-06)
+
+### Added
+- **Speaker extraction improvements** (`hansard/pipeline/searcher.py`): YAB, Tun, Menteri Besar title patterns; 2-page backward lookback; Tuan Pengerusi/Puan Pengerusi filtering
+- **MP resolver** (`parliament/services/mp_resolver.py`): Cross-references Gemini output against 222 MP records by constituency code/name, MP name substring matching
+- **`rebuild_all_hansards` command**: Re-downloads and re-processes all 97 sittings with flags `--dry-run`, `--skip-analysis`, `--skip-matching`, `--include-failed`, `--limit`
+- **18 new tests** (17 searcher + 6 resolver + 1 gemini - 6 existing updated)
+
+### Changed
+- **Gemini prompt tightened**: explicit significance scale (1-5 with examples), speaker hint from regex extraction, substance-focused summary, "do not guess" party instruction
+- **MP resolver wired into pipeline**: `run_hansard_pipeline` now cross-references after Gemini analysis
+- **`.env` fix**: em dash in GEMINI_API_KEY comment caused httpx UnicodeEncodeError
+
+### Rebuild Results
+- 97/97 sittings re-processed, 0 failures
+- 193 mentions extracted (improved speaker extraction)
+- 193/193 Gemini AI analysis completed (0 failures)
+- 165 mentions with MP name + party (85% fill rate via resolver)
+- 32 MP scorecards updated
+- Mention types: 102 POLICY, 48 BUDGET, 25 QUESTION, 6 COMMITMENT, 9 OTHER, 3 THROWAWAY
+
+---
+
 ## Sprint 5.4: Electoral Influence + GPS Pin Correction (2026-03-06)
 
 ### Added

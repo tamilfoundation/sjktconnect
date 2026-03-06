@@ -48,8 +48,9 @@ class RebuildCommandTests(TestCase):
         output = out.getvalue()
         self.assertIn("2 sitting(s)", output)
 
+    @patch("hansard.management.commands.rebuild_all_hansards.connection")
     @patch("hansard.management.commands.rebuild_all_hansards.process_single_sitting")
-    def test_rebuild_calls_process_and_deletes_old_mentions(self, mock_process):
+    def test_rebuild_calls_process_and_deletes_old_mentions(self, mock_process, mock_conn):
         mock_process.return_value = {"mentions": 5, "matched": 2, "pages": 50, "status": "ok"}
         out = StringIO()
         call_command("rebuild_all_hansards", "--skip-analysis", stdout=out)

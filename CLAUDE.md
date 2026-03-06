@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 5 (Parliament Watch). Sprint 5.4 (Electoral Influence + GPS) done.
-- **Last Sprint**: Electoral Influence + GPS Pin Correction (2026-03-06)
-- **Tests**: 1053 (771 backend + 282 frontend)
+- **Current Phase**: Phase 5 (Parliament Watch). Sprint 5.2 (Historical Rebuild) done. Ready for v1.0.
+- **Last Sprint**: Historical Rebuild (2026-03-06)
+- **Tests**: 1071 (789 backend + 282 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -222,6 +222,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 5.1 | Done | Pipeline Automation: calendar scraper (parlimen.gov.my), auto brief generator, Gemini meeting report generator, unified `run_hansard_pipeline` command (7 steps), WAT workflow. 30 new tests. |
 | 5.3 | Done | MP Contact Card: MP model, scrapers (parlimen.gov.my + mymp.org.my), import_mp_profiles command, ContactMPCard sidebar component, API nesting, trilingual i18n. 222 MPs imported. 24 new tests (1037 total). |
 | 5.4 | Done | Electoral Influence + GPS: GE15 election fields, electoral influence API (ratio/verdict), ElectoralInfluenceCard with capsule power meter + DOSM/Wikipedia links, scrape/import GE15 commands, verify_school_pins command (Google Places), 519 schools GPS-corrected, constituency page redesign, clickable MiniMap pin. 16 new tests (1053 total). |
+| 5.2 | Done | Historical Rebuild: improved speaker extraction (YAB/Tun/Menteri Besar, 2-page lookback), tightened Gemini prompt (significance scale, speaker hint), MP resolver (cross-ref 222 MPs), rebuild_all_hansards command, full rebuild of 97 sittings → 193 mentions, 193 AI-analysed, 165 MP-resolved, 32 scorecards. 18 new tests. |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -238,11 +239,10 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 5.2 (Historical Rebuild) — NEXT**:
-- Improve speaker extraction in `hansard/pipeline/searcher.py` (capture MP name from Hansard format)
-- Tighten Gemini prompts (substance-driven length, no padding)
-- `rebuild_all_hansards` command to re-process all 97 sittings with improved extraction
-- Schedule overnight run to regenerate all mentions, briefs, and reports
+**v1.0 Release — NEXT**:
+- Deploy backend + frontend to production (Cloud Run)
+- Update Cloud Run job from `check_new_hansards` to `run_hansard_pipeline`, set `GEMINI_API_KEY` env var
+- Final smoke test on tamilschool.org
 
 **Pending (not sprint-specific)**:
 - Deploy pipeline: update Cloud Run job from `check_new_hansards` to `run_hansard_pipeline`, set `GEMINI_API_KEY` env var
