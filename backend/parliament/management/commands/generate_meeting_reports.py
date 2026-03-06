@@ -393,6 +393,30 @@ class Command(BaseCommand):
             # Post-process: fix "(SJK(T))" → "SJK(T)"
             report_md = re.sub(r"\(SJK\(T\)\)", "SJK(T)", report_md)
 
+            # Clamp Markdown table separator rows to prevent bloated HTML
+            # e.g. | :--- ... (500 dashes) ... | → | :--- |
+            def _clamp_separator(match: re.Match) -> str:
+                row = match.group(0)
+                cells = row.split("|")
+                clamped = []
+                for cell in cells:
+                    stripped = cell.strip()
+                    if re.fullmatch(r":?-{3,}:?", stripped):
+                        # Keep alignment markers, clamp dashes to 3
+                        left = ":" if stripped.startswith(":") else ""
+                        right = ":" if stripped.endswith(":") else ""
+                        clamped.append(f" {left}---{right} ")
+                    else:
+                        clamped.append(cell)
+                return "|".join(clamped)
+
+            report_md = re.sub(
+                r"^\|[\s:|-]+\|$",
+                _clamp_separator,
+                report_md,
+                flags=re.MULTILINE,
+            )
+
             # Convert to HTML
             report_html = markdown.markdown(
                 report_md,
