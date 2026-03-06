@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>News Watch — Email Design</title>
+<style>
+  body { font-family: Georgia, serif; color: #1a1a1a; line-height: 1.6; max-width: 640px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+  .email { background: white; padding: 32px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .header { border-bottom: 3px solid #059669; padding-bottom: 16px; margin-bottom: 24px; }
+  .header h1 { font-size: 24px; margin: 0 0 4px 0; color: #059669; letter-spacing: -0.5px; }
+  .header .subtitle { font-size: 14px; color: #666; }
+  .editors-note { font-style: italic; font-size: 16px; line-height: 1.6; margin-bottom: 32px; padding: 20px; border-left: 4px solid #059669; background: #f0fdf4; border-radius: 0 4px 4px 0; color: #374151; }
+  .big-story { margin-bottom: 32px; }
+  .big-story .label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #059669; margin-bottom: 8px; }
+  .big-story h2 { font-size: 22px; margin: 0 0 6px 0; line-height: 1.3; }
+  .big-story h2 a { color: #1a1a1a; text-decoration: none; border-bottom: 2px solid #059669; }
+  .big-story h2 a:hover { color: #059669; }
+  .big-story .source { font-size: 13px; color: #9ca3af; margin-bottom: 12px; }
+  .big-story .summary { font-size: 15px; margin-bottom: 12px; color: #374151; }
+  .big-story .why { font-weight: bold; color: #059669; font-size: 15px; }
+  .in-brief { margin-bottom: 32px; }
+  .in-brief .label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #059669; margin-bottom: 16px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
+  .brief-item { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #f3f4f6; }
+  .brief-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .brief-item .title { font-weight: bold; font-size: 15px; margin-bottom: 2px; }
+  .brief-item .title a { color: #1a1a1a; text-decoration: none; }
+  .brief-item .meta { font-size: 12px; color: #9ca3af; margin-bottom: 4px; }
+  .tag { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+  .tag-positive { background: #dcfce7; color: #166534; }
+  .tag-concerning { background: #fef2f2; color: #991b1b; }
+  .tag-neutral { background: #f3f4f6; color: #374151; }
+  .brief-item .one-liner { font-size: 14px; color: #4b5563; margin-top: 4px; }
+  .the-number { text-align: center; margin: 36px 0; padding: 32px 20px; background: #f9fafb; border-radius: 8px; }
+  .the-number .label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #9ca3af; margin-bottom: 4px; }
+  .the-number .number { font-size: 64px; font-weight: bold; color: #059669; line-height: 1; margin-bottom: 8px; }
+  .the-number .context { font-size: 15px; color: #6b7280; max-width: 400px; margin: 0 auto; }
+  .worth-knowing { margin: 28px 0; padding: 16px 20px; background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 0 4px 4px 0; font-size: 14px; }
+  .worth-knowing .wk-label { font-weight: bold; color: #92400e; }
+  .footer { margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 13px; color: #9ca3af; text-align: center; }
+  .footer a { color: #6b7280; }
+</style>
+</head>
+<body>
+<div class="email">
+  <div class="header">
+    <h1>News Watch</h1>
+    <div class="subtitle">Fortnightly digest &mdash; 17 Feb &ndash; 2 Mar 2026</div>
+  </div>
+
+  <div class="editors-note">
+    A quiet fortnight for Tamil schools &mdash; which is itself newsworthy. While the ministry was busy with budget reallocation, three schools in Perak quietly solved their own transport problem with a community van pool. Sometimes the best news is no news. Almost.
+  </div>
+
+  <div class="big-story">
+    <div class="label">The Big Story</div>
+    <h2><a href="#">Johor allocates RM3.2M for Tamil school repairs</a></h2>
+    <div class="source">New Straits Times &mdash; 28 February 2026</div>
+    <div class="summary">The Johor state government has earmarked RM3.2 million specifically for structural repairs at 14 Tamil schools across the state. The allocation, announced during the state assembly budget session, covers roofing, drainage, and electrical work &mdash; the three most common complaints from school boards in the state.</div>
+    <div class="why">Why it matters: This is the first state-level allocation specifically earmarked for Tamil schools since 2019. If Johor delivers, it sets a precedent other states will find hard to ignore.</div>
+  </div>
+
+  <div class="in-brief">
+    <div class="label">In Brief</div>
+
+    <div class="brief-item">
+      <div class="title"><a href="#">SJK(T) Ladang Bikam wins national robotics competition</a></div>
+      <div class="meta">The Star &nbsp; <span class="tag tag-positive">positive</span></div>
+      <div class="one-liner">A 42-student estate school in Tapah beat 200 urban competitors &mdash; proof that talent doesn't need a postcode.</div>
+    </div>
+
+    <div class="brief-item">
+      <div class="title"><a href="#">Teacher shortage worsens in Negeri Sembilan estates</a></div>
+      <div class="meta">Malay Mail &nbsp; <span class="tag tag-concerning">concerning</span></div>
+      <div class="one-liner">Eight Tamil schools in the state now operate with fewer teachers than classrooms. The PPD calls it "temporary".</div>
+    </div>
+
+    <div class="brief-item">
+      <div class="title"><a href="#">Parents protest bus route cancellation in Klang</a></div>
+      <div class="meta">Free Malaysia Today &nbsp; <span class="tag tag-concerning">concerning</span></div>
+      <div class="one-liner">Sixty students at SJK(T) Simpang Lima lost their school bus after the operator cited "uneconomic routes".</div>
+    </div>
+
+    <div class="brief-item">
+      <div class="title"><a href="#">New PIBG toolkit launched by Tamil Foundation</a></div>
+      <div class="meta">Tamil Nesan &nbsp; <span class="tag tag-positive">positive</span></div>
+      <div class="one-liner">Free resource pack helps parent-teacher associations run better meetings and manage school funds.</div>
+    </div>
+  </div>
+
+  <div class="the-number">
+    <div class="label">The Number</div>
+    <div class="number">47</div>
+    <div class="context">Schools affected by the February floods in Johor and Pahang &mdash; up from 12 last year. Climate resilience is becoming an education issue.</div>
+  </div>
+
+  <div class="worth-knowing">
+    <span class="wk-label">Worth knowing:</span> A little-noticed gazette notice suggests three estate schools in Perak may be reclassified under a new "rural consolidation" framework. No public consultation has been announced. Worth watching.
+  </div>
+
+  <div class="footer">
+    <p>You received this because you subscribed to News Watch on <a href="https://tamilschool.org">tamilschool.org</a>.</p>
+    <p>Reply to this email to send us feedback. &nbsp;|&nbsp; <a href="#">Manage preferences</a> &nbsp;|&nbsp; <a href="#">Unsubscribe</a></p>
+  </div>
+</div>
+</body>
+</html>
