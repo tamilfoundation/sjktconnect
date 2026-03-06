@@ -161,6 +161,9 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | `BREVO_API_KEY` | Sprint 1.6+ (prod) | Brevo transactional email API key (logs to console in dev if absent) |
 | `FRONTEND_URL` | Sprint 1.6+ (prod) | Next.js frontend URL for magic link emails (default: `http://localhost:3000`) |
 | `GOOGLE_MAPS_API_KEY` | Sprint 1.8+ | Backend Google Maps API key for image harvesting (falls back to `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`) |
+| `GMAIL_CLIENT_ID` | Feedback | OAuth2 client ID for feedback@tamilschool.org Gmail API |
+| `GMAIL_CLIENT_SECRET` | Feedback | OAuth2 client secret |
+| `GMAIL_REFRESH_TOKEN` | Feedback | OAuth2 refresh token (gmail.readonly scope) |
 
 ## Data Files (in `data/`, not in git — too large)
 
@@ -232,8 +235,8 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **Backend**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend**: https://sjktconnect-web-748286712183.asia-southeast1.run.app
 - **Cloud Run services**: `sjktconnect-api`, `sjktconnect-web` (asia-southeast1)
-- **Cloud Run jobs**: `sjktconnect-check-hansards` (Hansard pipeline), `sjktconnect-news-pipeline` (daily news fetch→extract→analyse), `sjktconnect-news-digest` (fortnightly compose+send), `sjktconnect-urgent-alerts` (daily check+send), `sjktconnect-monthly-blast` (1st of month compose+send)
-- **Cloud Scheduler**: `sjktconnect-daily-check` (8:00 AM MYT daily, Hansard), `sjktconnect-daily-news` (8:30 AM MYT daily, news pipeline), `sjktconnect-urgent-alerts` (9:30 AM MYT daily), `sjktconnect-fortnightly-digest` (9:00 AM MYT, 1st+3rd Monday), `sjktconnect-monthly-blast` (9:00 AM 1st of month)
+- **Cloud Run jobs**: `sjktconnect-check-hansards` (Hansard pipeline), `sjktconnect-news-pipeline` (daily news fetch→extract→analyse), `sjktconnect-news-digest` (fortnightly compose+send), `sjktconnect-urgent-alerts` (daily check+send), `sjktconnect-monthly-blast` (1st of month compose+send), `sjktconnect-process-feedback` (Gmail fetch→classify→auto-respond)
+- **Cloud Scheduler**: `sjktconnect-daily-check` (8:00 AM MYT daily, Hansard), `sjktconnect-daily-news` (8:30 AM MYT daily, news pipeline), `sjktconnect-urgent-alerts` (9:30 AM MYT daily), `sjktconnect-fortnightly-digest` (9:00 AM MYT, 1st+3rd Monday), `sjktconnect-monthly-blast` (9:00 AM 1st of month), `sjktconnect-process-feedback` (8AM/12PM/4PM/8PM MYT daily)
 - **Email**: Brevo transactional API, senders: noreply@tamilschool.org + feedback@tamilschool.org (both DKIM+DMARC verified). Google Workspace for inbound.
 - **Maps API key**: Set in Dockerfile + Cloud Run (restricted to Maps JS, Static Maps, Places + referrer-restricted to tamilschool.org)
 - **Health check**: `/health/` returns `{"status": "ok"}`
@@ -243,11 +246,9 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 ## Next Sprint
 
 **Quality Rollout — NEXT**:
-- Deploy Sprint 5.6 changes to production, then regenerate all meeting reports with improved prompts
-- Generate reports + illustrations for remaining 3 meetings (2nd 2025, 3rd 2025, 1st 2026) — 1st Meeting 2025 done
-- Fix 11 failing tests in broadcasts/feedback modules
+- Generate reports + illustrations for remaining 3 meetings (2nd 2025, 3rd 2025, 1st 2026) — 1st Meeting 2025 done (other agent handling)
 - Test each email type end-to-end (Parliament Watch, News Digest, Urgent Alert, Monthly Blast)
-- Gmail OAuth for feedback@tamilschool.org (enable Gmail API, create credentials, set env var, add scheduler)
+- All 851 backend tests passing, 0 failures
 
 **Pending (not sprint-specific)**:
 - End-to-end test: donate page → Toyyib sandbox, school bank card display

@@ -10,6 +10,7 @@ from broadcasts.models import Broadcast
 from newswatch.models import NewsArticle
 
 
+@patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
 class ComposeNewsDigestTest(TestCase):
     def setUp(self):
         now = timezone.now()

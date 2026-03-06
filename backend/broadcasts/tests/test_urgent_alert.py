@@ -13,6 +13,7 @@ from broadcasts.services.urgent_alert import generate_urgent_alert
 from newswatch.models import NewsArticle
 
 
+@patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
 class UrgentAlertServiceTest(TestCase):
     def setUp(self):
         self.article = NewsArticle.objects.create(
@@ -89,6 +90,7 @@ class UrgentAlertServiceTest(TestCase):
         self.assertIsNone(result)
 
 
+@patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
 class ComposeUrgentAlertTest(TestCase):
     def setUp(self):
         self.article = NewsArticle.objects.create(

@@ -6,6 +6,7 @@ from feedback.models import InboundEmail
 from feedback.services.classifier import classify_email
 
 
+@patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
 class ClassifierTest(TestCase):
     def setUp(self):
         self.email = InboundEmail.objects.create(

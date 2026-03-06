@@ -1,5 +1,22 @@
 # Changelog
 
+## Email Infra Follow-up (2026-03-06)
+
+### Added
+- **Gmail OAuth for feedback@tamilschool.org** — OAuth2 consent screen (Internal), client credentials, refresh token via OAuth Playground. Env vars set on Cloud Run API + feedback job.
+- **`google-api-python-client` + `google-auth`** added to requirements.txt (Gmail API dependencies)
+- **Cloud Run job: `sjktconnect-process-feedback`** — fetches Gmail inbox, classifies with Gemini, auto-responds
+- **Cloud Scheduler: `sjktconnect-process-feedback`** — 4x daily (8AM/12PM/4PM/8PM MYT)
+
+### Fixed
+- **11 failing tests** in broadcasts/feedback modules — tests mocked `genai` but services had early-return guard on `GEMINI_API_KEY` env var. Added `@patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})` to 4 test classes.
+
+### Deployment
+- Backend redeployed with Gmail API dependencies
+- Feedback job tested end-to-end: 2 emails fetched, classified (IRRELEVANT), auto-responded
+
+---
+
 ## Sprint 5.6: Report Quality Fixes (2026-03-06)
 
 ### Fixed

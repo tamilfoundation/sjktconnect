@@ -41,3 +41,5 @@ Cross-cutting lessons from SJK(T) Connect development. Project-specific decision
 - The `smarty` markdown extension converts `'` to `&rsquo;` HTML entities which display as raw text when tags are stripped but entities aren't decoded — avoid `smarty` unless rendering full HTML (Sprint 5.5)
 - `gcloud run deploy --source .` can silently drop env vars set via `--update-env-vars` — always verify critical env vars (BREVO_API_KEY, GEMINI_API_KEY) after every redeployment (Email Infra)
 - Silent email failures erode trust — if a confirmation email fails to send, the user should see a warning, not a success message. Never ignore the return value of external API calls that affect user expectations (Email Infra)
+- When mocking an AI SDK (e.g. `genai`), also mock the env var guard (`os.environ["GEMINI_API_KEY"]`) — services that check for the key before calling the SDK will early-return and the mock is never reached (Email Infra)
+- Google OAuth Playground tokens generated without "Use your own OAuth credentials" checked produce `invalid_grant` — always verify the gear icon settings before authorising (Email Infra)

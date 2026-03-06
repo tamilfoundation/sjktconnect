@@ -7,6 +7,7 @@ from django.test import TestCase, override_settings
 from broadcasts.services.image_generator import generate_hero_image
 
 
+@patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
 class ImageGeneratorTest(TestCase):
     @patch("broadcasts.services.image_generator.genai")
     def test_generates_image_and_returns_base64_data_uri(self, mock_genai):
