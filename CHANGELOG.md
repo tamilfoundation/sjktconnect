@@ -1,5 +1,25 @@
 # Changelog
 
+## Sprint 5.6: Report Quality Fixes (2026-03-06)
+
+### Fixed
+- **PDF text artefacts**: Added `clean_extracted_text()` to normalizer — strips garbled fragments ("ohoh"), double periods (". ."), orphaned punctuation from pdfplumber output. Applied to all stored verbatim quotes and context.
+- **Double brackets**: Added post-processing regex `(SJK(T))` → `SJK(T)` in both brief and report generators
+- **Blurb extraction**: `BriefsList.tsx` `extractSummary()` now extracts lead paragraph before first heading (was looking for old `<h2>Summary</h2>` format)
+
+### Changed
+- **Meeting report prompt rewritten**: Journalistic headline (max 15 words), hook lead paragraph (not "This report covers..."), structured MP Scorecard with predefined taxonomy (Stance: Advocacy/Inquiry/Critical, Impact: Policy Shift/Budget Allocation/Localised Issue/General Rhetoric, Ministerial Response: Commitment Made/Resolved/Deflected/Unanswered)
+- **Executive summary extraction**: Now uses lead paragraph instead of Key Findings bullets
+- **Social post extraction**: Uses lead paragraph for more informative posts
+- **Illustration prompt**: Specifies Tamil Indian ethnicity, positive-only text constraint ("must contain ONLY 'SJK(T)'")
+
+### Tested
+- Regenerated all 6 sitting briefs + meeting report + illustration for 1st Meeting 2025 (26 mentions)
+- Created 2nd Meeting 2023 record (19 sittings, only 1 Tamil school mention — too sparse for report)
+- Verified: no bracket issues, structured scorecard working, journalistic style confirmed
+
+---
+
 ## Email Infrastructure Session (2026-03-06)
 
 ### Fixed

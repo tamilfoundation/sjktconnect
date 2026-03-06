@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 5 (Parliament Watch). Sprint 5.5 (Intelligence Report Quality) done.
-- **Last Sprint**: Intelligence Report Quality (2026-03-06)
-- **Tests**: 1120 (838 backend + 282 frontend)
+- **Current Phase**: Phase 5 (Parliament Watch). Sprint 5.6 (Report Quality Fixes) done.
+- **Last Sprint**: Report Quality Fixes (2026-03-06)
+- **Tests**: 1122 (840 backend + 282 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -224,6 +224,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 5.4 | Done | Electoral Influence + GPS: GE15 election fields, electoral influence API (ratio/verdict), ElectoralInfluenceCard with capsule power meter + DOSM/Wikipedia links, scrape/import GE15 commands, verify_school_pins command (Google Places), 519 schools GPS-corrected, constituency page redesign, clickable MiniMap pin. 16 new tests (1053 total). |
 | 5.2 | Done | Historical Rebuild: improved speaker extraction (YAB/Tun/Menteri Besar, 2-page lookback), tightened Gemini prompt (significance scale, speaker hint), MP resolver (cross-ref 222 MPs), rebuild_all_hansards command, full rebuild of 97 sittings → 193 mentions, 193 AI-analysed, 165 MP-resolved, 32 scorecards. 18 new tests. |
 | 5.5 | Done | Intelligence Report Quality: rewritten brief/report prompts (journalistic style, JSON response mode), Imagen 4.0 editorial cartoons, illustration API + frontend display, Gemini thinking budget fix, news auto-triage. Deployed to production. |
+| 5.6 | Done | Report Quality Fixes: PDF text artefact cleanup (clean_extracted_text), SJK(T) bracket post-processing, journalistic MP Scorecard taxonomy (Stance/Impact/Ministerial Response), lead paragraph blurb extraction, illustration ethnicity fix. Tested on 1st Meeting 2025. |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -242,11 +243,11 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 ## Next Sprint
 
 **Quality Rollout — NEXT**:
+- Deploy Sprint 5.6 changes to production, then regenerate all meeting reports with improved prompts
+- Generate reports + illustrations for remaining 3 meetings (2nd 2025, 3rd 2025, 1st 2026) — 1st Meeting 2025 done
 - Fix 11 failing tests in broadcasts/feedback modules
-- Generate reports + illustrations for remaining 4 meetings (1st 2025, 2nd 2025, 3rd 2025, 1st 2026)
 - Test each email type end-to-end (Parliament Watch, News Digest, Urgent Alert, Monthly Blast)
 - Gmail OAuth for feedback@tamilschool.org (enable Gmail API, create credentials, set env var, add scheduler)
-- Delete stale remote branches (feature/intelligence-reports, feature/mp-contact-card)
 
 **Pending (not sprint-specific)**:
 - End-to-end test: donate page → Toyyib sandbox, school bank card display
