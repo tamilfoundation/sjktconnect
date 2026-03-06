@@ -39,3 +39,5 @@ Cross-cutting lessons from SJK(T) Connect development. Project-specific decision
 - Review-gated APIs (e.g. `review_status=APPROVED`) with no approval workflow create invisible data — if no one is reviewing, nothing shows. Either auto-approve or show pending data (UI Polish)
 - Gemini 2.5 Flash thinking tokens consume the output token budget — set `thinking_budget` explicitly (1024 for report-length content) or output will be truncated. `thinking_budget=0` produces degenerate output (Sprint 5.5)
 - The `smarty` markdown extension converts `'` to `&rsquo;` HTML entities which display as raw text when tags are stripped but entities aren't decoded — avoid `smarty` unless rendering full HTML (Sprint 5.5)
+- `gcloud run deploy --source .` can silently drop env vars set via `--update-env-vars` — always verify critical env vars (BREVO_API_KEY, GEMINI_API_KEY) after every redeployment (Email Infra)
+- Silent email failures erode trust — if a confirmation email fails to send, the user should see a warning, not a success message. Never ignore the return value of external API calls that affect user expectations (Email Infra)

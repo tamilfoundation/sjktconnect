@@ -1,5 +1,31 @@
 # Changelog
 
+## Email Infrastructure Session (2026-03-06)
+
+### Fixed
+- **BREVO_API_KEY missing from Cloud Run** — lost during redeployment, confirmation emails silently failing (DEV MODE). Restored on API service + all Cloud Run jobs.
+- **Brevo sender verification** — added noreply@tamilschool.org + feedback@tamilschool.org as verified senders (DKIM + DMARC green). Google Workspace mailboxes created.
+
+### Added
+- **`--auto-send` flag** on `compose_news_digest` and `compose_monthly_blast` — broadcasts are composed and sent in one step (for cron automation)
+- **`send_urgent_alerts` command** — finds approved urgent articles not yet broadcast, composes + sends alerts automatically
+- **News auto-reject** — articles with relevance_score < 3 now auto-rejected on analysis (previously only score >= 3 auto-approved, rest stayed PENDING)
+- **Cloud Run job: `sjktconnect-news-digest`** — fortnightly digest compose + auto-send
+- **Cloud Run job: `sjktconnect-urgent-alerts`** — daily urgent article check + auto-send
+- **Cloud Scheduler: `sjktconnect-fortnightly-digest`** — 1st + 3rd Monday, 9:00 AM MYT
+- **Cloud Scheduler: `sjktconnect-urgent-alerts`** — daily 9:30 AM MYT
+
+### Changed
+- **Monthly blast job** — updated to use `--auto-send` flag + BREVO_API_KEY
+- **All Cloud Run jobs** — updated to latest backend image with BREVO_API_KEY + FRONTEND_URL env vars
+
+### Deployment
+- Backend deployed to Cloud Run (new image with auto-send commands)
+- All 5 Cloud Run jobs updated to new image
+- feature/intelligence-reports merged to main (12 commits) and branch deleted
+
+---
+
 ## Sprint 5.5: Intelligence Report Quality (2026-03-06)
 
 ### Added

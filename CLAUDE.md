@@ -231,8 +231,9 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **Backend**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend**: https://sjktconnect-web-748286712183.asia-southeast1.run.app
 - **Cloud Run services**: `sjktconnect-api`, `sjktconnect-web` (asia-southeast1)
-- **Cloud Run jobs**: `sjktconnect-check-hansards` (Hansard discovery), `sjktconnect-news-pipeline` (daily news fetch→extract→analyse), `sjktconnect-monthly-blast` (1st of month blast composition)
-- **Cloud Scheduler**: `sjktconnect-daily-check` (8:00 AM MYT daily, Hansard), `sjktconnect-daily-news` (8:30 AM MYT daily, news pipeline), `sjktconnect-monthly-blast` (9:00 AM 1st of month)
+- **Cloud Run jobs**: `sjktconnect-check-hansards` (Hansard pipeline), `sjktconnect-news-pipeline` (daily news fetch→extract→analyse), `sjktconnect-news-digest` (fortnightly compose+send), `sjktconnect-urgent-alerts` (daily check+send), `sjktconnect-monthly-blast` (1st of month compose+send)
+- **Cloud Scheduler**: `sjktconnect-daily-check` (8:00 AM MYT daily, Hansard), `sjktconnect-daily-news` (8:30 AM MYT daily, news pipeline), `sjktconnect-urgent-alerts` (9:30 AM MYT daily), `sjktconnect-fortnightly-digest` (9:00 AM MYT, 1st+3rd Monday), `sjktconnect-monthly-blast` (9:00 AM 1st of month)
+- **Email**: Brevo transactional API, senders: noreply@tamilschool.org + feedback@tamilschool.org (both DKIM+DMARC verified). Google Workspace for inbound.
 - **Maps API key**: Set in Dockerfile + Cloud Run (restricted to Maps JS, Static Maps, Places + referrer-restricted to tamilschool.org)
 - **Health check**: `/health/` returns `{"status": "ok"}`
 - **Admin**: `/admin/` (username: admin, email: admin@tamilfoundation.org)
@@ -241,10 +242,11 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 ## Next Sprint
 
 **Quality Rollout — NEXT**:
-- Generate reports + illustrations for all remaining meetings (4 meetings: 1st 2025, 2nd 2025, 3rd 2025, 1st 2026)
-- Review output quality, iterate prompts if needed
-- Update Cloud Run job from `check_new_hansards` to `run_hansard_pipeline`, set `GEMINI_API_KEY` env var
-- Fix pre-existing test failures on `feature/intelligence-reports` branch (11 tests in broadcasts/feedback)
+- Fix 11 failing tests in broadcasts/feedback modules
+- Generate reports + illustrations for remaining 4 meetings (1st 2025, 2nd 2025, 3rd 2025, 1st 2026)
+- Test each email type end-to-end (Parliament Watch, News Digest, Urgent Alert, Monthly Blast)
+- Gmail OAuth for feedback@tamilschool.org (enable Gmail API, create credentials, set env var, add scheduler)
+- Delete stale remote branches (feature/intelligence-reports, feature/mp-contact-card)
 
 **Pending (not sprint-specific)**:
 - End-to-end test: donate page → Toyyib sandbox, school bank card display

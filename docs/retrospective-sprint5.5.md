@@ -40,3 +40,41 @@ Improved the quality of Hansard pipeline output (sitting briefs, meeting reports
 - Illustrations generated: 1 (1.3 MB PNG)
 - Briefs regenerated: 8 (for 1st Meeting 2023)
 - Prompt iterations: 4
+
+---
+
+## Email Infrastructure Follow-up (2026-03-06, same day)
+
+### What Was Built
+
+Fixed newsletter signup (confirmation emails not sending) and set up full email automation infrastructure.
+
+- Diagnosed and fixed missing BREVO_API_KEY on Cloud Run (lost during redeployment)
+- Created Google Workspace emails: noreply@tamilschool.org + feedback@tamilschool.org
+- Verified both senders in Brevo (DKIM + DMARC green)
+- Added `--auto-send` flag to compose commands for cron automation
+- Created `send_urgent_alerts` command (finds unsent urgent articles, composes + sends)
+- Set up 2 new Cloud Run jobs (news-digest, urgent-alerts) + 2 new Cloud Schedulers
+- Updated all existing jobs with BREVO_API_KEY + new image
+- Merged feature/intelligence-reports branch to main (12 commits)
+- News auto-triage: score >= 3 approved, else rejected (no manual review needed)
+
+### What Went Well
+
+- **Root cause found quickly**: BREVO_API_KEY missing was diagnosed from code + env var inspection
+- **Brevo sender setup smooth**: DKIM/DMARC already configured for tamilschool.org domain
+- **Fortnightly scheduling workaround**: Cloud Scheduler doesn't have "every 2 weeks" — used 1st+3rd Monday cron pattern
+
+### What Went Wrong
+
+- **Silent email failure**: `send_confirmation_email()` return value was ignored — user saw "You're subscribed!" but no email sent. The success response shouldn't depend on email delivery, but should at least warn.
+- **gcloud auth expired**: Couldn't diagnose immediately, had to wait for user to re-authenticate
+- **Env vars lost on redeploy**: `gcloud run deploy --source .` can overwrite env vars. This has bitten us before.
+
+### Numbers
+
+- Active subscribers: 3
+- Approved news articles: 111
+- Rejected news articles: 194 (auto-rejected score <= 1) + 8 (score = 2)
+- Cloud Run jobs: 5 total (3 existing updated + 2 new)
+- Cloud Schedulers: 5 total (3 existing + 2 new)
