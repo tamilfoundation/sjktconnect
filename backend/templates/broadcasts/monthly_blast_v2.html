@@ -1,0 +1,122 @@
+{% load tz %}
+<div style="font-family: Georgia, serif; color: #1a1a1a; line-height: 1.6; max-width: 640px; margin: 0 auto;">
+
+  <!-- Header -->
+  <div style="border-bottom: 3px solid #7c3aed; padding-bottom: 16px; margin-bottom: 24px;">
+    <h1 style="font-size: 24px; margin: 0 0 4px 0; color: #7c3aed; letter-spacing: -0.5px;">Monthly Intelligence Blast</h1>
+    <div style="font-size: 14px; color: #666;">{{ month_label }}</div>
+  </div>
+
+  <!-- Executive Summary -->
+  {% if analysis.executive_summary %}
+  <div style="font-size: 16px; line-height: 1.7; margin-bottom: 32px; padding: 20px; background: #f5f3ff; border-left: 4px solid #7c3aed; border-radius: 0 4px 4px 0; color: #374151;">
+    {{ analysis.executive_summary }}
+  </div>
+  {% endif %}
+
+  <!-- By The Numbers -->
+  {% if analysis.by_the_numbers %}
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin: 28px 0; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb;">
+    <tr>
+      <td style="text-align: center; padding: 20px 8px; width: 25%;">
+        <div style="font-size: 36px; font-weight: bold; color: #7c3aed; line-height: 1;">{{ analysis.by_the_numbers.parliament_mentions|default:"0" }}</div>
+        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin-top: 6px;">Parliament Mentions</div>
+      </td>
+      <td style="text-align: center; padding: 20px 8px; width: 25%;">
+        <div style="font-size: 36px; font-weight: bold; color: #7c3aed; line-height: 1;">{{ analysis.by_the_numbers.news_articles|default:"0" }}</div>
+        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin-top: 6px;">News Articles</div>
+      </td>
+      <td style="text-align: center; padding: 20px 8px; width: 25%;">
+        <div style="font-size: 36px; font-weight: bold; color: #7c3aed; line-height: 1;">{{ analysis.by_the_numbers.schools_affected|default:"0" }}</div>
+        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin-top: 6px;">Schools Affected</div>
+      </td>
+      <td style="text-align: center; padding: 20px 8px; width: 25%;">
+        <div style="font-size: 36px; font-weight: bold; color: #7c3aed; line-height: 1;">{{ analysis.by_the_numbers.sentiment_positive|default:"0" }}</div>
+        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin-top: 6px;">Positive Sentiment</div>
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  <!-- Trend Lines -->
+  {% if analysis.trend_lines %}
+  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Trend Lines</div>
+  {% for trend in analysis.trend_lines %}
+  <div style="margin-bottom: 18px; padding: 16px; background: #f9fafb; border-radius: 6px;">
+    <div style="margin-bottom: 6px;">
+      <span style="font-weight: bold; font-size: 15px;">{{ trend.trend }}</span>
+      {% if trend.direction == "up" %}
+      <span style="display: inline-block; font-size: 11px; padding: 2px 10px; border-radius: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 8px; vertical-align: middle; background: #dcfce7; color: #166534;">up</span>
+      {% elif trend.direction == "down" %}
+      <span style="display: inline-block; font-size: 11px; padding: 2px 10px; border-radius: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 8px; vertical-align: middle; background: #fef2f2; color: #991b1b;">down</span>
+      {% elif trend.direction == "new" %}
+      <span style="display: inline-block; font-size: 11px; padding: 2px 10px; border-radius: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 8px; vertical-align: middle; background: #dbeafe; color: #1e40af;">new</span>
+      {% else %}
+      <span style="display: inline-block; font-size: 11px; padding: 2px 10px; border-radius: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 8px; vertical-align: middle; background: #f3f4f6; color: #374151;">stable</span>
+      {% endif %}
+    </div>
+    <div style="font-size: 14px; color: #4b5563;">{{ trend.detail }}</div>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <!-- Emerging Signals -->
+  {% if analysis.emerging_signals %}
+  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Emerging Signals</div>
+  <table width="100%" cellpadding="0" cellspacing="0">
+    {% for signal in analysis.emerging_signals %}
+    <tr>
+      <td style="width: 24px; vertical-align: top; padding: 10px 0;">
+        <div style="width: 10px; height: 10px; border-radius: 50%; background: #22c55e; margin-top: 4px;"></div>
+      </td>
+      <td style="padding: 10px 0; font-size: 14px; color: #374151; border-bottom: 1px solid #f3f4f6;">{{ signal }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  <!-- Fading From View -->
+  {% if analysis.fading_from_view %}
+  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Fading From View</div>
+  <table width="100%" cellpadding="0" cellspacing="0">
+    {% for item in analysis.fading_from_view %}
+    <tr>
+      <td style="width: 24px; vertical-align: top; padding: 10px 0;">
+        <div style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444; margin-top: 4px;"></div>
+      </td>
+      <td style="padding: 10px 0; font-size: 14px; color: #374151; border-bottom: 1px solid #f3f4f6;">{{ item }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  <!-- Opportunity Watch -->
+  {% if analysis.opportunity_watch %}
+  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Opportunity Watch</div>
+  <table width="100%" cellpadding="0" cellspacing="0">
+    {% for opp in analysis.opportunity_watch %}
+    <tr>
+      <td style="width: 24px; vertical-align: top; padding: 10px 0;">
+        <div style="width: 10px; height: 10px; border-radius: 50%; background: #3b82f6; margin-top: 4px;"></div>
+      </td>
+      <td style="padding: 10px 0; font-size: 14px; color: #374151; border-bottom: 1px solid #f3f4f6;">{{ opp }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  <!-- School Spotlight -->
+  {% if analysis.school_spotlight %}
+  <div style="margin: 28px 0; padding: 20px; background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 0 4px 4px 0;">
+    <div style="font-weight: bold; font-size: 16px; color: #92400e; margin-bottom: 6px;">School Spotlight: {{ analysis.school_spotlight.name }}</div>
+    <p style="margin: 0; font-size: 14px; color: #78350f;">{{ analysis.school_spotlight.reason }}</p>
+  </div>
+  {% endif %}
+
+  <!-- Footer -->
+  <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 13px; color: #9ca3af; text-align: center;">
+    <p style="margin: 0 0 8px 0;">You received this because you subscribed to the Monthly Intelligence Blast on <a href="https://tamilschool.org" style="color: #6b7280;">tamilschool.org</a>.</p>
+    <p style="margin: 0;">Reply to this email to send us feedback. &nbsp;|&nbsp; <a href="https://tamilschool.org/preferences/" style="color: #6b7280;">Manage preferences</a> &nbsp;|&nbsp; <a href="https://tamilschool.org/unsubscribe/" style="color: #6b7280;">Unsubscribe</a></p>
+  </div>
+
+</div>

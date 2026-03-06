@@ -20,6 +20,7 @@ from django.utils.html import strip_tags
 
 from broadcasts.models import Broadcast
 from broadcasts.services.blast_aggregator import aggregate_month
+from broadcasts.services.monthly_analyst import generate_monthly_analysis
 
 
 class Command(BaseCommand):
@@ -58,18 +59,31 @@ class Command(BaseCommand):
             )
             return
 
-        # Re-query because querysets were consumed by len(list(...))
-        data = aggregate_month(year, month)
+        # Try v2 analytical blast via Gemini
+        analysis = generate_monthly_analysis(year, month)
 
-        html_content = render_to_string(
-            "broadcasts/monthly_blast.html",
-            {
-                "month_label": month_label,
-                "parliament": data["parliament"],
-                "news": data["news"],
-                "scorecards": data["scorecards"],
-            },
-        )
+        if analysis:
+            html_content = render_to_string(
+                "broadcasts/monthly_blast_v2.html",
+                {
+                    "month_label": month_label,
+                    "analysis": analysis,
+                },
+            )
+            self.stdout.write("Using v2 analytical template (Gemini)")
+        else:
+            # Fallback to v1 template (no Gemini key or error)
+            data = aggregate_month(year, month)
+            html_content = render_to_string(
+                "broadcasts/monthly_blast.html",
+                {
+                    "month_label": month_label,
+                    "parliament": data["parliament"],
+                    "news": data["news"],
+                    "scorecards": data["scorecards"],
+                },
+            )
+            self.stdout.write("Using v1 template (Gemini unavailable)")
 
         text_content = strip_tags(html_content)
 
