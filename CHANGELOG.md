@@ -1,5 +1,19 @@
 # Changelog
 
+## Data Quality Fixes (2026-03-06)
+
+### Fixed
+- **School name abbreviations**: Data migration normalises inconsistent MOE abbreviations — Ldg→Ladang (95 schools), Sg→Sungai (17), Bkt→Bukit (2), Kg→Kampung (3). 110 schools updated. Aliases re-seeded (2,106 total).
+- **Matcher punctuation handling**: Candidate extractor now strips trailing punctuation (commas, semicolons) from school name boundaries. Fixes "SJK(T) Ladang Jeram," failing to match.
+- **Matching improvement**: 62/134 mentions now matched (was 38/134 before normalisation). Remaining 72 are generic "SJK(T)" category references without specific school names.
+
+### Deployment
+- Backend deployed with migration + matcher fix
+- Re-matching run on production (Cloud Run job, 6m33s)
+- One-off `sjktconnect-rematch` job cleaned up
+
+---
+
 ## Email Infra Follow-up (2026-03-06)
 
 ### Added

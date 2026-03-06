@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 5 (Parliament Watch). Sprint 5.6 (Report Quality Fixes) done.
-- **Last Sprint**: Report Quality Fixes (2026-03-06)
-- **Tests**: 1122 (840 backend + 282 frontend)
+- **Current Phase**: Phase 5 (Parliament Watch). Sprint 5.6 done + Data Quality fixes done.
+- **Last Sprint**: Data Quality Fixes (2026-03-06)
+- **Tests**: 1133 (851 backend + 282 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -248,7 +248,13 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 **Quality Rollout — NEXT**:
 - Generate reports + illustrations for remaining 3 meetings (2nd 2025, 3rd 2025, 1st 2026) — 1st Meeting 2025 done (other agent handling)
 - Test each email type end-to-end (Parliament Watch, News Digest, Urgent Alert, Monthly Blast)
+- Add "without Ladang" alias variant to seed_aliases — MPs commonly drop "Ladang" when referencing schools (294 schools affected, e.g. "SJK(T) Semantan" = "SJK(T) Ladang Semantan")
 - All 851 backend tests passing, 0 failures
+
+**Data quality notes**:
+- School name abbreviations normalised (migration 0008): Ldg→Ladang, Sg→Sungai, Bkt→Bukit, Kg→Kampung. 110 schools.
+- 62/134 Hansard mentions matched to specific schools. 72 are generic "SJK(T)" category references (correctly unmatched).
+- Supabase pooler (port 6543) is slow for trigram queries — use direct connection (port 5432) or Cloud Run jobs for bulk matching.
 
 **Pending (not sprint-specific)**:
 - End-to-end test: donate page → Toyyib sandbox, school bank card display

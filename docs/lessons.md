@@ -43,3 +43,5 @@ Cross-cutting lessons from SJK(T) Connect development. Project-specific decision
 - Silent email failures erode trust — if a confirmation email fails to send, the user should see a warning, not a success message. Never ignore the return value of external API calls that affect user expectations (Email Infra)
 - When mocking an AI SDK (e.g. `genai`), also mock the env var guard (`os.environ["GEMINI_API_KEY"]`) — services that check for the key before calling the SDK will early-return and the mock is never reached (Email Infra)
 - Google OAuth Playground tokens generated without "Use your own OAuth credentials" checked produce `invalid_grant` — always verify the gear icon settings before authorising (Email Infra)
+- Fix source data, not downstream workarounds — when MOE data has inconsistent abbreviations (Ldg vs Ladang), a data migration normalising the source is cleaner than expanding alias matching logic (Data Quality)
+- Cloud Run job default timeout is 600s — bulk operations (trigram matching over hundreds of records) need explicit `--task-timeout` increase. Check job logs for timeout errors before assuming code bugs (Data Quality)
