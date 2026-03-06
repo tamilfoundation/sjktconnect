@@ -7,6 +7,8 @@
     <div style="font-size: 14px; color: #666;">{{ month_label }}</div>
   </div>
 
+  {% if hero_image_url %}<img src="{{ hero_image_url }}" style="width:100%;max-height:300px;object-fit:cover;border-radius:4px;margin-bottom:20px;" alt="Monthly Intelligence Blast illustration">{% endif %}
+
   <!-- Executive Summary -->
   {% if analysis.executive_summary %}
   <div style="font-size: 16px; line-height: 1.7; margin-bottom: 32px; padding: 20px; background: #f5f3ff; border-left: 4px solid #7c3aed; border-radius: 0 4px 4px 0; color: #374151;">

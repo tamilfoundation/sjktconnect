@@ -14,6 +14,7 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 
 from broadcasts.models import Broadcast
+from broadcasts.services.image_generator import generate_hero_image
 from broadcasts.services.parliament_digest import generate_parliament_digest
 from parliament.models import ParliamentaryMeeting
 
@@ -67,6 +68,14 @@ class Command(BaseCommand):
             )
             return
 
+        # Generate optional hero image
+        hero_image_url = generate_hero_image(
+            content_summary=digest["headlines"],
+            style="parliament",
+        )
+        if hero_image_url:
+            self.stdout.write("Hero image generated")
+
         html_content = render_to_string(
             "broadcasts/parliament_watch.html",
             {
@@ -77,6 +86,7 @@ class Command(BaseCommand):
                 "developments": digest.get("developments", []),
                 "scorecard_summary": digest.get("scorecard_summary", ""),
                 "one_thing": digest.get("one_thing", ""),
+                "hero_image_url": hero_image_url,
             },
         )
 

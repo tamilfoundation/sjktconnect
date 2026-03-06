@@ -19,6 +19,7 @@ from django.utils import timezone
 from django.utils.html import strip_tags
 
 from broadcasts.models import Broadcast
+from broadcasts.services.image_generator import generate_hero_image
 from broadcasts.services.news_digest import generate_news_digest
 
 
@@ -71,15 +72,28 @@ class Command(BaseCommand):
             )
             return
 
+        # Generate optional hero image
+        big_story = digest.get("big_story", {})
+        image_summary = (
+            f"{big_story.get('title', '')}: {big_story.get('summary', '')}"
+        )
+        hero_image_url = generate_hero_image(
+            content_summary=image_summary,
+            style="news",
+        )
+        if hero_image_url:
+            self.stdout.write("Hero image generated")
+
         html_content = render_to_string(
             "broadcasts/news_watch_digest.html",
             {
                 "period_label": period_label,
                 "editors_note": digest["editors_note"],
-                "big_story": digest.get("big_story"),
+                "big_story": big_story,
                 "in_brief": digest.get("in_brief", []),
                 "the_number": digest.get("the_number"),
                 "worth_knowing": digest.get("worth_knowing"),
+                "hero_image_url": hero_image_url,
             },
         )
 

@@ -20,6 +20,7 @@ from django.utils.html import strip_tags
 
 from broadcasts.models import Broadcast
 from broadcasts.services.blast_aggregator import aggregate_month
+from broadcasts.services.image_generator import generate_hero_image
 from broadcasts.services.monthly_analyst import generate_monthly_analysis
 
 
@@ -63,11 +64,22 @@ class Command(BaseCommand):
         analysis = generate_monthly_analysis(year, month)
 
         if analysis:
+            # Generate optional hero image for v2 analytical blast
+            hero_image_url = generate_hero_image(
+                content_summary=analysis.get(
+                    "executive_summary", ""
+                )[:200],
+                style="monthly",
+            )
+            if hero_image_url:
+                self.stdout.write("Hero image generated")
+
             html_content = render_to_string(
                 "broadcasts/monthly_blast_v2.html",
                 {
                     "month_label": month_label,
                     "analysis": analysis,
+                    "hero_image_url": hero_image_url,
                 },
             )
             self.stdout.write("Using v2 analytical template (Gemini)")
