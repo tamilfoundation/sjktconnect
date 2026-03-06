@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { fetchBriefs, fetchAllMentions, fetchMeetingReports } from "@/lib/api";
+import MeetingReportsGrid from "@/components/MeetingReportsGrid";
 
 export const revalidate = 3600;
 
@@ -11,13 +12,6 @@ export async function generateMetadata(): Promise<Metadata> {
     title: t("title"),
     description: t("intro"),
   };
-}
-
-function formatDateRange(start: string, end: string): string {
-  const s = new Date(start);
-  const e = new Date(end);
-  const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" };
-  return `${s.toLocaleDateString("en-GB", opts)} – ${e.toLocaleDateString("en-GB", opts)}`;
 }
 
 export default async function ParliamentWatchPage() {
@@ -67,51 +61,9 @@ export default async function ParliamentWatchPage() {
         </div>
       </div>
 
-      {/* Intelligence Reports — 2-column grid */}
+      {/* Meeting Reports — 2-column grid with pagination */}
       {meetingReports.length > 0 && (
-        <section className="mb-12">
-          <h2 className="text-xl font-bold text-gray-900 mb-1">
-            {t("intelligenceReports")}
-          </h2>
-          <p className="text-sm text-gray-500 mb-5">
-            {t("intelligenceReportsDesc")}
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {meetingReports.map((report) => (
-              <Link
-                key={report.id}
-                href={`/parliament-watch/${report.id}`}
-                className="block bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-5"
-              >
-                <p className="text-xs font-medium text-primary-600 uppercase tracking-wide mb-1">
-                  {formatDateRange(report.start_date, report.end_date)}
-                </p>
-                <h3 className="text-base font-semibold text-gray-900 mb-2">
-                  {report.short_name}
-                </h3>
-                <div className="flex gap-2 mb-3">
-                  <span className="inline-flex items-center text-xs font-medium bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
-                    {report.sitting_count} sittings
-                  </span>
-                  <span className="inline-flex items-center text-xs font-medium bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full">
-                    {report.total_mentions} mentions
-                  </span>
-                </div>
-                {report.executive_summary && (
-                  <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">
-                    {report.executive_summary.replace(/<[^>]*>/g, "")}
-                  </p>
-                )}
-                <span className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 mt-3">
-                  {t("readReport")}
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
+        <MeetingReportsGrid reports={meetingReports} />
       )}
 
       {/* Latest Sitting Summaries — compact list */}
