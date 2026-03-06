@@ -6,7 +6,7 @@ structured, action-oriented content suitable for email broadcasts.
 Returns a dict with: headlines, developments (each with actions for
 school_boards/parents/ngos/community), scorecard_summary, one_thing.
 
-Uses the google.genai SDK (same pattern as parliament/services/report_generator.py).
+Uses the google.genai SDK.
 """
 
 import json

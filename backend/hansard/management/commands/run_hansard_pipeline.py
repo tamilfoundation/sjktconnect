@@ -17,7 +17,6 @@ from hansard.pipeline.calendar_scraper import sync_calendar
 from hansard.pipeline.matcher import match_mentions
 from parliament.services.scorecard import update_all_scorecards
 from parliament.services.brief_generator import generate_all_pending_briefs
-from parliament.services.report_generator import generate_all_pending_reports
 
 
 def run_matching() -> dict:
@@ -152,7 +151,8 @@ class Command(BaseCommand):
         return generate_all_pending_briefs()
 
     def _step_generate_reports(self):
-        return generate_all_pending_reports()
+        call_command("generate_meeting_reports")
+        return "done"
 
     def _dry_run(self, skip_calendar, skip_analysis):
         """Print what each step would do without making changes."""
