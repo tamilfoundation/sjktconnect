@@ -1,0 +1,75 @@
+{% if hero_image_url %}<img src="{{ hero_image_url }}" style="width:100%;max-height:300px;object-fit:cover;border-radius:4px;margin-bottom:20px;" alt="Parliament Watch illustration">{% endif %}
+
+<h1 style="color:#1a1a2e;font-size:24px;margin:0 0 4px 0;font-family:Georgia,serif;">Parliament Watch</h1>
+<p style="color:#666;font-size:14px;margin:0 0 20px 0;">{{ meeting_name }} &middot; {{ start_date|date:"j M Y" }} &ndash; {{ end_date|date:"j M Y" }}</p>
+<hr style="border:none;border-top:2px solid #e0e0e0;margin:0 0 24px 0;">
+
+<!-- Headlines -->
+<p style="font-size:16px;line-height:1.6;color:#333;margin:0 0 24px 0;">{{ headlines }}</p>
+
+<!-- Key Developments -->
+{% if developments %}
+<h2 style="color:#2c3e50;font-size:18px;margin:0 0 16px 0;">Key Developments</h2>
+
+{% for dev in developments %}
+<div style="background:#f8f9fa;border-left:3px solid #3498db;padding:14px 16px;margin-bottom:16px;border-radius:0 4px 4px 0;">
+    <p style="margin:0 0 8px 0;font-weight:bold;color:#1a1a2e;font-size:15px;">{{ dev.topic }}</p>
+    <p style="margin:0 0 12px 0;color:#333;font-size:14px;line-height:1.5;">{{ dev.summary }}</p>
+
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        {% if dev.actions.school_boards %}
+        <tr>
+            <td style="padding:4px 8px 4px 0;vertical-align:top;white-space:nowrap;color:#888;font-weight:bold;">School Boards</td>
+            <td style="padding:4px 0;color:#333;">{{ dev.actions.school_boards }}</td>
+        </tr>
+        {% endif %}
+        {% if dev.actions.parents %}
+        <tr>
+            <td style="padding:4px 8px 4px 0;vertical-align:top;white-space:nowrap;color:#888;font-weight:bold;">Parents</td>
+            <td style="padding:4px 0;color:#333;">{{ dev.actions.parents }}</td>
+        </tr>
+        {% endif %}
+        {% if dev.actions.ngos %}
+        <tr>
+            <td style="padding:4px 8px 4px 0;vertical-align:top;white-space:nowrap;color:#888;font-weight:bold;">NGOs</td>
+            <td style="padding:4px 0;color:#333;">{{ dev.actions.ngos }}</td>
+        </tr>
+        {% endif %}
+        {% if dev.actions.community %}
+        <tr>
+            <td style="padding:4px 8px 4px 0;vertical-align:top;white-space:nowrap;color:#888;font-weight:bold;">Community</td>
+            <td style="padding:4px 0;color:#333;">{{ dev.actions.community }}</td>
+        </tr>
+        {% endif %}
+    </table>
+</div>
+{% endfor %}
+
+<hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0;">
+{% endif %}
+
+<!-- MP Scorecard Summary -->
+{% if scorecard_summary %}
+<h2 style="color:#2c3e50;font-size:18px;margin:0 0 12px 0;">MP Scorecard</h2>
+<p style="font-size:14px;line-height:1.5;color:#333;margin:0 0 20px 0;">{{ scorecard_summary }}</p>
+<hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0;">
+{% endif %}
+
+<!-- The One Thing -->
+{% if one_thing %}
+<div style="background:#fff3e0;border:1px solid #ffcc80;border-radius:6px;padding:16px 20px;margin-bottom:24px;">
+    <p style="margin:0 0 4px 0;font-weight:bold;color:#e65100;font-size:14px;text-transform:uppercase;">The One Thing You Can Do</p>
+    <p style="margin:0;color:#333;font-size:15px;line-height:1.5;">{{ one_thing }}</p>
+</div>
+{% endif %}
+
+<!-- Footer -->
+<hr style="border:none;border-top:2px solid #e0e0e0;margin:24px 0 16px 0;">
+<p style="font-size:13px;color:#888;line-height:1.5;margin:0;">
+    Reply to this email to send us feedback.
+</p>
+<p style="font-size:12px;color:#aaa;margin:8px 0 0 0;">
+    <a href="{{ preferences_url|default:'#' }}" style="color:#888;text-decoration:underline;">Manage preferences</a>
+    &nbsp;&middot;&nbsp;
+    <a href="{{ unsubscribe_url|default:'#' }}" style="color:#888;text-decoration:underline;">Unsubscribe</a>
+</p>
