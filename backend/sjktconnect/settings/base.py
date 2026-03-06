@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "broadcasts",
     "newswatch",
     "donations",
+    "feedback",
 ]
 
 MIDDLEWARE = [
