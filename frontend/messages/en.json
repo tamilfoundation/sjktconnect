@@ -454,7 +454,20 @@
     "showingCount": "Showing {from}–{to} of {total}",
     "perPage": "per page",
     "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "intelligenceReports": "Intelligence Reports",
+    "intelligenceReportsDesc": "AI-generated policy briefings synthesising all sittings from each parliamentary meeting period.",
+    "readReport": "Read report",
+    "latestSittings": "Latest Sitting Summaries",
+    "viewAllSittings": "View all {count} sittings",
+    "stayInformed": "Stay Informed",
+    "stayInformedBody": "Get parliamentary intelligence on Tamil school discussions delivered to your inbox.",
+    "reportTitle": "{name} — Parliament Watch",
+    "backToParliamentWatch": "Parliament Watch",
+    "shareReport": "Share",
+    "downloadPdf": "Download PDF",
+    "previousMeeting": "Previous Meeting",
+    "nextMeeting": "Next Meeting"
   },
   "legal": {
     "lastUpdated": "Last updated: March 2026",

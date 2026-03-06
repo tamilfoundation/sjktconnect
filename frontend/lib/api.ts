@@ -478,3 +478,14 @@ export async function fetchMeetingReports(): Promise<MeetingReport[]> {
     return [];
   }
 }
+
+/**
+ * Fetch a single parliamentary meeting report by ID.
+ */
+export async function fetchMeetingReport(id: number): Promise<MeetingReport | null> {
+  try {
+    return await fetchJSON<MeetingReport>(`${BASE}/meetings/${id}/`);
+  } catch {
+    return null;
+  }
+}
