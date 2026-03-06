@@ -31,8 +31,8 @@ def html_to_plain(text: str) -> str:
 
 
 MEETING_REPORT_PROMPT = """\
-You are a parliamentary reporter writing a meeting report about Tamil school
-(SJK(T)) discussions in the Malaysian Parliament.
+You are a parliamentary reporter writing about Tamil school SJK(T)
+discussions in the Malaysian Parliament.
 
 Meeting: {meeting_name} ({start_date} to {end_date}).
 {sitting_count} sittings had Tamil school mentions, {total_mentions} total mentions.
@@ -42,35 +42,54 @@ Word guide based on sittings:
 - 4-7 sittings: 600-900 words
 - 8+ sittings: 900-1,200 words (minimum 900)
 
-Structure (use ## headings):
+Return the report in this exact structure:
+
+## [Headline]
+A journalistic headline (max 15 words) capturing the most important story
+from this meeting. NOT "Meeting Report" or "Tamil School Discussions".
+Example: "PM Pledges Aid for Dilapidated Tamil Schools as MPs Challenge
+Funding Inequity"
+
+[Lead paragraph — 2-3 sentences summarising the big picture. What happened,
+why it matters, what changed. This is what readers see before expanding.
+Do NOT start with "This report covers..." or any procedural preamble.
+Lead with the story.]
 
 ## Key Findings
 3-5 bullet points. The most important takeaways, with specific amounts,
-names, and dates. Lead with the biggest news. Report facts, not opinions.
+names, and dates. Lead with the biggest news.
 
 ## MP Scorecard
-Markdown table: | MP Name | Constituency | Topic | Assessment |
-- Do NOT include a Party column — constituency is sufficient.
-- Topic: max 8 words (e.g. "School funding allocation").
-- Assessment: one word — Substantive / Routine / Performative.
-- One row per MP. If an MP raised multiple topics, combine into one row.
+Markdown table with these exact columns:
+| MP Name | Constituency | Topic | Stance | Impact | Ministerial Response |
+
+Column definitions (use ONLY these values):
+- Topic: max 8 words describing what was raised.
+- Stance: Advocacy / Inquiry / Critical (pick one).
+- Impact: Policy Shift / Budget Allocation / Localised Issue / General Rhetoric (pick one).
+- Ministerial Response: Commitment Made / Resolved / Deflected / Unanswered (pick one).
+
+One row per MP. If an MP raised multiple topics, use the most significant one.
+Do NOT include a Party column.
 
 ## Policy Signals
-Budget commitments, policy shifts, or ministerial promises. Report what
-was said, not what it might mean. Skip this section if nothing concrete.
+Budget commitments, policy shifts, or ministerial promises with specific
+figures and dates. Report what was said, not what it might mean.
+Skip this section entirely if nothing concrete was committed.
 
 ## What to Watch
 2-3 bullet points for community stakeholders. Be specific and actionable.
+Tell school boards and PTA leaders what to do next.
 
 {previous_context}
 
 Style rules:
 - Report, do not analyse. What was said, by whom, in what context.
-- No editorial assessment ("This was substantive advocacy...").
+- No editorial commentary ("This was substantive..." or "This demonstrates...").
 - Short paragraphs. Simple, clear language. British English.
 - No filler, no preamble. Lead with substance.
-- Write "SJK(T)" on its own, never inside extra brackets. Wrong: "(SJK(T))".
-  If you need a parenthetical abbreviation, write "Tamil schools (SJKT)".
+- NEVER write "(SJK(T))" with outer brackets. Write "SJK(T)" on its own.
+  If needed in parentheses, write "(SJKT)" or "Tamil schools".
 
 Return as plain text with markdown headings and tables. No code fences.
 
@@ -88,8 +107,9 @@ Identify recurring issues, progress on prior concerns, and any new topics
 that emerged in this meeting."""
 
 PREVIOUS_CONTEXT_NO_REPORT = """\
-This is the first meeting being analysed, so no previous meeting report is
-available. Note this and focus on establishing baseline themes and patterns."""
+This is the first meeting being analysed, so no previous report is available.
+Focus on reporting what happened — do not mention that this is a first report
+or talk about "establishing baselines"."""
 
 ILLUSTRATION_PROMPT = """\
 A single-panel editorial cartoon in the style of The Economist or The New Yorker.
@@ -98,13 +118,14 @@ Black ink line drawing with minimal colour wash.
 Scene inspired by these parliamentary findings about Tamil schools in Malaysia:
 {findings}
 
-Requirements:
+Visual requirements:
 - Clean line art, crosshatching for shadows, slightly satirical, understated
-- The Malaysian Parliament dome should be visible in the background
-- A Tamil school building with "SJK(T)" on it should be central
-- Include people (MPs, parents, teachers) relevant to the themes
-- No speech bubbles. No caption text. Let the image speak.
-- No text in the image except "SJK(T)" on the school building
+- The Malaysian Parliament dome visible in the background
+- A Tamil school building with the letters SJK(T) painted on it, central
+- Tamil Indian parents and teachers (dark skin, South Asian features) interacting
+  with Malaysian MPs in the scene
+- The image must contain ONLY the text "SJK(T)" on the school building.
+  No other words, labels, captions, signs, banners, or speech bubbles anywhere.
 """
 
 
@@ -275,42 +296,64 @@ class Command(BaseCommand):
                 time.sleep(2)
                 continue
 
+            # Post-process: fix "(SJK(T))" → "SJK(T)"
+            report_md = re.sub(r"\(SJK\(T\)\)", "SJK(T)", report_md)
+
             # Convert to HTML
             report_html = markdown.markdown(
                 report_md,
                 extensions=["tables"],
             )
 
-            # Extract executive summary as plain text from Key Findings
-            exec_summary = ""
+            # Extract headline from first ## heading
+            headline = ""
             lines = report_md.split("\n")
-            in_exec = False
+            for line in lines:
+                if line.startswith("## ") and "Key Findings" not in line and "MP Scorecard" not in line and "Policy Signals" not in line and "What to Watch" not in line:
+                    headline = line.lstrip("#").strip()
+                    break
+
+            # Extract lead paragraph (text between headline and ## Key Findings)
+            exec_summary = ""
+            lead_lines = []
+            past_headline = False
+            for line in lines:
+                if line.startswith("## ") and not past_headline:
+                    past_headline = True
+                    continue
+                if past_headline and line.startswith("## "):
+                    break
+                if past_headline:
+                    clean = line.strip()
+                    if clean:
+                        lead_lines.append(clean)
+            if lead_lines:
+                exec_summary = " ".join(lead_lines)
+                if len(exec_summary) > 500:
+                    exec_summary = exec_summary[:497] + "..."
+
+            # Extract Key Findings for social post and illustration
             exec_lines = []
+            in_findings = False
             for line in lines:
                 if line.startswith("## Key Findings"):
-                    in_exec = True
+                    in_findings = True
                     continue
-                if in_exec and line.startswith("## "):
+                if in_findings and line.startswith("## "):
                     break
-                if in_exec:
-                    # Strip bullet markers and bold for plain text
+                if in_findings:
                     clean = line.strip().lstrip("*-").strip()
                     clean = re.sub(r"\*\*(.+?)\*\*", r"\1", clean)
                     if clean:
                         exec_lines.append(clean)
-            if exec_lines:
-                # Take first 2-3 findings as plain text summary
-                exec_summary = " ".join(exec_lines[:3])
-                if len(exec_summary) > 500:
-                    exec_summary = exec_summary[:497] + "..."
 
-            # Build social post from first finding
+            # Build social post
             social = (
                 f"{meeting.short_name}: {len(briefs)} sittings, "
                 f"{total_mentions} Tamil school mentions in Parliament."
             )
-            if exec_lines and len(social) < 250:
-                first = exec_lines[0].split(".")[0]
+            if lead_lines and len(social) < 250:
+                first = lead_lines[0].split(".")[0]
                 if first and len(social) + len(first) + 2 <= 280:
                     social += " " + first + "."
 

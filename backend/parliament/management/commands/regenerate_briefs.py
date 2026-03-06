@@ -8,6 +8,7 @@ proper narrative report.
 import json
 import logging
 import os
+import re
 import time
 
 import markdown
@@ -218,6 +219,10 @@ class Command(BaseCommand):
             blurb = data.get("blurb", "").strip()
             body_md = data.get("body_md", "").strip()
             social = data.get("social", "").strip()[:280]
+
+            # Post-process: fix "(SJK(T))" → "SJK(T)"
+            _fix = lambda s: re.sub(r"\(SJK\(T\)\)", "SJK(T)", s)
+            headline, blurb, body_md, social = _fix(headline), _fix(blurb), _fix(body_md), _fix(social)
 
             # Convert body markdown to HTML
             report_html = markdown.markdown(

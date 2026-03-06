@@ -11,7 +11,7 @@ For each match, extracts:
 import logging
 import re
 
-from .normalizer import normalize_text
+from .normalizer import clean_extracted_text, normalize_text
 
 logger = logging.getLogger(__name__)
 
@@ -110,9 +110,9 @@ def search_keywords(
                 matches.append({
                     "page_number": page_num,
                     "keyword_matched": keyword,
-                    "verbatim_quote": verbatim,
-                    "context_before": ctx_before,
-                    "context_after": ctx_after,
+                    "verbatim_quote": clean_extracted_text(verbatim),
+                    "context_before": clean_extracted_text(ctx_before),
+                    "context_after": clean_extracted_text(ctx_after),
                     "match_position": pos,
                     "speaker_name": speaker_name,
                     "speaker_constituency": speaker_constituency,

@@ -10,18 +10,21 @@ interface BriefsListProps {
 }
 
 /**
- * Extract just the Summary paragraph from the HTML for the collapsed preview.
- * Looks for content between the first <h2>Summary</h2> and the next <h2>.
+ * Extract the lead paragraph from the HTML for the collapsed preview.
+ * Takes content before the first heading (h2 or h3), which is the blurb.
  */
 function extractSummary(html: string): string {
-  // Get text after "Summary" heading up to the next heading
-  const match = html.match(/<h2>Summary<\/h2>\s*([\s\S]*?)(?=<h2>|$)/i);
-  if (match) {
-    return match[1].replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  // Get content before the first heading (h2 or h3)
+  const match = html.match(/^([\s\S]*?)(?=<h[23]>)/i);
+  if (match && match[1].trim()) {
+    const plain = match[1].replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    if (plain.length > 0) {
+      return plain.length > 300 ? plain.slice(0, 297) + "..." : plain;
+    }
   }
   // Fallback: strip all tags and take first 300 chars
   const plain = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-  return plain.length > 300 ? plain.slice(0, 300) + "..." : plain;
+  return plain.length > 300 ? plain.slice(0, 297) + "..." : plain;
 }
 
 export default function BriefsList({ briefs }: BriefsListProps) {
