@@ -46,6 +46,10 @@ class ParliamentaryMeeting(models.Model):
         help_text="Gemini-generated editorial cartoon (PNG bytes)",
     )
     is_published = models.BooleanField(default=False)
+    quality_flag = models.CharField(
+        max_length=10, blank=True, default="",
+        help_text="Quality assessment: GREEN/AMBER/RED (empty = not evaluated)",
+    )
     published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -130,6 +134,10 @@ class SittingBrief(models.Model):
         help_text="Email newsletter draft",
     )
     is_published = models.BooleanField(default=False)
+    quality_flag = models.CharField(
+        max_length=10, blank=True, default="",
+        help_text="Quality assessment: GREEN/AMBER/RED (empty = not evaluated)",
+    )
     published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -180,3 +188,41 @@ class MP(models.Model):
         if self.mymp_slug:
             return f"https://mymp.org.my/p/{self.mymp_slug}"
         return None
+
+
+class QualityLog(models.Model):
+    """Records every evaluation cycle for a brief or report."""
+
+    CONTENT_TYPES = [("brief", "Sitting Brief"), ("report", "Meeting Report")]
+    VERDICTS = [("PASS", "Pass"), ("FIX", "Fix"), ("REJECT", "Reject")]
+    FLAGS = [("GREEN", "Green"), ("AMBER", "Amber"), ("RED", "Red")]
+
+    content_type = models.CharField(max_length=20, choices=CONTENT_TYPES)
+    sitting_brief = models.ForeignKey(
+        "SittingBrief", null=True, blank=True,
+        on_delete=models.CASCADE, related_name="quality_logs",
+    )
+    meeting = models.ForeignKey(
+        "ParliamentaryMeeting", null=True, blank=True,
+        on_delete=models.CASCADE, related_name="quality_logs",
+    )
+
+    prompt_version = models.CharField(max_length=20)
+    model_used = models.CharField(max_length=50)
+    attempt_number = models.IntegerField()
+
+    verdict = models.CharField(max_length=10, choices=VERDICTS)
+    tier1_results = models.JSONField(default=dict)
+    tier2_scores = models.JSONField(default=dict)
+    tier3_flags = models.JSONField(default=dict)
+
+    corrections_applied = models.JSONField(default=list)
+    quality_flag = models.CharField(max_length=10, choices=FLAGS)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"QualityLog: {self.content_type} attempt {self.attempt_number} — {self.verdict}"
