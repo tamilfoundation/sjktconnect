@@ -7,6 +7,7 @@ from django.test import TestCase
 
 from parliament.services.evaluator import (
     EvaluationResult,
+    REPORT_TIER2_CRITERIA,
     evaluate_brief,
     evaluate_report,
     _compute_verdict,
@@ -68,6 +69,10 @@ class EvaluationResultTests(TestCase):
         )
         self.assertEqual(r.verdict, "FIX")
         self.assertEqual(len(r.unlinked_schools), 1)
+
+    def test_report_tier2_has_executive_response_attribution(self):
+        """REPORT_TIER2_CRITERIA includes executive_response_attribution."""
+        self.assertIn("executive_response_attribution", REPORT_TIER2_CRITERIA)
 
 
 class EvaluateReportTests(TestCase):

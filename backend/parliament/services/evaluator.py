@@ -121,6 +121,7 @@ REPORT_TIER2_CRITERIA = """\
 - key_findings_specificity: Do findings cite figures/dates/names? (1-10)
 - mp_scorecard_traceability: Are scorecard entries traceable to briefs? (1-10)
 - executive_response_tracking: Is time-lag noted where applicable? (1-10)
+- executive_response_attribution: Is every executive response attributed to a named minister with correct portfolio? (1-10)
 - actionability: Can a school board act on "What to Watch"? (1-10)
 - word_count: Is it within guidance range? (1-10)
 - school_linkification: Are school names linked? (1-10)
