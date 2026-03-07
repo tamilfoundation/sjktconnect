@@ -17,7 +17,9 @@ from django.core.management.base import BaseCommand
 from google import genai
 from google.genai import types
 
-from parliament.models import ParliamentaryMeeting, SittingBrief
+from parliament.models import ParliamentaryMeeting, QualityLog, SittingBrief
+from parliament.services.evaluator import evaluate_report
+from parliament.services.corrector import apply_code_fixes, correct_report
 
 logger = logging.getLogger(__name__)
 
@@ -483,6 +485,88 @@ class Command(BaseCommand):
             meeting.executive_summary = exec_summary
             meeting.social_post_text = social[:280]
 
+            # --- Quality evaluation loop ---
+            from schools.models import School
+            from parliament.models import MP
+            school_names = list(
+                School.objects.values_list("name", flat=True)[:100]
+            )
+            mp_names = list(
+                MP.objects.values_list("name", flat=True)[:50]
+            )
+
+            # Apply code fixes
+            report_html = apply_code_fixes(report_html)
+            meeting.report_html = report_html
+
+            quality_flag = "GREEN"
+            attempt = 1
+            current_md = report_md
+
+            while attempt <= 3:
+                eval_result = evaluate_report(
+                    report_html=report_html,
+                    source_briefs=all_summaries,
+                    school_names=school_names,
+                    mp_names=mp_names,
+                    previous_report=prev_report_text,
+                )
+
+                if eval_result.verdict == "PASS":
+                    quality_flag = "GREEN"
+                elif eval_result.verdict == "REJECT":
+                    quality_flag = "RED"
+                else:
+                    quality_flag = "AMBER"
+
+                QualityLog.objects.create(
+                    content_type="report",
+                    meeting=meeting,
+                    prompt_version="v3",
+                    model_used="gemini-2.5-flash",
+                    attempt_number=attempt,
+                    verdict=eval_result.verdict,
+                    tier1_results=eval_result.tier1_results,
+                    tier2_scores=eval_result.tier2_scores,
+                    tier3_flags=eval_result.tier3_flags,
+                    corrections_applied=[],
+                    quality_flag=quality_flag,
+                )
+
+                if eval_result.verdict == "PASS":
+                    break
+
+                if attempt >= 3:
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f"  {meeting.short_name}: circuit breaker — "
+                            f"publishing with {quality_flag} flag"
+                        )
+                    )
+                    break
+
+                # Attempt correction
+                corrected_md = correct_report(
+                    current_draft=current_md,
+                    eval_result=eval_result,
+                    source_briefs=all_summaries,
+                )
+                if corrected_md:
+                    current_md = corrected_md
+                    report_html = markdown.markdown(
+                        current_md, extensions=["tables"],
+                    )
+                    report_html = _linkify_constituencies(report_html)
+                    report_html = _linkify_schools(report_html)
+                    report_html = apply_code_fixes(report_html)
+                    meeting.report_html = report_html
+                else:
+                    break
+
+                attempt += 1
+
+            meeting.quality_flag = quality_flag
+
             # Generate editorial cartoon illustration
             findings_text = " ".join(exec_lines) if exec_lines else ""
             if findings_text:
@@ -498,7 +582,7 @@ class Command(BaseCommand):
 
             update_fields = [
                 "report_html", "executive_summary", "social_post_text",
-                "updated_at",
+                "quality_flag", "updated_at",
             ]
             if meeting.illustration:
                 update_fields.append("illustration")
