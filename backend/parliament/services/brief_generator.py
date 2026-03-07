@@ -12,6 +12,8 @@ import markdown
 
 from hansard.models import HansardMention, HansardSitting
 from parliament.models import SittingBrief
+from parliament.services.evaluator import evaluate_brief as _evaluate_brief
+from parliament.services.corrector import apply_code_fixes
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +98,9 @@ def generate_brief(sitting):
             "social_post_text": social_text,
         },
     )
+
+    # Quality evaluation loop
+    _run_brief_quality_loop(brief, mentions)
 
     logger.info(
         "Brief generated for sitting %s: %s mentions",
@@ -196,3 +201,56 @@ def _build_social_post(sitting, mentions):
         post = post[:277] + "..."
 
     return post
+
+
+def _run_brief_quality_loop(brief, mentions):
+    """Run evaluate/correct loop on a sitting brief."""
+    from parliament.models import QualityLog
+    from schools.models import School
+    from parliament.models import MP
+
+    school_names = list(School.objects.values_list("name", flat=True)[:100])
+    mp_names = list(MP.objects.values_list("name", flat=True)[:50])
+    source_summaries = "\n".join(
+        m.ai_summary for m in mentions if m.ai_summary
+    )
+
+    # Apply code fixes first
+    cleaned_html = apply_code_fixes(brief.summary_html)
+    if cleaned_html != brief.summary_html:
+        brief.summary_html = cleaned_html
+        brief.save(update_fields=["summary_html", "updated_at"])
+
+    # Evaluate
+    eval_result = _evaluate_brief(
+        brief_html=brief.summary_html,
+        source_summaries=source_summaries,
+        school_names=school_names,
+        mp_names=mp_names,
+    )
+
+    # Determine quality flag
+    if eval_result.verdict == "PASS":
+        quality_flag = "GREEN"
+    elif eval_result.verdict == "REJECT":
+        quality_flag = "RED"
+    else:
+        quality_flag = "AMBER"
+
+    # Log
+    QualityLog.objects.create(
+        content_type="brief",
+        sitting_brief=brief,
+        prompt_version="v1",
+        model_used="gemini-2.5-flash",
+        attempt_number=1,
+        verdict=eval_result.verdict,
+        tier1_results=eval_result.tier1_results,
+        tier2_scores=eval_result.tier2_scores,
+        tier3_flags=eval_result.tier3_flags,
+        corrections_applied=[],
+        quality_flag=quality_flag,
+    )
+
+    brief.quality_flag = quality_flag
+    brief.save(update_fields=["quality_flag", "updated_at"])

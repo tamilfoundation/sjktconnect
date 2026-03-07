@@ -1,5 +1,7 @@
 """Tests for brief generator service."""
 
+from unittest.mock import patch
+
 from django.test import TestCase
 
 from hansard.models import HansardMention, HansardSitting
@@ -241,3 +243,61 @@ class GenerateAllPendingBriefsTests(TestCase):
 
         self.assertEqual(result["generated"], 0)
         self.assertFalse(SittingBrief.objects.filter(sitting=sitting).exists())
+
+
+class BriefQualityLoopTests(TestCase):
+    """Test that brief generation runs the evaluate/correct loop."""
+
+    def setUp(self):
+        self.sitting = HansardSitting.objects.create(
+            sitting_date="2026-05-01",
+            pdf_url="https://example.com/test.pdf",
+            pdf_filename="test.pdf",
+        )
+        HansardMention.objects.create(
+            sitting=self.sitting, verbatim_quote="Q1", page_number=5,
+            mp_name="YB Test", ai_summary="Test summary.",
+            review_status="APPROVED",
+        )
+
+    @patch("parliament.services.brief_generator._evaluate_brief")
+    def test_brief_evaluated_after_generation(self, mock_eval):
+        from parliament.services.evaluator import EvaluationResult
+        mock_eval.return_value = EvaluationResult(verdict="PASS")
+
+        brief = generate_brief(self.sitting)
+        self.assertIsNotNone(brief)
+        mock_eval.assert_called_once()
+
+    @patch("parliament.services.brief_generator._evaluate_brief")
+    def test_brief_quality_flag_set_on_pass(self, mock_eval):
+        from parliament.services.evaluator import EvaluationResult
+        mock_eval.return_value = EvaluationResult(verdict="PASS")
+
+        brief = generate_brief(self.sitting)
+        self.assertEqual(brief.quality_flag, "GREEN")
+
+    @patch("parliament.services.brief_generator._evaluate_brief")
+    def test_quality_log_created(self, mock_eval):
+        from parliament.models import QualityLog
+        from parliament.services.evaluator import EvaluationResult
+        mock_eval.return_value = EvaluationResult(
+            verdict="PASS",
+            tier1_results={"fabricated_facts": {"pass": True}},
+            tier2_scores={"school_linkification": {"score": 8}},
+            tier3_flags={},
+        )
+
+        generate_brief(self.sitting)
+        self.assertEqual(QualityLog.objects.count(), 1)
+        log = QualityLog.objects.first()
+        self.assertEqual(log.content_type, "brief")
+        self.assertEqual(log.verdict, "PASS")
+
+    @patch("parliament.services.brief_generator._evaluate_brief")
+    def test_amber_flag_on_fix_verdict(self, mock_eval):
+        from parliament.services.evaluator import EvaluationResult
+        mock_eval.return_value = EvaluationResult(verdict="FIX")
+
+        brief = generate_brief(self.sitting)
+        self.assertEqual(brief.quality_flag, "AMBER")
