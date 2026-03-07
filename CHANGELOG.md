@@ -1,5 +1,22 @@
 # Changelog
 
+## Self-Correcting Report Engine (2026-03-07)
+
+### Added
+- **Quality rubric** (`docs/quality/rubric.md`) — permanent 3-tier standard (red lines, quality gates, drift detection)
+- **QualityLog model** — records every evaluation cycle with verdict, tier scores, corrections applied
+- **quality_flag field** on SittingBrief and ParliamentaryMeeting (GREEN/AMBER/RED)
+- **Evaluator service** — separate Gemini API call scoring output against rubric. Fail-open design.
+- **Corrector service** — re-prompt with targeted feedback, deterministic code fixes. 3-attempt circuit breaker.
+- **School name repairer** — comma removal, filler word removal, fuzzy matching for unlinked names
+- **Learner service** — pattern detection across quality logs, quality summary per meeting
+- **Brief generator integration** — evaluate/correct loop runs after brief generation
+- **Report generator integration** — 3-attempt circuit breaker with quality logging (first tests for report generator)
+- **Prompt registry** (`docs/quality/prompt-registry.md`) and **learner patterns** tracking files
+- 46 new backend tests (898 total)
+
+---
+
 ## Data Quality Fixes (2026-03-06)
 
 ### Fixed
