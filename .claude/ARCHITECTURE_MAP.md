@@ -1,12 +1,15 @@
 # SJK(T) Connect — Architecture Map
 
-Last updated: Sprint 3.3 close (3 Mar 2026)
+Last updated: Quality Engine sprint close (7 Mar 2026)
 
 ## Stack
 
 - **Backend**: Django 5.1 + DRF — Python 3.12, SQLite (dev), Supabase PostgreSQL (prod)
 - **Frontend**: Next.js 14 App Router — TypeScript, Tailwind CSS, Google Maps
-- **Infra**: Cloud Run (API), Cloud Scheduler (daily Hansard check), Supabase (DB)
+- **AI**: Gemini 2.5 Flash (Hansard analysis, news analysis, report generation, quality evaluation)
+- **Infra**: Cloud Run (API + Web), Cloud Run Jobs (6 jobs), Cloud Scheduler (6 schedules), Supabase (DB)
+- **Email**: Brevo transactional API (noreply@tamilschool.org, feedback@tamilschool.org)
+- **Domain**: tamilschool.org
 
 ## Backend — Django Apps
 
@@ -14,7 +17,7 @@ Last updated: Sprint 3.3 close (3 Mar 2026)
 backend/
 ├── sjktconnect/          # Project settings (base/dev/prod split)
 │   ├── settings/
-│   ├── urls.py           # Root URL conf: /admin, /api/v1/
+│   ├── urls.py           # Root URL conf: /admin, /api/v1/, /review/, /dashboard/
 │   └── wsgi.py
 │
 ├── core/                 # Cross-cutting concerns
@@ -23,206 +26,210 @@ backend/
 │   └── signals.py        # Post-save hooks
 │
 ├── schools/              # School + geography data
-│   ├── models.py         # Constituency, DUN, School, SchoolLeader
+│   ├── models.py         # Constituency, DUN, School, SchoolAlias, SchoolLeader
 │   ├── utils.py          # to_proper_case(), format_phone() — data quality utilities
 │   ├── views.py          # VerificationDashboardView (admin, login required)
 │   ├── urls.py           # /dashboard/verification/
 │   ├── api/
 │   │   ├── serializers.py  # SchoolList/Detail/Edit, SchoolLeader, Constituency, DUN serializers
 │   │   ├── views.py      # SchoolList, SchoolDetail, SchoolEdit, SchoolConfirm, Constituency/DUN
-│   │   ├── geojson.py    # GeoJSON endpoint (WKT → GeoJSON conversion)
+│   │   ├── geojson.py    # GeoJSON endpoint (WKT → GeoJSON conversion via shapely)
 │   │   └── urls.py       # /schools/, /constituencies/, /duns/
 │   └── management/commands/
 │       ├── import_schools.py         # Excel → School records (proper case, data/ folder)
-│       └── import_constituencies.py  # CSV → Constituency + DUN + demographics (data/ folder)
+│       ├── import_constituencies.py  # CSV → Constituency + DUN + demographics
+│       ├── seed_aliases.py           # Generate SchoolAlias from School names (~4 per school)
+│       └── verify_school_pins.py     # GPS verification via Google Places API
 │
 ├── hansard/              # Hansard pipeline (scrape → extract → match)
-│   ├── models.py         # HansardSitting, HansardMention, SchoolAlias, MentionedSchool
+│   ├── models.py         # HansardSitting, HansardMention, MentionedSchool
 │   ├── pipeline/
-│   │   ├── scraper.py    # Fetch Hansard index from parliament.gov.my
-│   │   ├── downloader.py # Download PDF
-│   │   ├── extractor.py  # PDF → text extraction
+│   │   ├── scraper.py    # parlimen.gov.my calendar scraper (SSL bypass)
+│   │   ├── downloader.py # Download PDF (ranged GET, HEAD blocked)
+│   │   ├── extractor.py  # PDF → text extraction (pdfplumber) + clean_extracted_text
 │   │   ├── searcher.py   # Keyword search in text
 │   │   ├── keywords.py   # Tamil school keyword list
 │   │   ├── normalizer.py # Text normalisation for matching
 │   │   ├── matcher.py    # Match mentions → schools (alias + trigram)
 │   │   └── stop_words.py # False-positive filter
 │   └── management/commands/
-│       ├── check_new_hansards.py  # Daily cron: scrape + process new sittings
-│       ├── process_hansard.py     # Process a single sitting
-│       └── seed_aliases.py        # Generate SchoolAlias from School names
+│       ├── run_hansard_pipeline.py  # Full 7-step pipeline (Sprint 5.1)
+│       ├── check_new_hansards.py    # Discovery: scrape + process new sittings
+│       ├── process_hansard.py       # Process a single sitting
+│       ├── rebuild_all_hansards.py  # Re-process all sittings (Sprint 5.2)
+│       └── scrape_ge15_results.py   # Scrape GE15 election data from undi.info
 │
-├── parliament/           # Parliament Watch (AI analysis + scorecards)
-│   ├── models.py         # MPScorecard
+├── parliament/           # Parliament Watch (AI analysis + reports + quality engine)
+│   ├── models.py         # MPScorecard, SittingBrief, ParliamentaryMeeting, MP,
+│   │                     # MeetingIllustration, QualityLog, quality_flag on Brief/Meeting
 │   ├── services/
-│   │   ├── gemini_client.py    # Gemini API wrapper
-│   │   ├── brief_generator.py  # Generate briefing notes from mentions
-│   │   └── scorecard.py        # Compute/update MP scorecards
+│   │   ├── gemini_client.py    # Gemini API wrapper (google.genai SDK)
+│   │   ├── brief_generator.py  # Generate sitting briefs + quality loop integration
+│   │   ├── scorecard.py        # Compute/update MP scorecards
+│   │   ├── mp_scraper.py       # Scrape MP profiles (parlimen.gov.my + mymp.org.my)
+│   │   ├── mp_resolver.py      # Cross-ref mention speakers → 222 MP records
+│   │   ├── evaluator.py        # Quality evaluator: Gemini rubric scoring, fail-open (Quality Engine)
+│   │   ├── corrector.py        # Quality corrector: re-prompt + code fixes, 3-attempt circuit breaker
+│   │   ├── name_repairer.py    # School name repair: comma/filler removal, fuzzy matching
+│   │   └── learner.py          # Pattern detection: recurring Tier 2 low scores across reports
 │   ├── api/
-│   │   ├── serializers.py
-│   │   ├── views.py
-│   │   └── urls.py       # /parliament/ endpoints
-│   ├── views.py          # Django template views (admin-facing)
-│   ├── forms.py
+│   │   ├── serializers.py      # Meeting, Brief, Scorecard, MP serializers
+│   │   ├── views.py            # Meeting list/detail, illustration endpoint
+│   │   └── urls.py             # /meetings/, /briefs/, /scorecards/
+│   ├── views.py          # Django template views (admin review queue)
+│   ├── forms.py          # MentionReviewForm
 │   ├── templatetags/
 │   │   └── highlight.py  # Template filter for keyword highlighting
 │   └── management/commands/
-│       ├── analyse_mentions.py   # AI analysis of mentions (Gemini)
-│       └── update_scorecards.py  # Recompute all MP scorecards
+│       ├── analyse_mentions.py        # AI analysis of mentions (Gemini)
+│       ├── update_scorecards.py       # Recompute all MP scorecards
+│       ├── generate_meeting_reports.py # Generate meeting reports + quality loop
+│       ├── import_mp_profiles.py      # Scrape + import MP profiles
+│       ├── regenerate_briefs.py       # Re-generate all sitting briefs
+│       ├── backfill_mp_names.py       # Backfill MP names on mentions
+│       ├── backfill_speakers.py       # Backfill speakers from Hansard text
+│       └── dedup_mentions.py          # Remove duplicate mentions
 │
 ├── accounts/             # Magic Link authentication (Sprint 1.6)
 │   ├── models.py         # MagicLinkToken (UUID, 24h expiry), SchoolContact (verified rep)
-│   ├── permissions.py    # IsMagicLinkAuthenticated — DRF permission for session-based auth
+│   ├── permissions.py    # IsMagicLinkAuthenticated — DRF permission
 │   ├── services/
 │   │   ├── token.py      # validate_moe_email, find_school_by_email, create/verify tokens
 │   │   └── email.py      # Brevo transactional email (console fallback in dev)
-│   ├── api/
-│   │   ├── serializers.py
-│   │   ├── views.py      # RequestMagicLink, VerifyToken, Me
-│   │   └── urls.py       # /auth/ endpoints
-│   └── admin.py          # SchoolContact + MagicLinkToken admin
+│   └── api/              # /auth/ endpoints
 │
 ├── outreach/             # School images + email outreach (Sprint 1.8)
-│   ├── models.py         # SchoolImage (satellite/places/manual), OutreachEmail (Brevo tracking)
+│   ├── models.py         # SchoolImage (satellite/places/manual), OutreachEmail
 │   ├── services/
 │   │   ├── image_harvester.py  # Google Static Maps + Places API image harvesting
-│   │   └── email_sender.py     # Brevo outreach email sending (console fallback in dev)
-│   ├── management/commands/
-│   │   ├── harvest_school_images.py  # Harvest images: --limit, --state, --source, --dry-run
-│   │   └── send_outreach_emails.py   # Send emails: --limit, --state, --dry-run
-│   ├── admin.py          # SchoolImage + OutreachEmail admin
-│   └── tests/
-│       ├── test_image_harvester.py   # 18 tests (satellite, places, command)
-│       └── test_email_sender.py      # 16 tests (email, models, command, API)
+│   │   └── email_sender.py     # Brevo outreach email sending
+│   └── management/commands/
+│       ├── harvest_school_images.py
+│       └── send_outreach_emails.py
 │
 ├── subscribers/          # Subscriber management (Sprint 2.1)
-│   ├── models.py         # Subscriber (email, verified), SubscriptionPreference (school/constituency/state)
+│   ├── models.py         # Subscriber (email, verified), SubscriptionPreference
 │   ├── services/
 │   │   └── confirmation.py  # Brevo confirmation email on subscribe
-│   ├── api/
-│   │   ├── serializers.py
-│   │   ├── views.py      # Subscribe, Unsubscribe, Preferences
-│   │   └── urls.py       # /subscribers/ endpoints
-│   └── tests/
+│   └── api/              # /subscribers/ endpoints (subscribe, unsubscribe, preferences)
 │
 ├── broadcasts/           # Broadcast messaging (Sprint 2.2-2.3, 2.7)
-│   ├── models.py         # Broadcast (draft/sent), BroadcastRecipient (per-recipient tracking)
+│   ├── models.py         # Broadcast (draft/sent), BroadcastRecipient
 │   ├── services/
-│   │   ├── sender.py          # Brevo transactional send, rate limiting, SENT/FAILED tracking
-│   │   ├── audience.py        # Audience filtering (category, state, constituency, enrolment)
-│   │   └── blast_aggregator.py # Monthly blast: top 5 mentions, top 5 articles, top 3 scorecards
-│   ├── views.py          # Django admin views: compose, preview, list
-│   ├── forms.py          # BroadcastForm (audience filtering by scope)
-│   ├── templates/        # Admin compose/preview/list + monthly_blast.html email template
-│   ├── management/commands/
-│   │   ├── send_broadcast.py        # Management command for sending broadcasts
-│   │   └── compose_monthly_blast.py # Auto-draft monthly digest (--month, --dry-run)
-│   └── tests/
+│   │   ├── sender.py          # Brevo send, rate limiting, per-recipient tracking
+│   │   ├── audience.py        # Audience filtering (category, state, constituency)
+│   │   └── blast_aggregator.py # Monthly blast: top mentions, articles, scorecards
+│   ├── views.py          # Admin: compose, preview, list
+│   ├── templates/        # Admin views + monthly_blast.html email template
+│   └── management/commands/
+│       ├── send_broadcast.py
+│       └── compose_monthly_blast.py
 │
-└── newswatch/            # News monitoring pipeline (Sprint 2.5-2.6)
-    ├── models.py         # NewsArticle (NEW → EXTRACTED → ANALYSED lifecycle, review status)
-    ├── services/
-    │   ├── rss_fetcher.py       # Google Alerts RSS parser, URL dedup, redirect unwrapping
-    │   ├── article_extractor.py # trafilatura body text extraction, metadata (source, date)
-    │   └── news_analyser.py     # Gemini Flash AI analysis (relevance, sentiment, summary, urgency)
-    ├── views.py          # Admin review queue: NewsQueueView, NewsArticleDetailView, Approve/Reject/ToggleUrgent
-    ├── urls.py           # /dashboard/news/ review queue routes
-    ├── management/commands/
-    │   ├── fetch_news_alerts.py      # Poll RSS feeds (--url or NEWS_WATCH_RSS_FEEDS setting)
-    │   ├── extract_articles.py       # Extract body text from NEW articles (--batch-size)
-    │   └── analyse_news_articles.py  # AI-analyse EXTRACTED articles (--batch-size)
-    ├── admin.py          # NewsArticle admin with status/source/urgency filters
-    ├── templates/newswatch/
-    │   ├── queue.html    # Review queue: filterable table, urgency alerts
-    │   └── detail.html   # Split-screen: article body + AI analysis + actions
-    └── tests/
+├── newswatch/            # News monitoring pipeline (Sprint 2.5-2.6)
+│   ├── models.py         # NewsArticle (NEW → EXTRACTED → ANALYSED, review lifecycle)
+│   ├── services/
+│   │   ├── rss_fetcher.py       # Google Alerts RSS parser, URL dedup
+│   │   ├── article_extractor.py # trafilatura body text extraction
+│   │   └── news_analyser.py     # Gemini AI analysis (relevance, sentiment, urgency)
+│   ├── views.py          # Admin review queue + detail + approve/reject/toggle-urgent
+│   └── management/commands/
+│       ├── fetch_news_alerts.py
+│       ├── extract_articles.py
+│       ├── analyse_news_articles.py
+│       └── run_news_pipeline.py  # Full pipeline: fetch → extract → analyse
+│
+└── donations/            # Online donations (Sprint 4.1-4.2)
+    ├── models.py         # Donation (Toyyib Pay integration)
+    ├── services.py       # Toyyib Pay API wrapper (create bill, verify payment)
+    ├── api/
+    │   ├── serializers.py
+    │   ├── views.py      # Create donation, Toyyib callback, payment status
+    │   └── urls.py       # /donations/ endpoints
+    └── management/commands/
+        └── import_bank_details.py  # Import bank details from TF Excel
 ```
+
+## Quality Engine (Self-Correcting Report Engine)
+
+```
+Generator → Evaluator → Corrector → Learner
+                ↓              ↓
+           QualityLog    Re-prompt Gemini
+                ↓
+         quality_flag (GREEN/AMBER/RED)
+```
+
+- **Evaluator** (`evaluator.py`): Gemini scores output against 3-tier rubric. Fail-open — API errors = PASS.
+- **Corrector** (`corrector.py`): Targeted re-prompt + deterministic code fixes. 3-attempt circuit breaker.
+- **Name Repairer** (`name_repairer.py`): Comma removal, filler word removal, fuzzy matching (SequenceMatcher ≥0.7).
+- **Learner** (`learner.py`): Detects recurring Tier 2 low scores across reports. Writes to `docs/quality/learner-patterns.md`.
+- **Rubric** (`docs/quality/rubric.md`): Permanent quality standard. Tier 1 (red lines), Tier 2 (scored 1-10), Tier 3 (drift detection).
+- **Prompt Registry** (`docs/quality/prompt-registry.md`): Version tracking for all Gemini prompts.
+- **QualityLog** model: Records every evaluation cycle (scores, corrections, verdict) for auditing.
 
 ## Frontend — Next.js App Router + next-intl (i18n)
 
 ```
 frontend/
-├── app/
-│   ├── globals.css                    # Global styles (stays at root, not under [locale])
-│   └── [locale]/                      # All pages under locale prefix (Sprint 3.3)
-│       ├── layout.tsx                 # Locale layout: NextIntlClientProvider + Header + Footer
-│       ├── page.tsx                   # Home: school map with 528 pins, search, state filter
-│       ├── school/[moe_code]/
-│       │   ├── page.tsx               # ISR (1hr). School profile: stats, details, political rep
-│       │   ├── edit/
-│       │   │   └── page.tsx           # Client-side. Auth-gated school edit form
-│       │   ├── loading.tsx            # Skeleton
-│       │   └── not-found.tsx          # 404
-│       ├── constituency/[code]/
-│       │   ├── page.tsx               # ISR (1hr). Constituency detail: scorecard, map, demographics
-│       │   └── loading.tsx
-│       ├── dun/[id]/
-│       │   ├── page.tsx               # ISR (1hr). DUN detail: schools, demographics, map
-│       │   └── loading.tsx
-│       ├── constituencies/
-│       │   └── page.tsx               # ISR (1hr). Constituency index: filterable table
-│       ├── claim/
-│       │   ├── page.tsx               # Claim form: enter @moe.edu.my email
-│       │   └── verify/[token]/
-│       │       └── page.tsx           # Token verification: success/error states
-│       ├── parliament-watch/
-│       │   └── page.tsx               # Parliament Watch page
-│       ├── subscribe/
-│       │   └── page.tsx               # Subscribe form: email, name, org, category preview
-│       ├── unsubscribe/[token]/
-│       │   └── page.tsx               # One-click unsubscribe confirmation
-│       └── preferences/[token]/
-│           └── page.tsx               # Manage subscription category toggles
+├── app/[locale]/                      # All pages under locale prefix (en/ta/ms)
+│   ├── layout.tsx                     # NextIntlClientProvider + Header + Footer
+│   ├── page.tsx                       # Home: school map, search, stats bar
+│   ├── school/[moe_code]/page.tsx     # School profile (ISR 1hr)
+│   ├── school/[moe_code]/edit/page.tsx # Auth-gated school edit
+│   ├── constituency/[code]/page.tsx   # Constituency detail + MP card + scorecard
+│   ├── constituencies/page.tsx        # Constituency index (filterable)
+│   ├── dun/[id]/page.tsx              # DUN detail
+│   ├── parliament-watch/page.tsx      # Meeting reports grid
+│   ├── parliament-watch/[id]/page.tsx # Individual meeting report
+│   ├── parliament-watch/sittings/page.tsx # Sittings list
+│   ├── news/page.tsx                  # News articles (paginated)
+│   ├── donate/page.tsx                # Donation form → Toyyib Pay
+│   ├── donate/thank-you/page.tsx      # Payment status
+│   ├── subscribe/page.tsx             # Subscribe form
+│   ├── unsubscribe/[token]/page.tsx   # One-click unsubscribe
+│   ├── preferences/[token]/page.tsx   # Manage subscription preferences
+│   ├── claim/page.tsx                 # Claim school form
+│   ├── claim/verify/[token]/page.tsx  # Token verification
+│   ├── about/page.tsx                 # About page
+│   ├── about-tamil-schools/page.tsx   # Tamil schools background
+│   ├── contact/page.tsx               # Contact form
+│   ├── data/page.tsx                  # Data provenance
+│   ├── faq/page.tsx                   # FAQ
+│   ├── issues/page.tsx                # Key issues
+│   ├── resources/pta-toolkit/page.tsx # PTA resource toolkit
+│   ├── resources/lps-toolkit/page.tsx # LPS resource toolkit
+│   ├── privacy/page.tsx               # Privacy policy
+│   ├── terms/page.tsx                 # Terms of service
+│   └── cookies/page.tsx               # Cookie policy
 │
-├── i18n/                              # Internationalisation config (Sprint 3.3)
-│   ├── routing.ts                     # Locales: en, ta, ms. Default: en
-│   ├── request.ts                     # getRequestConfig — loads messages per locale
-│   └── navigation.ts                  # i18n-aware Link, usePathname, useRouter
+├── components/                        # 44 components
+│   ├── Header.tsx, Footer.tsx, LanguageSwitcher.tsx
+│   ├── HeroSection.tsx, NationalStats.tsx
+│   ├── SchoolMap.tsx, SchoolMarkers.tsx, MapFilterPanel.tsx
+│   ├── SearchBox.tsx, StateFilter.tsx, PaginationBar.tsx
+│   ├── SchoolProfile.tsx, SchoolImage.tsx, SchoolHistory.tsx
+│   ├── SchoolEditForm.tsx, SchoolTable.tsx
+│   ├── StatCard.tsx, Breadcrumb.tsx
+│   ├── ClaimButton.tsx, ClaimForm.tsx, EditSchoolLink.tsx
+│   ├── MiniMap.tsx, BoundaryMap.tsx
+│   ├── MentionsSection.tsx, MentionsList.tsx
+│   ├── NewsWatchSection.tsx, NewsCard.tsx, NewsList.tsx
+│   ├── ContactMPCard.tsx, ElectoralInfluenceCard.tsx
+│   ├── ScorecardCard.tsx, DemographicsCard.tsx
+│   ├── ConstituencySchools.tsx, ConstituencyList.tsx
+│   ├── BriefsList.tsx, MeetingReportsGrid.tsx, MeetingReportsList.tsx
+│   ├── SubscribeForm.tsx, UnsubscribeConfirmation.tsx, PreferencesForm.tsx
+│   ├── ContactForm.tsx, DonationForm.tsx
+│   ├── SupportSchoolCard.tsx          # Bank details + DuitNow QR sidebar
+│   └── ReportShareBar.tsx
 │
-├── messages/                          # Translation files (~162 keys each)
-│   ├── en.json                        # English (source)
-│   ├── ta.json                        # Tamil
-│   └── ms.json                        # Malay
-│
-├── middleware.ts                       # next-intl locale detection + redirect
-│
-├── components/
-│   ├── Header.tsx          # Nav: School Map, Constituencies, Parliament Watch
-│   ├── Footer.tsx          # Copyright + subscribe link
-│   ├── LanguageSwitcher.tsx # Locale switcher: EN | தமிழ் | BM
-│   ├── SchoolMap.tsx       # Google Map + MarkerClusterer (home page)
-│   ├── SchoolMarkers.tsx   # AdvancedMarker pins for schools
-│   ├── SearchBox.tsx       # Typeahead school search
-│   ├── StateFilter.tsx     # State dropdown filter
-│   ├── SchoolProfile.tsx   # School detail: stat cards + info grid + political rep
-│   ├── StatCard.tsx        # Reusable stat display (label + value + icon)
-│   ├── Breadcrumb.tsx      # Navigation breadcrumbs
-│   ├── ClaimButton.tsx     # "Claim this school" CTA — links to /claim/?school=CODE
-│   ├── ClaimForm.tsx       # Email form: MOE email input, loading/success/error states
-│   ├── EditSchoolLink.tsx  # Auth-aware: shows edit link only for authenticated school reps
-│   ├── SchoolEditForm.tsx  # Pre-filled school edit form: confirm (2-click) + edit + save/cancel
-│   ├── SchoolImage.tsx     # Hero image for school profile (lazy loading, responsive)
-│   ├── MiniMap.tsx         # Single-pin embedded Google Map
-│   ├── MentionsSection.tsx # Parliament Watch mentions list
-│   ├── ConstituencySchools.tsx  # Sidebar: other schools in same constituency
-│   ├── BoundaryMap.tsx     # GeoJSON boundary overlay on Google Map
-│   ├── ScorecardCard.tsx   # MP Parliament Watch scorecard
-│   ├── DemographicsCard.tsx    # Demographics: population, income, poverty, Gini
-│   ├── SchoolTable.tsx     # School list table (constituency/DUN pages)
-│   ├── ConstituencyList.tsx    # Filterable constituency table (index page)
-│   ├── SubscribeForm.tsx       # Subscribe: email/name/org form, category preview, success state
-│   ├── UnsubscribeConfirmation.tsx  # Auto-unsubscribe on mount, re-subscribe link
-│   └── PreferencesForm.tsx     # Load/toggle/save category preferences
-│
+├── i18n/                              # Internationalisation (en, ta, ms)
+├── messages/{en,ta,ms}.json           # ~162 translation keys each
 ├── lib/
-│   ├── types.ts            # All TypeScript interfaces
-│   └── api.ts              # API client: fetchSchools, fetchSchoolDetail, fetchConstituencies, auth, etc.
-│
-└── __tests__/              # Jest + React Testing Library (190 tests)
-    ├── __mocks__/          # next-intl, i18n/navigation, i18n/routing mocks
-    ├── components/         # 18 component test files
-    ├── i18n/               # Routing config + translation completeness tests
-    └── lib/                # 6 API test files (schools, constituencies, school detail, auth, edit, subscribers)
+│   ├── types.ts                       # All TypeScript interfaces
+│   ├── api.ts                         # API client (auto-pagination, all endpoints)
+│   └── translations.ts               # MOE jargon → English mapping
+└── __tests__/                         # Jest + RTL (282 tests)
 ```
 
 ## Data Models (key relationships)
@@ -231,7 +238,8 @@ frontend/
 Constituency (PK: code "P140")
   ├── has many DUNs (FK constituency)
   ├── has many Schools (FK constituency)
-  └── has many MPScorecards (FK constituency)
+  ├── has many MPScorecards (FK constituency)
+  └── has one MP (FK constituency)             ← Sprint 5.3
 
 DUN (PK: auto ID, unique: code+constituency)
   └── has many Schools (FK dun)
@@ -239,65 +247,62 @@ DUN (PK: auto ID, unique: code+constituency)
 School (PK: moe_code "JBD0050")
   ├── has many SchoolAliases (FK school)
   ├── has many MentionedSchools (FK school)
-  ├── has many SchoolContacts (FK school)     ← verified reps
-  ├── has many MagicLinkTokens (FK school)    ← auth tokens
-  ├── has many SchoolImages (FK school)       ← satellite/places photos
-  ├── has many OutreachEmails (FK school)     ← email tracking
-  └── has many SchoolLeaders (FK school)      ← board chair, HM, PTA, alumni (unique active per role)
+  ├── has many SchoolContacts (FK school)
+  ├── has many SchoolImages (FK school)
+  ├── has many OutreachEmails (FK school)
+  ├── has many SchoolLeaders (FK school)       ← 4 roles: Chairman, HM, PTA, Alumni
+  └── bank fields: bank_name, bank_account_number, bank_account_name
 
 HansardSitting (PK: auto ID, unique: sitting_date)
   └── has many HansardMentions (FK sitting)
-       └── has many MentionedSchools (FK mention)  ← bridge to School
+       └── has many MentionedSchools (FK mention)
+
+ParliamentaryMeeting (unique: term+session+meeting_number)
+  ├── has many SittingBriefs (FK meeting)      ← one per sitting date
+  ├── has one MeetingIllustration (FK meeting)  ← Imagen editorial cartoon
+  ├── has many QualityLogs (FK meeting)         ← evaluation audit trail
+  └── quality_flag: GREEN/AMBER/RED
+
+SittingBrief
+  ├── has many QualityLogs (FK sitting_brief)
+  └── quality_flag: GREEN/AMBER/RED
+
+QualityLog                                      ← Quality Engine audit
+  ├── content_type, sitting_brief FK, meeting FK
+  ├── prompt_version, model_used, attempt_number
+  ├── verdict (PASS/FIX/REJECT)
+  ├── tier1_results, tier2_scores, tier3_flags (JSONFields)
+  ├── corrections_applied (JSONField)
+  └── quality_flag, created_at
+
+MP (PK: auto ID)                                ← Sprint 5.3
+  ├── FK constituency (unique)
+  ├── name, party, photo_url, email, phone, facebook_url
+  └── data sources: parlimen.gov.my, mymp.org.my
 
 Subscriber (PK: auto ID, unique: email)
   └── has many SubscriptionPreferences (FK subscriber)
-       └── scope: school/constituency/state + target ID
 
-Broadcast (PK: auto ID)
-  ├── has many BroadcastRecipients (FK broadcast, FK subscriber)
-  └── status: draft → sending → sent
+Broadcast (PK: auto ID, status: draft → sending → sent)
+  └── has many BroadcastRecipients (FK broadcast, FK subscriber)
 
 NewsArticle (PK: auto ID, unique: url)
-  └── status: NEW → EXTRACTED or FAILED → ANALYSED
-       Core: url, title, source_name, alert_title, published_date, body_text, extraction_error
-       AI: relevance_score (1-5), sentiment, ai_summary, mentioned_schools (JSON), is_urgent, urgent_reason, ai_raw_response
-       Review: review_status (PENDING/APPROVED/REJECTED), reviewed_by (FK User), reviewed_at
+  └── lifecycle: NEW → EXTRACTED → ANALYSED, review: PENDING → APPROVED/REJECTED
 
-AuditLog — standalone, tracks all admin actions
+Donation (PK: auto ID)                          ← Sprint 4.2
+  └── Toyyib Pay: bill_code, amount, donor info, status
+
+AuditLog — standalone, tracks admin actions
 ```
-
-## API Endpoints (all under /api/v1/)
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/schools/` | GET | List schools (paginated, filter: state, constituency) |
-| `/schools/<moe_code>/` | GET | School detail |
-| `/schools/geojson/` | GET | All schools as GeoJSON FeatureCollection |
-| `/constituencies/` | GET | List constituencies (paginated, filter: state) |
-| `/constituencies/<code>/` | GET | Constituency detail (includes schools, scorecard) |
-| `/constituencies/<code>/geojson/` | GET | Constituency boundary as GeoJSON |
-| `/duns/` | GET | List DUNs (filter: constituency) |
-| `/duns/<id>/` | GET | DUN detail (includes schools) |
-| `/duns/<id>/geojson/` | GET | DUN boundary as GeoJSON |
-| `/parliament/` | GET | Parliament Watch views (Django templates) |
-| `/schools/<moe_code>/edit/` | GET/PUT | View/update school data (Magic Link auth) |
-| `/schools/<moe_code>/confirm/` | POST | 2-click school data confirmation (Magic Link auth) |
-| `/auth/request-magic-link/` | POST | Send magic link email (requires @moe.edu.my) |
-| `/auth/verify/{token}/` | GET | Verify token, create session + SchoolContact |
-| `/auth/me/` | GET | Current authenticated school contact |
-| `/subscribers/subscribe/` | POST | Subscribe with email + preferences |
-| `/subscribers/unsubscribe/` | POST | Unsubscribe by email + token |
-| `/subscribers/preferences/` | GET/PUT | View/update subscription preferences |
-| `/broadcasts/compose/` | GET/POST | Admin: compose a broadcast (Django template) |
-| `/broadcasts/preview/<id>/` | GET | Admin: preview broadcast before sending |
-| `/broadcasts/` | GET | Admin: list all broadcasts |
 
 ## Key Design Decisions
 
-- **ISR over SSG**: `revalidate = 3600` avoids build-time API dependency. Pages refresh hourly.
-- **DUN routes by ID not code**: DUN codes (N01, N02...) repeat across states. Numeric ID is globally unique.
-- **WKT → GeoJSON on the fly**: Boundaries stored as WKT text. `geojson.py` converts at request time.
-- **Auto-pagination in API client**: `fetchConstituencies()` iterates all pages automatically.
-- **Google Maps Data Layer for boundaries**: `map.data.addGeoJson()` instead of a Polygon component.
-- **Magic Link over passwords**: Schools don't need accounts — verify via MOE email, session-based auth.
-- **Brevo with console fallback**: No API key in dev → logs magic link to console. No paid service needed for development.
+- **ISR over SSG**: `revalidate = 3600` avoids build-time API dependency
+- **Fail-open quality engine**: API errors → publish without evaluation, never block
+- **Verdict recomputed, not trusted**: Evaluator AI returns verdict, but we recompute from tier scores
+- **3-attempt circuit breaker**: Hard cap prevents runaway API costs from correction loops
+- **Rubric is permanent, prompts are disposable**: Rubric survives model changes; prompts are versioned
+- **Learner writes to files, not code**: Pattern flags go to markdown, agents read — no auto code changes
+- **Magic Link over passwords**: Schools verify via MOE email, session-based auth
+- **Brevo with console fallback**: No API key in dev → logs to console
+- **WKT → GeoJSON on the fly**: Boundaries stored as WKT, converted at request time via shapely
