@@ -1,11 +1,13 @@
 """Tests for context_builder service."""
 from django.test import TestCase
 
+from parliament.models import MP
 from parliament.services.context_builder import (
     build_context,
     format_context_for_prompt,
     load_context_json,
 )
+from schools.models import Constituency
 
 
 class LoadContextJsonTest(TestCase):
@@ -87,3 +89,30 @@ class FormatContextForPromptTest(TestCase):
         text = format_context_for_prompt(ctx)
         self.assertIn("NATIONAL EDUCATION PLAN", text)
         self.assertIn("RPM", text)
+
+
+class MPPortfolioTest(TestCase):
+    def test_mp_portfolio_field_exists(self):
+        """MP model has a portfolio CharField."""
+        field = MP._meta.get_field("portfolio")
+        self.assertEqual(field.__class__.__name__, "CharField")
+
+    def test_portfolio_default_blank(self):
+        """Portfolio defaults to empty string."""
+        field = MP._meta.get_field("portfolio")
+        self.assertEqual(field.default, "")
+
+    def test_build_context_includes_portfolio(self):
+        """build_context returns MPs with portfolio data."""
+        c = Constituency.objects.create(
+            code="P999", name="Test", state="Test",
+        )
+        MP.objects.create(
+            constituency=c,
+            name="Test Minister",
+            portfolio="Minister of Education",
+        )
+        ctx = build_context()
+        portfolios = ctx["mp_portfolios"]
+        self.assertEqual(len(portfolios), 1)
+        self.assertEqual(portfolios[0]["portfolio"], "Minister of Education")

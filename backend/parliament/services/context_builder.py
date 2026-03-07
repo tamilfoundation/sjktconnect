@@ -41,17 +41,10 @@ def build_context() -> dict:
     )
 
     # Runtime: MP portfolios for minister attribution verification
-    # Note: portfolio field added in Task 3. Until then, this returns
-    # empty list (no MPs have portfolio set yet).
-    mp_qs = MP.objects.all()
-    try:
-        # portfolio field may not exist yet (Task 3 adds it)
-        mp_qs = mp_qs.exclude(portfolio="")
-        ctx["mp_portfolios"] = list(
-            mp_qs.values("name", "portfolio", "constituency__name")
-        )
-    except Exception:
-        ctx["mp_portfolios"] = []
+    ctx["mp_portfolios"] = list(
+        MP.objects.exclude(portfolio="")
+        .values("name", "portfolio", "constituency__name")
+    )
 
     return ctx
 

@@ -168,6 +168,10 @@ class MP(models.Model):
     service_centre_address = models.TextField(null=True, blank=True)
     parlimen_profile_id = models.CharField(max_length=20, blank=True, default="")
     mymp_slug = models.CharField(max_length=200, blank=True, default="")
+    portfolio = models.CharField(
+        max_length=200, blank=True, default="",
+        help_text="Ministerial portfolio, e.g. 'Minister of Education'",
+    )
     last_scraped = models.DateTimeField(auto_now=True)
 
     class Meta:
