@@ -9,6 +9,7 @@ For each school, generates:
 - SHORT: short_name (e.g. "SJK(T) Ladang Bikam")
 - COMMON: name without SJK(T) prefix (e.g. "Ladang Bikam")
 - COMMON: SJKT variant without brackets (e.g. "SJKT Ladang Bikam")
+- COMMON: without "Ladang" for estate schools (e.g. "SJK(T) Bikam")
 """
 
 import re
@@ -74,6 +75,20 @@ def generate_aliases_for_school(school: School) -> list[dict]:
             flags=re.IGNORECASE,
         )
         add(sjkt_variant, SchoolAlias.AliasType.COMMON)
+
+    # 6. "Without Ladang" variant — MPs commonly drop "Ladang" when referencing
+    # estate schools (e.g. "SJK(T) Serendah" instead of "SJK(T) Ladang Serendah")
+    if school.short_name and re.search(r"\bLadang\b", school.short_name, re.IGNORECASE):
+        without_ladang = re.sub(
+            r"\s*\bLadang\b\s*",
+            " ",
+            school.short_name,
+            flags=re.IGNORECASE,
+        ).strip()
+        # Clean up double spaces
+        without_ladang = re.sub(r"\s+", " ", without_ladang)
+        if without_ladang and without_ladang.lower() != school.short_name.lower():
+            add(without_ladang, SchoolAlias.AliasType.COMMON)
 
     # 5. Full official name without "SEKOLAH JENIS KEBANGSAAN (TAMIL)" prefix
     if school.name:

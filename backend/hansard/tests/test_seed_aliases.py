@@ -84,6 +84,60 @@ class GenerateAliasesTests(TestCase):
         self.assertGreaterEqual(len(aliases), 3)
 
 
+class WithoutLadangAliasTests(TestCase):
+    """Test 'without Ladang' alias variant for estate schools."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.constituency = Constituency.objects.create(
+            code="P099", name="Hulu Selangor", state="Selangor"
+        )
+
+    def test_generates_without_ladang_variant(self):
+        """Schools with 'Ladang' should get a variant without it."""
+        school = School.objects.create(
+            moe_code="BBD0099",
+            name="SEKOLAH JENIS KEBANGSAAN (TAMIL) LADANG SERENDAH",
+            short_name="SJK(T) Ladang Serendah",
+            state="Selangor",
+            constituency=self.constituency,
+        )
+        aliases = generate_aliases_for_school(school)
+        alias_texts = [a["alias_normalized"] for a in aliases]
+        self.assertIn(
+            "sjk(t) serendah",
+            alias_texts,
+            f"Expected 'sjk(t) serendah' alias, got: {alias_texts}",
+        )
+
+    def test_no_ladang_no_extra_alias(self):
+        """Schools without 'Ladang' should NOT get a without-Ladang variant."""
+        school = School.objects.create(
+            moe_code="BBD0100",
+            name="SEKOLAH JENIS KEBANGSAAN (TAMIL) TAMAN MELAWATI",
+            short_name="SJK(T) Taman Melawati",
+            state="Selangor",
+            constituency=self.constituency,
+        )
+        aliases = generate_aliases_for_school(school)
+        alias_texts = [a["alias_normalized"] for a in aliases]
+        # No alias should match the "without Ladang" pattern since there is no Ladang
+        self.assertNotIn("sjk(t) taman melawati".replace("taman ", ""), alias_texts)
+
+    def test_ladang_bikam_existing_school(self):
+        """The existing test school Ladang Bikam should get 'SJK(T) Bikam' alias."""
+        school = School.objects.create(
+            moe_code="JBD0099",
+            name="SEKOLAH JENIS KEBANGSAAN (TAMIL) LADANG BIKAM",
+            short_name="SJK(T) Ladang Bikam",
+            state="Johor",
+            constituency=self.constituency,
+        )
+        aliases = generate_aliases_for_school(school)
+        alias_texts = [a["alias_normalized"] for a in aliases]
+        self.assertIn("sjk(t) bikam", alias_texts)
+
+
 class SeedAliasesCommandTests(TestCase):
     """Test the seed_aliases management command."""
 
