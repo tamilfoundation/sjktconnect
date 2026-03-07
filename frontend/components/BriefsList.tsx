@@ -100,8 +100,8 @@ export default function BriefsList({ briefs }: BriefsListProps) {
                 />
               )}
 
-              {/* Toggle button */}
-              <div className="px-6 py-3 border-t border-gray-100">
+              {/* Toggle button + detail link */}
+              <div className="px-6 py-3 border-t border-gray-100 flex items-center gap-4">
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : brief.id)}
                   className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors flex items-center gap-1"
@@ -117,6 +117,15 @@ export default function BriefsList({ briefs }: BriefsListProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
+                <a
+                  href={`/parliament-watch/sittings/${brief.id}`}
+                  className="text-sm text-gray-400 hover:text-primary-600 transition-colors flex items-center gap-1"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  {t("viewBriefDetail")}
+                </a>
               </div>
             </article>
           );

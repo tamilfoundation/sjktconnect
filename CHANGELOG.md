@@ -1,5 +1,21 @@
 # Changelog
 
+## Sprint 6.3 — Frontend & Polish (2026-03-07)
+
+### Added
+- **Brief detail page** (frontend): New Next.js page at `/parliament-watch/sittings/[id]` with breadcrumb navigation, prose-styled body, and back link. `fetchBrief` API function.
+- **Brief linking from reports**: `_linkify_briefs` post-processor links sitting dates in report HTML to frontend brief detail pages. Wired into report generation pipeline.
+- **BriefsList "Full page" link**: Each sitting brief card now links to its dedicated detail page.
+- **i18n**: `backToSittingBriefs` and `viewBriefDetail` keys added in EN/TA/MS.
+
+### Deployed
+- Backend and frontend deployed to Cloud Run (sjktconnect-api, sjktconnect-web).
+
+### Tests
+- 2 new backend tests (930 total backend, 282 frontend = 1212 total)
+
+---
+
 ## Sprint 6.2 — Pipeline Prompts (2026-03-07)
 
 ### Changed

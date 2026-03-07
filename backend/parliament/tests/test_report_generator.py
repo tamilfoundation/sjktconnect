@@ -95,6 +95,43 @@ class LinkifySchoolsTests(TestCase):
         self.assertNotIn("<a href=", result)
 
 
+class LinkifyBriefsTests(TestCase):
+
+    def test_links_sitting_date_to_brief_detail(self):
+        from parliament.management.commands.generate_meeting_reports import _linkify_briefs
+        meeting = ParliamentaryMeeting.objects.create(
+            name="Test", short_name="Test",
+            term=99, session=1, year=2099,
+            start_date="2099-02-24", end_date="2099-04-10",
+        )
+        sitting = HansardSitting.objects.create(
+            sitting_date="2099-02-24",
+            pdf_url="https://example.com/test.pdf",
+            pdf_filename="test.pdf",
+            meeting=meeting,
+        )
+        brief = SittingBrief.objects.create(
+            sitting=sitting,
+            title="Test Brief",
+            summary_html="<p>Test</p>",
+        )
+        html = "<p>On 24 February 2099, MPs raised issues.</p>"
+        result = _linkify_briefs(html, meeting)
+        self.assertIn(f"/parliament-watch/sittings/{brief.pk}", result)
+        self.assertIn("<a href=", result)
+
+    def test_skips_if_no_date_match(self):
+        from parliament.management.commands.generate_meeting_reports import _linkify_briefs
+        meeting = ParliamentaryMeeting.objects.create(
+            name="Test2", short_name="Test2",
+            term=99, session=2, year=2099,
+            start_date="2099-05-01", end_date="2099-06-01",
+        )
+        html = "<p>No dates here.</p>"
+        result = _linkify_briefs(html, meeting)
+        self.assertEqual(result, html)
+
+
 class GenerateReportQualityLoopTests(TestCase):
 
     @patch("parliament.services.context_builder.build_context")

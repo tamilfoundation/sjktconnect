@@ -171,6 +171,36 @@ Visual requirements:
 """
 
 
+def _linkify_briefs(html: str, meeting) -> str:
+    """Link sitting dates in report HTML to frontend brief detail pages."""
+    frontend_url = os.environ.get("FRONTEND_URL", "https://tamilschool.org")
+    briefs = SittingBrief.objects.filter(
+        sitting__meeting=meeting,
+    ).select_related("sitting")
+
+    for brief in briefs:
+        d = brief.sitting.sitting_date
+        date_str = d.strftime("%d %B %Y")
+        # Cross-platform no-leading-zero (%-d is Linux-only)
+        date_str_no_zero = f"{d.day} {d.strftime('%B %Y')}"
+        url = f"{frontend_url}/parliament-watch/sittings/{brief.pk}"
+
+        for ds in {date_str, date_str_no_zero}:
+            if ds not in html:
+                continue
+            # Don't linkify if already inside a link
+            pattern = re.compile(re.escape(ds))
+            def _replace(m, _url=url, _ds=ds):
+                start = m.start()
+                preceding = html[max(0, start - 50):start]
+                if "<a " in preceding and "</a>" not in preceding:
+                    return m.group(0)
+                return f'<a href="{_url}">{_ds}</a>'
+            html = pattern.sub(_replace, html, count=1)
+
+    return html
+
+
 def _linkify_schools(html: str) -> str:
     """Replace SJK(T) school names in report HTML with links to school pages."""
     from schools.models import School
@@ -449,9 +479,10 @@ class Command(BaseCommand):
                 extensions=["tables"],
             )
 
-            # Linkify constituency and school names
+            # Linkify constituency names, school names, and brief dates
             report_html = _linkify_constituencies(report_html)
             report_html = _linkify_schools(report_html)
+            report_html = _linkify_briefs(report_html, meeting)
 
             # Extract headline from first ## heading
             headline = ""

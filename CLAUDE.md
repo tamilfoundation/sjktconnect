@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 6 (Report Quality). Sprint 6.2 done.
-- **Last Sprint**: 6.2 — Pipeline Prompts (2026-03-07)
-- **Tests**: 1210 (928 backend + 282 frontend)
+- **Current Phase**: Phase 6 (Report Quality). Sprint 6.3 done. Phase 6 complete.
+- **Last Sprint**: 6.3 — Frontend & Polish (2026-03-07)
+- **Tests**: 1212 (930 backend + 282 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -232,6 +232,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | Full Rebuild | Done | Complete wipe and rebuild of all 15th Parliament Hansard data (Dec 2022 - Mar 2026). 13 meetings, 286 sittings, 204 mentions, 203 analysed, 67 matched, 53 MP scorecards, 71 briefs, 11 reports with illustrations. Fixed 2nd Meeting 2025 report bloat (108KB→8KB). Deployed to production. |
 | 6.1 | Done | Foundation & Data Layer: report context JSON v2.0 (cabinet, glossary, RPM 2026-2035, taxonomy), context_builder service, MP portfolio field + scraper, executive_response_attribution rubric criterion, dedup fix (speaker+page), "without Ladang" aliases (294 schools), WAT context-maintenance workflow. 22 new tests (920 total). |
 | 6.2 | Done | Pipeline Prompts: wired context_builder into all 3 Gemini prompts (mentions, briefs, reports). Past tense enforcement. Brief generator now Gemini-powered prose (exec summary → details → quotes) with template fallback. Report prompt restructured with cabinet reference, taxonomy definitions, RPM alignment. Validated on 3rd Meeting 2025 — all 5 FLAGs resolved. 8 new tests (928 total). |
+| 6.3 | Done | Frontend & Polish: brief detail page (`/parliament-watch/sittings/[id]`), `_linkify_briefs` links sitting dates in reports to brief pages, BriefsList "Full page" link, i18n (EN/TA/MS). Deployed backend + frontend. Updated Cloud Run job image. Ran `seed_aliases --clear` + `import_mp_profiles` on production. 2 new tests (930 total). Phase 6 complete. |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -249,11 +250,20 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Current state**: Sprint 6.2 done. All 3 Gemini prompts (mentions, briefs, reports) now use context_builder for domain context injection. Past tense enforced. Brief generator produces Gemini-powered prose. All 5 FLAGs validated on 3rd Meeting 2025. 928 backend tests passing.
+**Current state**: Phase 6 (Report Quality & Context Engine v2.0) complete. All 3 sprints done (6.1 foundation, 6.2 prompts, 6.3 frontend). 930 backend + 282 frontend = 1212 tests passing. Deployed to production.
 
-**Next sprint: 6.3 — Frontend & Polish** (see `docs/plans/2026-03-07-sprint-6.3-frontend-polish-plan.md`):
-- Brief detail page for linking from reports
-- Report template update, model upgrade commit, deploy
+**Phase 6 deliverables summary**:
+- Context JSON v2.0 with cabinet, glossary, taxonomy, RPM
+- context_builder service wired into all 3 Gemini prompts
+- Gemini-powered prose briefs (exec summary → details → quotes)
+- Report prompt with minister attribution guard, taxonomy, RPM alignment
+- Brief detail pages on frontend with linking from reports
+- All 5 quality FLAGs resolved
+
+**Next phase candidates** (no sprint planned yet):
+- Urgent Response System (design approved, see `docs/plans/2026-03-04-urgent-response-system-design.md`)
+- MP profile pages (combine Hansard data with contact info)
+- Pre-filled advocacy message templates per school
 
 **Pending (not sprint-specific)**:
 - Test each email type end-to-end (Parliament Watch, News Digest, Urgent Alert, Monthly Blast)
@@ -263,8 +273,6 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **Urgent Response System**: Design approved, marinating. See `docs/plans/2026-03-04-urgent-response-system-design.md`
 - Pre-filled advocacy message templates per school
 - Dedicated MP profile page combining Hansard data with contact info
-- Run `seed_aliases --clear` on production to activate Ladang variants
-- Run `import_mp_profiles` on production to populate portfolio field
 - gcloud CLI requires `CLOUDSDK_PYTHON` env var pointing to Python 3.13
 
 ## Frontend (Sprint 1.3–3.3)

@@ -467,7 +467,9 @@
     "shareReport": "Share",
     "downloadPdf": "Download PDF",
     "previousMeeting": "Previous Meeting",
-    "nextMeeting": "Next Meeting"
+    "nextMeeting": "Next Meeting",
+    "backToSittingBriefs": "All sitting summaries",
+    "viewBriefDetail": "Full page"
   },
   "legal": {
     "lastUpdated": "Last updated: March 2026",

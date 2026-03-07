@@ -453,6 +453,17 @@ export async function fetchBriefs(): Promise<SittingBrief[]> {
   }
 }
 
+/**
+ * Fetch a single sitting brief by ID.
+ */
+export async function fetchBrief(id: number): Promise<SittingBrief | null> {
+  try {
+    return await fetchJSON<SittingBrief>(`${BASE}/briefs/${id}/`);
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchAllMentions(): Promise<HansardMention[]> {
   try {
     const results: HansardMention[] = [];
