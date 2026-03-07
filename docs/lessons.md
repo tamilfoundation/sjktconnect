@@ -45,3 +45,5 @@ Cross-cutting lessons from SJK(T) Connect development. Project-specific decision
 - Google OAuth Playground tokens generated without "Use your own OAuth credentials" checked produce `invalid_grant` — always verify the gear icon settings before authorising (Email Infra)
 - Fix source data, not downstream workarounds — when MOE data has inconsistent abbreviations (Ldg vs Ladang), a data migration normalising the source is cleaner than expanding alias matching logic (Data Quality)
 - Cloud Run job default timeout is 600s — bulk operations (trigram matching over hundreds of records) need explicit `--task-timeout` increase. Check job logs for timeout errors before assuming code bugs (Data Quality)
+- Government website search/filter APIs may ignore parameters entirely — parlimen.gov.my carian.html returns the same results regardless of `takwimnum`, and the calendar page ignores `ssid`. When API filtering fails, fall back to brute-force date range probing (Full Rebuild)
+- Gemini analysis at scale hits rate limits around 130-140 calls — build in retry logic or expect to rerun. The 0.5s sleep between calls is not sufficient buffer for sustained bursts (Full Rebuild)

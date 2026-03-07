@@ -11,8 +11,8 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 5 (Parliament Watch). Sprint 5.6 done + Self-Correcting Engine done.
-- **Last Sprint**: Self-Correcting Report Engine (2026-03-07)
+- **Current Phase**: Phase 5 (Parliament Watch). Full Hansard Rebuild done.
+- **Last Sprint**: Full Hansard Rebuild (2026-03-07)
 - **Tests**: 1180 (898 backend + 282 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
@@ -229,6 +229,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 5.5 | Done | Intelligence Report Quality: rewritten brief/report prompts (journalistic style, JSON response mode), Imagen 4.0 editorial cartoons, illustration API + frontend display, Gemini thinking budget fix, news auto-triage. Deployed to production. |
 | 5.6 | Done | Report Quality Fixes: PDF text artefact cleanup (clean_extracted_text), SJK(T) bracket post-processing, journalistic MP Scorecard taxonomy (Stance/Impact/Ministerial Response), lead paragraph blurb extraction, illustration ethnicity fix. Tested on 1st Meeting 2025. |
 | Quality Engine | Done | Self-correcting report engine: 4-layer architecture (Generator→Evaluator→Corrector→Learner). QualityLog model, quality_flag on briefs/reports, evaluator service (Gemini rubric scoring, fail-open), corrector (re-prompt + code fix, 3-attempt circuit breaker), school name repairer (comma/filler/fuzzy), learner (pattern detection), brief + report generator integration. 46 new tests (898 total). |
+| Full Rebuild | Done | Complete wipe and rebuild of all 15th Parliament Hansard data (Dec 2022 - Mar 2026). 13 meetings, 286 sittings, 204 mentions, 203 analysed, 67 matched, 53 MP scorecards, 71 briefs, 11 reports with illustrations. Fixed 2nd Meeting 2025 report bloat (108KB→8KB). Deployed to production. |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -246,16 +247,16 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Quality Rollout — NEXT**:
-- Generate reports + illustrations for remaining 3 meetings (2nd 2025, 3rd 2025, 1st 2026) — 1st Meeting 2025 done (other agent handling)
+**Current state**: Full Hansard rebuild complete and deployed. 13 meetings (Dec 2022 - Mar 2026), 204 mentions, 11 reports with illustrations. All live on tamilschool.org.
+
+**Next priorities**:
 - Test each email type end-to-end (Parliament Watch, News Digest, Urgent Alert, Monthly Blast)
-- Add "without Ladang" alias variant to seed_aliases — MPs commonly drop "Ladang" when referencing schools (294 schools affected, e.g. "SJK(T) Semantan" = "SJK(T) Ladang Semantan")
-- All 898 backend tests passing, 0 failures
-- Deploy self-correcting engine to production (run migration for QualityLog + quality_flag fields)
+- Add "without Ladang" alias variant to seed_aliases — MPs commonly drop "Ladang" when referencing schools (294 schools affected)
+- 1 unanalysed mention remaining (204 total, 203 analysed) — retry or investigate
+- Update Cloud Run check-hansards job image to match latest backend revision
 
 **Data quality notes**:
-- School name abbreviations normalised (migration 0008): Ldg→Ladang, Sg→Sungai, Bkt→Bukit, Kg→Kampung. 110 schools.
-- 62/134 Hansard mentions matched to specific schools. 72 are generic "SJK(T)" category references (correctly unmatched).
+- 67/204 Hansard mentions matched to specific schools. Remaining are generic "SJK(T)" references (correctly unmatched).
 - Supabase pooler (port 6543) is slow for trigram queries — use direct connection (port 5432) or Cloud Run jobs for bulk matching.
 
 **Pending (not sprint-specific)**:

@@ -1,5 +1,30 @@
 # Changelog
 
+## Full Hansard Rebuild (2026-03-07)
+
+### Changed
+- **Complete data wipe and rebuild** of all 15th Parliament Hansard data (Dec 2022 - Mar 2026)
+- Wiped all existing mentions, briefs, reports, scorecards, sittings, and meeting records
+- Created 13 meeting records covering all 5 terms of the 15th Parliament (was 7 previously)
+- Discovered and processed 286 sittings across all meeting periods using `check_new_hansards --start --end`
+- 204 mentions extracted with improved pipeline (20-page speaker lookback, tightened Gemini prompt, MP resolver)
+- 203 mentions analysed by Gemini (1 unanalysed edge case)
+- 67 mentions matched to specific schools
+- 53 MP scorecards generated
+- 71 sitting briefs generated
+- 11 meeting reports with Imagen 4.0 editorial cartoon illustrations
+
+### Fixed
+- **2nd Meeting 2025 report bloat** (108KB): Gemini output contained a 109,632-character run of dashes from PDF table separator artefact. Cleared and regenerated (8KB clean report).
+- **Git remote URL**: Removed plaintext PAT from remote URL
+- **Git author email**: Changed from personal to `admin@tamilfoundation.org` for SJKTConnect repo
+
+### Deployment
+- Backend deployed to Cloud Run (revision sjktconnect-api-00058-rvv)
+- All rebuilt data live on tamilschool.org
+
+---
+
 ## Self-Correcting Report Engine (2026-03-07)
 
 ### Added
