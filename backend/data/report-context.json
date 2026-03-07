@@ -1,0 +1,118 @@
+{
+  "version": "2.0",
+  "last_updated": "2026-03-07",
+  "report_config": {
+    "output_language": "en",
+    "style": "journalistic-neutral",
+    "audience": "School boards, PTA leaders, community stakeholders, journalists",
+    "tone": "Report, do not analyse. What was said, by whom, in what context."
+  },
+  "domain": {
+    "focus": "SJK(T) Tamil vernacular schools in Malaysia",
+    "system_context": "SJK(T) schools operate under Article 152 and the Education Act 1996. They follow the national curriculum (KSSR/KSSM) with Tamil as medium of instruction for core subjects.",
+    "challenges": [
+      "Low enrolment: 154 of 528 schools have fewer than 150 students",
+      "Rural isolation: Many schools in former estates (ladang) with declining populations",
+      "Urban space constraints: Schools in cities face land and building limitations",
+      "Three-language burden: Students must master Tamil, Bahasa Melayu, and English",
+      "Insufficient preschools: Limited pre-school provision feeds into low Year 1 intake",
+      "Long travel distances: Parents travel far to send children to Tamil schools, adding cost",
+      "Curriculum support gaps: MOE may overlook Tamil-specific curriculum needs",
+      "Perception of second-class status: Feeling of being passed over compared to SK schools",
+      "Teacher shortages: Difficulty recruiting Tamil-proficient teachers in some areas",
+      "Infrastructure decay: Ageing buildings, especially in estate schools"
+    ]
+  },
+  "cabinet": {
+    "education": {
+      "minister": "Dato' Sri Fadhlina binti Sidek",
+      "portfolio": "Minister of Education",
+      "since": "2022-12-03"
+    },
+    "finance": {
+      "minister": "YAB Dato' Seri Anwar bin Ibrahim",
+      "portfolio": "Minister of Finance (Prime Minister)",
+      "since": "2022-11-24"
+    },
+    "health": {
+      "minister": "Datuk Seri Dr. Zaliha binti Mustafa",
+      "portfolio": "Minister of Health",
+      "since": "2022-12-03",
+      "note": "NOT the Minister of Education — do not confuse"
+    },
+    "unity": {
+      "minister": "Dato' Aaron Ago Dagang",
+      "portfolio": "Minister of National Unity",
+      "since": "2022-12-03"
+    }
+  },
+  "glossary": {
+    "SJK(T)": "Sekolah Jenis Kebangsaan (Tamil) — Tamil-medium national-type school",
+    "SJK(C)": "Sekolah Jenis Kebangsaan (Cina) — Chinese-medium national-type school",
+    "SK": "Sekolah Kebangsaan — national school (Malay-medium)",
+    "PPKI": "Program Pendidikan Khas Integrasi — Special Education Integration Programme",
+    "JPN": "Jabatan Pendidikan Negeri — State Education Department",
+    "PPD": "Pejabat Pendidikan Daerah — District Education Office",
+    "KPM": "Kementerian Pendidikan Malaysia — Ministry of Education Malaysia",
+    "KSSR": "Kurikulum Standard Sekolah Rendah — Primary School Standard Curriculum",
+    "KSSM": "Kurikulum Standard Sekolah Menengah — Secondary School Standard Curriculum",
+    "KP 2027": "Kurikulum Persekolahan 2027 — new national curriculum framework",
+    "RPM": "Rancangan Pendidikan Malaysia — Malaysia Education Plan",
+    "MBPK": "Mesyuarat Bersama Pegawai Kewangan — Joint Financial Officers Meeting",
+    "BM": "Bahasa Melayu — Malay language",
+    "DUN": "Dewan Undangan Negeri — State Legislative Assembly",
+    "DR": "Dewan Rakyat — House of Representatives"
+  },
+  "taxonomy": {
+    "stance": {
+      "Advocacy": "MP actively pushing for resources or improvements for Tamil schools",
+      "Inquiry": "MP asking questions to understand current status or plans",
+      "Critical": "MP criticising government or policy handling of Tamil school issues"
+    },
+    "impact": {
+      "Policy Shift": "Government changes or announces new policy affecting Tamil schools",
+      "Budget Allocation": "Specific funding amount committed or requested for Tamil schools",
+      "Localised Issue": "Issue specific to one school or constituency (e.g. infrastructure repair)",
+      "General Rhetoric": "Broad statements about Tamil schools without specific commitments or actions. Use ONLY when the MP's statement is genuinely non-specific."
+    },
+    "verdict": {
+      "Commitment Made": "Minister made a specific, time-bound promise (e.g. 'will rebuild by Q3 2026')",
+      "Resolved": "Issue has been actioned and completed as confirmed by minister",
+      "Deflected": "Minister redirected the question or gave a non-answer",
+      "Unanswered": "Question received no ministerial response within the meeting period"
+    }
+  },
+  "national_education_plan": {
+    "name": "Rancangan Pendidikan Malaysia 2026-2035 (RPM)",
+    "status": "Approved by Cabinet, implementation beginning 2026",
+    "relevance": "The RPM is the government's own strategic commitment. Framing Tamil school advocacy as holding government accountable to RPM commitments is more effective than special pleading.",
+    "key_commitments": [
+      "Equitable access to quality education regardless of school type",
+      "Infrastructure upgrades for under-resourced schools",
+      "Teacher training and placement in underserved areas",
+      "Curriculum support for vernacular education streams",
+      "Pre-school expansion to improve school readiness"
+    ],
+    "kp_2027": {
+      "name": "Kurikulum Persekolahan 2027",
+      "relevance": "New national curriculum — vehicle for implementing RPM commitments including Tamil language provision"
+    }
+  },
+  "national_baseline": {
+    "total_sjkt": 528,
+    "total_students": 69900,
+    "total_teachers": 5460,
+    "under_enrolled_schools": 154,
+    "under_enrolled_threshold": 150,
+    "constituencies_with_sjkt": 222,
+    "states": 13
+  },
+  "session_history": {
+    "15th_parliament": {
+      "term": "2022-2027",
+      "meetings_analysed": 13,
+      "total_mentions": 204,
+      "mp_scorecards": 53
+    }
+  }
+}
