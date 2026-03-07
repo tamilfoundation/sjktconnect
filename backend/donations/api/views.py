@@ -1,4 +1,5 @@
 import logging
+import os
 
 from django.http import HttpResponse
 from rest_framework import status
@@ -34,9 +35,10 @@ def create_donation(request):
     donation.generate_order_id()
     donation.save()
 
-    base_url = request.build_absolute_uri("/")[:-1]
-    return_url = f"{base_url}/donate/thank-you?order_id={donation.order_id}"
-    callback_url = f"{base_url}/api/v1/donations/callback/"
+    frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+    backend_url = request.build_absolute_uri("/")[:-1]
+    return_url = f"{frontend_url}/donate/thank-you?order_id={donation.order_id}"
+    callback_url = f"{backend_url}/api/v1/donations/callback/"
 
     try:
         bill_code = services.create_bill(donation, return_url, callback_url)

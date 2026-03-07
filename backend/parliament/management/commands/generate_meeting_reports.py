@@ -370,13 +370,13 @@ class Command(BaseCommand):
 
             try:
                 response = client.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-3-pro-preview",
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         temperature=0.4,
                         max_output_tokens=8192,
                         thinking_config=types.ThinkingConfig(
-                            thinking_budget=1024,
+                            thinking_level="HIGH",
                         ),
                     ),
                 )
@@ -523,7 +523,7 @@ class Command(BaseCommand):
                     content_type="report",
                     meeting=meeting,
                     prompt_version="v3",
-                    model_used="gemini-2.5-flash",
+                    model_used="gemini-3-pro-preview",
                     attempt_number=attempt,
                     verdict=eval_result.verdict,
                     tier1_results=eval_result.tier1_results,

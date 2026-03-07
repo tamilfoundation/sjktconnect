@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 5 (Parliament Watch). Full Hansard Rebuild done.
-- **Last Sprint**: Full Hansard Rebuild (2026-03-07)
-- **Tests**: 1180 (898 backend + 282 frontend)
+- **Current Phase**: Phase 6 (Report Quality). Sprint 6.1 done.
+- **Last Sprint**: 6.1 — Foundation & Data Layer (2026-03-07)
+- **Tests**: 1202 (920 backend + 282 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -230,6 +230,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 5.6 | Done | Report Quality Fixes: PDF text artefact cleanup (clean_extracted_text), SJK(T) bracket post-processing, journalistic MP Scorecard taxonomy (Stance/Impact/Ministerial Response), lead paragraph blurb extraction, illustration ethnicity fix. Tested on 1st Meeting 2025. |
 | Quality Engine | Done | Self-correcting report engine: 4-layer architecture (Generator→Evaluator→Corrector→Learner). QualityLog model, quality_flag on briefs/reports, evaluator service (Gemini rubric scoring, fail-open), corrector (re-prompt + code fix, 3-attempt circuit breaker), school name repairer (comma/filler/fuzzy), learner (pattern detection), brief + report generator integration. 46 new tests (898 total). |
 | Full Rebuild | Done | Complete wipe and rebuild of all 15th Parliament Hansard data (Dec 2022 - Mar 2026). 13 meetings, 286 sittings, 204 mentions, 203 analysed, 67 matched, 53 MP scorecards, 71 briefs, 11 reports with illustrations. Fixed 2nd Meeting 2025 report bloat (108KB→8KB). Deployed to production. |
+| 6.1 | Done | Foundation & Data Layer: report context JSON v2.0 (cabinet, glossary, RPM 2026-2035, taxonomy), context_builder service, MP portfolio field + scraper, executive_response_attribution rubric criterion, dedup fix (speaker+page), "without Ladang" aliases (294 schools), WAT context-maintenance workflow. 22 new tests (920 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -247,24 +248,29 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Current state**: Full Hansard rebuild complete and deployed. 13 meetings (Dec 2022 - Mar 2026), 204 mentions, 11 reports with illustrations. All live on tamilschool.org.
+**Current state**: Sprint 6.1 done. Foundation for Report Quality & Context Engine v2.0 in place. Context JSON, context_builder, MP portfolio field, dedup fix, Ladang aliases all committed. 920 backend tests passing.
 
-**Next priorities**:
-- Test each email type end-to-end (Parliament Watch, News Digest, Urgent Alert, Monthly Blast)
-- Add "without Ladang" alias variant to seed_aliases — MPs commonly drop "Ladang" when referencing schools (294 schools affected)
-- 1 unanalysed mention remaining (204 total, 203 analysed) — retry or investigate
-- Update Cloud Run check-hansards job image to match latest backend revision
+**Next sprint: 6.2 — Pipeline Prompts** (see `docs/plans/2026-03-07-sprint-6.2-pipeline-prompts-plan.md`):
+- Wire context_builder into all 3 Gemini prompts (mentions, briefs, reports)
+- Enforce past tense in mention summaries
+- Restructure brief format: executive summary → details → verbatim quotes
+- Rewrite report prompt: layered sections, RPM-aligned, audience-aware
+- Regenerate 3rd Meeting 2025 for validation
 
-**Data quality notes**:
-- 67/204 Hansard mentions matched to specific schools. Remaining are generic "SJK(T)" references (correctly unmatched).
-- Supabase pooler (port 6543) is slow for trigram queries — use direct connection (port 5432) or Cloud Run jobs for bulk matching.
+**Then: 6.3 — Frontend & Polish** (see `docs/plans/2026-03-07-sprint-6.3-frontend-polish-plan.md`):
+- Brief detail page for linking from reports
+- Report template update, model upgrade commit, deploy
 
 **Pending (not sprint-specific)**:
+- Test each email type end-to-end (Parliament Watch, News Digest, Urgent Alert, Monthly Blast)
+- 1 unanalysed mention remaining (204 total, 203 analysed)
+- Update Cloud Run check-hansards job image to match latest backend revision
 - End-to-end test: donate page → Toyyib sandbox, school bank card display
 - **Urgent Response System**: Design approved, marinating. See `docs/plans/2026-03-04-urgent-response-system-design.md`
-- Pre-filled advocacy message templates per school ("Dear YB, as a parent at SJK(T) X...")
+- Pre-filled advocacy message templates per school
 - Dedicated MP profile page combining Hansard data with contact info
-- Improve Facebook URL scraping (parlimen.gov.my gives generic Parliament page, not personal)
+- Run `seed_aliases --clear` on production to activate Ladang variants
+- Run `import_mp_profiles` on production to populate portfolio field
 - gcloud CLI requires `CLOUDSDK_PYTHON` env var pointing to Python 3.13
 
 ## Frontend (Sprint 1.3–3.3)

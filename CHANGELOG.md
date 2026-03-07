@@ -1,5 +1,25 @@
 # Changelog
 
+## Sprint 6.1 — Foundation & Data Layer (2026-03-07)
+
+### Added
+- **Report context JSON v2.0** (`data/report-context.json`): Curated domain expertise — cabinet ministers, glossary (15 terms), taxonomy definitions (stance/impact/verdict), RPM 2026-2035 commitments, national baseline stats, domain challenges
+- **context_builder service** (`parliament/services/context_builder.py`): Loads context JSON + enriches with runtime data (school names, MP portfolios) for Gemini prompt injection
+- **MP portfolio field**: CharField on MP model for ministerial portfolio tracking (e.g. "Minister of Education")
+- **Portfolio scraper**: Extracts jawatan/portfolio from parlimen.gov.my profile pages
+- **executive_response_attribution** criterion added to report quality rubric (Tier 2)
+- **"Without Ladang" alias variant**: `seed_aliases` now generates aliases without "Ladang" for 294 estate schools (resolves FLAG-003)
+- **WAT workflow**: `context-maintenance.md` — when and how to update the context JSON
+
+### Fixed
+- **Mention deduplication**: Changed grouping from (sitting, page) to (sitting, page, speaker) so different speakers on the same page are preserved
+- **Donation return URL**: Uses FRONTEND_URL instead of backend URL for Toyyib Pay redirect
+
+### Tests
+- 22 new tests (920 total backend)
+
+---
+
 ## Full Hansard Rebuild (2026-03-07)
 
 ### Changed
