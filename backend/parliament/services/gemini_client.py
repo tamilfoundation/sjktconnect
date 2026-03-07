@@ -29,6 +29,8 @@ CHANGE_INDICATORS = {"NEW", "REPEAT", "ESCALATION", "REVERSAL"}
 ANALYSIS_PROMPT = """\
 You are analysing a Malaysian parliamentary Hansard excerpt that mentions Tamil schools (SJK(T)).
 
+{domain_context}
+
 Extract the following fields as a JSON object:
 - mp_name: Full name of the MP speaking (string, or "" if unclear). Use the speaker hint if provided.
 - mp_constituency: Parliamentary constituency code or name (string, or "" if unclear)
@@ -54,7 +56,9 @@ Extract the following fields as a JSON object:
   - CRITICAL: Criticising government/policy handling of Tamil school issues
 - change_indicator: One of NEW, REPEAT, ESCALATION, REVERSAL
   - Default to NEW unless the excerpt explicitly references a previous discussion
-- summary: 1-2 sentence English summary focused on the MP's stated position or request. Be specific - include amounts, school names, and actions mentioned. Do not pad with filler.
+- summary: 1-2 sentence English summary in PAST TENSE (e.g. "raised", "asked", \
+"committed", "requested"). The speech has already occurred. Be specific — include \
+amounts, school names, and actions mentioned. Do not pad with filler.
 
 Return ONLY valid JSON, no markdown fences, no extra text.
 
@@ -154,10 +158,21 @@ def analyse_mention(mention):
     Raises:
         ValueError: If GEMINI_API_KEY is not set.
     """
+    from parliament.services.context_builder import build_context, format_context_for_prompt
+
     client = _get_client()
 
     excerpt = _build_excerpt(mention)
-    prompt = ANALYSIS_PROMPT.format(excerpt=excerpt)
+
+    # Inject domain context (cabinet, glossary, taxonomy)
+    try:
+        ctx = build_context()
+        domain_context = format_context_for_prompt(ctx)
+    except Exception:
+        logger.warning("Could not load domain context, proceeding without it")
+        domain_context = ""
+
+    prompt = ANALYSIS_PROMPT.format(excerpt=excerpt, domain_context=domain_context)
 
     max_retries = 3
     for attempt in range(max_retries):

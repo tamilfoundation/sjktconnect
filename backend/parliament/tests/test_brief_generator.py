@@ -1,14 +1,16 @@
 """Tests for brief generator service."""
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
 
 from hansard.models import HansardMention, HansardSitting
 from parliament.models import SittingBrief
 from parliament.services.brief_generator import (
+    _build_mentions_data,
     _build_social_post,
     _build_title,
+    _generate_brief_prose,
     generate_all_pending_briefs,
     generate_brief,
 )
@@ -243,6 +245,90 @@ class GenerateAllPendingBriefsTests(TestCase):
 
         self.assertEqual(result["generated"], 0)
         self.assertFalse(SittingBrief.objects.filter(sitting=sitting).exists())
+
+
+class BuildMentionsDataTests(TestCase):
+    """Test structured mention data formatting."""
+
+    def test_formats_mention_data(self):
+        sitting = HansardSitting.objects.create(
+            sitting_date="2026-05-01",
+            pdf_url="https://example.com/test.pdf",
+            pdf_filename="test.pdf",
+        )
+        HansardMention.objects.create(
+            sitting=sitting, verbatim_quote="SJK(T) Ladang Bikam",
+            page_number=5, mp_name="YB Arul", mp_constituency="Segamat",
+            mp_party="BN", mention_type="BUDGET", significance=4,
+            sentiment="ADVOCATING", ai_summary="Requested RM2M for repairs.",
+            review_status="APPROVED",
+        )
+        mentions = sitting.mentions.exclude(ai_summary="")
+        data = _build_mentions_data(mentions)
+        self.assertIn("YB Arul", data)
+        self.assertIn("Segamat", data)
+        self.assertIn("BUDGET", data)
+        self.assertIn("Requested RM2M", data)
+        self.assertIn("SJK(T) Ladang Bikam", data)
+
+
+class GeminiBriefTests(TestCase):
+    """Test Gemini-powered brief generation."""
+
+    def setUp(self):
+        self.sitting = HansardSitting.objects.create(
+            sitting_date="2026-05-01",
+            pdf_url="https://example.com/test.pdf",
+            pdf_filename="test.pdf",
+        )
+        HansardMention.objects.create(
+            sitting=self.sitting, verbatim_quote="Q1", page_number=5,
+            mp_name="YB Arul", mp_constituency="Segamat",
+            mention_type="BUDGET", significance=4,
+            ai_summary="Requested RM2M for SJK(T) repairs.",
+            review_status="APPROVED",
+        )
+
+    @patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
+    @patch("parliament.services.brief_generator.genai")
+    @patch("parliament.services.context_builder.build_context")
+    def test_gemini_brief_returns_prose(self, mock_build_ctx, mock_genai):
+        mock_build_ctx.return_value = {"cabinet": {}, "glossary": {}}
+        mock_response = MagicMock()
+        mock_response.text = (
+            "## Executive Summary\n\n"
+            "YB Arul raised the issue of SJK(T) repairs in Segamat.\n\n"
+            "## Details\n\nHe requested RM2 million for infrastructure.\n"
+        )
+        mock_genai.Client.return_value.models.generate_content.return_value = (
+            mock_response
+        )
+
+        mentions = self.sitting.mentions.exclude(ai_summary="")
+        result = _generate_brief_prose(self.sitting, mentions)
+        self.assertIn("Executive Summary", result)
+        self.assertIn("YB Arul", result)
+
+    def test_fallback_when_no_api_key(self):
+        """Without GEMINI_API_KEY, should produce template-based markdown."""
+        mentions = self.sitting.mentions.exclude(ai_summary="")
+        result = _generate_brief_prose(self.sitting, mentions)
+        self.assertIn("Parliament Watch", result)
+        self.assertIn("YB Arul", result)
+
+    @patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
+    @patch("parliament.services.brief_generator.genai")
+    @patch("parliament.services.context_builder.build_context")
+    def test_gemini_failure_falls_back(self, mock_build_ctx, mock_genai):
+        mock_build_ctx.return_value = {"cabinet": {}, "glossary": {}}
+        mock_genai.Client.return_value.models.generate_content.side_effect = (
+            Exception("API error")
+        )
+
+        mentions = self.sitting.mentions.exclude(ai_summary="")
+        result = _generate_brief_prose(self.sitting, mentions)
+        # Should fall back to template
+        self.assertIn("Parliament Watch", result)
 
 
 class BriefQualityLoopTests(TestCase):

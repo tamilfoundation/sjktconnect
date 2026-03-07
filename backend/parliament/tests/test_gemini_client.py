@@ -140,8 +140,10 @@ class AnalyseMentionTests(TestCase):
             keyword_matched="SJK(T)",
         )
 
+    @patch("parliament.services.context_builder.build_context")
     @patch("parliament.services.gemini_client._get_client")
-    def test_successful_analysis(self, mock_get_client):
+    def test_successful_analysis(self, mock_get_client, mock_build_ctx):
+        mock_build_ctx.return_value = {"cabinet": {}, "glossary": {}}
         mock_response = MagicMock()
         mock_response.text = json.dumps({
             "mp_name": "YB Dato' Sri Arul",
@@ -165,16 +167,77 @@ class AnalyseMentionTests(TestCase):
         self.assertEqual(result["significance"], 4)
         self.assertIn("raw_response", result)
 
+    @patch("parliament.services.context_builder.build_context")
     @patch("parliament.services.gemini_client._get_client")
-    def test_api_error_returns_none(self, mock_get_client):
+    def test_prompt_includes_domain_context(self, mock_get_client, mock_build_ctx):
+        mock_build_ctx.return_value = {
+            "cabinet": {
+                "education": {
+                    "minister": "Dato' Sri Fadhlina binti Sidek",
+                    "portfolio": "Minister of Education",
+                }
+            },
+            "glossary": {"SJK(T)": "Tamil vernacular school"},
+            "taxonomy": {},
+        }
+        mock_response = MagicMock()
+        mock_response.text = json.dumps({
+            "mp_name": "YB Test",
+            "mp_constituency": "Test",
+            "mp_party": "PH",
+            "mention_type": "QUESTION",
+            "significance": 3,
+            "sentiment": "NEUTRAL",
+            "change_indicator": "NEW",
+            "summary": "Asked about funding.",
+        })
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value = mock_response
+        mock_get_client.return_value = mock_client
+
+        analyse_mention(self.mention)
+
+        # Verify the prompt sent to Gemini includes cabinet reference
+        call_args = mock_client.models.generate_content.call_args
+        prompt_sent = call_args.kwargs.get("contents") or call_args[1].get("contents", "")
+        self.assertIn("CABINET REFERENCE", prompt_sent)
+        self.assertIn("Fadhlina", prompt_sent)
+
+    @patch("parliament.services.context_builder.build_context")
+    @patch("parliament.services.gemini_client._get_client")
+    def test_prompt_enforces_past_tense(self, mock_get_client, mock_build_ctx):
+        mock_build_ctx.return_value = {"cabinet": {}, "glossary": {}}
+        mock_response = MagicMock()
+        mock_response.text = json.dumps({
+            "mp_name": "", "mp_constituency": "", "mp_party": "",
+            "mention_type": "OTHER", "significance": 1,
+            "sentiment": "NEUTRAL", "change_indicator": "NEW",
+            "summary": "Test.",
+        })
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value = mock_response
+        mock_get_client.return_value = mock_client
+
+        analyse_mention(self.mention)
+
+        call_args = mock_client.models.generate_content.call_args
+        prompt_sent = call_args.kwargs.get("contents") or call_args[1].get("contents", "")
+        self.assertIn("PAST TENSE", prompt_sent)
+
+    @patch("parliament.services.context_builder.build_context")
+    @patch("parliament.services.gemini_client._get_client")
+    def test_api_error_returns_none(self, mock_get_client, mock_build_ctx):
+        mock_build_ctx.return_value = {"cabinet": {}, "glossary": {}}
         mock_client = MagicMock()
         mock_client.models.generate_content.side_effect = Exception("API error")
         mock_get_client.return_value = mock_client
         result = analyse_mention(self.mention)
         self.assertIsNone(result)
 
+    @patch("parliament.services.context_builder.build_context")
     @patch("parliament.services.gemini_client._get_client")
-    def test_invalid_json_returns_none(self, mock_get_client):
+    def test_invalid_json_returns_none(self, mock_get_client, mock_build_ctx):
+        mock_build_ctx.return_value = {"cabinet": {}, "glossary": {}}
         mock_response = MagicMock()
         mock_response.text = "This is not JSON"
         mock_client = MagicMock()
@@ -183,6 +246,26 @@ class AnalyseMentionTests(TestCase):
 
         result = analyse_mention(self.mention)
         self.assertIsNone(result)
+
+    @patch("parliament.services.context_builder.build_context")
+    @patch("parliament.services.gemini_client._get_client")
+    def test_context_failure_graceful(self, mock_get_client, mock_build_ctx):
+        """If context_builder fails, analysis should still proceed."""
+        mock_build_ctx.side_effect = FileNotFoundError("No context JSON")
+        mock_response = MagicMock()
+        mock_response.text = json.dumps({
+            "mp_name": "YB Test", "mp_constituency": "", "mp_party": "",
+            "mention_type": "OTHER", "significance": 1,
+            "sentiment": "NEUTRAL", "change_indicator": "NEW",
+            "summary": "Test.",
+        })
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value = mock_response
+        mock_get_client.return_value = mock_client
+
+        result = analyse_mention(self.mention)
+        self.assertIsNotNone(result)
+        self.assertEqual(result["mp_name"], "YB Test")
 
 
 class ApplyAnalysisTests(TestCase):

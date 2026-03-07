@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 6 (Report Quality). Sprint 6.1 done.
-- **Last Sprint**: 6.1 — Foundation & Data Layer (2026-03-07)
-- **Tests**: 1202 (920 backend + 282 frontend)
+- **Current Phase**: Phase 6 (Report Quality). Sprint 6.2 done.
+- **Last Sprint**: 6.2 — Pipeline Prompts (2026-03-07)
+- **Tests**: 1210 (928 backend + 282 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -231,6 +231,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | Quality Engine | Done | Self-correcting report engine: 4-layer architecture (Generator→Evaluator→Corrector→Learner). QualityLog model, quality_flag on briefs/reports, evaluator service (Gemini rubric scoring, fail-open), corrector (re-prompt + code fix, 3-attempt circuit breaker), school name repairer (comma/filler/fuzzy), learner (pattern detection), brief + report generator integration. 46 new tests (898 total). |
 | Full Rebuild | Done | Complete wipe and rebuild of all 15th Parliament Hansard data (Dec 2022 - Mar 2026). 13 meetings, 286 sittings, 204 mentions, 203 analysed, 67 matched, 53 MP scorecards, 71 briefs, 11 reports with illustrations. Fixed 2nd Meeting 2025 report bloat (108KB→8KB). Deployed to production. |
 | 6.1 | Done | Foundation & Data Layer: report context JSON v2.0 (cabinet, glossary, RPM 2026-2035, taxonomy), context_builder service, MP portfolio field + scraper, executive_response_attribution rubric criterion, dedup fix (speaker+page), "without Ladang" aliases (294 schools), WAT context-maintenance workflow. 22 new tests (920 total). |
+| 6.2 | Done | Pipeline Prompts: wired context_builder into all 3 Gemini prompts (mentions, briefs, reports). Past tense enforcement. Brief generator now Gemini-powered prose (exec summary → details → quotes) with template fallback. Report prompt restructured with cabinet reference, taxonomy definitions, RPM alignment. Validated on 3rd Meeting 2025 — all 5 FLAGs resolved. 8 new tests (928 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -248,16 +249,9 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Current state**: Sprint 6.1 done. Foundation for Report Quality & Context Engine v2.0 in place. Context JSON, context_builder, MP portfolio field, dedup fix, Ladang aliases all committed. 920 backend tests passing.
+**Current state**: Sprint 6.2 done. All 3 Gemini prompts (mentions, briefs, reports) now use context_builder for domain context injection. Past tense enforced. Brief generator produces Gemini-powered prose. All 5 FLAGs validated on 3rd Meeting 2025. 928 backend tests passing.
 
-**Next sprint: 6.2 — Pipeline Prompts** (see `docs/plans/2026-03-07-sprint-6.2-pipeline-prompts-plan.md`):
-- Wire context_builder into all 3 Gemini prompts (mentions, briefs, reports)
-- Enforce past tense in mention summaries
-- Restructure brief format: executive summary → details → verbatim quotes
-- Rewrite report prompt: layered sections, RPM-aligned, audience-aware
-- Regenerate 3rd Meeting 2025 for validation
-
-**Then: 6.3 — Frontend & Polish** (see `docs/plans/2026-03-07-sprint-6.3-frontend-polish-plan.md`):
+**Next sprint: 6.3 — Frontend & Polish** (see `docs/plans/2026-03-07-sprint-6.3-frontend-polish-plan.md`):
 - Brief detail page for linking from reports
 - Report template update, model upgrade commit, deploy
 

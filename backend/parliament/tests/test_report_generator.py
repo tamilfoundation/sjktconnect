@@ -97,15 +97,17 @@ class LinkifySchoolsTests(TestCase):
 
 class GenerateReportQualityLoopTests(TestCase):
 
+    @patch("parliament.services.context_builder.build_context")
     @patch("parliament.management.commands.generate_meeting_reports._generate_illustration")
     @patch("parliament.management.commands.generate_meeting_reports.genai")
     @patch("parliament.management.commands.generate_meeting_reports.evaluate_report")
     @patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
     def test_quality_log_created_on_generation(
-        self, mock_eval, mock_genai, mock_illustration
+        self, mock_eval, mock_genai, mock_illustration, mock_build_ctx
     ):
         from parliament.services.evaluator import EvaluationResult
 
+        mock_build_ctx.return_value = {"cabinet": {}, "glossary": {}}
         mock_eval.return_value = EvaluationResult(
             verdict="PASS",
             tier1_results={"fabricated_facts": {"pass": True}},
@@ -129,16 +131,57 @@ class GenerateReportQualityLoopTests(TestCase):
         self.assertEqual(meeting.quality_flag, "GREEN")
         self.assertEqual(QualityLog.objects.filter(content_type="report").count(), 1)
 
+    @patch("parliament.services.context_builder.build_context")
+    @patch("parliament.management.commands.generate_meeting_reports._generate_illustration")
+    @patch("parliament.management.commands.generate_meeting_reports.genai")
+    @patch("parliament.management.commands.generate_meeting_reports.evaluate_report")
+    @patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
+    def test_prompt_includes_domain_context(
+        self, mock_eval, mock_genai, mock_illustration, mock_build_ctx
+    ):
+        from parliament.services.evaluator import EvaluationResult
+
+        mock_build_ctx.return_value = {
+            "cabinet": {
+                "education": {
+                    "minister": "Dato' Sri Fadhlina binti Sidek",
+                    "portfolio": "Minister of Education",
+                }
+            },
+            "glossary": {"SJK(T)": "Tamil vernacular school"},
+            "taxonomy": {},
+        }
+        mock_eval.return_value = EvaluationResult(verdict="PASS")
+        mock_illustration.return_value = None
+
+        mock_response = MagicMock()
+        mock_response.text = SAMPLE_REPORT_MD
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value = mock_response
+        mock_genai.Client.return_value = mock_client
+
+        _make_meeting_with_briefs()
+        out = StringIO()
+        call_command("generate_meeting_reports", stdout=out)
+
+        # Verify domain context was in the prompt
+        call_args = mock_client.models.generate_content.call_args
+        prompt_sent = call_args.kwargs.get("contents") or call_args[1].get("contents", "")
+        self.assertIn("CABINET REFERENCE", prompt_sent)
+        self.assertIn("Fadhlina", prompt_sent)
+
+    @patch("parliament.services.context_builder.build_context")
     @patch("parliament.management.commands.generate_meeting_reports._generate_illustration")
     @patch("parliament.management.commands.generate_meeting_reports.genai")
     @patch("parliament.management.commands.generate_meeting_reports.evaluate_report")
     @patch("parliament.management.commands.generate_meeting_reports.correct_report")
     @patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
     def test_correction_loop_on_fix_verdict(
-        self, mock_correct, mock_eval, mock_genai, mock_illustration
+        self, mock_correct, mock_eval, mock_genai, mock_illustration, mock_build_ctx
     ):
         from parliament.services.evaluator import EvaluationResult
 
+        mock_build_ctx.return_value = {"cabinet": {}, "glossary": {}}
         # First eval returns FIX, second returns PASS
         mock_eval.side_effect = [
             EvaluationResult(
@@ -165,16 +208,18 @@ class GenerateReportQualityLoopTests(TestCase):
         # 2 quality logs: attempt 1 (FIX) + attempt 2 (PASS)
         self.assertEqual(QualityLog.objects.filter(content_type="report").count(), 2)
 
+    @patch("parliament.services.context_builder.build_context")
     @patch("parliament.management.commands.generate_meeting_reports._generate_illustration")
     @patch("parliament.management.commands.generate_meeting_reports.genai")
     @patch("parliament.management.commands.generate_meeting_reports.evaluate_report")
     @patch("parliament.management.commands.generate_meeting_reports.correct_report")
     @patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
     def test_circuit_breaker_after_3_attempts(
-        self, mock_correct, mock_eval, mock_genai, mock_illustration
+        self, mock_correct, mock_eval, mock_genai, mock_illustration, mock_build_ctx
     ):
         from parliament.services.evaluator import EvaluationResult
 
+        mock_build_ctx.return_value = {"cabinet": {}, "glossary": {}}
         # All 3 attempts return REJECT
         mock_eval.return_value = EvaluationResult(
             verdict="REJECT",

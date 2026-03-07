@@ -33,16 +33,13 @@ def html_to_plain(text: str) -> str:
 
 
 MEETING_REPORT_PROMPT = """\
-You are a parliamentary reporter writing about Tamil school SJK(T)
+You are a parliamentary reporter writing about Tamil school SJK(T) \
 discussions in the Malaysian Parliament.
 
 Meeting: {meeting_name} ({start_date} to {end_date}).
 {sitting_count} sittings had Tamil school mentions, {total_mentions} total mentions.
 
-National baseline (use to contextualise individual cases):
-- 528 SJK(T) schools nationwide, 69,900 students, 5,460 teachers
-- 154 schools are under-enrolled (fewer than 150 students)
-- Schools span 222 parliamentary constituencies across 13 states
+{domain_context}
 
 Word guide based on sittings:
 - 1-3 sittings: 400-600 words
@@ -52,70 +49,87 @@ Word guide based on sittings:
 Return the report in this exact structure:
 
 ## [Headline]
-A journalistic headline (max 15 words) capturing the most important story
+A journalistic headline (max 15 words) capturing the most important story \
 from this meeting. NOT "Meeting Report" or "Tamil School Discussions".
-Example: "PM Pledges Aid for Dilapidated Tamil Schools as MPs Challenge
+Example: "PM Pledges Aid for Dilapidated Tamil Schools as MPs Challenge \
 Funding Inequity"
 
-[Lead paragraph — 2-3 sentences summarising the big picture. What happened,
-why it matters, what changed. This is what readers see before expanding.
-Do NOT start with "This report covers..." or any procedural preamble.
-Lead with the story.]
+[Lead paragraph — 2-3 sentences summarising the big picture. What happened, \
+why it matters, what changed. This is what readers see before expanding. \
+Do NOT start with "This report covers..." or any procedural preamble. \
+Lead with the story. Use past tense throughout.]
 
 ## Key Findings
-3-5 bullet points. The most important takeaways, with specific amounts,
+3-5 bullet points. The most important takeaways, with specific amounts, \
 names, and dates. Lead with the biggest news.
-When a school's infrastructure or enrolment is mentioned, contextualise it
+When a school's infrastructure or enrolment is mentioned, contextualise it \
 against the national baseline (e.g. "one of 154 under-enrolled SJK(T)s").
 
 ## MP Scorecard
-This table tracks ONLY backbench and opposition MPs who raised Tamil school
-issues. Do NOT include Ministers or Deputy Ministers answering on behalf of
+This table tracks ONLY backbench and opposition MPs who raised Tamil school \
+issues. Do NOT include Ministers or Deputy Ministers answering on behalf of \
 the government — their responses belong in the Executive Responses section.
 
 Markdown table with these exact columns:
 | MP Name | Constituency | Topic | Stance | Impact |
 
-Column definitions (use ONLY these values):
+Column definitions (use ONLY these values from the taxonomy):
 - Topic: max 8 words describing what was raised.
-- Stance: Advocacy / Inquiry / Critical (pick one).
-- Impact: Policy Shift / Budget Allocation / Localised Issue / General Rhetoric (pick one).
+- Stance: Advocacy / Inquiry / Critical (pick one). See taxonomy for definitions.
+- Impact: Policy Shift / Budget Allocation / Localised Issue / General Rhetoric \
+(pick one). See taxonomy for definitions. Use "General Rhetoric" ONLY when the \
+MP's statement is genuinely non-specific — most mentions should fall into a \
+more specific category.
 
 One row per MP. If an MP raised multiple topics, use the most significant one.
 Do NOT include a Party column.
 
 ## Executive Responses
-Track how the government responded to issues raised. Markdown table:
+Track how the government responded to issues raised. Use the CABINET REFERENCE \
+to verify minister names — do NOT guess or hallucinate minister names. Markdown table:
 | Minister/Deputy | Portfolio | Response To | Verdict | Date |
 
 Column definitions:
+- Minister/Deputy: Use the exact name from the Cabinet Reference or Hansard excerpt. \
+If a minister's name cannot be confirmed from either source, write "Government \
+representative" instead.
+- Portfolio: Use the exact portfolio title from Cabinet Reference.
 - Response To: max 8 words summarising the issue addressed.
-- Verdict: Commitment Made / Resolved / Deflected / Unanswered (pick one).
+- Verdict: Commitment Made / Resolved / Deflected / Unanswered (pick one). \
+See taxonomy for definitions.
 - Date: the sitting date of the response.
 
-IMPORTANT: If a Minister's response occurs in a different sitting than the
-original inquiry, explicitly note the time-lag. For example, write
-"Written reply on 27 Mar to question raised 4 Feb (51-day lag)" in the
+IMPORTANT: If a Minister's response occurs in a different sitting than the \
+original inquiry, explicitly note the time-lag. For example, write \
+"Written reply on 27 Mar to question raised 4 Feb (51-day lag)" in the \
 Response To column. This delay is a key metric of government responsiveness.
 
 Skip this section if no ministerial responses were recorded.
 
 ## Policy Signals
-Budget commitments, policy shifts, or ministerial promises with specific
-figures and dates. Report what was said, not what it might mean.
+Link parliamentary actions to the national education plan where relevant. \
+For each signal:
+- What was committed (specific amounts, dates, actions)
+- Which RPM commitment it addresses (if applicable)
+- Whether this is new or a follow-up to a prior commitment
+
+Report what was said, not what it might mean.
 Skip this section entirely if nothing concrete was committed.
 
 ## What to Watch
-2-3 bullet points for community stakeholders. Be specific and actionable.
-Tell school boards and PTA leaders what to do next.
+2-3 bullet points for community stakeholders. Be specific and actionable. \
+Tell school boards and PTA leaders what to do next. Include deadlines or \
+follow-up dates where available.
 
 {previous_context}
 
 Style rules:
 - Report, do not analyse. What was said, by whom, in what context.
+- Past tense throughout (these sittings have already occurred).
 - No editorial commentary ("This was substantive..." or "This demonstrates...").
 - Short paragraphs. Simple, clear language. British English.
 - No filler, no preamble. Lead with substance.
+- Expand acronyms on first use (use the glossary provided).
 - NEVER write "(SJK(T))" with outer brackets. Write "SJK(T)" on its own.
   If needed in parentheses, write "(SJKT)" or "Tamil schools".
 
@@ -297,6 +311,15 @@ class Command(BaseCommand):
                 )
             return
 
+        # Load domain context once for all meetings
+        from parliament.services.context_builder import build_context, format_context_for_prompt
+        try:
+            ctx = build_context()
+            domain_context = format_context_for_prompt(ctx)
+        except Exception:
+            logger.warning("Could not load domain context for reports")
+            domain_context = ""
+
         client = genai.Client(api_key=api_key)
         generated = 0
         prev_report_text = ""
@@ -359,6 +382,7 @@ class Command(BaseCommand):
                 end_date=end_str,
                 sitting_count=len(briefs),
                 total_mentions=total_mentions,
+                domain_context=domain_context,
                 previous_context=previous_context,
                 summaries=all_summaries,
             )

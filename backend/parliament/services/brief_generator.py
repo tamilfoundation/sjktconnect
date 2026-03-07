@@ -1,14 +1,19 @@
 """Sitting brief generator.
 
-Creates a markdown summary of all approved mentions from a single
-Hansard sitting, renders it to HTML, and generates a social media
-post (<= 280 chars).
+Creates a prose summary of all approved mentions from a single
+Hansard sitting using Gemini, renders it to HTML, and generates a
+social media post (<= 280 chars).
 """
 
+import json
 import logging
+import os
+import time
 from datetime import date
 
 import markdown
+from google import genai
+from google.genai import types
 
 from hansard.models import HansardMention, HansardSitting
 from parliament.models import SittingBrief
@@ -16,6 +21,47 @@ from parliament.services.evaluator import evaluate_brief as _evaluate_brief
 from parliament.services.corrector import apply_code_fixes
 
 logger = logging.getLogger(__name__)
+
+
+BRIEF_PROMPT = """\
+You are a parliamentary reporter writing a concise sitting brief about Tamil \
+school (SJK(T)) mentions in the Malaysian Parliament.
+
+Sitting date: {date}
+Number of mentions: {mention_count}
+
+{domain_context}
+
+Write a brief (100-350 words) with this structure:
+
+## Executive Summary
+2-3 sentences summarising what happened in this sitting regarding Tamil schools. \
+Lead with the most important development. Use past tense throughout.
+
+## Details
+For each mention, report: who spoke, what they said, and any context or response. \
+Use past tense. Be specific — include amounts, school names, and actions. \
+One paragraph per mention.
+
+## Verbatim Quotes
+Include 1-3 direct quotes from the Hansard excerpt that are most significant. \
+Format as blockquotes with attribution. Only include quotes that add value \
+beyond the summary. If no quotes are significant, skip this section.
+
+Style rules:
+- Past tense throughout (the sitting has already occurred)
+- British English
+- No editorial commentary
+- Expand acronyms on first use (use the glossary provided)
+- NEVER write "(SJK(T))" with outer brackets. Write "SJK(T)" on its own.
+- No preamble or filler
+
+Return as plain markdown. No code fences.
+
+--- MENTION DATA ---
+{mentions_data}
+--- END DATA ---
+"""
 
 
 def _format_date(d, fmt_long=True):
@@ -85,7 +131,7 @@ def generate_brief(sitting):
         )
         return None
 
-    md_text = _build_markdown(sitting, mentions)
+    md_text = _generate_brief_prose(sitting, mentions)
     html = markdown.markdown(md_text, extensions=["tables"])
     social_text = _build_social_post(sitting, mentions)
     title = _build_title(sitting, mentions)
@@ -118,8 +164,86 @@ def _build_title(sitting, mentions):
     return f"{count} Tamil School Mentions in Parliament — {date_str}"
 
 
-def _build_markdown(sitting, mentions):
-    """Build a markdown summary from mentions."""
+def _generate_brief_prose(sitting, mentions):
+    """Generate a prose brief via Gemini, with fallback to template."""
+    from parliament.services.context_builder import build_context, format_context_for_prompt
+
+    # Build mention data for the prompt
+    mentions_data = _build_mentions_data(mentions)
+    date_str = _format_date(sitting.sitting_date)
+
+    # Domain context
+    try:
+        ctx = build_context()
+        domain_context = format_context_for_prompt(ctx)
+    except Exception:
+        logger.warning("Could not load domain context for brief")
+        domain_context = ""
+
+    # Try Gemini
+    api_key = os.environ.get("GEMINI_API_KEY", "")
+    if not api_key:
+        logger.info("No GEMINI_API_KEY, using template fallback for brief")
+        return _build_markdown_fallback(sitting, mentions)
+
+    prompt = BRIEF_PROMPT.format(
+        date=date_str,
+        mention_count=mentions.count(),
+        domain_context=domain_context,
+        mentions_data=mentions_data,
+    )
+
+    try:
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.3,
+                max_output_tokens=2048,
+            ),
+        )
+        md_text = response.text.strip()
+        # Post-process: fix "(SJK(T))" → "SJK(T)"
+        import re
+        md_text = re.sub(r"\(SJK\(T\)\)", "SJK(T)", md_text)
+        return md_text
+    except Exception:
+        logger.exception("Gemini brief generation failed, using fallback")
+        return _build_markdown_fallback(sitting, mentions)
+
+
+def _build_mentions_data(mentions):
+    """Format mentions as structured text for the brief prompt."""
+    parts = []
+    for i, mention in enumerate(mentions.order_by("page_number"), 1):
+        mp = mention.mp_name or "Unknown MP"
+        constituency = mention.mp_constituency or ""
+        party = mention.mp_party or ""
+        lines = [
+            f"Mention {i}:",
+            f"  Speaker: {mp}",
+        ]
+        if constituency:
+            lines.append(f"  Constituency: {constituency}")
+        if party:
+            lines.append(f"  Party: {party}")
+        lines.append(f"  Type: {mention.mention_type or 'OTHER'}")
+        lines.append(f"  Significance: {mention.significance or 1}/5")
+        lines.append(f"  Sentiment: {mention.sentiment or 'NEUTRAL'}")
+        if mention.ai_summary:
+            lines.append(f"  Summary: {mention.ai_summary}")
+        if mention.verbatim_quote:
+            quote = mention.verbatim_quote[:500]
+            lines.append(f"  Hansard excerpt: {quote}")
+        if mention.page_number:
+            lines.append(f"  Page: {mention.page_number}")
+        parts.append("\n".join(lines))
+    return "\n\n".join(parts)
+
+
+def _build_markdown_fallback(sitting, mentions):
+    """Build a template-based markdown summary (fallback when Gemini unavailable)."""
     date_str = _format_date(sitting.sitting_date)
     lines = [
         f"# Parliament Watch: {date_str}",

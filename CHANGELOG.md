@@ -1,5 +1,24 @@
 # Changelog
 
+## Sprint 6.2 — Pipeline Prompts (2026-03-07)
+
+### Changed
+- **Mention analysis prompt**: Wired `context_builder` for domain context (cabinet, glossary, taxonomy) injection. Added past tense enforcement for summaries.
+- **Brief generator**: Replaced template-based `_build_markdown` with Gemini-powered prose generation (executive summary → details → verbatim quotes, 100-350 words). Falls back to template when `GEMINI_API_KEY` is absent.
+- **Report generator prompt**: Restructured with domain context injection (cabinet reference for minister attribution, glossary for acronym expansion, taxonomy definitions for Impact/Stance columns, RPM alignment for Policy Signals). Strengthened minister hallucination guard. Added past tense rule.
+
+### Validated (3rd Meeting 2025 regeneration)
+- FLAG-001: No minister hallucination — Zaliha correctly labelled "Minister of Health"
+- FLAG-002: Executive responses fully attributed with named ministers and portfolios
+- FLAG-003: Past tense used throughout lead and body
+- FLAG-004: Acronyms (KPM, MITRA, RPM) expanded on first use
+- FLAG-005: Impact categories rebalanced — General Rhetoric reduced from 10/15 to 4/17
+
+### Tests
+- 8 new tests (928 total backend): context injection in prompts, past tense enforcement, graceful context failure, Gemini brief prose path, fallback on API error, mention data formatting, report domain context
+
+---
+
 ## Sprint 6.1 — Foundation & Data Layer (2026-03-07)
 
 ### Added
