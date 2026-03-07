@@ -32,7 +32,7 @@ class Command(BaseCommand):
         # Find all (sitting, page) groups with more than one mention
         dupes = (
             HansardMention.objects
-            .values("sitting_id", "page_number")
+            .values("sitting_id", "page_number", "mp_name")
             .annotate(cnt=Count("id"))
             .filter(cnt__gt=1)
             .order_by("sitting_id", "page_number")
@@ -47,6 +47,7 @@ class Command(BaseCommand):
                 .filter(
                     sitting_id=group["sitting_id"],
                     page_number=group["page_number"],
+                    mp_name=group["mp_name"],
                 )
                 .select_related("sitting")
                 .order_by("id")
