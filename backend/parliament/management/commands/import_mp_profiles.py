@@ -102,6 +102,7 @@ class Command(BaseCommand):
                 "email": profile.get("email"),
                 "facebook_url": profile.get("facebook_url"),
                 "service_centre_address": profile.get("service_centre_address"),
+                "portfolio": profile.get("portfolio", ""),
             }
 
             if dry_run:

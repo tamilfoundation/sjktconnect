@@ -69,6 +69,30 @@ def parse_parlimen_profile(html: str) -> dict:
             details["email"] = value
         elif "Alamat" in label and value:
             details["service_centre_address"] = value
+    # Extract portfolio/jawatan
+    portfolio = ""
+    for row in soup.select("tr"):
+        cells = row.find_all("td")
+        if len(cells) < 2:
+            continue
+        label = cells[0].get_text(strip=True)
+        value = cells[1].get_text(strip=True)
+        if "Jawatan" in label and value:
+            portfolio = value
+            break
+
+    # Also check for minister title in page text if not found in table
+    if not portfolio:
+        text = soup.get_text()
+        minister_match = re.search(
+            r"(Menteri\s+\w[\w\s]*?)(?:\n|$|,)",
+            text,
+        )
+        if minister_match:
+            portfolio = minister_match.group(1).strip()
+
+    details["portfolio"] = portfolio
+
     fb_match = re.search(
         r"(?:FB\s*:\s*)?(?:https?:)?//(?:www\.)?facebook\.com/[\w.\-/]+", html
     )
