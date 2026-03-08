@@ -390,6 +390,23 @@ def _resolve_school_codes(mentioned_schools, article=None):
                 # Don't use ambiguous single-word matches
                 candidates = School.objects.none()
 
+        # Strategy 6: Fuzzy match — collapse doubled consonants to handle
+        # Tamil transliteration variants (Alagar/Allagar, Ampar/Amppar)
+        if not candidates.exists() and distinctive:
+            import re as _re
+            collapsed = _re.sub(r"(.)\1+", r"\1", distinctive.lower())
+            if len(collapsed) >= 4:
+                for school in School.objects.all().only("moe_code", "short_name"):
+                    school_distinctive = _strip_prefix(school.short_name)
+                    school_collapsed = _re.sub(
+                        r"(.)\1+", r"\1", school_distinctive.lower()
+                    )
+                    if collapsed == school_collapsed:
+                        candidates = School.objects.filter(
+                            moe_code=school.moe_code
+                        )
+                        break
+
         # Resolve candidates
         if candidates.count() == 1:
             match = candidates.first()

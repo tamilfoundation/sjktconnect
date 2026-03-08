@@ -62,6 +62,7 @@ export default function NewsList({ articles, totalCount }: Props) {
     const schoolCounts = new Map<string, { name: string; moe_code: string; count: number }>();
     articles.forEach((article) => {
       article.mentioned_schools.forEach((school) => {
+        if (!school.moe_code) return;
         const existing = schoolCounts.get(school.moe_code);
         if (existing) {
           existing.count++;
