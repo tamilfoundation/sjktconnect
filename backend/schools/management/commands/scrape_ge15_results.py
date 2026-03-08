@@ -94,7 +94,7 @@ class Command(BaseCommand):
             if c.code in NAME_OVERRIDES:
                 seat_name = NAME_OVERRIDES[c.code]
             else:
-                seat_name = c.name.upper().replace(" ", "_").replace("'", "")
+                seat_name = c.name.upper().replace("'", "")
             seat_id = f"{state_code}.p.{seat_name}"
 
             try:

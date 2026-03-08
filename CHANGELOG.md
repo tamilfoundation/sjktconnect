@@ -1,5 +1,19 @@
 # Changelog
 
+## Bugfix — Electoral Influence & DOSM Links (2026-03-08)
+
+### Fixed
+- **DOSM Kawasanku link**: Multi-word state names now title-cased correctly (e.g. `Pulau Pinang` not `Pulau pinang`). Affected Pulau Pinang, Negeri Sembilan, Wilayah Persekutuan Kuala Lumpur.
+- **GE15 scraper**: Removed underscore replacement in undi.info API seat names — three-word constituencies (P124 Bandar Tun Razak, P137 Hang Tuah Jaya) were returning empty responses.
+- **Electoral influence fallback**: Card now falls back to DOSM census `indian_population` when voter ethnicity data is unavailable (e.g. P018 Kulim-Bandar Baharu).
+
+### Deployed
+- Backend revision 00064, frontend revision 00054.
+- Re-scraped GE15 data for all constituencies — P124 and P137 now populated.
+- Cloud Run job image updated to latest backend.
+
+---
+
 ## Sprint 6.3 — Frontend & Polish (2026-03-07)
 
 ### Added

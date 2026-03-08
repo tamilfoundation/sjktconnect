@@ -350,9 +350,15 @@ class ConstituencyDetailSerializer(serializers.ModelSerializer):
         margin = obj.ge15_winning_margin
         total_voters = obj.ge15_total_voters
         indian_pct = obj.ge15_indian_voter_pct
-        if not margin or not total_voters or not indian_pct:
+        if not margin:
             return None
-        indian_voters = int(float(total_voters) * float(indian_pct) / 100)
+        # Prefer voter ethnicity %, fall back to DOSM census indian_population
+        if indian_pct and total_voters:
+            indian_voters = int(float(total_voters) * float(indian_pct) / 100)
+        elif obj.indian_population:
+            indian_voters = obj.indian_population
+        else:
+            return None
         ratio = round(indian_voters / margin, 1) if margin > 0 else None
         if ratio is None:
             verdict = None

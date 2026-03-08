@@ -179,7 +179,7 @@ export default function ElectoralInfluenceCard({
           <div className="flex items-center justify-center gap-3 mt-4 text-[11px]">
             {constituencyCode && constituencyName && state && (
               <a
-                href={`https://open.dosm.gov.my/dashboard/kawasanku/${encodeURIComponent(state.charAt(0).toUpperCase() + state.slice(1).toLowerCase())}/parlimen/${encodeURIComponent(constituencyCode.replace(/^(P)(\d)/, "$1.$2") + " " + constituencyName)}`}
+                href={`https://open.dosm.gov.my/dashboard/kawasanku/${encodeURIComponent(state.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()))}/parlimen/${encodeURIComponent(constituencyCode.replace(/^(P)(\d)/, "$1.$2") + " " + constituencyName)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-500 hover:text-blue-700 hover:underline"
