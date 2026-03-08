@@ -83,10 +83,12 @@ class GenerateBriefTests(TestCase):
         brief = generate_brief(self.sitting)
         self.assertIn("3", brief.social_post_text)
 
-    def test_green_brief_auto_published(self):
+    @patch("parliament.services.brief_generator._evaluate_brief")
+    def test_green_brief_auto_published(self, mock_eval):
         """GREEN quality briefs are auto-published."""
+        from parliament.services.evaluator import EvaluationResult
+        mock_eval.return_value = EvaluationResult(verdict="PASS")
         brief = generate_brief(self.sitting)
-        # Evaluator returns PASS (fail-open) without API key → GREEN → published
         self.assertEqual(brief.quality_flag, "GREEN")
         self.assertTrue(brief.is_published)
 
@@ -311,8 +313,11 @@ class GeminiBriefTests(TestCase):
         self.assertIn("Executive Summary", result)
         self.assertIn("YB Arul", result)
 
+    @patch.dict("os.environ", {}, clear=False)
     def test_fallback_when_no_api_key(self):
         """Without GEMINI_API_KEY, should produce template-based markdown."""
+        import os
+        os.environ.pop("GEMINI_API_KEY", None)
         mentions = self.sitting.mentions.exclude(ai_summary="")
         result = _generate_brief_prose(self.sitting, mentions)
         self.assertIn("Parliament Watch", result)
