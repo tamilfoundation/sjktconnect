@@ -250,6 +250,26 @@ def _resolve_mp_party(mp_name, mp_constituency):
     return ""
 
 
+def _validate_speaker(mention, mp_name: str) -> bool:
+    """Check if mp_name appears in the Hansard excerpt.
+
+    Checks full name and each word fragment (for surname matching).
+    Returns True if found or if mp_name is empty. False if not verifiable.
+    """
+    if not mp_name:
+        return True
+    search_text = f"{mention.context_before} {mention.verbatim_quote}".lower()
+    if mp_name.lower() in search_text:
+        return True
+    fragments = [w for w in mp_name.split() if len(w) > 2 and w.lower() not in {
+        "a/l", "a/p", "bin", "binti", "b.", "bt.",
+    }]
+    for fragment in fragments:
+        if fragment.lower() in search_text:
+            return True
+    return False
+
+
 def apply_analysis(mention, analysis):
     """Apply validated analysis dict to a HansardMention and save.
 
@@ -280,8 +300,16 @@ def apply_analysis(mention, analysis):
     if not mention.mp_party:
         mention.mp_party = _resolve_mp_party(mention.mp_name, mention.mp_constituency)
 
+    # Verify speaker name appears in the Hansard excerpt
+    mention.speaker_verified = _validate_speaker(mention, mention.mp_name)
+    if not mention.speaker_verified:
+        logger.warning(
+            "Speaker '%s' not found in excerpt for mention %s",
+            mention.mp_name, mention.pk,
+        )
+
     mention.save(update_fields=[
         "mp_name", "mp_constituency", "mp_party", "mention_type",
         "significance", "sentiment", "change_indicator",
-        "ai_summary", "ai_raw_response", "updated_at",
+        "ai_summary", "ai_raw_response", "speaker_verified", "updated_at",
     ])

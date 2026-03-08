@@ -339,3 +339,80 @@ class ApplyAnalysisWithResolverTests(TestCase):
         analysis.update(resolved)
         self.assertEqual(analysis["mp_party"], "PH(DAP)")
         self.assertEqual(analysis["mp_name"], "Tuan Ganabatirau a/l Veraman")
+
+
+class SpeakerValidationTests(TestCase):
+    """Test speaker verification during apply_analysis."""
+
+    def _make_mention(self, quote, context_before=""):
+        sitting = HansardSitting.objects.create(
+            sitting_date="2026-02-15",
+            pdf_url="https://example.com/test.pdf",
+            pdf_filename="test.pdf",
+        )
+        return HansardMention.objects.create(
+            sitting=sitting,
+            verbatim_quote=quote,
+            context_before=context_before,
+            page_number=1,
+        )
+
+    def _base_analysis(self, mp_name="YB Dato' Sri Arul"):
+        return {
+            "mp_name": mp_name,
+            "mp_constituency": "",
+            "mp_party": "",
+            "mention_type": "QUESTION",
+            "significance": 3,
+            "sentiment": "NEUTRAL",
+            "change_indicator": "NEW",
+            "summary": "Test summary.",
+            "raw_response": {},
+        }
+
+    def test_speaker_verified_when_name_in_quote(self):
+        """Full name found in verbatim_quote → speaker_verified=True."""
+        mention = self._make_mention(
+            quote="YB Dato' Sri Arul asked about SJK(T) funding.",
+        )
+        apply_analysis(mention, self._base_analysis("YB Dato' Sri Arul"))
+        mention.refresh_from_db()
+        self.assertTrue(mention.speaker_verified)
+
+    def test_speaker_unverified_when_name_not_in_excerpt(self):
+        """Name not in quote or context → speaker_verified=False."""
+        mention = self._make_mention(
+            quote="SJK(T) Ladang Bikam needs repairs.",
+            context_before="Tuan Pengerusi,",
+        )
+        apply_analysis(mention, self._base_analysis("YB Someone Else"))
+        mention.refresh_from_db()
+        self.assertFalse(mention.speaker_verified)
+
+    def test_speaker_verified_by_surname_fragment(self):
+        """Surname fragment found in excerpt → speaker_verified=True."""
+        mention = self._make_mention(
+            quote="Ganabatirau raised the issue of SJK(T) closures.",
+        )
+        apply_analysis(mention, self._base_analysis("Tuan Ganabatirau a/l Veraman"))
+        mention.refresh_from_db()
+        self.assertTrue(mention.speaker_verified)
+
+    def test_speaker_verified_when_name_in_context_before(self):
+        """Name found in context_before → speaker_verified=True."""
+        mention = self._make_mention(
+            quote="SJK(T) Ladang Bikam needs repairs.",
+            context_before="YB Dato' Sri Arul [Tapah]:",
+        )
+        apply_analysis(mention, self._base_analysis("YB Dato' Sri Arul"))
+        mention.refresh_from_db()
+        self.assertTrue(mention.speaker_verified)
+
+    def test_speaker_verified_true_when_no_mp_name(self):
+        """Empty mp_name → nothing to verify → speaker_verified=True."""
+        mention = self._make_mention(
+            quote="SJK(T) mentioned in passing.",
+        )
+        apply_analysis(mention, self._base_analysis(""))
+        mention.refresh_from_db()
+        self.assertTrue(mention.speaker_verified)

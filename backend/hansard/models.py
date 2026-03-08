@@ -64,6 +64,7 @@ class HansardMention(models.Model):
     change_indicator = models.CharField(max_length=20, blank=True, default="")
     ai_summary = models.TextField(blank=True, default="")
     ai_raw_response = models.JSONField(default=dict, blank=True)
+    speaker_verified = models.BooleanField(default=True)
 
     # Review fields (Sprint 0.5)
     review_status = models.CharField(max_length=20, blank=True, default="PENDING")
