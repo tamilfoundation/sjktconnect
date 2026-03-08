@@ -94,6 +94,36 @@ class LinkifySchoolsTests(TestCase):
         result = _linkify_schools(html)
         self.assertNotIn("<a href=", result)
 
+    def test_fuzzy_matches_typo(self):
+        """Fuzzy match: 'Ladang Mentakb' links to 'Ladang Mentakab' (ratio>=0.85)."""
+        from parliament.management.commands.generate_meeting_reports import _linkify_schools
+        from schools.models import School
+        School.objects.create(
+            moe_code="ZZZ7777",
+            name="Sekolah Jenis Kebangsaan (Tamil) Ladang Mentakab",
+            short_name="SJK(T) Ladang Mentakab",
+            state="Pahang", ppd="Temerloh",
+        )
+        html = "<p>SJK(T) Ladang Mentakb needs repairs</p>"
+        result = _linkify_schools(html)
+        self.assertIn("ZZZ7777", result)
+        self.assertIn("<a href=", result)
+
+    def test_fuzzy_skips_low_ratio(self):
+        """Fuzzy match: completely different name should NOT match."""
+        from parliament.management.commands.generate_meeting_reports import _linkify_schools
+        from schools.models import School
+        School.objects.create(
+            moe_code="ZZZ6666",
+            name="Sekolah Jenis Kebangsaan (Tamil) Ladang Bikam",
+            short_name="SJK(T) Ladang Bikam",
+            state="Perak", ppd="Hilir Perak",
+        )
+        html = "<p>SJK(T) Totally Different Name here</p>"
+        result = _linkify_schools(html)
+        self.assertNotIn("ZZZ6666", result)
+        self.assertNotIn("<a href=", result)
+
 
 class NormalisePlaceNameTests(TestCase):
 

@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import time
+from difflib import SequenceMatcher
 
 import markdown
 from django.core.management.base import BaseCommand
@@ -311,6 +312,69 @@ def _linkify_schools(html: str) -> str:
             return f'<a href="{_url}">{m.group(1)}</a>'
 
         html = pattern.sub(_replace, html)
+
+    # Fuzzy pass: find unlinked SJK(T) names and try fuzzy matching
+    # Match SJK(T) followed by word tokens (greedy, up to 6 words)
+    unlinked_pattern = re.compile(
+        r'SJK\(T\)\s+((?:[A-Za-z]+(?:\s+|$)){1,6})'
+    )
+    all_short_names = list(
+        School.objects.filter(is_active=True).values_list("short_name", flat=True)
+    )
+
+    replacements = []  # collect (old_text, new_text) to apply after iteration
+    for match in unlinked_pattern.finditer(html):
+        full_capture = match.group(0).strip()
+        # Skip if already inside a link
+        preceding = html[:match.start()]
+        if preceding.rfind("<a ") > preceding.rfind("</a>"):
+            continue
+        # Skip if this exact text is already linked (from exact pass)
+        if f">{full_capture}</a>" in html:
+            continue
+
+        # Try progressively shorter candidates (drop trailing words)
+        words_after = match.group(1).strip().split()
+        best_ratio = 0.0
+        best_code = None
+        best_candidate = None
+        for length in range(len(words_after), 0, -1):
+            candidate = "SJK(T) " + " ".join(words_after[:length])
+            for short_name in all_short_names:
+                ratio = SequenceMatcher(
+                    None, candidate.lower(), short_name.lower()
+                ).ratio()
+                if ratio > best_ratio:
+                    best_ratio = ratio
+                    best_candidate = candidate
+                    # Look up code from short_name
+                    sn_stripped = re.sub(
+                        r"^SJK\(T\)\s*", "", short_name,
+                        flags=re.IGNORECASE,
+                    ).strip()
+                    best_code = lookup.get(sn_stripped.lower())
+                    if not best_code:
+                        try:
+                            best_code = School.objects.get(
+                                short_name=short_name
+                            ).moe_code
+                        except School.DoesNotExist:
+                            best_code = None
+
+        if best_ratio >= 0.85 and best_code and best_candidate:
+            replacements.append((best_candidate, best_code))
+            logger.info(
+                "Fuzzy-linked '%s' -> %s (ratio=%.2f)",
+                best_candidate, best_code, best_ratio,
+            )
+
+    # Apply replacements (longest first to avoid partial overlap)
+    replacements.sort(key=lambda r: len(r[0]), reverse=True)
+    for text, code in replacements:
+        url = f"{frontend_url}/school/{code}"
+        link = f'<a href="{url}">{text}</a>'
+        html = html.replace(text, link, 1)
+
     return html
 
 
