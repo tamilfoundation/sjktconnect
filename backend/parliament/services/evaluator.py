@@ -1,10 +1,11 @@
 """Evaluator service — scores generated output against the quality rubric.
 
 Uses a separate Gemini API call to evaluate sitting briefs and meeting reports.
-Returns structured EvaluationResult with verdict (PASS/FIX/REJECT), tier scores,
-and repair suggestions.
+Returns structured EvaluationResult with verdict (PASS/FIX/REJECT/AMBER), tier
+scores, and repair suggestions.
 
-Fail-open: if API key is missing or API call fails, returns PASS verdict.
+Fail-safe: if API key is missing, returns PASS (fail-open for dev).
+If API call fails, returns AMBER (needs human review).
 """
 
 import json
@@ -23,12 +24,13 @@ MODEL = "gemini-2.5-flash"
 
 @dataclass
 class EvaluationResult:
-    verdict: str  # PASS, FIX, REJECT
+    verdict: str  # PASS, FIX, REJECT, AMBER
     tier1_results: dict = field(default_factory=dict)
     tier2_scores: dict = field(default_factory=dict)
     tier3_flags: dict = field(default_factory=dict)
     unlinked_schools: list = field(default_factory=list)
     repair_suggestions: list = field(default_factory=list)
+    evaluator_error: bool = False
 
 
 def _compute_verdict(tier1: dict, tier2: dict) -> str:
@@ -52,6 +54,11 @@ def _compute_verdict(tier1: dict, tier2: dict) -> str:
 def _pass_result() -> EvaluationResult:
     """Return a default PASS result (fail-open)."""
     return EvaluationResult(verdict="PASS")
+
+
+def _amber_result() -> EvaluationResult:
+    """Return an AMBER result indicating evaluator failure."""
+    return EvaluationResult(verdict="AMBER", evaluator_error=True)
 
 
 EVALUATOR_PROMPT = """\
@@ -207,8 +214,8 @@ def _call_evaluator(api_key: str, prompt: str) -> EvaluationResult:
         )
         data = json.loads(response.text)
     except Exception:
-        logger.exception("Evaluator API call failed — returning PASS (fail-open)")
-        return _pass_result()
+        logger.exception("Evaluator API call failed — returning AMBER (fail-safe)")
+        return _amber_result()
 
     tier1 = data.get("tier1_red_lines", {})
     tier2 = data.get("tier2_quality", {})

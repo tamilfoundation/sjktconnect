@@ -164,8 +164,8 @@ class EvaluateReportTests(TestCase):
 
     @patch("parliament.services.evaluator.genai")
     @patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
-    def test_evaluate_report_api_error_returns_pass(self, mock_genai):
-        """Fail-open: API error -> treat as PASS."""
+    def test_evaluate_report_api_error_returns_amber(self, mock_genai):
+        """Fail-safe: API error -> treat as AMBER."""
         mock_client = MagicMock()
         mock_client.models.generate_content.side_effect = Exception("API error")
         mock_genai.Client.return_value = mock_client
@@ -176,7 +176,8 @@ class EvaluateReportTests(TestCase):
             school_names=[],
             mp_names=[],
         )
-        self.assertEqual(result.verdict, "PASS")
+        self.assertEqual(result.verdict, "AMBER")
+        self.assertTrue(result.evaluator_error)
 
 
 class EvaluateBriefTests(TestCase):
@@ -203,3 +204,77 @@ class EvaluateBriefTests(TestCase):
             mp_names=["YB Arul"],
         )
         self.assertEqual(result.verdict, "PASS")
+
+
+class FailSafeTests(TestCase):
+    """Test fail-safe behaviour: API errors return AMBER, not PASS."""
+
+    @patch("parliament.services.evaluator.genai")
+    @patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
+    def test_api_error_returns_amber(self, mock_genai):
+        """API call failure should return AMBER with evaluator_error flag."""
+        mock_client = MagicMock()
+        mock_client.models.generate_content.side_effect = Exception("Timeout")
+        mock_genai.Client.return_value = mock_client
+
+        result = evaluate_report(
+            report_html="<p>Report</p>",
+            source_briefs="Brief text",
+            school_names=[],
+            mp_names=[],
+        )
+        self.assertEqual(result.verdict, "AMBER")
+        self.assertTrue(result.evaluator_error)
+
+    @patch("parliament.services.evaluator.genai")
+    @patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
+    def test_json_parse_error_returns_amber(self, mock_genai):
+        """Invalid JSON from API should return AMBER with evaluator_error flag."""
+        mock_response = MagicMock()
+        mock_response.text = "NOT VALID JSON {{"
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value = mock_response
+        mock_genai.Client.return_value = mock_client
+
+        result = evaluate_report(
+            report_html="<p>Report</p>",
+            source_briefs="Brief text",
+            school_names=[],
+            mp_names=[],
+        )
+        self.assertEqual(result.verdict, "AMBER")
+        self.assertTrue(result.evaluator_error)
+
+    def test_no_api_key_still_returns_pass(self):
+        """No API key should still return PASS (fail-open for dev)."""
+        import os
+        old = os.environ.pop("GEMINI_API_KEY", None)
+        try:
+            result = evaluate_report(
+                report_html="<p>Report</p>",
+                source_briefs="Brief text",
+                school_names=[],
+                mp_names=[],
+            )
+            self.assertEqual(result.verdict, "PASS")
+            self.assertFalse(result.evaluator_error)
+        finally:
+            if old is not None:
+                os.environ["GEMINI_API_KEY"] = old
+
+    @patch("parliament.services.evaluator.genai")
+    @patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
+    def test_brief_api_error_returns_amber(self, mock_genai):
+        """Brief evaluator also returns AMBER on API failure."""
+        mock_client = MagicMock()
+        mock_client.models.generate_content.side_effect = Exception("Rate limit")
+        mock_genai.Client.return_value = mock_client
+
+        result = evaluate_brief(
+            brief_html="<p>Brief</p>",
+            source_summaries="Summary",
+            school_names=[],
+            mp_names=[],
+        )
+        self.assertEqual(result.verdict, "AMBER")
+        self.assertTrue(result.evaluator_error)
