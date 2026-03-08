@@ -108,11 +108,14 @@ class Command(BaseCommand):
             # Delete any previous mentions for this sitting (in case of reprocess)
             sitting.mentions.all().delete()
 
-            # Deduplicate: keep one mention per page per keyword
+            # Deduplicate: keep one mention per page per speaker
+            # Different keywords (e.g. "sjk(t)" and "sekolah jenis kebangsaan tamil")
+            # often match the same speech. But different speakers on the same page
+            # (e.g. MP question + Deputy Minister response) must be preserved.
             seen = set()
             mentions = []
             for match in matches:
-                dedup_key = (match["page_number"], match["keyword_matched"])
+                dedup_key = (match["page_number"], match.get("speaker_name", ""))
                 if dedup_key in seen:
                     continue
                 seen.add(dedup_key)

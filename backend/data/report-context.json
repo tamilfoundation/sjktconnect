@@ -44,6 +44,12 @@
       "minister": "Dato' Aaron Ago Dagang",
       "portfolio": "Minister of National Unity",
       "since": "2022-12-03"
+    },
+    "pm_department": {
+      "minister": "YAB Dato' Seri Anwar bin Ibrahim",
+      "portfolio": "Prime Minister's Department",
+      "since": "2022-11-24",
+      "note": "MITRA (Malaysian Indian Transformation Unit) sits under PM's Department, not any line ministry"
     }
   },
   "glossary": {
@@ -61,7 +67,13 @@
     "MBPK": "Mesyuarat Bersama Pegawai Kewangan — Joint Financial Officers Meeting",
     "BM": "Bahasa Melayu — Malay language",
     "DUN": "Dewan Undangan Negeri — State Legislative Assembly",
-    "DR": "Dewan Rakyat — House of Representatives"
+    "DR": "Dewan Rakyat — House of Representatives",
+    "MITRA": "Malaysian Indian Transformation Unit — agency under PM's Department for Indian community development",
+    "LPS": "Lembaga Pengelola Sekolah — School Management Board (the school's governing body)",
+    "PIBG": "Persatuan Ibu Bapa dan Guru — Parent-Teacher Association",
+    "RMK-13": "Rancangan Malaysia Ke-13 — 13th Malaysia Plan (2026-2030)",
+    "RMK-12": "Rancangan Malaysia Ke-12 — 12th Malaysia Plan (2021-2025)",
+    "Daif": "Dilapidated — MOE classification for schools requiring major repair or reconstruction"
   },
   "taxonomy": {
     "stance": {

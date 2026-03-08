@@ -26,6 +26,12 @@ def clean_extracted_text(text: str) -> str:
     # Unicode normalisation
     text = unicodedata.normalize("NFKC", text)
 
+    # Strip leading date-page headers from PDF (e.g. "14.10.2025 120\n")
+    text = re.sub(r"^\d{2}\.\d{2}\.\d{4}\s+\d+\s*\n?", "", text)
+
+    # Remove black square artefacts (U+25A0) from PDF tables
+    text = text.replace("\u25a0", "")
+
     # Fix double/triple periods: ". ." or ".  ." → "."
     text = re.sub(r"\.\s*\.\s*\.?", ".", text)
 

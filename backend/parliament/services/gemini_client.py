@@ -117,6 +117,15 @@ def _validate_response(data):
     Returns a clean dict with all expected fields, filling in defaults
     for any missing or invalid values.
     """
+    # Handle Gemini returning a list instead of a dict (e.g. multiple speakers)
+    if isinstance(data, list):
+        data = data[0] if data else {}
+    if not isinstance(data, dict):
+        data = {}
+    summary = str(data.get("summary", "")).strip()
+    # Fix persistent bracket bug: "(SJK(T))" → "SJK(T)"
+    summary = summary.replace("(SJK(T))", "SJK(T)")
+
     result = {
         "mp_name": str(data.get("mp_name", "")).strip(),
         "mp_constituency": str(data.get("mp_constituency", "")).strip(),
@@ -125,7 +134,7 @@ def _validate_response(data):
         "significance": data.get("significance"),
         "sentiment": str(data.get("sentiment", "NEUTRAL")).strip().upper(),
         "change_indicator": str(data.get("change_indicator", "NEW")).strip().upper(),
-        "summary": str(data.get("summary", "")).strip(),
+        "summary": summary,
     }
 
     # Clamp enum fields to valid values
@@ -213,13 +222,22 @@ def analyse_mention(mention):
 def apply_analysis(mention, analysis):
     """Apply validated analysis dict to a HansardMention and save.
 
+    Preserves speaker data from the Hansard searcher (regex extraction)
+    when Gemini returns empty values — the searcher's 20-page lookback
+    is often more reliable than Gemini for speaker identification.
+
     Args:
         mention: HansardMention instance.
         analysis: dict from analyse_mention().
     """
-    mention.mp_name = analysis["mp_name"]
-    mention.mp_constituency = analysis["mp_constituency"]
-    mention.mp_party = analysis["mp_party"]
+    # Only overwrite speaker fields if Gemini found a name;
+    # otherwise keep the searcher's extraction
+    if analysis["mp_name"]:
+        mention.mp_name = analysis["mp_name"]
+    if analysis["mp_constituency"]:
+        mention.mp_constituency = analysis["mp_constituency"]
+    if analysis["mp_party"]:
+        mention.mp_party = analysis["mp_party"]
     mention.mention_type = analysis["mention_type"]
     mention.significance = analysis["significance"]
     mention.sentiment = analysis["sentiment"]

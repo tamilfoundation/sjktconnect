@@ -95,6 +95,29 @@ class LinkifySchoolsTests(TestCase):
         self.assertNotIn("<a href=", result)
 
 
+class NormalisePlaceNameTests(TestCase):
+
+    def test_tanjong_matches_tanjung(self):
+        from parliament.management.commands.generate_meeting_reports import _normalise_place_name
+        self.assertEqual(_normalise_place_name("Tanjong Piai"), _normalise_place_name("Tanjung Piai"))
+
+    def test_sungei_matches_sungai(self):
+        from parliament.management.commands.generate_meeting_reports import _normalise_place_name
+        self.assertEqual(_normalise_place_name("Sungei Siput"), _normalise_place_name("Sungai Siput"))
+
+
+class LinkifyConstituencyVariantTests(TestCase):
+
+    def test_tanjong_links_to_tanjung(self):
+        from parliament.management.commands.generate_meeting_reports import _linkify_constituencies
+        from schools.models import Constituency
+        Constituency.objects.create(name="Tanjung Piai", code="P165", state="Johor")
+        html = '<td style="text-align: left;">Tanjong Piai</td>'
+        result = _linkify_constituencies(html)
+        self.assertIn("P165", result)
+        self.assertIn("<a href=", result)
+
+
 class LinkifyBriefsTests(TestCase):
 
     def test_links_sitting_date_to_brief_detail(self):

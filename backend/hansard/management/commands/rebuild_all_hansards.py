@@ -44,11 +44,13 @@ def process_single_sitting(sitting, keywords, skip_matching=False):
     sitting.mentions.all().delete()
     connection.close()
 
-    # Store new mentions (deduplicated: one per page per keyword)
+    # Store new mentions (deduplicated: one per page per speaker)
+    # Different keywords often match the same speech on a page.
+    # Different speakers (e.g. MP question + Deputy Minister response) are preserved.
     seen = set()
     mentions = []
     for match in matches:
-        dedup_key = (match["page_number"], match["keyword_matched"])
+        dedup_key = (match["page_number"], match.get("speaker_name", ""))
         if dedup_key in seen:
             continue
         seen.add(dedup_key)

@@ -54,10 +54,17 @@ from this meeting. NOT "Meeting Report" or "Tamil School Discussions".
 Example: "PM Pledges Aid for Dilapidated Tamil Schools as MPs Challenge \
 Funding Inequity"
 
-[Lead paragraph — 2-3 sentences summarising the big picture. What happened, \
-why it matters, what changed. This is what readers see before expanding. \
-Do NOT start with "This report covers..." or any procedural preamble. \
-Lead with the story. Use past tense throughout.]
+[Plain language opening — ONE paragraph, max 80 words, addressed directly to \
+a Tamil school parent. Use NO acronyms. Explain in simple terms what happened \
+and what it means for their child's school. Example tone: "If your child \
+attends a Tamil school that needs repairs, this session brought good news and \
+bad news. The government approved RM22 million to rebuild one school, but \
+several others are still waiting." This paragraph is MANDATORY.]
+
+[Lead paragraph — 2-3 sentences summarising the big picture for policy readers. \
+What happened, why it matters, what changed. Do NOT start with "This report \
+covers..." or any procedural preamble. Lead with the story. Use past tense \
+throughout.]
 
 ## Key Findings
 3-5 bullet points. The most important takeaways, with specific amounts, \
@@ -93,7 +100,10 @@ Column definitions:
 - Minister/Deputy: Use the exact name from the Cabinet Reference or Hansard excerpt. \
 If a minister's name cannot be confirmed from either source, write "Government \
 representative" instead.
-- Portfolio: Use the exact portfolio title from Cabinet Reference.
+- Portfolio: Use the exact portfolio title from Cabinet Reference. \
+IMPORTANT: MITRA (Malaysian Indian Transformation Unit) sits under the \
+Prime Minister's Department, NOT any line ministry. If a minister responds \
+about MITRA funding, use "Prime Minister's Department" as portfolio.
 - Response To: max 8 words summarising the issue addressed.
 - Verdict: Commitment Made / Resolved / Deflected / Unanswered (pick one). \
 See taxonomy for definitions.
@@ -103,6 +113,11 @@ IMPORTANT: If a Minister's response occurs in a different sitting than the \
 original inquiry, explicitly note the time-lag. For example, write \
 "Written reply on 27 Mar to question raised 4 Feb (51-day lag)" in the \
 Response To column. This delay is a key metric of government responsiveness.
+
+When a verdict is "Deflected", add a brief note below the table explaining \
+what was deflected and suggesting a follow-up action (e.g. "Wong Kah Woh \
+deflected on Tamil education sustainability — stakeholders should request a \
+written answer via their MP").
 
 Skip this section if no ministerial responses were recorded.
 
@@ -117,9 +132,12 @@ Report what was said, not what it might mean.
 Skip this section entirely if nothing concrete was committed.
 
 ## What to Watch
-2-3 bullet points for community stakeholders. Be specific and actionable. \
-Tell school boards and PTA leaders what to do next. Include deadlines or \
-follow-up dates where available.
+2-3 bullet points written as DIRECT INSTRUCTIONS to school boards and PTA \
+leaders. Each bullet must tell the reader what to DO, not what to observe. \
+Bad: "Watch for the Ministry's response." \
+Good: "If MOE does not provide the RM2 billion breakdown by the next session, \
+submit a written question through your MP." \
+Include specific deadlines, responsible parties, and concrete next steps.
 
 {previous_context}
 
@@ -129,7 +147,11 @@ Style rules:
 - No editorial commentary ("This was substantive..." or "This demonstrates...").
 - Short paragraphs. Simple, clear language. British English.
 - No filler, no preamble. Lead with substance.
-- Expand acronyms on first use (use the glossary provided).
+- NON-NEGOTIABLE: Every acronym must be spelled out in full on its first use \
+in the report, with the acronym in parentheses. Example: "Malaysian Indian \
+Transformation Unit (MITRA)", "School Management Board (LPS)", \
+"Parent-Teacher Association (PIBG)". Use the glossary provided. No exceptions \
+— even common acronyms like MOE must be expanded on first use.
 - NEVER write "(SJK(T))" with outer brackets. Write "SJK(T)" on its own.
   If needed in parentheses, write "(SJKT)" or "Tamil schools".
 
@@ -145,29 +167,49 @@ The previous meeting was {prev_name}. Here is its report for delta analysis:
 
 {prev_report}
 
-Identify recurring issues, progress on prior concerns, and any new topics
-that emerged in this meeting."""
+In the Policy Signals or Key Findings section, include at least one comparison \
+to the previous meeting. Example: "The RM22 million for Ladang Jeram compares \
+to the RM50 million system-wide allocation announced in the previous session." \
+Identify recurring issues, progress on prior concerns, and any new topics."""
 
 PREVIOUS_CONTEXT_NO_REPORT = """\
 This is the first meeting being analysed, so no previous report is available.
 Focus on reporting what happened — do not mention that this is a first report
 or talk about "establishing baselines"."""
 
+SCENE_BRIEF_PROMPT = """\
+You are an art director for a parliamentary news publication covering Tamil \
+schools in Malaysia.
+
+Given this report headline and key findings, write a 2-3 sentence VISUAL SCENE \
+DESCRIPTION for an editorial cartoon. The scene must:
+- Capture the SPECIFIC story (not a generic school scene)
+- Use a concrete visual metaphor that a viewer would instantly understand
+- Include specific physical details (objects, actions, settings) from the findings
+- Feature Tamil Indian characters (dark skin, South Asian features)
+
+Do NOT describe abstract concepts. Describe what the viewer SEES.
+
+## Headline
+{headline}
+
+## Key Findings
+{findings}
+
+Write ONLY the scene description, nothing else."""
+
 ILLUSTRATION_PROMPT = """\
 A single-panel editorial cartoon in the style of The Economist or The New Yorker.
 Black ink line drawing with minimal colour wash.
 
-Scene inspired by these parliamentary findings about Tamil schools in Malaysia:
-{findings}
+Scene: {scene}
 
 Visual requirements:
 - Clean line art, crosshatching for shadows, slightly satirical, understated
-- The Malaysian Parliament dome visible in the background
-- A Tamil school building with the letters SJK(T) painted on it, central
-- Tamil Indian parents and teachers (dark skin, South Asian features) interacting
-  with Malaysian MPs in the scene
-- The image must contain ONLY the text "SJK(T)" on the school building.
-  No other words, labels, captions, signs, banners, or speech bubbles anywhere.
+- The Malaysian Parliament building (Bangunan Parlimen) visible in the background
+- Tamil Indian characters (dark skin, South Asian features)
+- You may include a short caption or label if it enhances the story
+- The school building (if present) should have "SJK(T)" painted on it
 """
 
 
@@ -238,6 +280,18 @@ def _linkify_schools(html: str) -> str:
     return html
 
 
+def _normalise_place_name(name: str) -> str:
+    """Normalise common Malay romanisation variants for fuzzy matching."""
+    s = name.lower()
+    for old, new in (
+        ("tanjong", "tanjung"), ("sungei", "sungai"), ("bahru", "baharu"),
+        ("pulau pinang", "penang"), ("melaka", "malacca"),
+        ("negri", "negeri"), ("johor bahru", "johor baharu"),
+    ):
+        s = s.replace(old, new)
+    return s
+
+
 def _linkify_constituencies(html: str) -> str:
     """Replace constituency names in MP Scorecard table cells with links.
 
@@ -247,15 +301,16 @@ def _linkify_constituencies(html: str) -> str:
     from schools.models import Constituency
 
     frontend_url = os.environ.get("FRONTEND_URL", "https://tamilschool.org")
-    # Build lookup: lowercase name → code
+    # Build lookup: normalised name → (display_name, code)
     lookup = {}
-    for c in Constituency.objects.values_list("name", "code"):
-        lookup[c[0].lower()] = c[1]
+    for name, code in Constituency.objects.values_list("name", "code"):
+        lookup[_normalise_place_name(name)] = (name, code)
 
     def _replace_td(match):
         name = match.group(1).strip()
-        code = lookup.get(name.lower())
-        if code:
+        entry = lookup.get(_normalise_place_name(name))
+        if entry:
+            _, code = entry
             url = f"{frontend_url}/constituency/{code}"
             return f'<td style="text-align: left;"><a href="{url}">{name}</a></td>'
         return match.group(0)
@@ -269,20 +324,40 @@ def _linkify_constituencies(html: str) -> str:
     )
 
 
-def _generate_illustration(client, key_findings: str) -> bytes | None:
-    """Generate an editorial cartoon based on the Key Findings."""
-    prompt = ILLUSTRATION_PROMPT.format(findings=key_findings[:500])
+def _generate_illustration(client, key_findings: str, headline: str = "") -> bytes | None:
+    """Generate an editorial cartoon via Gemini scene brief → Nano Banana Pro."""
+    # Step 1: Gemini distils findings into a visual scene description
     try:
-        response = client.models.generate_images(
-            model="imagen-4.0-generate-001",
-            prompt=prompt,
-            config=types.GenerateImagesConfig(
-                number_of_images=1,
-                output_mime_type="image/png",
+        scene_response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=SCENE_BRIEF_PROMPT.format(
+                headline=headline,
+                findings=key_findings[:2000],
             ),
         )
-        if response.generated_images:
-            return response.generated_images[0].image.image_bytes
+        scene = scene_response.text.strip()
+        logger.info("Illustration scene brief: %s", scene[:200])
+    except Exception:
+        logger.exception("Scene brief generation failed, using fallback")
+        scene = f"A Tamil school building marked SJK(T) with {headline or 'parliamentary debate'}"
+
+    # Step 2: Nano Banana Pro draws the scene
+    prompt = ILLUSTRATION_PROMPT.format(scene=scene)
+    try:
+        response = client.models.generate_content(
+            model="gemini-3-pro-image-preview",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_modalities=["IMAGE", "TEXT"],
+            ),
+        )
+        for part in response.candidates[0].content.parts:
+            if part.inline_data and part.inline_data.mime_type.startswith("image/"):
+                img_bytes = part.inline_data.data
+                if isinstance(img_bytes, str):
+                    import base64
+                    img_bytes = base64.b64decode(img_bytes)
+                return img_bytes
     except Exception:
         logger.exception("Illustration generation failed")
     return None
@@ -628,7 +703,7 @@ class Command(BaseCommand):
                 self.stdout.write(
                     f"  Generating illustration for {meeting.short_name}..."
                 )
-                img_bytes = _generate_illustration(client, findings_text)
+                img_bytes = _generate_illustration(client, findings_text, headline)
                 if img_bytes:
                     meeting.illustration = img_bytes
                     self.stdout.write(
