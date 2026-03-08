@@ -328,16 +328,10 @@ def _build_social_post(sitting, mentions):
 
 
 def _run_brief_quality_loop(brief, mentions):
-    """Run evaluate/correct loop on a sitting brief.
-
-    Evaluates the brief, and if the verdict is FIX or REJECT, calls
-    correct_brief() to get corrected markdown, converts to HTML, and
-    re-evaluates. Up to 3 attempts (circuit breaker). If all 3 fail,
-    sets quality_flag=RED and is_published=False.
-    """
-    from parliament.models import QualityLog
+    """Run evaluate/correct loop on a sitting brief using the unified framework."""
+    from parliament.models import QualityLog, MP
+    from parliament.services.quality_loop import run_quality_loop
     from schools.models import School
-    from parliament.models import MP
 
     school_names = list(School.objects.values_list("name", flat=True)[:100])
     mp_names = list(MP.objects.values_list("name", flat=True)[:50])
@@ -351,27 +345,32 @@ def _run_brief_quality_loop(brief, mentions):
         brief.summary_html = cleaned_html
         brief.save(update_fields=["summary_html", "updated_at"])
 
-    quality_flag = "RED"
-    attempt = 1
-
-    while attempt <= 3:
-        # Evaluate
-        eval_result = _evaluate_brief(
-            brief_html=brief.summary_html,
+    def evaluate_fn(html):
+        return _evaluate_brief(
+            brief_html=html,
             source_summaries=source_summaries,
             school_names=school_names,
             mp_names=mp_names,
         )
 
-        # Determine quality flag
-        if eval_result.verdict == "PASS":
-            quality_flag = "GREEN"
-        elif eval_result.verdict == "REJECT":
-            quality_flag = "RED"
-        else:
-            quality_flag = "AMBER"
+    def correct_fn(html, eval_result):
+        corrected_md = correct_brief(
+            current_html=html,
+            eval_result=eval_result,
+            source_summaries=source_summaries,
+        )
+        if corrected_md:
+            new_html = markdown.markdown(corrected_md, extensions=["tables"])
+            return apply_code_fixes(new_html)
+        return None
 
-        # Log this attempt
+    def log_fn(attempt, eval_result):
+        if eval_result.verdict == "PASS":
+            qf = "GREEN"
+        elif eval_result.verdict == "REJECT":
+            qf = "RED"
+        else:
+            qf = "AMBER"
         QualityLog.objects.create(
             content_type="brief",
             sitting_brief=brief,
@@ -383,41 +382,18 @@ def _run_brief_quality_loop(brief, mentions):
             tier2_scores=eval_result.tier2_scores,
             tier3_flags=eval_result.tier3_flags,
             corrections_applied=[],
-            quality_flag=quality_flag,
+            quality_flag=qf,
         )
 
-        # If passed, we're done
-        if eval_result.verdict == "PASS":
-            break
+    final_html, quality_flag = run_quality_loop(
+        content=brief.summary_html,
+        evaluate_fn=evaluate_fn,
+        correct_fn=correct_fn,
+        max_attempts=3,
+        log_entry_fn=log_fn,
+    )
 
-        # Circuit breaker: no more attempts
-        if attempt >= 3:
-            quality_flag = "RED"
-            logger.warning(
-                "Brief %s: circuit breaker after %d attempts, flagging RED",
-                brief.pk, attempt,
-            )
-            break
-
-        # Attempt correction
-        corrected_md = correct_brief(
-            current_html=brief.summary_html,
-            eval_result=eval_result,
-            source_summaries=source_summaries,
-        )
-        if corrected_md:
-            corrected_html = markdown.markdown(
-                corrected_md, extensions=["tables"],
-            )
-            corrected_html = apply_code_fixes(corrected_html)
-            brief.summary_html = corrected_html
-            brief.save(update_fields=["summary_html", "updated_at"])
-        else:
-            # Corrector couldn't help — stop trying
-            break
-
-        attempt += 1
-
+    brief.summary_html = final_html
     brief.quality_flag = quality_flag
     brief.is_published = (quality_flag == "GREEN")
-    brief.save(update_fields=["quality_flag", "is_published", "updated_at"])
+    brief.save(update_fields=["summary_html", "quality_flag", "is_published", "updated_at"])

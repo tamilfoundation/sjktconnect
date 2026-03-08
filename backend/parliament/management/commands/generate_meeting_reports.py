@@ -754,6 +754,8 @@ class Command(BaseCommand):
             # --- Quality evaluation loop ---
             from schools.models import School
             from parliament.models import MP
+            from parliament.services.quality_loop import run_quality_loop
+
             school_names = list(
                 School.objects.values_list("name", flat=True)[:100]
             )
@@ -765,26 +767,42 @@ class Command(BaseCommand):
             report_html = apply_code_fixes(report_html)
             meeting.report_html = report_html
 
-            quality_flag = "GREEN"
-            attempt = 1
             current_md = report_md
 
-            while attempt <= 3:
-                eval_result = evaluate_report(
-                    report_html=report_html,
+            def evaluate_fn(html):
+                return evaluate_report(
+                    report_html=html,
                     source_briefs=all_summaries,
                     school_names=school_names,
                     mp_names=mp_names,
                     previous_report=prev_report_text,
                 )
 
-                if eval_result.verdict == "PASS":
-                    quality_flag = "GREEN"
-                elif eval_result.verdict == "REJECT":
-                    quality_flag = "RED"
-                else:
-                    quality_flag = "AMBER"
+            def correct_fn(html, eval_result):
+                nonlocal current_md
+                corrected_md = correct_report(
+                    current_draft=current_md,
+                    eval_result=eval_result,
+                    source_briefs=all_summaries,
+                )
+                if corrected_md:
+                    current_md = corrected_md
+                    new_html = markdown.markdown(
+                        current_md, extensions=["tables"],
+                    )
+                    new_html = _linkify_constituencies(new_html)
+                    new_html = _linkify_schools(new_html)
+                    new_html = apply_code_fixes(new_html)
+                    return new_html
+                return None
 
+            def log_fn(attempt, eval_result):
+                if eval_result.verdict == "PASS":
+                    qf = "GREEN"
+                elif eval_result.verdict == "REJECT":
+                    qf = "RED"
+                else:
+                    qf = "AMBER"
                 QualityLog.objects.create(
                     content_type="report",
                     meeting=meeting,
@@ -796,40 +814,25 @@ class Command(BaseCommand):
                     tier2_scores=eval_result.tier2_scores,
                     tier3_flags=eval_result.tier3_flags,
                     corrections_applied=[],
-                    quality_flag=quality_flag,
+                    quality_flag=qf,
                 )
 
-                if eval_result.verdict == "PASS":
-                    break
+            report_html, quality_flag = run_quality_loop(
+                content=report_html,
+                evaluate_fn=evaluate_fn,
+                correct_fn=correct_fn,
+                max_attempts=3,
+                log_entry_fn=log_fn,
+            )
+            meeting.report_html = report_html
 
-                if attempt >= 3:
-                    self.stdout.write(
-                        self.style.WARNING(
-                            f"  {meeting.short_name}: circuit breaker — "
-                            f"publishing with {quality_flag} flag"
-                        )
+            if quality_flag != "GREEN":
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"  {meeting.short_name}: circuit breaker — "
+                        f"publishing with {quality_flag} flag"
                     )
-                    break
-
-                # Attempt correction
-                corrected_md = correct_report(
-                    current_draft=current_md,
-                    eval_result=eval_result,
-                    source_briefs=all_summaries,
                 )
-                if corrected_md:
-                    current_md = corrected_md
-                    report_html = markdown.markdown(
-                        current_md, extensions=["tables"],
-                    )
-                    report_html = _linkify_constituencies(report_html)
-                    report_html = _linkify_schools(report_html)
-                    report_html = apply_code_fixes(report_html)
-                    meeting.report_html = report_html
-                else:
-                    break
-
-                attempt += 1
 
             meeting.quality_flag = quality_flag
             meeting.is_published = (quality_flag == "GREEN")
