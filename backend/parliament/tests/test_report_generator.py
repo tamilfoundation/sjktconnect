@@ -190,6 +190,52 @@ class LinkifyBriefsTests(TestCase):
         self.assertEqual(result, html)
 
 
+class PostProcessingTests(TestCase):
+    """Test the post-processing regex fixes applied to report markdown/HTML."""
+
+    def test_redundant_prefix_stripped(self):
+        """'Sekolah Jenis Kebangsaan (Tamil) SJK(T) X' → 'SJK(T) X'."""
+        import re
+        text = "The Sekolah Jenis Kebangsaan (Tamil) SJK(T) Ladang Jeram was rebuilt."
+        result = re.sub(
+            r"Sekolah Jenis Kebangsaan \(Tamil\)\s*SJK\(T\)",
+            "SJK(T)", text,
+        )
+        self.assertEqual(result, "The SJK(T) Ladang Jeram was rebuilt.")
+
+    def test_sjkt_schools_to_sjkts(self):
+        """'SJK(T) schools' → 'SJK(T)s'."""
+        import re
+        text = "520 SJK(T) schools received laptops."
+        result = re.sub(r"SJK\(T\) schools", "SJK(T)s", text)
+        self.assertEqual(result, "520 SJK(T)s received laptops.")
+
+    def test_nested_brackets_fixed(self):
+        """'(SJK(C))' → '(SJKC)', but 'SJK(C)' alone stays."""
+        import re
+        text = "Chinese-medium schools (SJK(C)) and SJK(C) schools"
+        result = re.sub(r"\(SJK\(C\)\)", "(SJKC)", text)
+        self.assertIn("(SJKC)", result)
+        # SJK(C) on its own should remain unchanged
+        self.assertIn("SJK(C) schools", result)
+
+    def test_linkify_schools_expanded_abbreviation(self):
+        """SJK(T) Ladang X links when DB has Ldg X."""
+        from parliament.management.commands.generate_meeting_reports import _linkify_schools
+        from schools.models import School
+        School.objects.create(
+            moe_code="ZZZ8888",
+            name="Sekolah Jenis Kebangsaan (Tamil) Ldg Testberg",
+            short_name="SJK(T) Ldg Testberg",
+            state="Pahang", ppd="Temerloh",
+        )
+        # Report uses expanded "Ladang" but DB has "Ldg"
+        html = "<p>SJK(T) Ladang Testberg needs rebuilding</p>"
+        result = _linkify_schools(html)
+        self.assertIn("ZZZ8888", result)
+        self.assertIn("<a href=", result)
+
+
 class GenerateReportQualityLoopTests(TestCase):
 
     @patch("parliament.services.context_builder.build_context")

@@ -154,6 +154,17 @@ Transformation Unit (MITRA)", "School Management Board (LPS)", \
 — even common acronyms like MOE must be expanded on first use.
 - NEVER write "(SJK(T))" with outer brackets. Write "SJK(T)" on its own.
   If needed in parentheses, write "(SJKT)" or "Tamil schools".
+- Write "SJK(T)s" (with lowercase s) or "Tamil schools" when referring to \
+  multiple schools. NEVER write "SJK(T) schools" — that is redundant because \
+  the S already stands for Sekolah (school).
+- SJK(T) and SJK(C) are correct on their own. But when placed inside \
+  brackets, drop the inner brackets: write "(SJKT)" not "(SJK(T))", \
+  and "(SJKC)" not "(SJK(C))".
+- Never write the full Malay prefix before the abbreviation. \
+  WRONG: "Sekolah Jenis Kebangsaan (Tamil) SJK(T) Ladang Jeram". \
+  RIGHT: "SJK(T) Ladang Jeram". The abbreviation IS the school name format.
+- Policy Signals bullet points must use proper markdown list syntax: \
+  start each item with "- " on its own line. Do NOT use "* " inside a paragraph.
 
 Return as plain text with markdown headings and tables. No code fences.
 
@@ -252,8 +263,15 @@ def _linkify_schools(html: str) -> str:
     """Replace SJK(T) school names in report HTML with links to school pages."""
     from schools.models import School
 
+    # Common abbreviations used in school DB names
+    _ABBREV_MAP = {
+        "ldg": "ladang", "sg": "sungai", "bkt": "bukit",
+        "kg": "kampung", "bt": "bukit",
+    }
+
     frontend_url = os.environ.get("FRONTEND_URL", "https://tamilschool.org")
     # Build lookup: lowercase short name → moe_code
+    # Include both abbreviated and expanded forms
     lookup = {}
     for s in School.objects.all():
         short = re.sub(
@@ -262,6 +280,17 @@ def _linkify_schools(html: str) -> str:
         ).strip()
         if short and len(short) > 2:
             lookup[short.lower()] = s.moe_code
+            # Add expanded variant (e.g. "Ldg Mentakab" → "Ladang Mentakab")
+            expanded = short
+            for abbr, full in _ABBREV_MAP.items():
+                expanded = re.sub(
+                    rf"\b{re.escape(abbr)}\b",
+                    full.title(),
+                    expanded,
+                    flags=re.IGNORECASE,
+                )
+            if expanded.lower() != short.lower():
+                lookup[expanded.lower()] = s.moe_code
 
     # Sort by length descending so longer names match first
     sorted_names = sorted(lookup.keys(), key=len, reverse=True)
@@ -526,8 +555,19 @@ class Command(BaseCommand):
                 time.sleep(2)
                 continue
 
-            # Post-process: fix "(SJK(T))" → "SJK(T)"
-            report_md = re.sub(r"\(SJK\(T\)\)", "SJK(T)", report_md)
+            # Post-process: fix common Gemini output issues
+            # Nested brackets: "(SJK(T))" → "(SJKT)", "(SJK(C))" → "(SJKC)"
+            report_md = re.sub(r"\(SJK\(T\)\)", "(SJKT)", report_md)
+            report_md = re.sub(r"\(SJK\(C\)\)", "(SJKC)", report_md)
+            # Strip redundant full prefix before abbreviation:
+            # "Sekolah Jenis Kebangsaan (Tamil) SJK(T)" → "SJK(T)"
+            report_md = re.sub(
+                r"Sekolah Jenis Kebangsaan \(Tamil\)\s*SJK\(T\)",
+                "SJK(T)",
+                report_md,
+            )
+            # "SJK(T) schools" → "SJK(T)s" (avoid redundancy)
+            report_md = re.sub(r"SJK\(T\) schools", "SJK(T)s", report_md)
 
             # Clamp Markdown table separator rows to prevent bloated HTML
             # e.g. | :--- ... (500 dashes) ... | → | :--- |
@@ -557,6 +597,33 @@ class Command(BaseCommand):
             report_html = markdown.markdown(
                 report_md,
                 extensions=["tables"],
+            )
+
+            # Fix stray markdown bullets that ended up inside <p> tags.
+            # Gemini sometimes outputs "* **Bold:**" or "- **Bold:**" inside
+            # a paragraph instead of using proper list syntax.
+            def _fix_inline_bullets(m):
+                content = m.group(1)
+                # Split on markdown bullet patterns: "* " or "- " with optional newline
+                items = re.split(r"\n?[-*]\s{1,}", content)
+                intro = items[0].strip()
+                bullets = items[1:]
+                if not bullets:
+                    return m.group(0)
+                parts = []
+                if intro:
+                    parts.append(f"<p>{intro}</p>")
+                li_items = "".join(
+                    f"<li>{b.strip()}</li>" for b in bullets if b.strip()
+                )
+                parts.append(f"<ul>{li_items}</ul>")
+                return "\n".join(parts)
+
+            report_html = re.sub(
+                r"<p>(.*?[-*]\s+<strong>.*?)</p>",
+                _fix_inline_bullets,
+                report_html,
+                flags=re.DOTALL,
             )
 
             # Linkify constituency names, school names, and brief dates
