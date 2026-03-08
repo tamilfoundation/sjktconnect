@@ -377,4 +377,5 @@ def _run_brief_quality_loop(brief, mentions):
     )
 
     brief.quality_flag = quality_flag
-    brief.save(update_fields=["quality_flag", "updated_at"])
+    brief.is_published = (quality_flag == "GREEN")
+    brief.save(update_fields=["quality_flag", "is_published", "updated_at"])

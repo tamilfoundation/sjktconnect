@@ -227,11 +227,16 @@ def _linkify_briefs(html: str, meeting) -> str:
         date_str_no_zero = f"{d.day} {d.strftime('%B %Y')}"
         url = f"{frontend_url}/parliament-watch/sittings/{brief.pk}"
 
-        for ds in {date_str, date_str_no_zero}:
+        # Process longer string first so "01 December 2025" is matched
+        # before "1 December 2025" can match a substring of it.
+        date_variants = sorted({date_str, date_str_no_zero}, key=len, reverse=True)
+        for ds in date_variants:
             if ds not in html:
                 continue
-            # Don't linkify if already inside a link
-            pattern = re.compile(re.escape(ds))
+            # Don't linkify if already inside a link.
+            # Negative lookbehind for a digit prevents "1 Dec 2025"
+            # from matching inside "01 Dec 2025" and creating nested <a> tags.
+            pattern = re.compile(r"(?<!\d)" + re.escape(ds))
             def _replace(m, _url=url, _ds=ds):
                 start = m.start()
                 preceding = html[max(0, start - 50):start]
@@ -696,6 +701,7 @@ class Command(BaseCommand):
                 attempt += 1
 
             meeting.quality_flag = quality_flag
+            meeting.is_published = (quality_flag == "GREEN")
 
             # Generate editorial cartoon illustration
             findings_text = " ".join(exec_lines) if exec_lines else ""
@@ -712,7 +718,7 @@ class Command(BaseCommand):
 
             update_fields = [
                 "report_html", "executive_summary", "social_post_text",
-                "quality_flag", "updated_at",
+                "quality_flag", "is_published", "updated_at",
             ]
             if meeting.illustration:
                 update_fields.append("illustration")

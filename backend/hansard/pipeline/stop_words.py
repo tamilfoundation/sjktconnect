@@ -35,8 +35,17 @@ LOCATION_STOP_WORDS = {
     "kg",           # abbreviation for kampung
 }
 
+# Common Malay words that cause false positive trigram matches
+# e.g. "juga" → "Ldg Jugra", "khususnya" → "Jalan Khalidi"
+MALAY_STOP_WORDS = {
+    "juga",         # also
+    "khususnya",    # especially
+    "baharu",       # new
+    "bersama",      # together
+}
+
 # All stop words combined
-STOP_WORDS = SCHOOL_NAME_STOP_WORDS | LOCATION_STOP_WORDS
+STOP_WORDS = SCHOOL_NAME_STOP_WORDS | LOCATION_STOP_WORDS | MALAY_STOP_WORDS
 
 
 def remove_stop_words(text: str) -> str:

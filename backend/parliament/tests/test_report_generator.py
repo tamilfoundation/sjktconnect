@@ -143,6 +143,41 @@ class LinkifyBriefsTests(TestCase):
         self.assertIn(f"/parliament-watch/sittings/{brief.pk}", result)
         self.assertIn("<a href=", result)
 
+    def test_no_nested_links_for_leading_zero_dates(self):
+        """Dates like '01 December 2025' must not produce nested <a> tags.
+
+        The bug: '1 December 2025' matched inside '01 December 2025',
+        splitting the '0' from the '1' and creating
+        <a>0<a>1 December 2025</a></a>.
+        """
+        from parliament.management.commands.generate_meeting_reports import _linkify_briefs
+        meeting = ParliamentaryMeeting.objects.create(
+            name="Nested Link Test", short_name="Nested",
+            term=99, session=3, year=2099,
+            start_date="2099-12-01", end_date="2099-12-31",
+        )
+        sitting = HansardSitting.objects.create(
+            sitting_date="2099-12-01",
+            pdf_url="https://example.com/nested.pdf",
+            pdf_filename="nested.pdf",
+            meeting=meeting,
+        )
+        brief = SittingBrief.objects.create(
+            sitting=sitting,
+            title="Nested Link Brief",
+            summary_html="<p>Test</p>",
+        )
+        # The date "01 December 2099" contains "1 December 2099" as substring
+        html = "<p>On 01 December 2099, the session began.</p>"
+        result = _linkify_briefs(html, meeting)
+        # Must have exactly one <a> tag, not nested
+        self.assertEqual(result.count("<a "), 1, f"Expected 1 link, got: {result}")
+        self.assertEqual(result.count("</a>"), 1, f"Expected 1 closing tag, got: {result}")
+        # The full date including leading zero must be inside the link
+        self.assertIn(">01 December 2099</a>", result)
+        # No digit should be left outside the link
+        self.assertNotIn(">0<a", result)
+
     def test_skips_if_no_date_match(self):
         from parliament.management.commands.generate_meeting_reports import _linkify_briefs
         meeting = ParliamentaryMeeting.objects.create(

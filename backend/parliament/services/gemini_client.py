@@ -219,6 +219,37 @@ def analyse_mention(mention):
     return result
 
 
+def _resolve_mp_party(mp_name, mp_constituency):
+    """Look up MP party from the MP database by constituency or name.
+
+    Constituency match is preferred (more reliable). Falls back to name match.
+    Returns the party string, or "" if no match found.
+    """
+    from parliament.models import MP
+    from django.db.models import Q
+
+    if not mp_constituency and not mp_name:
+        return ""
+
+    mp = None
+
+    # Try constituency first (most reliable) — match against code or name
+    if mp_constituency:
+        mp = MP.objects.filter(
+            Q(constituency__code__iexact=mp_constituency)
+            | Q(constituency__name__iexact=mp_constituency)
+        ).first()
+
+    # Fall back to name match
+    if not mp and mp_name:
+        mp = MP.objects.filter(name__iexact=mp_name).first()
+
+    if mp and mp.party:
+        return mp.party
+
+    return ""
+
+
 def apply_analysis(mention, analysis):
     """Apply validated analysis dict to a HansardMention and save.
 
@@ -244,6 +275,11 @@ def apply_analysis(mention, analysis):
     mention.change_indicator = analysis["change_indicator"]
     mention.ai_summary = analysis["summary"]
     mention.ai_raw_response = analysis.get("raw_response", {})
+
+    # Cross-reference MP database to fill in party (Gemini rarely knows it)
+    if not mention.mp_party:
+        mention.mp_party = _resolve_mp_party(mention.mp_name, mention.mp_constituency)
+
     mention.save(update_fields=[
         "mp_name", "mp_constituency", "mp_party", "mention_type",
         "significance", "sentiment", "change_indicator",

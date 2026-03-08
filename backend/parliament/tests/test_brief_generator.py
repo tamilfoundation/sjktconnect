@@ -83,10 +83,12 @@ class GenerateBriefTests(TestCase):
         brief = generate_brief(self.sitting)
         self.assertIn("3", brief.social_post_text)
 
-    def test_brief_not_published_by_default(self):
+    def test_green_brief_auto_published(self):
+        """GREEN quality briefs are auto-published."""
         brief = generate_brief(self.sitting)
-        self.assertFalse(brief.is_published)
-        self.assertIsNone(brief.published_at)
+        # Evaluator returns PASS (fail-open) without API key → GREEN → published
+        self.assertEqual(brief.quality_flag, "GREEN")
+        self.assertTrue(brief.is_published)
 
     def test_idempotent_update(self):
         brief1 = generate_brief(self.sitting)

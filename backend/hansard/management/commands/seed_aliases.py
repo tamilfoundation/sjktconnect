@@ -10,6 +10,7 @@ For each school, generates:
 - COMMON: name without SJK(T) prefix (e.g. "Ladang Bikam")
 - COMMON: SJKT variant without brackets (e.g. "SJKT Ladang Bikam")
 - COMMON: without "Ladang" for estate schools (e.g. "SJK(T) Bikam")
+- COMMON: full Malay form (e.g. "Sekolah Jenis Kebangsaan Tamil Ladang Bikam")
 """
 
 import re
@@ -100,6 +101,18 @@ def generate_aliases_for_school(school: School) -> list[dict]:
         )
         if official_stripped and official_stripped.lower() != school.name.lower():
             add(official_stripped, SchoolAlias.AliasType.COMMON)
+
+    # 7. Full Malay form without brackets — "Sekolah Jenis Kebangsaan Tamil <name>"
+    # Hansard text often uses this form instead of the official "... (TAMIL) ..." form.
+    if school.name:
+        malay_variant = re.sub(
+            r"^SEKOLAH JENIS KEBANGSAAN\s*\(TAMIL\)\s+",
+            "Sekolah Jenis Kebangsaan Tamil ",
+            school.name,
+            flags=re.IGNORECASE,
+        )
+        if malay_variant and malay_variant.lower() != school.name.lower():
+            add(malay_variant, SchoolAlias.AliasType.COMMON)
 
     return aliases
 
