@@ -1,8 +1,13 @@
 """Tests for context_builder service."""
+import json
+from datetime import date
+from unittest.mock import patch
+
 from django.test import TestCase
 
 from parliament.models import MP
 from parliament.services.context_builder import (
+    CONTEXT_JSON_PATH,
     build_context,
     format_context_for_prompt,
     load_context_json,
@@ -116,3 +121,50 @@ class MPPortfolioTest(TestCase):
         portfolios = ctx["mp_portfolios"]
         self.assertEqual(len(portfolios), 1)
         self.assertEqual(portfolios[0]["portfolio"], "Minister of Education")
+
+
+class ContextStalenessTests(TestCase):
+    """Test staleness detection for context JSON."""
+
+    def test_recent_context_no_warning(self):
+        """Context updated recently should not produce a warning."""
+        with patch("parliament.services.context_builder.logger") as mock_logger:
+            build_context()
+            # Should not have any warning calls about staleness
+            warning_calls = [
+                c for c in mock_logger.warning.call_args_list
+                if "stale" in str(c).lower()
+            ]
+            self.assertEqual(len(warning_calls), 0)
+
+    def test_stale_context_logs_warning(self):
+        """Context older than 180 days should log a warning."""
+        original = CONTEXT_JSON_PATH.read_text()
+        try:
+            data = json.loads(original)
+            data["last_updated"] = "2025-01-01"
+            CONTEXT_JSON_PATH.write_text(json.dumps(data))
+
+            with patch("parliament.services.context_builder.logger") as mock_logger:
+                build_context()
+                warning_calls = [
+                    c for c in mock_logger.warning.call_args_list
+                    if "stale" in str(c).lower()
+                ]
+                self.assertGreaterEqual(len(warning_calls), 1)
+        finally:
+            CONTEXT_JSON_PATH.write_text(original)
+
+    def test_missing_last_updated_no_crash(self):
+        """Context without last_updated field should not crash."""
+        original = CONTEXT_JSON_PATH.read_text()
+        try:
+            data = json.loads(original)
+            data.pop("last_updated", None)
+            CONTEXT_JSON_PATH.write_text(json.dumps(data))
+
+            # Should not raise
+            ctx = build_context()
+            self.assertIn("cabinet", ctx)
+        finally:
+            CONTEXT_JSON_PATH.write_text(original)

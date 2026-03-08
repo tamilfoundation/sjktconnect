@@ -6,6 +6,7 @@ data (MP portfolios, school names) for injection into prompts.
 
 import json
 import logging
+from datetime import date
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,21 @@ def build_context() -> dict:
     from schools.models import School
 
     ctx = load_context_json()
+
+    # Staleness check
+    last_updated = ctx.get("last_updated", "")
+    if last_updated:
+        try:
+            updated_date = date.fromisoformat(last_updated)
+            age_days = (date.today() - updated_date).days
+            if age_days > 180:
+                logger.warning(
+                    "Context reference is %d days stale (last updated: %s). "
+                    "Update data/report-context.json.",
+                    age_days, last_updated,
+                )
+        except (ValueError, TypeError):
+            pass  # malformed date — skip check
 
     # Runtime: school names for linkification verification
     ctx["school_names"] = list(
