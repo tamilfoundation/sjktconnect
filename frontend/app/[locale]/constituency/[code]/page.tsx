@@ -74,10 +74,10 @@ export default async function ConstituencyPage({ params }: PageProps) {
     schoolsWithGPS.length > 0
       ? {
           lat:
-            schoolsWithGPS.reduce((sum, s) => sum + s.gps_lat!, 0) /
+            schoolsWithGPS.reduce((sum, s) => sum + Number(s.gps_lat), 0) /
             schoolsWithGPS.length,
           lng:
-            schoolsWithGPS.reduce((sum, s) => sum + s.gps_lng!, 0) /
+            schoolsWithGPS.reduce((sum, s) => sum + Number(s.gps_lng), 0) /
             schoolsWithGPS.length,
         }
       : { lat: 4.2105, lng: 101.9758 };
