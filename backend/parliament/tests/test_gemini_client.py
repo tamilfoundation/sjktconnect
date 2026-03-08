@@ -416,3 +416,70 @@ class SpeakerValidationTests(TestCase):
         apply_analysis(mention, self._base_analysis(""))
         mention.refresh_from_db()
         self.assertTrue(mention.speaker_verified)
+
+
+class NormaliseMPNameTests(TestCase):
+    """Test MP name normalisation for consistent matching."""
+
+    def test_strips_yb_prefix(self):
+        from parliament.services.gemini_client import _normalise_mp_name
+        self.assertEqual(_normalise_mp_name("YB Arul"), "Arul")
+
+    def test_strips_dato_sri(self):
+        from parliament.services.gemini_client import _normalise_mp_name
+        self.assertEqual(
+            _normalise_mp_name("Dato' Sri Arul Mogan"),
+            "Arul Mogan",
+        )
+
+    def test_strips_compound_yb_dato(self):
+        from parliament.services.gemini_client import _normalise_mp_name
+        self.assertEqual(
+            _normalise_mp_name("YB Dato' Sri Fadhlina binti Sidek"),
+            "Fadhlina binti Sidek",
+        )
+
+    def test_strips_datuk_seri(self):
+        from parliament.services.gemini_client import _normalise_mp_name
+        self.assertEqual(
+            _normalise_mp_name("Datuk Seri Anwar Ibrahim"),
+            "Anwar Ibrahim",
+        )
+
+    def test_strips_tan_sri(self):
+        from parliament.services.gemini_client import _normalise_mp_name
+        self.assertEqual(
+            _normalise_mp_name("Tan Sri Muhyiddin Yassin"),
+            "Muhyiddin Yassin",
+        )
+
+    def test_strips_dr(self):
+        from parliament.services.gemini_client import _normalise_mp_name
+        self.assertEqual(
+            _normalise_mp_name("Dr. Mah Hang Soon"),
+            "Mah Hang Soon",
+        )
+
+    def test_normalises_apostrophes(self):
+        from parliament.services.gemini_client import _normalise_mp_name
+        result = _normalise_mp_name("Dato\u2019 Sri Arul")
+        self.assertNotIn("\u2019", result)
+        self.assertEqual(result, "Arul")
+
+    def test_empty_string(self):
+        from parliament.services.gemini_client import _normalise_mp_name
+        self.assertEqual(_normalise_mp_name(""), "")
+
+    def test_no_prefix_unchanged(self):
+        from parliament.services.gemini_client import _normalise_mp_name
+        self.assertEqual(
+            _normalise_mp_name("Ganabatirau a/l Veraman"),
+            "Ganabatirau a/l Veraman",
+        )
+
+    def test_strips_puan(self):
+        from parliament.services.gemini_client import _normalise_mp_name
+        self.assertEqual(
+            _normalise_mp_name("Puan Kasthuriraani a/p Patto"),
+            "Kasthuriraani a/p Patto",
+        )

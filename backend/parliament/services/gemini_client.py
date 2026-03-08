@@ -26,6 +26,52 @@ MENTION_TYPES = {"BUDGET", "QUESTION", "POLICY", "COMMITMENT", "THROWAWAY", "OTH
 SENTIMENTS = {"ADVOCATING", "DEFLECTING", "PROMISING", "NEUTRAL", "CRITICAL"}
 CHANGE_INDICATORS = {"NEW", "REPEAT", "ESCALATION", "REVERSAL"}
 
+# Honorific prefixes to strip, ordered longest-first to avoid partial matches
+_HONORIFIC_PREFIXES = [
+    "Yang Berhormat",
+    "Tan Sri Dato' Sri",
+    "Tan Sri",
+    "Dato' Sri",
+    "Dato Sri",
+    "Datuk Seri",
+    "Datuk",
+    "Dato'",
+    "Dato",
+    "Tun",
+    "Dr.",
+    "Dr",
+    "Puan",
+    "Encik",
+    "Tuan",
+    "YB",
+]
+
+
+def _normalise_mp_name(name: str) -> str:
+    """Strip honorific prefixes and normalise apostrophes for consistent matching.
+
+    Does not alter the underlying name — only removes titles/honorifics.
+    """
+    if not name:
+        return name
+
+    # Normalise apostrophes
+    name = name.replace("\u2018", "'").replace("\u2019", "'")
+
+    # Strip prefixes (longest first, iteratively)
+    changed = True
+    while changed:
+        changed = False
+        stripped = name.strip()
+        for prefix in _HONORIFIC_PREFIXES:
+            if stripped.lower().startswith(prefix.lower()):
+                stripped = stripped[len(prefix):].strip()
+                changed = True
+                break
+        name = stripped
+
+    return name.strip()
+
 ANALYSIS_PROMPT = """\
 You are analysing a Malaysian parliamentary Hansard excerpt that mentions Tamil schools (SJK(T)).
 
@@ -240,9 +286,13 @@ def _resolve_mp_party(mp_name, mp_constituency):
             | Q(constituency__name__iexact=mp_constituency)
         ).first()
 
-    # Fall back to name match
+    # Fall back to name match (normalised)
     if not mp and mp_name:
+        normalised = _normalise_mp_name(mp_name)
         mp = MP.objects.filter(name__iexact=mp_name).first()
+        if not mp and normalised != mp_name:
+            # Try normalised name — also try icontains for partial match
+            mp = MP.objects.filter(name__icontains=normalised).first()
 
     if mp and mp.party:
         return mp.party
