@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 6 (Report Quality). Sprint 6.3 done. Phase 6 complete.
-- **Last Sprint**: 6.3 — Frontend & Polish (2026-03-07)
-- **Tests**: 1212 (930 backend + 282 frontend)
+- **Current Phase**: Phase 7 (Quality Consolidation). Sprint 7.1 done.
+- **Last Sprint**: 7.1 — Pipeline Quality Quick Wins (2026-03-09)
+- **Tests**: ~1225 (~943 backend + 282 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -233,6 +233,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 6.1 | Done | Foundation & Data Layer: report context JSON v2.0 (cabinet, glossary, RPM 2026-2035, taxonomy), context_builder service, MP portfolio field + scraper, executive_response_attribution rubric criterion, dedup fix (speaker+page), "without Ladang" aliases (294 schools), WAT context-maintenance workflow. 22 new tests (920 total). |
 | 6.2 | Done | Pipeline Prompts: wired context_builder into all 3 Gemini prompts (mentions, briefs, reports). Past tense enforcement. Brief generator now Gemini-powered prose (exec summary → details → quotes) with template fallback. Report prompt restructured with cabinet reference, taxonomy definitions, RPM alignment. Validated on 3rd Meeting 2025 — all 5 FLAGs resolved. 8 new tests (928 total). |
 | 6.3 | Done | Frontend & Polish: brief detail page (`/parliament-watch/sittings/[id]`), `_linkify_briefs` links sitting dates in reports to brief pages, BriefsList "Full page" link, i18n (EN/TA/MS). Deployed backend + frontend. Updated Cloud Run job image. Ran `seed_aliases --clear` + `import_mp_profiles` on production. 2 new tests (930 total). Phase 6 complete. |
+| 7.1 | Done | Pipeline Quality Quick Wins: speaker verification on mentions, brief correction loop (3-attempt evaluate→correct), evaluator fail-safe (AMBER on API errors), context staleness warning. 13 new tests (~943 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -250,29 +251,23 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Current state**: Phase 6 (Report Quality & Context Engine v2.0) complete. All 3 sprints done (6.1 foundation, 6.2 prompts, 6.3 frontend). 930 backend + 282 frontend = 1212 tests passing. Deployed to production.
+**Current state**: Sprint 7.1 (quick wins) complete. ~943 backend + 282 frontend = ~1225 tests. Not yet deployed (backend-only changes, no urgency).
 
-**Phase 6 deliverables summary**:
-- Context JSON v2.0 with cabinet, glossary, taxonomy, RPM
-- context_builder service wired into all 3 Gemini prompts
-- Gemini-powered prose briefs (exec summary → details → quotes)
-- Report prompt with minister attribution guard, taxonomy, RPM alignment
-- Brief detail pages on frontend with linking from reports
-- All 5 quality FLAGs resolved
+**Sprint 7.2** (ready, plan at `docs/plans/2026-03-08-sprint-7.2-medium-effort-plan.md`):
+- Fuzzy school matching in linkification
+- MP name normalisation
+- Mention-level evaluator (deterministic, no API)
+- Unified quality_loop.py framework
 
-**Next phase candidates** (no sprint planned yet):
+**Other candidates** (no sprint planned):
 - Urgent Response System (design approved, see `docs/plans/2026-03-04-urgent-response-system-design.md`)
 - MP profile pages (combine Hansard data with contact info)
 - Pre-filled advocacy message templates per school
 
 **Pending (not sprint-specific)**:
+- Deploy Sprint 7.1 changes to production
 - Test each email type end-to-end (Parliament Watch, News Digest, Urgent Alert, Monthly Blast)
-- 1 unanalysed mention remaining (204 total, 203 analysed)
-- Update Cloud Run check-hansards job image to match latest backend revision
 - End-to-end test: donate page → Toyyib sandbox, school bank card display
-- **Urgent Response System**: Design approved, marinating. See `docs/plans/2026-03-04-urgent-response-system-design.md`
-- Pre-filled advocacy message templates per school
-- Dedicated MP profile page combining Hansard data with contact info
 - gcloud CLI requires `CLOUDSDK_PYTHON` env var pointing to Python 3.13
 
 ## Frontend (Sprint 1.3–3.3)

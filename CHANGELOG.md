@@ -1,5 +1,18 @@
 # Changelog
 
+## Sprint 7.1 — Pipeline Quality Quick Wins (2026-03-09)
+
+### Added
+- **Speaker verification**: `speaker_verified` boolean on HansardMention validates that Gemini's extracted speaker name appears in the Hansard excerpt (full name or surname fragment matching). Advisory only.
+- **Brief correction loop**: Briefs now follow evaluate→correct→re-evaluate pattern (up to 3 attempts). Circuit breaker sets RED flag on exhaustion. Mirrors report quality loop.
+- **Evaluator fail-safe**: API errors return AMBER verdict (needs human review) instead of silently passing as GREEN. New `evaluator_error` flag on EvaluationResult.
+- **Context staleness warning**: Logs warning when `report-context.json` is >180 days old, prompting update of cabinet/glossary reference data.
+
+### Fixed
+- Brief generator tests now properly isolated from environment GEMINI_API_KEY presence.
+
+---
+
 ## Bugfix — Electoral Influence & DOSM Links (2026-03-08)
 
 ### Fixed
