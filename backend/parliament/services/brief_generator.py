@@ -18,7 +18,7 @@ from google.genai import types
 from hansard.models import HansardMention, HansardSitting
 from parliament.models import SittingBrief
 from parliament.services.evaluator import evaluate_brief as _evaluate_brief
-from parliament.services.corrector import apply_code_fixes
+from parliament.services.corrector import apply_code_fixes, correct_brief
 
 logger = logging.getLogger(__name__)
 
@@ -328,7 +328,13 @@ def _build_social_post(sitting, mentions):
 
 
 def _run_brief_quality_loop(brief, mentions):
-    """Run evaluate/correct loop on a sitting brief."""
+    """Run evaluate/correct loop on a sitting brief.
+
+    Evaluates the brief, and if the verdict is FIX or REJECT, calls
+    correct_brief() to get corrected markdown, converts to HTML, and
+    re-evaluates. Up to 3 attempts (circuit breaker). If all 3 fail,
+    sets quality_flag=RED and is_published=False.
+    """
     from parliament.models import QualityLog
     from schools.models import School
     from parliament.models import MP
@@ -345,36 +351,72 @@ def _run_brief_quality_loop(brief, mentions):
         brief.summary_html = cleaned_html
         brief.save(update_fields=["summary_html", "updated_at"])
 
-    # Evaluate
-    eval_result = _evaluate_brief(
-        brief_html=brief.summary_html,
-        source_summaries=source_summaries,
-        school_names=school_names,
-        mp_names=mp_names,
-    )
+    quality_flag = "RED"
+    attempt = 1
 
-    # Determine quality flag
-    if eval_result.verdict == "PASS":
-        quality_flag = "GREEN"
-    elif eval_result.verdict == "REJECT":
-        quality_flag = "RED"
-    else:
-        quality_flag = "AMBER"
+    while attempt <= 3:
+        # Evaluate
+        eval_result = _evaluate_brief(
+            brief_html=brief.summary_html,
+            source_summaries=source_summaries,
+            school_names=school_names,
+            mp_names=mp_names,
+        )
 
-    # Log
-    QualityLog.objects.create(
-        content_type="brief",
-        sitting_brief=brief,
-        prompt_version="v1",
-        model_used="gemini-2.5-flash",
-        attempt_number=1,
-        verdict=eval_result.verdict,
-        tier1_results=eval_result.tier1_results,
-        tier2_scores=eval_result.tier2_scores,
-        tier3_flags=eval_result.tier3_flags,
-        corrections_applied=[],
-        quality_flag=quality_flag,
-    )
+        # Determine quality flag
+        if eval_result.verdict == "PASS":
+            quality_flag = "GREEN"
+        elif eval_result.verdict == "REJECT":
+            quality_flag = "RED"
+        else:
+            quality_flag = "AMBER"
+
+        # Log this attempt
+        QualityLog.objects.create(
+            content_type="brief",
+            sitting_brief=brief,
+            prompt_version="v1",
+            model_used="gemini-2.5-flash",
+            attempt_number=attempt,
+            verdict=eval_result.verdict,
+            tier1_results=eval_result.tier1_results,
+            tier2_scores=eval_result.tier2_scores,
+            tier3_flags=eval_result.tier3_flags,
+            corrections_applied=[],
+            quality_flag=quality_flag,
+        )
+
+        # If passed, we're done
+        if eval_result.verdict == "PASS":
+            break
+
+        # Circuit breaker: no more attempts
+        if attempt >= 3:
+            quality_flag = "RED"
+            logger.warning(
+                "Brief %s: circuit breaker after %d attempts, flagging RED",
+                brief.pk, attempt,
+            )
+            break
+
+        # Attempt correction
+        corrected_md = correct_brief(
+            current_html=brief.summary_html,
+            eval_result=eval_result,
+            source_summaries=source_summaries,
+        )
+        if corrected_md:
+            corrected_html = markdown.markdown(
+                corrected_md, extensions=["tables"],
+            )
+            corrected_html = apply_code_fixes(corrected_html)
+            brief.summary_html = corrected_html
+            brief.save(update_fields=["summary_html", "updated_at"])
+        else:
+            # Corrector couldn't help — stop trying
+            break
+
+        attempt += 1
 
     brief.quality_flag = quality_flag
     brief.is_published = (quality_flag == "GREEN")

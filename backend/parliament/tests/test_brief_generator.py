@@ -382,10 +382,41 @@ class BriefQualityLoopTests(TestCase):
         self.assertEqual(log.content_type, "brief")
         self.assertEqual(log.verdict, "PASS")
 
+    @patch("parliament.services.brief_generator.correct_brief")
     @patch("parliament.services.brief_generator._evaluate_brief")
-    def test_amber_flag_on_fix_verdict(self, mock_eval):
+    def test_fix_verdict_triggers_correction(self, mock_eval, mock_correct):
+        """FIX verdict triggers correction loop; PASS on 2nd attempt → GREEN."""
+        from parliament.models import QualityLog
         from parliament.services.evaluator import EvaluationResult
-        mock_eval.return_value = EvaluationResult(verdict="FIX")
+
+        mock_eval.side_effect = [
+            EvaluationResult(verdict="FIX"),
+            EvaluationResult(verdict="PASS"),
+        ]
+        mock_correct.return_value = "## Corrected Brief\n\nFixed content."
 
         brief = generate_brief(self.sitting)
-        self.assertEqual(brief.quality_flag, "AMBER")
+        self.assertEqual(brief.quality_flag, "GREEN")
+        self.assertTrue(brief.is_published)
+        self.assertEqual(QualityLog.objects.count(), 2)
+        self.assertEqual(
+            QualityLog.objects.order_by("attempt_number").first().attempt_number, 1
+        )
+        self.assertEqual(
+            QualityLog.objects.order_by("attempt_number").last().attempt_number, 2
+        )
+
+    @patch("parliament.services.brief_generator.correct_brief")
+    @patch("parliament.services.brief_generator._evaluate_brief")
+    def test_circuit_breaker_after_3_attempts(self, mock_eval, mock_correct):
+        """3 consecutive REJECT verdicts → RED flag, not published."""
+        from parliament.models import QualityLog
+        from parliament.services.evaluator import EvaluationResult
+
+        mock_eval.return_value = EvaluationResult(verdict="REJECT")
+        mock_correct.return_value = "## Still Bad\n\nNot fixed."
+
+        brief = generate_brief(self.sitting)
+        self.assertEqual(brief.quality_flag, "RED")
+        self.assertFalse(brief.is_published)
+        self.assertEqual(QualityLog.objects.count(), 3)
