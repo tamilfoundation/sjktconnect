@@ -358,8 +358,20 @@ def apply_analysis(mention, analysis):
             mention.mp_name, mention.pk,
         )
 
+    # Mention-level evaluation (deterministic, no API call)
+    from parliament.services.evaluator import evaluate_mention
+    eval_result = evaluate_mention(mention)
+    mention.eval_warnings = eval_result.warnings
+    mention.eval_confidence = eval_result.confidence
+    if eval_result.warnings:
+        logger.info(
+            "Mention %s eval warnings: %s (confidence=%.2f)",
+            mention.pk, eval_result.warnings, eval_result.confidence,
+        )
+
     mention.save(update_fields=[
         "mp_name", "mp_constituency", "mp_party", "mention_type",
         "significance", "sentiment", "change_indicator",
-        "ai_summary", "ai_raw_response", "speaker_verified", "updated_at",
+        "ai_summary", "ai_raw_response", "speaker_verified",
+        "eval_warnings", "eval_confidence", "updated_at",
     ])

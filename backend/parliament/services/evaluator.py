@@ -232,3 +232,65 @@ def _call_evaluator(api_key: str, prompt: str) -> EvaluationResult:
         unlinked_schools=data.get("unlinked_schools", []),
         repair_suggestions=data.get("repair_suggestions", []),
     )
+
+
+@dataclass
+class MentionEvaluation:
+    """Lightweight evaluation result for a single mention (no API call)."""
+    warnings: list = field(default_factory=list)
+    confidence: float = 1.0
+
+
+_FINANCIAL_TERMS = {
+    "rm", "ringgit", "juta", "million", "billion", "bilion",
+    "peruntukan", "allocation", "budget", "bajet", "dana", "fund",
+}
+
+
+def evaluate_mention(mention) -> MentionEvaluation:
+    """Deterministic quality check on a single analysed mention.
+
+    No API call — uses heuristic rules only.
+    Returns MentionEvaluation with warnings and confidence score.
+    """
+    warnings = []
+    confidence = 1.0
+
+    excerpt = f"{mention.context_before} {mention.verbatim_quote}".lower()
+
+    # Check 1: Speaker presence
+    if mention.mp_name:
+        mp_lower = mention.mp_name.lower()
+        found = mp_lower in excerpt
+        if not found:
+            # Try surname fragments
+            fragments = [
+                w for w in mention.mp_name.split()
+                if len(w) > 2 and w.lower() not in {"a/l", "a/p", "bin", "binti", "b.", "bt."}
+            ]
+            found = any(f.lower() in excerpt for f in fragments)
+
+        if not found:
+            warnings.append(f"Speaker '{mention.mp_name}' not found in excerpt")
+            confidence -= 0.3
+
+    # Check 2: Significance sanity
+    excerpt_len = len(mention.verbatim_quote or "")
+    if excerpt_len < 100 and (mention.significance or 0) > 3:
+        warnings.append(
+            f"High significance ({mention.significance}) for short excerpt "
+            f"({excerpt_len} chars)"
+        )
+        confidence -= 0.2
+
+    # Check 3: BUDGET type consistency
+    if mention.mention_type == "BUDGET":
+        has_financial = any(term in excerpt for term in _FINANCIAL_TERMS)
+        if not has_financial:
+            warnings.append(
+                "Mention type is BUDGET but no financial terms found in excerpt"
+            )
+            confidence -= 0.15
+
+    confidence = max(0.0, min(1.0, confidence))
+    return MentionEvaluation(warnings=warnings, confidence=round(confidence, 2))

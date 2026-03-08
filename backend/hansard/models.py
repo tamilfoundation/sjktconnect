@@ -65,6 +65,8 @@ class HansardMention(models.Model):
     ai_summary = models.TextField(blank=True, default="")
     ai_raw_response = models.JSONField(default=dict, blank=True)
     speaker_verified = models.BooleanField(default=True)
+    eval_warnings = models.JSONField(default=list, blank=True)
+    eval_confidence = models.FloatField(default=1.0)
 
     # Review fields (Sprint 0.5)
     review_status = models.CharField(max_length=20, blank=True, default="PENDING")

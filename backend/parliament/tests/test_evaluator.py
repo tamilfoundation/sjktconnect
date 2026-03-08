@@ -278,3 +278,117 @@ class FailSafeTests(TestCase):
         )
         self.assertEqual(result.verdict, "AMBER")
         self.assertTrue(result.evaluator_error)
+
+
+class MentionEvaluationTests(TestCase):
+    """Test deterministic mention-level evaluation (no API call)."""
+
+    def test_high_confidence_when_all_checks_pass(self):
+        from parliament.services.evaluator import evaluate_mention
+        from hansard.models import HansardMention, HansardSitting
+        sitting = HansardSitting.objects.create(
+            sitting_date="2099-06-01",
+            pdf_url="https://example.com/t.pdf",
+            pdf_filename="t.pdf",
+        )
+        mention = HansardMention.objects.create(
+            sitting=sitting,
+            verbatim_quote="YB Arul [Segamat] asked about SJK(T) Ladang Bikam funding of RM2 million for infrastructure repairs and classroom upgrades in the coming financial year.",
+            context_before="",
+            page_number=1,
+            mp_name="YB Arul",
+            mp_constituency="Segamat",
+            mention_type="BUDGET",
+            significance=4,
+            ai_summary="MP requests RM2M.",
+        )
+        result = evaluate_mention(mention)
+        self.assertGreaterEqual(result.confidence, 0.8)
+        self.assertEqual(len(result.warnings), 0)
+
+    def test_low_confidence_when_speaker_not_in_excerpt(self):
+        from parliament.services.evaluator import evaluate_mention
+        from hansard.models import HansardMention, HansardSitting
+        sitting = HansardSitting.objects.create(
+            sitting_date="2099-06-02",
+            pdf_url="https://example.com/t.pdf",
+            pdf_filename="t.pdf",
+        )
+        mention = HansardMention.objects.create(
+            sitting=sitting,
+            verbatim_quote="SJK(T) mentioned in passing.",
+            context_before="",
+            page_number=1,
+            mp_name="YB Phantom",
+            mp_constituency="Nowhere",
+            mention_type="OTHER",
+            significance=2,
+            ai_summary="Passing mention.",
+        )
+        result = evaluate_mention(mention)
+        self.assertLess(result.confidence, 0.8)
+        self.assertTrue(any("speaker" in w.lower() for w in result.warnings))
+
+    def test_warning_when_high_significance_short_excerpt(self):
+        from parliament.services.evaluator import evaluate_mention
+        from hansard.models import HansardMention, HansardSitting
+        sitting = HansardSitting.objects.create(
+            sitting_date="2099-06-03",
+            pdf_url="https://example.com/t.pdf",
+            pdf_filename="t.pdf",
+        )
+        mention = HansardMention.objects.create(
+            sitting=sitting,
+            verbatim_quote="SJK(T) ok.",
+            context_before="",
+            page_number=1,
+            mp_name="",
+            mention_type="OTHER",
+            significance=4,
+            ai_summary="Short.",
+        )
+        result = evaluate_mention(mention)
+        self.assertTrue(any("significance" in w.lower() for w in result.warnings))
+
+    def test_warning_when_budget_type_no_financial_terms(self):
+        from parliament.services.evaluator import evaluate_mention
+        from hansard.models import HansardMention, HansardSitting
+        sitting = HansardSitting.objects.create(
+            sitting_date="2099-06-04",
+            pdf_url="https://example.com/t.pdf",
+            pdf_filename="t.pdf",
+        )
+        mention = HansardMention.objects.create(
+            sitting=sitting,
+            verbatim_quote="The MP discussed SJK(T) school conditions and student welfare.",
+            context_before="",
+            page_number=1,
+            mp_name="YB Test",
+            mention_type="BUDGET",
+            significance=3,
+            ai_summary="Discussed conditions.",
+        )
+        result = evaluate_mention(mention)
+        self.assertTrue(any("budget" in w.lower() for w in result.warnings))
+
+    def test_no_mp_name_skips_speaker_check(self):
+        """Empty mp_name should not trigger speaker warning."""
+        from parliament.services.evaluator import evaluate_mention
+        from hansard.models import HansardMention, HansardSitting
+        sitting = HansardSitting.objects.create(
+            sitting_date="2099-06-05",
+            pdf_url="https://example.com/t.pdf",
+            pdf_filename="t.pdf",
+        )
+        mention = HansardMention.objects.create(
+            sitting=sitting,
+            verbatim_quote="SJK(T) mentioned in a long discussion about school funding and RM allocations.",
+            context_before="",
+            page_number=1,
+            mp_name="",
+            mention_type="OTHER",
+            significance=2,
+            ai_summary="General mention.",
+        )
+        result = evaluate_mention(mention)
+        self.assertFalse(any("speaker" in w.lower() for w in result.warnings))
