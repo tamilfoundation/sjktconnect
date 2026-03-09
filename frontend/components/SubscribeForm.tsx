@@ -13,6 +13,7 @@ export default function SubscribeForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isNew, setIsNew] = useState(true);
 
   const CATEGORIES = [
     {
@@ -38,7 +39,8 @@ export default function SubscribeForm() {
     setLoading(true);
 
     try {
-      await subscribe({ email, name, organisation });
+      const result = await subscribe({ email, name, organisation });
+      setIsNew(result.is_new);
       setSuccess(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : tc("somethingWrong"));
@@ -55,13 +57,21 @@ export default function SubscribeForm() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">{t("youreSubscribed")}</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          {isNew ? t("youreSubscribed") : t("alreadySubscribed")}
+        </h2>
         <p className="text-gray-600 mb-1">
-          {t("confirmSent")} <strong>{email}</strong>.
+          {isNew ? (
+            <>{t("confirmSent")} <strong>{email}</strong>.</>
+          ) : (
+            <>{t("alreadySubscribedDetail", { email })}</>
+          )}
         </p>
-        <p className="text-sm text-gray-500 mt-4">
-          {t("manageNote")}
-        </p>
+        {isNew && (
+          <p className="text-sm text-gray-500 mt-4">
+            {t("manageNote")}
+          </p>
+        )}
       </div>
     );
   }

@@ -37,6 +37,7 @@ describe("SubscribeForm", () => {
       name: "Test User",
       organisation: "",
       is_active: true,
+      is_new: true,
       subscribed_at: "2026-03-01T00:00:00Z",
       preferences: {
         PARLIAMENT_WATCH: true,
@@ -58,6 +59,33 @@ describe("SubscribeForm", () => {
       expect(screen.getByText(/You're subscribed!/)).toBeInTheDocument();
     });
     expect(screen.getByText(/user@example.com/)).toBeInTheDocument();
+  });
+
+  it("shows already subscribed message for existing subscriber", async () => {
+    mockSubscribe.mockResolvedValueOnce({
+      email: "user@example.com",
+      name: "Test User",
+      organisation: "",
+      is_active: true,
+      is_new: false,
+      subscribed_at: "2026-03-01T00:00:00Z",
+      preferences: {
+        PARLIAMENT_WATCH: true,
+        NEWS_WATCH: true,
+        MONTHLY_BLAST: true,
+      },
+    });
+
+    render(<SubscribeForm />);
+    fireEvent.change(screen.getByLabelText(/Email address/), {
+      target: { value: "user@example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Subscribe/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/already subscribed/)).toBeInTheDocument();
+    });
+    expect(screen.getByText(/already on our mailing list/)).toBeInTheDocument();
   });
 
   it("calls subscribe with all fields", async () => {

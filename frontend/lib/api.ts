@@ -357,7 +357,7 @@ export async function confirmSchool(
  */
 export async function subscribe(
   request: SubscribeRequest
-): Promise<SubscriberResponse> {
+): Promise<SubscriberResponse & { is_new: boolean }> {
   const res = await fetch(`${BASE}/subscribers/subscribe/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -365,9 +365,10 @@ export async function subscribe(
   });
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data.email?.[0] || data.detail || `API error: ${res.status}`);
+    const fieldError = Object.values(data).flat().find((v) => typeof v === "string");
+    throw new Error(data.email?.[0] || data.detail || (typeof fieldError === "string" ? fieldError : null) || `API error: ${res.status}`);
   }
-  return data;
+  return { ...data, is_new: res.status === 201 };
 }
 
 /**

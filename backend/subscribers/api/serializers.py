@@ -7,8 +7,8 @@ class SubscribeSerializer(serializers.Serializer):
     """Serializer for the subscribe endpoint."""
 
     email = serializers.EmailField()
-    name = serializers.CharField(max_length=200, required=False, default="")
-    organisation = serializers.CharField(max_length=300, required=False, default="")
+    name = serializers.CharField(max_length=200, required=False, default="", allow_blank=True)
+    organisation = serializers.CharField(max_length=300, required=False, default="", allow_blank=True)
 
 
 class SubscriberSerializer(serializers.ModelSerializer):
