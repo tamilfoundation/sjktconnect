@@ -25,37 +25,46 @@ logger = logging.getLogger(__name__)
 
 
 BRIEF_PROMPT = """\
-You are a parliamentary reporter writing a concise sitting brief about Tamil \
-school (SJK(T)) mentions in the Malaysian Parliament.
+You are a parliamentary reporter writing a concise sitting brief about SJK(T) \
+mentions in the Malaysian Parliament.
 
 Sitting date: {date}
 Number of mentions: {mention_count}
 
 {domain_context}
 
-Write a brief (100-350 words) with this structure:
+If there is only 1 mention, write a single tight section (no Executive Summary / \
+Details split). For 2+ mentions, use the structure below.
 
 ## Executive Summary
-2-3 sentences summarising what happened in this sitting regarding Tamil schools. \
+2-3 sentences summarising what happened in this sitting. \
 Lead with the most important development. Use past tense throughout.
 
 ## Details
 For each mention, report: who spoke, what they said, and any context or response. \
 Use past tense. Be specific — include amounts, school names, and actions. \
-One paragraph per mention.
+One paragraph per mention. Do NOT repeat what the Executive Summary already said.
 
 ## Verbatim Quotes
 Include 1-3 direct quotes from the Hansard excerpt that are most significant. \
 Format as blockquotes with attribution. Only include quotes that add value \
 beyond the summary. If no quotes are significant, skip this section.
 
+Data rules:
+- The Speaker field in the mention data is the VERIFIED MP name. Use it as-is. \
+Do not add "Unidentified MP" or any other prefix.
+- Attribution format: "MP Name (Constituency)" — e.g. "Tuan X (Jelutong)".
+
 Style rules:
 - Past tense throughout (the sitting has already occurred)
 - British English
 - No editorial commentary
-- Expand acronyms on first use (use the glossary provided)
+- Pick one term for Tamil schools and use it consistently: either "SJK(T)" or \
+"Tamil schools". Do NOT stack variants like "Tamil schools (Sekolah Jenis \
+Kebangsaan (Tamil), SJK(T))".
 - NEVER write "(SJK(T))" with outer brackets. Write "SJK(T)" on its own.
-- No preamble or filler
+- Expand other acronyms on first use (use the glossary provided)
+- No preamble, padding, or filler. Substance only.
 
 Return as plain markdown. No code fences.
 
