@@ -263,15 +263,17 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - Unified quality_loop.py framework
 - Context staleness warning
 
-**Next phase candidates** (no sprint planned):
+**Pending (ordered)**:
+1. Deploy Phase 7 to production
+2. Full Hansard rebuild — reprocess all mentions, briefs, and reports through the improved Phase 7 pipeline (speaker verification, mention evaluator, MP name normalisation, brief correction loop, evaluator fail-safe, fuzzy school linking)
+3. Test each email type end-to-end (Parliament Watch, News Digest, Urgent Alert, Monthly Blast)
+4. End-to-end test: donate page → Toyyib sandbox, school bank card display
+
+**Future work**:
+- **Close the learner feedback loop** — Learner currently detects recurring quality patterns but only logs warnings. Needs: auto-inject learner flags into prompts, store successful corrections as pattern memory, confidence-based mention routing. This would make the pipeline truly self-improving, not just self-correcting.
 - Urgent Response System (design approved, see `docs/plans/2026-03-04-urgent-response-system-design.md`)
 - MP profile pages (combine Hansard data with contact info)
 - Pre-filled advocacy message templates per school
-
-**Pending (not sprint-specific)**:
-- Deploy Phase 7 changes to production
-- Test each email type end-to-end (Parliament Watch, News Digest, Urgent Alert, Monthly Blast)
-- End-to-end test: donate page → Toyyib sandbox, school bank card display
 - gcloud CLI requires `CLOUDSDK_PYTHON` env var pointing to Python 3.13
 
 ## Frontend (Sprint 1.3–3.3)
