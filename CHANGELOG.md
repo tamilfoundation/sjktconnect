@@ -1,5 +1,15 @@
 # Changelog
 
+## Sprint 7.2 — Medium Effort Quality Improvements (2026-03-09)
+
+### Added
+- **Fuzzy school matching**: Report linkification now falls back to difflib fuzzy matching (threshold 0.85) for near-miss school names (e.g. "Mentakb" → "Mentakab").
+- **MP name normalisation**: `_normalise_mp_name` strips honorific prefixes (YB, Dato', Datuk Seri, Tan Sri, Dr., Puan, etc.) and normalises smart apostrophes for consistent MP matching.
+- **Mention-level evaluator**: Deterministic quality check on individual mentions — validates speaker presence in excerpt, flags high significance on short excerpts, checks BUDGET type consistency. No API call. Stores `eval_warnings` and `eval_confidence` on HansardMention.
+- **Unified quality loop**: `run_quality_loop()` framework replaces inline while-loops in both brief and report generators. Single reusable function with evaluate/correct/log callbacks.
+
+---
+
 ## Sprint 7.1 — Pipeline Quality Quick Wins (2026-03-09)
 
 ### Added

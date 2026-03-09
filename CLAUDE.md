@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 7 (Quality Consolidation). Sprint 7.1 done.
-- **Last Sprint**: 7.1 — Pipeline Quality Quick Wins (2026-03-09)
-- **Tests**: ~1225 (~943 backend + 282 frontend)
+- **Current Phase**: Phase 7 (Quality Consolidation) complete. Sprint 7.1 + 7.2 done.
+- **Last Sprint**: 7.2 — Medium Effort Quality Improvements (2026-03-09)
+- **Tests**: ~1248 (~966 backend + 282 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -234,6 +234,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 6.2 | Done | Pipeline Prompts: wired context_builder into all 3 Gemini prompts (mentions, briefs, reports). Past tense enforcement. Brief generator now Gemini-powered prose (exec summary → details → quotes) with template fallback. Report prompt restructured with cabinet reference, taxonomy definitions, RPM alignment. Validated on 3rd Meeting 2025 — all 5 FLAGs resolved. 8 new tests (928 total). |
 | 6.3 | Done | Frontend & Polish: brief detail page (`/parliament-watch/sittings/[id]`), `_linkify_briefs` links sitting dates in reports to brief pages, BriefsList "Full page" link, i18n (EN/TA/MS). Deployed backend + frontend. Updated Cloud Run job image. Ran `seed_aliases --clear` + `import_mp_profiles` on production. 2 new tests (930 total). Phase 6 complete. |
 | 7.1 | Done | Pipeline Quality Quick Wins: speaker verification on mentions, brief correction loop (3-attempt evaluate→correct), evaluator fail-safe (AMBER on API errors), context staleness warning. 13 new tests (~943 total). |
+| 7.2 | Done | Medium Effort Quality: fuzzy school matching in linkification, MP name normalisation (honorific stripping), deterministic mention-level evaluator, unified quality_loop.py framework. 23 new tests (~966 total). Phase 7 complete. |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -251,21 +252,24 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Current state**: Sprint 7.1 (quick wins) complete. ~943 backend + 282 frontend = ~1225 tests. Not yet deployed (backend-only changes, no urgency).
+**Current state**: Phase 7 (Quality Consolidation) complete. Sprint 7.1 + 7.2 done. ~966 backend + 282 frontend = ~1248 tests. Not yet deployed (backend-only changes, no urgency).
 
-**Sprint 7.2** (ready, plan at `docs/plans/2026-03-08-sprint-7.2-medium-effort-plan.md`):
-- Fuzzy school matching in linkification
-- MP name normalisation
-- Mention-level evaluator (deterministic, no API)
+**Phase 7 deliverables summary**:
+- Speaker verification + mention-level evaluator (deterministic quality checks)
+- Brief correction loop (mirrors report pattern)
+- Evaluator fail-safe (AMBER on API errors)
+- MP name normalisation (honorific stripping)
+- Fuzzy school matching in reports
 - Unified quality_loop.py framework
+- Context staleness warning
 
-**Other candidates** (no sprint planned):
+**Next phase candidates** (no sprint planned):
 - Urgent Response System (design approved, see `docs/plans/2026-03-04-urgent-response-system-design.md`)
 - MP profile pages (combine Hansard data with contact info)
 - Pre-filled advocacy message templates per school
 
 **Pending (not sprint-specific)**:
-- Deploy Sprint 7.1 changes to production
+- Deploy Phase 7 changes to production
 - Test each email type end-to-end (Parliament Watch, News Digest, Urgent Alert, Monthly Blast)
 - End-to-end test: donate page → Toyyib sandbox, school bank card display
 - gcloud CLI requires `CLOUDSDK_PYTHON` env var pointing to Python 3.13
