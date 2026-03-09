@@ -59,11 +59,12 @@ Style rules:
 - Past tense throughout (the sitting has already occurred)
 - British English
 - No editorial commentary
-- Pick one term for Tamil schools and use it consistently: either "SJK(T)" or \
-"Tamil schools". Do NOT stack variants like "Tamil schools (Sekolah Jenis \
-Kebangsaan (Tamil), SJK(T))".
+- CRITICAL — acronym rule: Use EITHER the full name OR the abbreviation, never \
+both together. Wrong: "Sekolah Jenis Kebangsaan (Tamil) SJK(T)". \
+Right: "SJK(T)" or "Tamil schools". This applies to ALL acronyms — KPM, PPKI, \
+SJK(C), SK, JPN, etc. Pick the short form and use it throughout. Only expand \
+once at first use if the reader may not know it.
 - NEVER write "(SJK(T))" with outer brackets. Write "SJK(T)" on its own.
-- Expand other acronyms on first use (use the glossary provided)
 - No preamble, padding, or filler. Substance only.
 
 Return as plain markdown. No code fences.

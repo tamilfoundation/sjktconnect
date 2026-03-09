@@ -19,7 +19,7 @@ COMPONENTS = {
         "hash_source": "parliament.services.gemini_client:ANALYSIS_PROMPT",
     },
     "brief_generation": {
-        "version": "1.1.0",
+        "version": "1.2.0",
         "hash_source": "parliament.services.brief_generator:BRIEF_PROMPT",
     },
     "brief_regeneration": {
