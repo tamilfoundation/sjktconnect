@@ -603,7 +603,7 @@ class Command(BaseCommand):
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         temperature=0.4,
-                        max_output_tokens=8192,
+                        max_output_tokens=16384,
                         thinking_config=types.ThinkingConfig(
                             thinking_level="HIGH",
                         ),
