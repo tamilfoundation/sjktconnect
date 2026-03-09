@@ -62,8 +62,10 @@ Style rules:
 - CRITICAL — acronym rule: Use EITHER the full name OR the abbreviation, never \
 both together. Wrong: "Sekolah Jenis Kebangsaan (Tamil) SJK(T)". \
 Right: "SJK(T)" or "Tamil schools". This applies to ALL acronyms — KPM, PPKI, \
-SJK(C), SK, JPN, etc. Pick the short form and use it throughout. Only expand \
-once at first use if the reader may not know it.
+SK, JPN, etc. Only expand once at first use if the reader may not know it.
+- Never expand SJK(T) or SJK(C) — our audience knows these. Just use the short \
+form throughout. The nested brackets in "Sekolah Jenis Kebangsaan (Cina) (SJK(C))" \
+are unreadable.
 - NEVER write "(SJK(T))" with outer brackets. Write "SJK(T)" on its own.
 - No preamble, padding, or filler. Substance only.
 
