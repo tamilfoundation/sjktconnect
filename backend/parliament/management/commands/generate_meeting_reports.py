@@ -59,10 +59,10 @@ Funding Inequity"
 
 [Plain language opening — ONE paragraph, max 80 words, addressed directly to \
 a Tamil school parent. Use NO acronyms. Explain in simple terms what happened \
-and what it means for their child's school. Example tone: "If your child \
-attends a Tamil school that needs repairs, this session brought good news and \
-bad news. The government approved RM22 million to rebuild one school, but \
-several others are still waiting." This paragraph is MANDATORY.]
+and what it means for their child's school. This paragraph is MANDATORY. \
+IMPORTANT: Vary the opening — do NOT start with "If your child attends a \
+Tamil school" every time. Lead with the news: what the government did, what \
+MPs demanded, what changed. Make it specific to THIS meeting's content.]
 
 [Lead paragraph — 2-3 sentences summarising the big picture for policy readers. \
 What happened, why it matters, what changed. Do NOT start with "This report \
@@ -150,11 +150,11 @@ Style rules:
 - No editorial commentary ("This was substantive..." or "This demonstrates...").
 - Short paragraphs. Simple, clear language. British English.
 - No filler, no preamble. Lead with substance.
-- NON-NEGOTIABLE: Every acronym must be spelled out in full on its first use \
-in the report, with the acronym in parentheses. Example: "Malaysian Indian \
-Transformation Unit (MITRA)", "School Management Board (LPS)", \
-"Parent-Teacher Association (PIBG)". Use the glossary provided. No exceptions \
-— even common acronyms like MOE must be expanded on first use.
+- Expand acronyms on first use, abbreviation only thereafter. Example: \
+"Malaysian Indian Transformation Unit (MITRA)", then just "MITRA". \
+Use the glossary provided.
+- EXCEPTION: Never expand SJK(T) or SJK(C) — our audience knows these. \
+Just use the short form throughout.
 - NEVER write "(SJK(T))" with outer brackets. Write "SJK(T)" on its own.
   If needed in parentheses, write "(SJKT)" or "Tamil schools".
 - Write "SJK(T)s" (with lowercase s) or "Tamil schools" when referring to \

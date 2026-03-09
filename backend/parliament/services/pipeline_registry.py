@@ -27,7 +27,7 @@ COMPONENTS = {
         "hash_source": "parliament.management.commands.regenerate_briefs:BRIEF_PROMPT",
     },
     "report_generation": {
-        "version": "1.0.0",
+        "version": "1.1.0",
         "hash_source": "parliament.management.commands.generate_meeting_reports:MEETING_REPORT_PROMPT",
     },
     "evaluation": {
