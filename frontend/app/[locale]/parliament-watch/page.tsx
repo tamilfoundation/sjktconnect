@@ -66,40 +66,64 @@ export default async function ParliamentWatchPage() {
         <MeetingReportsGrid reports={meetingReports} />
       )}
 
-      {/* Latest Sitting Summaries — compact list */}
+      {/* Latest Sitting Summaries — card grid matching meeting reports style */}
       {recentBriefs.length > 0 && (
         <section className="mb-10">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
+          <h2 className="text-xl font-bold text-gray-900 mb-1">
             {t("latestSittings")}
           </h2>
-          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-            {recentBriefs.map((brief) => (
-              <div key={brief.id} className="flex items-center justify-between px-5 py-3.5">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-400 mb-0.5">
+          <p className="text-sm text-gray-500 mb-5">{t("sittingBriefsDesc")}</p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {recentBriefs.map((brief) => {
+              const headline = brief.title.replace(/\s*[—–-]\s*\d{1,2}\s+\w+\s+\d{4}$/, "");
+              const blurb = brief.summary_html
+                .replace(/<[^>]*>/g, " ")
+                .replace(/\s+/g, " ")
+                .trim()
+                .slice(0, 150)
+                .replace(/\s+\S*$/, "") + "...";
+
+              return (
+                <Link
+                  key={brief.id}
+                  href={`/parliament-watch/sittings/${brief.id}`}
+                  className="group block bg-white rounded-xl border border-gray-200 hover:border-primary-300 hover:shadow-md transition-all p-5"
+                >
+                  <p className="text-xs text-gray-400 mb-1.5">
                     {new Date(brief.sitting_date).toLocaleDateString("en-GB", {
                       day: "numeric",
                       month: "short",
                       year: "numeric",
                     })}
                   </p>
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {brief.title.replace(/\s*[—–-]\s*\d{1,2}\s+\w+\s+\d{4}$/, "")}
+                  <h3 className="text-base font-semibold text-gray-900 group-hover:text-primary-700 transition-colors mb-2 line-clamp-2">
+                    {headline}
+                  </h3>
+                  <p className="text-sm text-gray-600 line-clamp-3 mb-3">
+                    {blurb}
                   </p>
-                </div>
-                <span className="ml-3 shrink-0 inline-flex items-center text-xs font-medium bg-primary-50 text-primary-700 px-2.5 py-1 rounded-full">
-                  {brief.mention_count} {brief.mention_count === 1 ? "mention" : "mentions"}
-                </span>
-              </div>
-            ))}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">
+                      {brief.mention_count}{" "}
+                      {brief.mention_count === 1 ? "mention" : "mentions"}
+                    </span>
+                    <span className="text-sm font-medium text-primary-600 group-hover:text-primary-700">
+                      {t("readFullReport")} &rarr;
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
+
           {briefs.length > 3 && (
-            <p className="text-center mt-3">
+            <p className="text-center mt-4">
               <Link
                 href="/parliament-watch/sittings"
                 className="text-sm font-medium text-primary-600 hover:text-primary-700"
               >
-                {t("viewAllSittings", { count: briefs.length })} →
+                {t("viewAllSittings", { count: briefs.length })} &rarr;
               </Link>
             </p>
           )}
