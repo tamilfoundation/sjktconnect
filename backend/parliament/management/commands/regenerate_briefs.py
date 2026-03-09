@@ -17,6 +17,8 @@ from django.core.management.base import BaseCommand
 from google import genai
 from google.genai import types
 
+from parliament.services.pipeline_registry import get_pipeline_version
+
 from hansard.models import HansardMention, HansardSitting
 from parliament.models import SittingBrief
 
@@ -249,6 +251,7 @@ class Command(BaseCommand):
                     "title": title,
                     "summary_html": report_html,
                     "social_post_text": social[:280],
+                    "pipeline_version": get_pipeline_version(),
                 },
             )
 

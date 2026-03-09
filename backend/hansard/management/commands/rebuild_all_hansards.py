@@ -116,6 +116,10 @@ class Command(BaseCommand):
             "--limit", type=int, default=0,
             help="Process only the first N sittings (for testing).",
         )
+        parser.add_argument(
+            "--meeting", type=str, default="",
+            help='Filter by meeting short_name (e.g. "2nd Meeting 2025").',
+        )
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
@@ -123,6 +127,7 @@ class Command(BaseCommand):
         skip_matching = options["skip_matching"]
         include_failed = options["include_failed"]
         limit = options["limit"]
+        meeting_filter = options["meeting"]
 
         # Build queryset
         statuses = [HansardSitting.Status.COMPLETED]
@@ -133,6 +138,8 @@ class Command(BaseCommand):
             HansardSitting.objects.filter(status__in=statuses)
             .order_by("sitting_date")
         )
+        if meeting_filter:
+            sittings = sittings.filter(meeting__short_name=meeting_filter)
         if limit:
             sittings = sittings[:limit]
 

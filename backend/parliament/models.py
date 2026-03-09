@@ -50,6 +50,7 @@ class ParliamentaryMeeting(models.Model):
         max_length=10, blank=True, default="",
         help_text="Quality assessment: GREEN/AMBER/RED (empty = not evaluated)",
     )
+    pipeline_version = models.CharField(max_length=30, default="", blank=True)
     published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -138,6 +139,7 @@ class SittingBrief(models.Model):
         max_length=10, blank=True, default="",
         help_text="Quality assessment: GREEN/AMBER/RED (empty = not evaluated)",
     )
+    pipeline_version = models.CharField(max_length=30, default="", blank=True)
     published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

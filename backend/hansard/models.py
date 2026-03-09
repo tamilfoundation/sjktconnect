@@ -67,6 +67,7 @@ class HansardMention(models.Model):
     speaker_verified = models.BooleanField(default=True)
     eval_warnings = models.JSONField(default=list, blank=True)
     eval_confidence = models.FloatField(default=1.0)
+    pipeline_version = models.CharField(max_length=30, default="", blank=True)
 
     # Review fields (Sprint 0.5)
     review_status = models.CharField(max_length=20, blank=True, default="PENDING")

@@ -18,6 +18,7 @@ from google.genai import types
 from hansard.models import HansardMention, HansardSitting
 from parliament.models import SittingBrief
 from parliament.services.evaluator import evaluate_brief as _evaluate_brief
+from parliament.services.pipeline_registry import get_pipeline_version
 from parliament.services.corrector import apply_code_fixes, correct_brief
 
 logger = logging.getLogger(__name__)
@@ -393,7 +394,8 @@ def _run_brief_quality_loop(brief, mentions):
         log_entry_fn=log_fn,
     )
 
+    brief.pipeline_version = get_pipeline_version()
     brief.summary_html = final_html
     brief.quality_flag = quality_flag
     brief.is_published = (quality_flag == "GREEN")
-    brief.save(update_fields=["summary_html", "quality_flag", "is_published", "updated_at"])
+    brief.save(update_fields=["summary_html", "quality_flag", "is_published", "pipeline_version", "updated_at"])

@@ -19,6 +19,8 @@ import time
 from google import genai
 from google.genai import types
 
+from parliament.services.pipeline_registry import get_pipeline_version
+
 logger = logging.getLogger(__name__)
 
 # Valid enum values for validation
@@ -369,9 +371,10 @@ def apply_analysis(mention, analysis):
             mention.pk, eval_result.warnings, eval_result.confidence,
         )
 
+    mention.pipeline_version = get_pipeline_version()
     mention.save(update_fields=[
         "mp_name", "mp_constituency", "mp_party", "mention_type",
         "significance", "sentiment", "change_indicator",
         "ai_summary", "ai_raw_response", "speaker_verified",
-        "eval_warnings", "eval_confidence", "updated_at",
+        "eval_warnings", "eval_confidence", "pipeline_version", "updated_at",
     ])

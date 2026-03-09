@@ -1,3 +1,5 @@
+from django.test import TestCase
+
 from parliament.services.pipeline_registry import (
     get_component_version,
     get_pipeline_version,
@@ -51,3 +53,23 @@ def test_unknown_component_raises():
     import pytest
     with pytest.raises(KeyError):
         get_component_version("nonexistent")
+
+
+class TestPipelineVersionFields(TestCase):
+    def test_mention_has_pipeline_version_field(self):
+        from hansard.models import HansardMention
+        field = HansardMention._meta.get_field("pipeline_version")
+        assert field.max_length == 30
+        assert field.default == ""
+
+    def test_brief_has_pipeline_version_field(self):
+        from parliament.models import SittingBrief
+        field = SittingBrief._meta.get_field("pipeline_version")
+        assert field.max_length == 30
+        assert field.default == ""
+
+    def test_meeting_has_pipeline_version_field(self):
+        from parliament.models import ParliamentaryMeeting
+        field = ParliamentaryMeeting._meta.get_field("pipeline_version")
+        assert field.max_length == 30
+        assert field.default == ""

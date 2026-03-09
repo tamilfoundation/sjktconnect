@@ -18,6 +18,8 @@ from django.core.management.base import BaseCommand
 from google import genai
 from google.genai import types
 
+from parliament.services.pipeline_registry import get_pipeline_version
+
 from parliament.models import ParliamentaryMeeting, QualityLog, SittingBrief
 from parliament.services.evaluator import evaluate_report
 from parliament.services.corrector import apply_code_fixes, correct_report
@@ -850,9 +852,10 @@ class Command(BaseCommand):
                         f"  Illustration: {len(img_bytes)} bytes"
                     )
 
+            meeting.pipeline_version = get_pipeline_version()
             update_fields = [
                 "report_html", "executive_summary", "social_post_text",
-                "quality_flag", "is_published", "updated_at",
+                "quality_flag", "is_published", "pipeline_version", "updated_at",
             ]
             if meeting.illustration:
                 update_fields.append("illustration")
