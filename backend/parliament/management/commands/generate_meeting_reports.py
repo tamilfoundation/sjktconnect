@@ -263,7 +263,12 @@ def _linkify_briefs(html: str, meeting) -> str:
 
 
 def _linkify_schools(html: str) -> str:
-    """Replace SJK(T) school names in report HTML with links to school pages."""
+    """Replace SJK(T) school names in report HTML with links to school pages.
+
+    Uses the SchoolAlias table (including HANSARD spelling variants) so that
+    name resolution happens upstream rather than via ad-hoc fuzzy matching.
+    """
+    from hansard.models import SchoolAlias
     from schools.models import School
 
     # Common abbreviations used in school DB names
@@ -273,8 +278,9 @@ def _linkify_schools(html: str) -> str:
     }
 
     frontend_url = os.environ.get("FRONTEND_URL", "https://tamilschool.org")
-    # Build lookup: lowercase short name → moe_code
-    # Include both abbreviated and expanded forms
+
+    # Build lookup: lowercase name → moe_code
+    # Sources: School.name (stripped), expanded abbreviations, AND SchoolAlias table
     lookup = {}
     for s in School.objects.all():
         short = re.sub(
@@ -295,47 +301,65 @@ def _linkify_schools(html: str) -> str:
             if expanded.lower() != short.lower():
                 lookup[expanded.lower()] = s.moe_code
 
+    # Add aliases (including HANSARD spelling variants like Cangkat, Ketumbar)
+    for alias in SchoolAlias.objects.select_related("school").all():
+        # Strip "SJK(T) " prefix to get the name portion for matching
+        name_part = re.sub(
+            r"^sjk\(t\)\s*", "", alias.alias_normalized,
+        ).strip()
+        if name_part and len(name_part) > 2:
+            lookup[name_part] = alias.school.moe_code
+        # Also keep the full normalized form (with SJK(T) prefix stripped)
+        # for cases where the alias itself is the full short name
+        if alias.alias_normalized and len(alias.alias_normalized) > 2:
+            lookup[alias.alias_normalized] = alias.school.moe_code
+
     # Sort by length descending so longer names match first
     sorted_names = sorted(lookup.keys(), key=len, reverse=True)
     for name in sorted_names:
         code = lookup[name]
         url = f"{frontend_url}/school/{code}"
+        # Match "SJK(T) <name>" followed by a non-alphanumeric boundary to
+        # prevent partial matches (e.g. "SJK(T) Ladang" inside
+        # "SJK(T) Ladang Kemuning"). Using \W covers all punctuation
+        # including em-dashes, en-dashes, and Unicode characters.
         pattern = re.compile(
-            r"(SJK\(T\)\s+" + re.escape(name) + r")",
+            r"(SJK\(T\)\s+" + re.escape(name) + r")(?=\W|$)",
             re.IGNORECASE,
         )
 
         def _replace(m, _url=url):
             # Skip if already inside a link
             start = m.start()
-            preceding = html[max(0, start - 50):start]
-            if "<a " in preceding and "</a>" not in preceding:
+            preceding = html[max(0, start - 100):start]
+            if preceding.rfind("<a ") > preceding.rfind("</a>"):
                 return m.group(0)
             return f'<a href="{_url}">{m.group(1)}</a>'
 
         html = pattern.sub(_replace, html)
 
-    # Fuzzy pass: find unlinked SJK(T) names and try fuzzy matching
-    # Match SJK(T) followed by word tokens (greedy, up to 6 words)
+    # Fuzzy pass: find remaining unlinked SJK(T) names
     unlinked_pattern = re.compile(
-        r'SJK\(T\)\s+((?:[A-Za-z]+(?:\s+|$)){1,6})'
+        r'SJK\(T\)\s+((?:[A-Za-z\'.]+(?:\s+|$)){1,6})'
     )
     all_short_names = list(
         School.objects.filter(is_active=True).values_list("short_name", flat=True)
     )
 
-    replacements = []  # collect (old_text, new_text) to apply after iteration
+    replacements = []
     for match in unlinked_pattern.finditer(html):
         full_capture = match.group(0).strip()
         # Skip if already inside a link
         preceding = html[:match.start()]
         if preceding.rfind("<a ") > preceding.rfind("</a>"):
             continue
-        # Skip if this exact text is already linked (from exact pass)
         if f">{full_capture}</a>" in html:
             continue
+        # Skip if the matched region contains HTML tags (partially linked)
+        if "<" in full_capture:
+            continue
 
-        # Try progressively shorter candidates (drop trailing words)
+        # Try progressively shorter candidates
         words_after = match.group(1).strip().split()
         best_ratio = 0.0
         best_code = None
@@ -349,7 +373,6 @@ def _linkify_schools(html: str) -> str:
                 if ratio > best_ratio:
                     best_ratio = ratio
                     best_candidate = candidate
-                    # Look up code from short_name
                     sn_stripped = re.sub(
                         r"^SJK\(T\)\s*", "", short_name,
                         flags=re.IGNORECASE,
@@ -375,7 +398,14 @@ def _linkify_schools(html: str) -> str:
     for text, code in replacements:
         url = f"{frontend_url}/school/{code}"
         link = f'<a href="{url}">{text}</a>'
-        html = html.replace(text, link, 1)
+        # Only replace if the text isn't already inside a link
+        pos = html.find(text)
+        if pos == -1:
+            continue
+        preceding = html[:pos]
+        if preceding.rfind("<a ") > preceding.rfind("</a>"):
+            continue
+        html = html[:pos] + link + html[pos + len(text):]
 
     return html
 
