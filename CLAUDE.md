@@ -235,6 +235,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 6.3 | Done | Frontend & Polish: brief detail page (`/parliament-watch/sittings/[id]`), `_linkify_briefs` links sitting dates in reports to brief pages, BriefsList "Full page" link, i18n (EN/TA/MS). Deployed backend + frontend. Updated Cloud Run job image. Ran `seed_aliases --clear` + `import_mp_profiles` on production. 2 new tests (930 total). Phase 6 complete. |
 | 7.1 | Done | Pipeline Quality Quick Wins: speaker verification on mentions, brief correction loop (3-attempt evaluate→correct), evaluator fail-safe (AMBER on API errors), context staleness warning. 13 new tests (~943 total). |
 | 7.2 | Done | Medium Effort Quality: fuzzy school matching in linkification, MP name normalisation (honorific stripping), deterministic mention-level evaluator, unified quality_loop.py framework. 23 new tests (~966 total). Phase 7 complete. |
+| 8.1 | Done | Community Admin Panel — Auth + Roles Foundation: UserProfile model, Google auth endpoint, /me update, link-school endpoint, 4 permission classes, NextAuth.js v5, AuthProvider, UserMenu, profile page, dashboard shell. 64 new backend tests (~1030 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -252,25 +253,32 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Current state**: Phase 7 (Quality Consolidation) complete. Sprint 7.1 + 7.2 done. ~966 backend + 282 frontend = ~1248 tests. Not yet deployed (backend-only changes, no urgency).
+**Current state**: Sprint 8.1 (Community Admin Panel: Auth + Roles) complete and deployed. ~1030 backend + 282 frontend = ~1312 tests.
 
-**Phase 7 deliverables summary**:
-- Speaker verification + mention-level evaluator (deterministic quality checks)
-- Brief correction loop (mirrors report pattern)
-- Evaluator fail-safe (AMBER on API errors)
-- MP name normalisation (honorific stripping)
-- Fuzzy school matching in reports
-- Unified quality_loop.py framework
-- Context staleness warning
+**Sprint 8.1 deliverables**:
+- UserProfile model (role, admin_school, points)
+- Google auth endpoint + link-school endpoint
+- Updated /me with backward-compatible magic link fallback
+- Role-based permission classes (4 new)
+- NextAuth.js v5 + AuthProvider + UserMenu
+- Profile page + Dashboard shell
+- 64 new backend tests, trilingual i18n
+
+**Next sprint (8.2): Suggestion Workflow**
+- Users suggest data corrections for schools
+- Moderators/school admins approve suggestions
+- Points awarded for approved suggestions
+- Design doc: `docs/plans/2026-03-10-community-admin-panel-design.md`
 
 **Pending (ordered)**:
-1. Deploy Phase 7 to production
-2. Full Hansard rebuild — reprocess all mentions, briefs, and reports through the improved Phase 7 pipeline (speaker verification, mention evaluator, MP name normalisation, brief correction loop, evaluator fail-safe, fuzzy school linking)
-3. Test each email type end-to-end (Parliament Watch, News Digest, Urgent Alert, Monthly Blast)
-4. End-to-end test: donate page → Toyyib sandbox, school bank card display
+1. Create OAuth 2.0 client in GCP — DONE (env vars set on both services)
+2. Run migration on production DB (`python manage.py migrate`)
+3. Test Google sign-in end-to-end on tamilschool.org
+4. Full Hansard rebuild through Phase 7 pipeline
+5. Test each email type end-to-end
 
 **Future work**:
-- **Close the learner feedback loop** — Learner currently detects recurring quality patterns but only logs warnings. Needs: auto-inject learner flags into prompts, store successful corrections as pattern memory, confidence-based mention routing. This would make the pipeline truly self-improving, not just self-correcting.
+- **Close the learner feedback loop** — auto-inject learner flags into prompts, store successful corrections as pattern memory
 - Urgent Response System (design approved, see `docs/plans/2026-03-04-urgent-response-system-design.md`)
 - MP profile pages (combine Hansard data with contact info)
 - Pre-filled advocacy message templates per school

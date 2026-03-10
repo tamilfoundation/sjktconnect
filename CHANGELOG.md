@@ -1,5 +1,23 @@
 # Changelog
 
+## Sprint 8.1 — Community Admin Panel: Auth + Roles Foundation (2026-03-10)
+
+### Added
+- **UserProfile model**: Community user profiles with role system (SUPERADMIN/MODERATOR/USER), Google OAuth subject ID, display name, avatar, points, and optional school admin link (OneToOne to School).
+- **Google auth endpoint**: `POST /api/v1/auth/google/` — verifies Google ID token, creates/returns UserProfile, sets session. Updates display name and avatar on each login.
+- **Updated /me endpoint**: `GET /api/v1/auth/me/` now checks Google auth session first, falls back to magic link session for backward compatibility.
+- **Link-school endpoint**: `POST /api/v1/auth/link-school/` — connects a magic-link-verified school to the current Google profile. Validates token, checks school not already claimed (409), creates SchoolContact for backward compatibility.
+- **Role-based permission classes**: `IsProfileAuthenticated`, `IsModeratorOrAbove`, `IsSuperAdmin`, `IsSchoolAdminForObject` — alongside existing `IsMagicLinkAuthenticated`.
+- **NextAuth.js v5**: Google provider with JWT callback passing ID token to session for backend sync.
+- **AuthProvider**: SessionProvider wrapper in layout for client-side auth state.
+- **UserMenu component**: Google sign-in/out button in Header, avatar dropdown with role badge, points, profile/dashboard links. Trilingual (EN/TA/MS).
+- **Profile page** (`/profile`): Avatar, role badge, points/schools stats, admin school link, claim CTA.
+- **Dashboard shell** (`/dashboard`): Role-gated placeholder sections (My School, Moderation Queue, Administration, My Contributions).
+- **Settings**: `GOOGLE_OAUTH_CLIENT_ID` env var, `CORS_ALLOW_CREDENTIALS = True`.
+- **64 new backend tests** (accounts app: model, auth, /me, link-school, permissions).
+
+---
+
 ## Sprint 7.2 — Medium Effort Quality Improvements (2026-03-09)
 
 ### Added
