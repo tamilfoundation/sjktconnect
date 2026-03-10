@@ -1,11 +1,13 @@
 import logging
 
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.models import SchoolContact
+from accounts.models import MagicLinkToken, SchoolContact, UserProfile
 from accounts.services.email import send_magic_link_email
+from accounts.services.google import verify_google_token
 from accounts.services.token import (
     create_magic_token,
     find_school_by_email,
@@ -20,8 +22,6 @@ from .serializers import (
     UserProfileSerializer,
     VerifyTokenSerializer,
 )
-from accounts.models import UserProfile
-from accounts.services.google import verify_google_token
 
 logger = logging.getLogger(__name__)
 
@@ -178,5 +178,69 @@ class GoogleAuthView(APIView):
 
         # Set session
         request.session["user_profile_id"] = profile.id
+
+        return Response(UserProfileSerializer(profile).data)
+
+
+class LinkSchoolView(APIView):
+    """Link a magic-link-verified school to the current Google profile."""
+
+    def post(self, request):
+        profile_id = request.session.get("user_profile_id")
+        if not profile_id:
+            return Response(
+                {"error": "Sign in with Google first"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        try:
+            profile = UserProfile.objects.get(id=profile_id, is_active=True)
+        except UserProfile.DoesNotExist:
+            return Response(
+                {"error": "Profile not found"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        token_str = request.data.get("token", "")
+        try:
+            token = MagicLinkToken.objects.get(
+                token=token_str, is_used=False,
+            )
+        except MagicLinkToken.DoesNotExist:
+            return Response(
+                {"error": "Invalid or expired token"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if token.is_expired:
+            return Response(
+                {"error": "Token has expired"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        school = token.school
+
+        # Check if school is already claimed by another profile
+        if UserProfile.objects.filter(admin_school=school).exclude(id=profile.id).exists():
+            return Response(
+                {"error": "This school is already claimed by another user"},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        # Link school to profile
+        profile.admin_school = school
+        profile.save(update_fields=["admin_school", "updated_at"])
+
+        # Mark token as used
+        token.is_used = True
+        token.used_at = timezone.now()
+        token.save(update_fields=["is_used", "used_at"])
+
+        # Create/update SchoolContact for backward compatibility
+        SchoolContact.objects.update_or_create(
+            school=school,
+            email=token.email,
+            defaults={"is_active": True, "name": profile.display_name},
+        )
 
         return Response(UserProfileSerializer(profile).data)
