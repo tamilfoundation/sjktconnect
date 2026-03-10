@@ -625,6 +625,16 @@
     "comingSoon": "Akan Datang",
     "comingSoonBody": "Set data yang boleh dimuat turun sedang disediakan untuk akses awam."
   },
+  "auth": {
+    "signIn": "Log masuk",
+    "signOut": "Log keluar",
+    "profile": "Profil Saya",
+    "dashboard": "Panel Kawalan",
+    "points": "mata",
+    "role_USER": "Ahli",
+    "role_MODERATOR": "Moderator",
+    "role_SUPERADMIN": "Pentadbir"
+  },
   "faqPage": {
     "title": "Soalan Lazim — SJK(T) Connect",
     "heading": "Soalan Lazim",

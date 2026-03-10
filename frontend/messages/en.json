@@ -625,6 +625,16 @@
     "comingSoon": "Coming Soon",
     "comingSoonBody": "Downloadable datasets are being prepared for public access."
   },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "profile": "My Profile",
+    "dashboard": "Dashboard",
+    "points": "points",
+    "role_USER": "Member",
+    "role_MODERATOR": "Moderator",
+    "role_SUPERADMIN": "Admin"
+  },
   "faqPage": {
     "title": "FAQ — SJK(T) Connect",
     "heading": "Frequently Asked Questions",
