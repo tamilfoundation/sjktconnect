@@ -470,7 +470,10 @@
     "readFullReport": "முழு அறிக்கையைப் படிக்கவும்",
     "collapseReport": "அறிக்கையைச் சுருக்கவும்",
     "sittingsTracked": "கண்காணிக்கப்பட்ட அமர்வுகள்",
-    "mpsTracked": "அடையாளம் காணப்பட்ட எம்.பி.க்கள்",
+    "meetingsCovered": "உள்ளடக்கிய கூட்டங்கள்",
+    "intelligenceReports": "புலனாய்வு அறிக்கைகள்",
+    "mpsTracked": "கண்காணிக்கப்பட்ட எம்.பி.க்கள்",
+    "yearsOfData": "ஆண்டுகள் தரவு",
     "schoolsMentioned": "குறிப்பிடப்பட்ட பள்ளிகள்"
   },
   "legal": {

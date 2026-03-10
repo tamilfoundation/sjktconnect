@@ -22,8 +22,20 @@ export default async function ParliamentWatchPage() {
     fetchAllMentions(),
   ]);
 
-  // Latest 3 briefs for the compact sitting summaries section
-  const recentBriefs = briefs.slice(0, 3);
+  // Latest 4 briefs for the compact sitting summaries section
+  const recentBriefs = briefs.slice(0, 4);
+
+  // Meaningful stats
+  const meetingsWithReports = meetingReports.filter(r => r.total_mentions > 0).length;
+  const uniqueMPs = new Set(mentions.map(m => m.mp_name).filter(Boolean)).size;
+  // Calculate years of coverage from meeting date range
+  const meetingDates = meetingReports.map(r => r.start_date).filter(Boolean).sort();
+  const yearsTracked = meetingDates.length >= 2
+    ? Math.max(1, Math.ceil(
+        (new Date(meetingDates[meetingDates.length - 1]).getTime() - new Date(meetingDates[0]).getTime())
+        / (365.25 * 24 * 60 * 60 * 1000)
+      ))
+    : 1;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -40,24 +52,20 @@ export default async function ParliamentWatchPage() {
       {/* Stats bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-2xl font-bold text-primary-600">{briefs.length}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{t("sittingsTracked")}</p>
+          <p className="text-2xl font-bold text-primary-600">{meetingReports.length}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{t("meetingsCovered")}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-2xl font-bold text-primary-600">{mentions.length}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{t("totalMentionsCount")}</p>
+          <p className="text-2xl font-bold text-primary-600">{meetingsWithReports}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{t("intelligenceReports")}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-2xl font-bold text-primary-600">
-            {new Set(mentions.map(m => m.mp_name).filter(Boolean)).size}
-          </p>
+          <p className="text-2xl font-bold text-primary-600">{uniqueMPs}</p>
           <p className="text-xs text-gray-500 mt-0.5">{t("mpsTracked")}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-2xl font-bold text-primary-600">
-            {new Set(mentions.flatMap(m => "schools" in m ? m.schools.map((s: { moe_code: string }) => s.moe_code) : [])).size}
-          </p>
-          <p className="text-xs text-gray-500 mt-0.5">{t("schoolsMentioned")}</p>
+          <p className="text-2xl font-bold text-primary-600">{yearsTracked}+</p>
+          <p className="text-xs text-gray-500 mt-0.5">{t("yearsOfData")}</p>
         </div>
       </div>
 
@@ -117,7 +125,7 @@ export default async function ParliamentWatchPage() {
             })}
           </div>
 
-          {briefs.length > 3 && (
+          {briefs.length > 4 && (
             <p className="text-center mt-4">
               <Link
                 href="/parliament-watch/sittings"

@@ -470,7 +470,10 @@
     "readFullReport": "Baca laporan penuh",
     "collapseReport": "Ringkaskan laporan",
     "sittingsTracked": "Persidangan dijejaki",
-    "mpsTracked": "Ahli Parlimen dikenal pasti",
+    "meetingsCovered": "Mesyuarat diliputi",
+    "intelligenceReports": "Laporan risikan",
+    "mpsTracked": "Ahli Parlimen dijejaki",
+    "yearsOfData": "Tahun data",
     "schoolsMentioned": "Sekolah disebut"
   },
   "legal": {
