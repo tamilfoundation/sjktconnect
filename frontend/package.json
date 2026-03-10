@@ -12,11 +12,13 @@
     "test:ci": "jest --ci --coverage"
   },
   "dependencies": {
+    "@auth/core": "^0.41.0",
     "@googlemaps/markerclusterer": "^2.5.3",
     "@swc/helpers": "^0.5.19",
     "@tailwindcss/typography": "^0.5.19",
     "@vis.gl/react-google-maps": "^1.5.0",
     "next": "^14.2.0",
+    "next-auth": "^5.0.0-beta.30",
     "next-intl": "^4.8.3",
     "react": "^18.3.0",
     "react-dom": "^18.3.0"
