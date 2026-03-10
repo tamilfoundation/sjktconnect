@@ -633,7 +633,21 @@
     "points": "mata",
     "role_USER": "Ahli",
     "role_MODERATOR": "Moderator",
-    "role_SUPERADMIN": "Pentadbir"
+    "role_SUPERADMIN": "Pentadbir",
+    "signInRequired": "Sila log masuk untuk melihat profil anda.",
+    "schoolsManaged": "Sekolah diurus",
+    "yourSchool": "Sekolah anda",
+    "claimSchoolCta": "Adakah anda wakil sekolah? Hubungkan sekolah anda untuk mengurus datanya.",
+    "claimSchool": "Tuntut sekolah anda"
+  },
+  "dashboard": {
+    "heading": "Panel Kawalan",
+    "welcome": "Selamat datang, {name}",
+    "mySchool": "Sekolah Saya",
+    "moderation": "Barisan Moderasi",
+    "administration": "Pentadbiran",
+    "myContributions": "Sumbangan Saya",
+    "comingSoon": "Akan datang — ciri-ciri akan muncul di sini apabila siap."
   },
   "faqPage": {
     "title": "Soalan Lazim — SJK(T) Connect",

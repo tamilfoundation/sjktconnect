@@ -633,7 +633,21 @@
     "points": "புள்ளிகள்",
     "role_USER": "உறுப்பினர்",
     "role_MODERATOR": "மதிப்பாளர்",
-    "role_SUPERADMIN": "நிர்வாகி"
+    "role_SUPERADMIN": "நிர்வாகி",
+    "signInRequired": "உங்கள் சுயவிவரத்தைக் காண உள்நுழையவும்.",
+    "schoolsManaged": "நிர்வகிக்கும் பள்ளிகள்",
+    "yourSchool": "உங்கள் பள்ளி",
+    "claimSchoolCta": "நீங்கள் பள்ளி பிரதிநிதியா? உங்கள் பள்ளியை இணைத்து தரவை நிர்வகிக்கவும்.",
+    "claimSchool": "உங்கள் பள்ளியைக் கோரவும்"
+  },
+  "dashboard": {
+    "heading": "நிர்வாகப் பலகை",
+    "welcome": "வணக்கம், {name}",
+    "mySchool": "என் பள்ளி",
+    "moderation": "மதிப்பாய்வு வரிசை",
+    "administration": "நிர்வாகம்",
+    "myContributions": "என் பங்களிப்புகள்",
+    "comingSoon": "விரைவில் — அம்சங்கள் உருவாக்கப்படும்போது இங்கே தோன்றும்."
   },
   "faqPage": {
     "title": "கேள்விகள் — SJK(T) இணைப்பு",

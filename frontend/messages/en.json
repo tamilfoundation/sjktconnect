@@ -633,7 +633,21 @@
     "points": "points",
     "role_USER": "Member",
     "role_MODERATOR": "Moderator",
-    "role_SUPERADMIN": "Admin"
+    "role_SUPERADMIN": "Admin",
+    "signInRequired": "Please sign in to view your profile.",
+    "schoolsManaged": "Schools managed",
+    "yourSchool": "Your school",
+    "claimSchoolCta": "Are you a school representative? Link your school to manage its data.",
+    "claimSchool": "Claim your school"
+  },
+  "dashboard": {
+    "heading": "Dashboard",
+    "welcome": "Welcome, {name}",
+    "mySchool": "My School",
+    "moderation": "Moderation Queue",
+    "administration": "Administration",
+    "myContributions": "My Contributions",
+    "comingSoon": "Coming soon — features will appear here as they are built."
   },
   "faqPage": {
     "title": "FAQ — SJK(T) Connect",
