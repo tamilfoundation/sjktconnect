@@ -127,7 +127,7 @@ python manage.py compose_monthly_blast                       # Draft blast for p
 python manage.py compose_monthly_blast --month 2026-02       # Specific month
 python manage.py compose_monthly_blast --dry-run             # Preview without creating
 
-# Deployment — ALWAYS use --account and --project flags (never rely on gcloud config set)
+# Deployment
 # Backend
 cd backend && gcloud run deploy sjktconnect-api --account admin@tamilfoundation.org --project sjktconnect --source . --region asia-southeast1 --allow-unauthenticated
 # Frontend
@@ -247,7 +247,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **Maps API key**: Set in Dockerfile + Cloud Run (restricted to Maps JS, Static Maps, Places + referrer-restricted to tamilschool.org)
 - **Health check**: `/health/` returns `{"status": "ok"}`
 - **Admin**: `/admin/` (username: admin, email: admin@tamilfoundation.org)
-- **Old project** (`gen-lang-client-0871147736`): old sjktconnect-api deleted (2026-03-01)
+- **Accidental deploys** (`gen-lang-client-0871147736`): sjktconnect-api + sjktconnect-web created by gcloud config race condition (2026-03-10) — DELETE from GCP Console
 
 ## Next Sprint
 
