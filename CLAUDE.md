@@ -127,13 +127,11 @@ python manage.py compose_monthly_blast                       # Draft blast for p
 python manage.py compose_monthly_blast --month 2026-02       # Specific month
 python manage.py compose_monthly_blast --dry-run             # Preview without creating
 
-# Deployment (verify account first!)
-gcloud config set account admin@tamilfoundation.org
-gcloud config set project sjktconnect
+# Deployment — ALWAYS use --account and --project flags (never rely on gcloud config set)
 # Backend
-cd backend && gcloud run deploy sjktconnect-api --source . --region asia-southeast1 --allow-unauthenticated
+cd backend && gcloud run deploy sjktconnect-api --account admin@tamilfoundation.org --project sjktconnect --source . --region asia-southeast1 --allow-unauthenticated
 # Frontend
-cd frontend && gcloud run deploy sjktconnect-web --source . --region asia-southeast1 --allow-unauthenticated
+cd frontend && gcloud run deploy sjktconnect-web --account admin@tamilfoundation.org --project sjktconnect --source . --region asia-southeast1 --allow-unauthenticated
 # After backend deploy, update the job image:
 gcloud run jobs update sjktconnect-check-hansards --image <new-image> --region asia-southeast1
 
