@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import LanguageSwitcher from "./LanguageSwitcher";
+import UserMenu from "./UserMenu";
 
 /* ------------------------------------------------------------------ */
 /*  Data-driven navigation config                                      */
@@ -319,6 +320,9 @@ export default function Header() {
               >
                 {t("donate")}
               </Link>
+              <div className="ml-2">
+                <UserMenu />
+              </div>
             </nav>
 
             {/* ---- Hamburger button (mobile) ---- */}
@@ -401,6 +405,11 @@ export default function Header() {
               {/* Language switcher */}
               <div className="px-4 py-3 border-t border-gray-100">
                 <LanguageSwitcher />
+              </div>
+
+              {/* User menu */}
+              <div className="px-4 py-2 border-b border-gray-100">
+                <UserMenu />
               </div>
 
               {/* CTA buttons */}

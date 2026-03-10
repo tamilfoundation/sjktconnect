@@ -111,6 +111,7 @@ LOGGING = {
 CORS_ALLOWED_ORIGINS = os.environ.get(
     "CORS_ALLOWED_ORIGINS", "http://localhost:3000"
 ).split(",")
+CORS_ALLOW_CREDENTIALS = True
 
 # REST Framework defaults
 REST_FRAMEWORK = {
@@ -145,3 +146,6 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 TOYYIBPAY_BASE_URL = os.environ.get("TOYYIBPAY_BASE_URL", "https://toyyibpay.com")
 TOYYIBPAY_SECRET_KEY = os.environ.get("TOYYIBPAY_SECRET_KEY", "")
 TOYYIBPAY_CATEGORY_CODE = os.environ.get("TOYYIBPAY_CATEGORY_CODE", "")
+
+# Google OAuth (for community sign-in)
+GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "")
