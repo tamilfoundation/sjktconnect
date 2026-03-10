@@ -14,10 +14,14 @@ from accounts.services.token import (
 )
 
 from .serializers import (
+    GoogleAuthSerializer,
     RequestMagicLinkSerializer,
     SchoolContactSerializer,
+    UserProfileSerializer,
     VerifyTokenSerializer,
 )
+from accounts.models import UserProfile
+from accounts.services.google import verify_google_token
 
 logger = logging.getLogger(__name__)
 
@@ -115,3 +119,55 @@ class MeView(APIView):
 
         data = SchoolContactSerializer(contact).data
         return Response(data, status=status.HTTP_200_OK)
+
+
+class GoogleAuthView(APIView):
+    """Authenticate with Google ID token. Creates or returns UserProfile."""
+
+    def post(self, request):
+        serializer = GoogleAuthSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": "id_token is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        token = serializer.validated_data["id_token"]
+        google_info = verify_google_token(token)
+        if not google_info:
+            return Response(
+                {"error": "Invalid Google token"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        # Get or create UserProfile
+        try:
+            profile = UserProfile.objects.get(google_id=google_info["sub"])
+            # Update display name and avatar on each login
+            profile.display_name = google_info["name"]
+            profile.avatar_url = google_info["picture"]
+            profile.save(update_fields=["display_name", "avatar_url", "updated_at"])
+        except UserProfile.DoesNotExist:
+            from django.contrib.auth.models import User
+            email = google_info["email"]
+            username = email.split("@")[0][:150]
+            base = username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base}{counter}"
+                counter += 1
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+            )
+            profile = UserProfile.objects.create(
+                user=user,
+                google_id=google_info["sub"],
+                display_name=google_info["name"],
+                avatar_url=google_info["picture"],
+            )
+
+        # Set session
+        request.session["user_profile_id"] = profile.id
+
+        return Response(UserProfileSerializer(profile).data)

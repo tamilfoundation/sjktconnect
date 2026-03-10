@@ -26,7 +26,7 @@ markdown>=3.6
 
 # Gmail API (feedback inbox)
 google-api-python-client>=2.0
-google-auth>=2.0
+google-auth>=2.38.0,<3.0
 
 # GeoJSON / boundary polygons
 shapely>=2.0
