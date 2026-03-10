@@ -94,31 +94,40 @@ class VerifyTokenView(APIView):
 
 
 class MeView(APIView):
-    """GET /api/v1/auth/me/
+    """Return the current user's profile.
 
-    Returns the currently authenticated school contact, or 401.
+    Checks for Google auth session first (user_profile_id),
+    falls back to magic link session (school_contact_id) for
+    backward compatibility.
     """
 
     def get(self, request):
+        # Check Google auth session first
+        profile_id = request.session.get("user_profile_id")
+        if profile_id:
+            try:
+                profile = UserProfile.objects.select_related(
+                    "admin_school", "user",
+                ).get(id=profile_id, is_active=True)
+                return Response(UserProfileSerializer(profile).data)
+            except UserProfile.DoesNotExist:
+                pass
+
+        # Fall back to magic link session (backward compatibility)
         contact_id = request.session.get("school_contact_id")
-        if not contact_id:
-            return Response(
-                {"error": "Not authenticated."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+        if contact_id:
+            try:
+                contact = SchoolContact.objects.select_related("school").get(
+                    id=contact_id, is_active=True,
+                )
+                return Response(SchoolContactSerializer(contact).data)
+            except SchoolContact.DoesNotExist:
+                pass
 
-        try:
-            contact = SchoolContact.objects.select_related("school").get(
-                id=contact_id, is_active=True
-            )
-        except SchoolContact.DoesNotExist:
-            return Response(
-                {"error": "Not authenticated."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        data = SchoolContactSerializer(contact).data
-        return Response(data, status=status.HTTP_200_OK)
+        return Response(
+            {"detail": "Not authenticated"},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
 
 
 class GoogleAuthView(APIView):
