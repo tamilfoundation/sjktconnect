@@ -62,3 +62,6 @@ tsconfig.tsbuildinfo
 
 # Docker
 *.log
+
+# Git worktrees
+.worktrees/
