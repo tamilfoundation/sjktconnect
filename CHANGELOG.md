@@ -1,5 +1,24 @@
 # Changelog
 
+## Sprint 8.2 — Suggestion Workflow (2026-03-11)
+
+### Added
+- **Community app**: New `community` Django app with Suggestion model (DATA_CORRECTION, PHOTO_UPLOAD, NOTE types; PENDING/APPROVED/REJECTED statuses).
+- **Suggestion API**: `POST/GET /api/v1/schools/<moe_code>/suggestions/` — create and list suggestions. Validates suggestible fields, snapshots current values, handles base64 image upload. Blocks own-school suggestions.
+- **Moderation API**: `GET /api/v1/suggestions/pending/` (queue), `POST /api/v1/suggestions/<id>/approve/` and `/reject/` — moderators and school admins review suggestions. Approval auto-applies data corrections to School model and creates SchoolImage for photo uploads.
+- **Points system**: Approved suggestions award points (3 for photos, 2 for data corrections, 1 for notes). No points for own-school suggestions.
+- **Image management API**: `GET /api/v1/schools/<moe_code>/images/`, `PUT .../images/reorder/`, `DELETE .../images/<id>/` — school admins and superadmins manage school images (reorder, delete).
+- **SchoolImage enhancements**: Added `position` (display order), `uploaded_by` (FK→UserProfile), and `COMMUNITY` source type. Updated ordering to position-first.
+- **Suggestion image endpoint**: `GET /api/v1/suggestions/<id>/image/` — serves uploaded PNG from BinaryField.
+- **Frontend: Suggest form**: SuggestButton + SuggestForm modal on school pages — type selector, field picker, image upload (base64), note textarea. Auth-gated.
+- **Frontend: My Suggestions**: MySuggestions component on profile page — status badges (green/yellow/red), points display, rejection reasons.
+- **Frontend: Moderation Queue**: `/dashboard/suggestions` page — pending suggestions table with current-vs-suggested side-by-side, image preview, approve/reject with reason input.
+- **Frontend: Image Manager**: `/dashboard/images` page — grid of school images with up/down reorder, delete with confirmation, save order, 10-image cap indicator.
+- **Trilingual i18n**: 28 new strings in EN/TA/MS for suggestions namespace.
+- **43 new backend tests** (community app: model, API, approval service, image management). **8 new frontend tests** (SuggestButton, MySuggestions, ModerationQueue, ImageManager).
+
+---
+
 ## Sprint 8.1 — Community Admin Panel: Auth + Roles Foundation (2026-03-10)
 
 ### Added

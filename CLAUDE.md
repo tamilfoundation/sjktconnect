@@ -31,6 +31,7 @@
 | `broadcasts` | Broadcast, BroadcastRecipient, audience filtering, compose/preview/list UI, monthly blast aggregator | 2.2, 2.7 |
 | `newswatch` | NewsArticle, RSS fetcher, article extractor, Gemini AI analysis, admin review queue | 2.5-2.6 |
 | `donations` | Donation model, Toyyib Pay service, create/callback/status API | 4.1-4.2 |
+| `community` | Suggestion model, create/list/approve/reject API, moderation queue, image management | 8.2 |
 
 ## Commands
 
@@ -234,6 +235,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 7.1 | Done | Pipeline Quality Quick Wins: speaker verification on mentions, brief correction loop (3-attempt evaluate→correct), evaluator fail-safe (AMBER on API errors), context staleness warning. 13 new tests (~943 total). |
 | 7.2 | Done | Medium Effort Quality: fuzzy school matching in linkification, MP name normalisation (honorific stripping), deterministic mention-level evaluator, unified quality_loop.py framework. 23 new tests (~966 total). Phase 7 complete. |
 | 8.1 | Done | Community Admin Panel — Auth + Roles Foundation: UserProfile model, Google auth endpoint, /me update, link-school endpoint, 4 permission classes, NextAuth.js v5, AuthProvider, UserMenu, profile page, dashboard shell. 64 new backend tests (~1030 total). |
+| 8.2 | Done | Suggestion Workflow: community app, Suggestion model (3 types, 3 statuses), create/list API, moderation queue, approve/reject with auto-apply, points system, image management API (reorder/delete), SchoolImage position+uploaded_by. Frontend: suggest form, my suggestions, moderation queue, image manager. 43 new backend + 8 new frontend tests (~1363 total). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -251,29 +253,23 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Current state**: Sprint 8.1 (Community Admin Panel: Auth + Roles) complete and deployed. ~1030 backend + 282 frontend = ~1312 tests.
+**Current state**: Sprint 8.2 (Suggestion Workflow) complete. 1073 backend + 290 frontend = 1363 tests.
 
-**Sprint 8.1 deliverables**:
-- UserProfile model (role, admin_school, points)
-- Google auth endpoint + link-school endpoint
-- Updated /me with backward-compatible magic link fallback
-- Role-based permission classes (4 new)
-- NextAuth.js v5 + AuthProvider + UserMenu
-- Profile page + Dashboard shell
-- 64 new backend tests, trilingual i18n
-
-**Next sprint (8.2): Suggestion Workflow**
-- Users suggest data corrections for schools
-- Moderators/school admins approve suggestions
-- Points awarded for approved suggestions
-- Design doc: `docs/plans/2026-03-10-community-admin-panel-design.md`
+**Sprint 8.2 deliverables**:
+- Community app with Suggestion model (3 types, 3 statuses, points)
+- Suggestion create/list API with field validation and current value snapshot
+- Moderation queue API with approve/reject and auto-apply
+- Image management API (list, reorder, delete) for school admins
+- SchoolImage position + uploaded_by + COMMUNITY source
+- Frontend: suggest form modal, my suggestions on profile, moderation queue, image manager
+- 43 new backend + 8 new frontend tests, trilingual i18n
 
 **Pending (ordered)**:
-1. Create OAuth 2.0 client in GCP — DONE (env vars set on both services)
+1. Deploy backend + frontend to production
 2. Run migration on production DB (`python manage.py migrate`)
-3. Test Google sign-in end-to-end on tamilschool.org
-4. Full Hansard rebuild through Phase 7 pipeline
-5. Test each email type end-to-end
+3. Test suggestion workflow end-to-end on tamilschool.org
+4. Send welcome email batch 2 (110 remaining bulk-imported subscribers)
+5. Full Hansard rebuild through Phase 7 pipeline
 
 **Future work**:
 - **Close the learner feedback loop** — auto-inject learner flags into prompts, store successful corrections as pattern memory
