@@ -647,7 +647,9 @@
     "moderation": "Moderation Queue",
     "administration": "Administration",
     "myContributions": "My Contributions",
-    "comingSoon": "Coming soon — features will appear here as they are built."
+    "comingSoon": "Coming soon — features will appear here as they are built.",
+    "manageImages": "Manage Images",
+    "imageManagerDesc": "Reorder or remove your school's photos."
   },
   "suggestions": {
     "suggestEdit": "Suggest an edit",
@@ -676,7 +678,17 @@
     "pointsAwarded": "points",
     "currentValue": "Current",
     "suggestedValue": "Suggested",
-    "submittedBy": "Submitted by"
+    "submittedBy": "Submitted by",
+    "imageManager": "School Image Manager",
+    "noImages": "No images for this school.",
+    "deleteImage": "Delete",
+    "confirmDelete": "Are you sure you want to delete this image?",
+    "saveOrder": "Save Order",
+    "orderSaved": "Image order saved!",
+    "imageCount": "{count} / 10 images",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "notSchoolAdmin": "You are not a school admin."
   },
   "faqPage": {
     "title": "FAQ — SJK(T) Connect",

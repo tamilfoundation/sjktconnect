@@ -647,7 +647,9 @@
     "moderation": "Barisan Moderasi",
     "administration": "Pentadbiran",
     "myContributions": "Sumbangan Saya",
-    "comingSoon": "Akan datang — ciri-ciri akan muncul di sini apabila siap."
+    "comingSoon": "Akan datang — ciri-ciri akan muncul di sini apabila siap.",
+    "manageImages": "Urus Imej",
+    "imageManagerDesc": "Susun semula atau padam foto sekolah anda."
   },
   "suggestions": {
     "suggestEdit": "Cadangkan suntingan",
@@ -676,7 +678,17 @@
     "pointsAwarded": "mata",
     "currentValue": "Semasa",
     "suggestedValue": "Dicadangkan",
-    "submittedBy": "Dihantar oleh"
+    "submittedBy": "Dihantar oleh",
+    "imageManager": "Pengurus Imej Sekolah",
+    "noImages": "Tiada imej untuk sekolah ini.",
+    "deleteImage": "Padam",
+    "confirmDelete": "Adakah anda pasti mahu memadam imej ini?",
+    "saveOrder": "Simpan Susunan",
+    "orderSaved": "Susunan imej disimpan!",
+    "imageCount": "{count} / 10 imej",
+    "moveUp": "Alih ke atas",
+    "moveDown": "Alih ke bawah",
+    "notSchoolAdmin": "Anda bukan pentadbir sekolah."
   },
   "faqPage": {
     "title": "Soalan Lazim — SJK(T) Connect",

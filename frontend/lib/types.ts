@@ -22,8 +22,10 @@ export interface School {
 }
 
 export interface SchoolImageData {
+  id: number;
   image_url: string;
-  source: "SATELLITE" | "PLACES" | "STREET_VIEW" | "MANUAL";
+  source: "SATELLITE" | "PLACES" | "STREET_VIEW" | "MANUAL" | "COMMUNITY";
+  position: number;
   is_primary: boolean;
   attribution: string;
 }

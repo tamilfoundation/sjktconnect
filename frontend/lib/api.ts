@@ -18,6 +18,7 @@ import {
   SchoolConfirmResponse,
   SchoolDetail,
   SchoolEditData,
+  SchoolImageData,
   SchoolMention,
   SearchResults,
   SittingBrief,
@@ -585,4 +586,39 @@ export async function fetchMeetingReport(id: number): Promise<MeetingReport | nu
   } catch {
     return null;
   }
+}
+
+/**
+ * Fetch images for a school (public).
+ */
+export async function fetchSchoolImages(moeCode: string): Promise<SchoolImageData[]> {
+  const res = await fetch(`${API_URL}/api/v1/schools/${moeCode}/images/`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to fetch images");
+  return res.json();
+}
+
+/**
+ * Reorder images for a school (admin/superadmin).
+ */
+export async function reorderSchoolImages(moeCode: string, order: number[]): Promise<void> {
+  const res = await fetch(`${API_URL}/api/v1/schools/${moeCode}/images/reorder/`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ order }),
+  });
+  if (!res.ok) throw new Error("Failed to reorder images");
+}
+
+/**
+ * Delete an image from a school (admin/superadmin).
+ */
+export async function deleteSchoolImage(moeCode: string, imageId: number): Promise<void> {
+  const res = await fetch(`${API_URL}/api/v1/schools/${moeCode}/images/${imageId}/`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to delete image");
 }

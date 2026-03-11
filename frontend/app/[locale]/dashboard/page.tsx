@@ -61,6 +61,21 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* Manage Images — school admins only */}
+        {isSchoolAdmin && (
+          <Link
+            href="/dashboard/images"
+            className="bg-white rounded-xl border border-gray-200 p-5 hover:border-primary-300 hover:shadow-sm transition-all block"
+          >
+            <h2 className="text-base font-semibold text-gray-900 mb-2">
+              {t("manageImages")}
+            </h2>
+            <p className="text-xs text-gray-500">
+              {t("imageManagerDesc")}
+            </p>
+          </Link>
+        )}
+
         {/* Moderation section */}
         {(isModerator || isSchoolAdmin) && (
           <Link
