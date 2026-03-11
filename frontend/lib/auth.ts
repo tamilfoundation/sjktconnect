@@ -1,14 +1,28 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 
+const useSecureCookies = process.env.NODE_ENV === "production";
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   providers: [
     Google({
       clientId: process.env.GOOGLE_OAUTH_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET!,
+      checks: ["state"],
     }),
   ],
+  cookies: {
+    pkceCodeVerifier: {
+      name: "next-auth.pkce.code_verifier",
+      options: {
+        httpOnly: true,
+        sameSite: "none",
+        path: "/",
+        secure: useSecureCookies,
+      },
+    },
+  },
   callbacks: {
     async jwt({ token, account }) {
       // On initial sign-in, store the Google ID token
