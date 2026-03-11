@@ -12,6 +12,7 @@ Usage:
 """
 
 import calendar
+import os
 from datetime import date
 
 from django.core.management.base import BaseCommand, CommandError
@@ -69,23 +70,26 @@ class Command(BaseCommand):
         # Try v2 analytical blast via Gemini
         analysis = generate_monthly_analysis(year, month)
 
+        hero_image_bytes = None
         if analysis:
             # Generate optional hero image for v2 analytical blast
-            hero_image_url = generate_hero_image(
+            hero_image_bytes = generate_hero_image(
                 content_summary=analysis.get(
                     "executive_summary", ""
                 )[:200],
                 style="monthly",
             )
-            if hero_image_url:
+            if hero_image_bytes:
                 self.stdout.write("Hero image generated")
 
+            # Render template without hero_image_url — it will be
+            # patched in after the broadcast is saved (needs the PK)
             html_content = render_to_string(
                 "broadcasts/monthly_blast_v2.html",
                 {
                     "month_label": month_label,
                     "analysis": analysis,
-                    "hero_image_url": hero_image_url,
+                    "hero_image_url": None,
                 },
             )
             self.stdout.write("Using v2 analytical template (Gemini)")
@@ -111,7 +115,27 @@ class Command(BaseCommand):
             text_content=text_content,
             audience_filter={"category": "MONTHLY_BLAST"},
             status=Broadcast.Status.DRAFT,
+            hero_image=hero_image_bytes or b"",
         )
+
+        # Patch hero image URL into HTML now that we have the PK
+        if hero_image_bytes:
+            backend_url = os.environ.get(
+                "BACKEND_URL",
+                "https://sjktconnect-api-748286712183.asia-southeast1.run.app",
+            )
+            hero_url = f"{backend_url}/api/v1/broadcasts/{broadcast.pk}/hero-image/"
+            html_content = render_to_string(
+                "broadcasts/monthly_blast_v2.html",
+                {
+                    "month_label": month_label,
+                    "analysis": analysis,
+                    "hero_image_url": hero_url,
+                },
+            )
+            broadcast.html_content = html_content
+            broadcast.text_content = strip_tags(html_content)
+            broadcast.save(update_fields=["html_content", "text_content"])
 
         self.stdout.write(
             self.style.SUCCESS(

@@ -218,7 +218,7 @@ def _wrap_broadcast_html(html_content, unsubscribe_url, preferences_url):
                 &nbsp;&middot;&nbsp;
                 <a href="{unsub}" style="color: #666; text-decoration: underline;">Unsubscribe</a>
             </p>
-            <p>An initiative of the Malaysian Community Education Foundation (MCEF)</p>
+            <p>An initiative of Malaysian Tamil Educational Research &amp; Development Foundation (Tamil Foundation)</p>
         </div>
     </div>
 </body>

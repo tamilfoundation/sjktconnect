@@ -1,80 +1,85 @@
-"""Generate editorial-style hero images for intelligence emails via Gemini."""
+"""Generate editorial-style hero images via Gemini scene brief + Nano Banana Pro."""
 
 import base64
 import logging
 import os
 
 from google import genai
+from google.genai import types
 
 logger = logging.getLogger(__name__)
 
-STYLE_PROMPTS = {
-    "parliament": (
-        "Create a New Yorker magazine style editorial illustration. "
-        "The scene depicts a Malaysian parliament chamber with elements "
-        "related to Tamil schools. Muted colour palette, elegant "
-        "single-scene composition, slightly satirical tone. "
-        "No text or words in the image. Landscape format, 640x300 pixels."
-    ),
-    "news": (
-        "Create a New Yorker magazine style editorial cartoon illustration. "
-        "The scene depicts a Malaysian Tamil school setting relevant to the "
-        "news. Muted watercolour palette, elegant single-scene composition, "
-        "storytelling quality. "
-        "No text or words in the image. Landscape format, 640x300 pixels."
-    ),
-    "monthly": (
-        "Create an editorial illustration in the style of a data "
-        "visualisation artwork. Abstract representation of trends and "
-        "patterns related to Malaysian Tamil schools. Purple and blue "
-        "colour palette, geometric elements, analytical feel. "
-        "No text or words in the image. Landscape format, 640x300 pixels."
-    ),
-}
+SCENE_BRIEF_PROMPT = (
+    "You are an art director for a magazine. Describe a single visual scene "
+    "for an editorial illustration based on this content. The scene should "
+    "feature Malaysian Tamil schools (SJK(T)) and be suitable for a {style} "
+    "email header image. Keep it to 2-3 sentences. No text in the image.\n\n"
+    "Content: {summary}"
+)
+
+ILLUSTRATION_PROMPT = (
+    "Create a New Yorker magazine style editorial illustration. "
+    "Muted watercolour palette, elegant single-scene composition, "
+    "storytelling quality. No text or words in the image. "
+    "Landscape format, 640x300 pixels.\n\n"
+    "Scene: {scene}"
+)
 
 
-def generate_hero_image(content_summary: str, style: str = "news") -> str | None:
-    """Generate a hero image for an intelligence email.
+def generate_hero_image(content_summary: str, style: str = "news") -> bytes | None:
+    """Generate a hero image using two-step Gemini scene brief + Nano Banana Pro.
 
     Args:
-        content_summary: Brief description of the email content
-            (used to contextualise the image).
+        content_summary: Brief description of the email content.
         style: One of 'parliament', 'news', 'monthly'.
 
     Returns:
-        Base64 data URI string (data:image/png;base64,...) or None on failure.
+        PNG image bytes or None on failure.
     """
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         logger.warning("GEMINI_API_KEY not set — cannot generate hero image")
         return None
 
-    style_prompt = STYLE_PROMPTS.get(style, STYLE_PROMPTS["news"])
-    full_prompt = (
-        f"{style_prompt}\n\n"
-        f"Context for this specific image: {content_summary}"
-    )
+    try:
+        client = genai.Client(api_key=api_key)
 
+        # Step 1: Gemini distils content into a visual scene description
+        scene_response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=SCENE_BRIEF_PROMPT.format(
+                style=style,
+                summary=content_summary[:2000],
+            ),
+        )
+        scene = scene_response.text.strip()
+        logger.info("Hero image scene brief: %s", scene[:200])
+
+    except Exception:
+        logger.exception("Scene brief generation failed, using fallback")
+        scene = "A Malaysian Tamil school building marked SJK(T) with community gathering"
+
+    # Step 2: Nano Banana Pro draws the scene
     try:
         client = genai.Client(api_key=api_key)
         response = client.models.generate_content(
-            model="gemini-2.0-flash-exp",
-            contents=full_prompt,
-            config=genai.types.GenerateContentConfig(
-                response_modalities=["IMAGE"],
+            model="gemini-3-pro-image-preview",
+            contents=ILLUSTRATION_PROMPT.format(scene=scene),
+            config=types.GenerateContentConfig(
+                response_modalities=["IMAGE", "TEXT"],
             ),
         )
 
-        # Extract image from response
         for part in response.candidates[0].content.parts:
-            if hasattr(part, "image") and part.image is not None:
-                image_bytes = part.image.image_bytes
-                b64 = base64.b64encode(image_bytes).decode("utf-8")
-                return f"data:image/png;base64,{b64}"
+            if part.inline_data and part.inline_data.mime_type.startswith("image/"):
+                img_bytes = part.inline_data.data
+                if isinstance(img_bytes, str):
+                    img_bytes = base64.b64decode(img_bytes)
+                return img_bytes
 
-        logger.warning("Gemini response contained no image")
+        logger.warning("Nano Banana Pro response contained no image")
         return None
 
     except Exception:
-        logger.exception("Failed to generate hero image")
+        logger.exception("Hero image generation failed")
         return None

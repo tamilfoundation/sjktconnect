@@ -90,7 +90,10 @@ class Command(BaseCommand):
                 subject=f"URGENT: {article.title}",
                 html_content=html_content,
                 text_content=strip_tags(html_content),
-                audience_filter={"category": "NEWS_WATCH"},
+                audience_filter={
+                    "category": "NEWS_WATCH",
+                    "subscribed_before": article.created_at.isoformat(),
+                },
                 status=Broadcast.Status.DRAFT,
             )
 

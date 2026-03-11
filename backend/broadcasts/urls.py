@@ -1,5 +1,8 @@
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from django.urls import path
 
+from broadcasts.models import Broadcast
 from broadcasts.views import (
     BroadcastComposeView,
     BroadcastDetailView,
@@ -7,6 +10,18 @@ from broadcasts.views import (
     BroadcastPreviewView,
     BroadcastSendView,
 )
+
+
+def broadcast_hero_image_view(request, pk):
+    """Serve the broadcast hero image as a PNG."""
+    broadcast = get_object_or_404(Broadcast, pk=pk)
+    if not broadcast.hero_image:
+        return HttpResponse(status=404)
+    return HttpResponse(
+        bytes(broadcast.hero_image),
+        content_type="image/png",
+    )
+
 
 app_name = "broadcasts"
 
@@ -31,5 +46,10 @@ urlpatterns = [
         "broadcast/<int:pk>/",
         BroadcastDetailView.as_view(),
         name="broadcast-detail",
+    ),
+    path(
+        "api/v1/broadcasts/<int:pk>/hero-image/",
+        broadcast_hero_image_view,
+        name="broadcast-hero-image",
     ),
 ]

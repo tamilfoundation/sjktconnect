@@ -9,6 +9,7 @@ included when no school-specific filters are applied.
 """
 
 from django.db.models import QuerySet
+from django.utils.dateparse import parse_datetime
 
 from schools.models import School
 from subscribers.models import Subscriber
@@ -40,6 +41,18 @@ def get_filtered_subscribers(filter_dict: dict) -> QuerySet[Subscriber]:
             preferences__category=category,
             preferences__is_enabled=True,
         )
+
+    # Only include subscribers who signed up before a given datetime
+    subscribed_before = filter_dict.get("subscribed_before")
+    if subscribed_before:
+        if isinstance(subscribed_before, str):
+            subscribed_before = parse_datetime(subscribed_before)
+        qs = qs.filter(created_at__lte=subscribed_before)
+
+    # Source filter (e.g. BULK_IMPORT)
+    source = filter_dict.get("source", "")
+    if source:
+        qs = qs.filter(source=source)
 
     # School-based filters — build a School queryset first
     school_filters = {}
@@ -80,4 +93,11 @@ def get_filtered_subscribers(filter_dict: dict) -> QuerySet[Subscriber]:
         )
         qs = qs.filter(email__in=school_emails)
 
-    return qs.distinct()
+    qs = qs.distinct()
+
+    # Limit results (must come after distinct)
+    limit = filter_dict.get("limit")
+    if limit:
+        qs = qs[:int(limit)]
+
+    return qs

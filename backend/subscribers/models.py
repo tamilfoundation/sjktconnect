@@ -19,6 +19,18 @@ class Subscriber(models.Model):
         default=True,
         help_text="False when unsubscribed.",
     )
+    source = models.CharField(
+        max_length=30, blank=True, default="",
+        help_text="How they were added: WEBSITE, BULK_IMPORT, etc.",
+    )
+    source_tag = models.CharField(
+        max_length=50, blank=True, default="",
+        help_text="Sub-category: Thulivellam, Member, etc.",
+    )
+    donor_status = models.CharField(
+        max_length=30, blank=True, default="",
+        help_text="Original membership status from import.",
+    )
     unsubscribe_token = models.UUIDField(
         default=uuid.uuid4, unique=True, db_index=True
     )
