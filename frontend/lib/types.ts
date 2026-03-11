@@ -325,6 +325,23 @@ export interface SittingBrief {
   published_at: string | null;
 }
 
+export interface Suggestion {
+  id: number;
+  school: string;
+  user_name: string;
+  school_name: string;
+  type: "DATA_CORRECTION" | "PHOTO_UPLOAD" | "NOTE";
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  field_name: string;
+  current_value: string;
+  suggested_value: string;
+  note: string;
+  reviewed_by_name: string | null;
+  review_note: string;
+  points_awarded: number;
+  created_at: string;
+}
+
 export interface MeetingReport {
   id: number;
   name: string;

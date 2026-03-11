@@ -24,6 +24,7 @@ module.exports = {
     "^next-intl/routing$": "<rootDir>/__tests__/__mocks__/next-intl-routing.ts",
     "^@/i18n/navigation$": "<rootDir>/__tests__/__mocks__/i18n-navigation.tsx",
     "^@/i18n/routing$": "<rootDir>/__tests__/__mocks__/i18n-routing.ts",
+    "^next-auth/react$": "<rootDir>/__tests__/__mocks__/next-auth-react.ts",
   },
   testMatch: ["**/__tests__/**/*.test.ts", "**/__tests__/**/*.test.tsx"],
 };

@@ -10,6 +10,7 @@ import {
 import Breadcrumb from "@/components/Breadcrumb";
 import ClaimButton from "@/components/ClaimButton";
 import EditSchoolLink from "@/components/EditSchoolLink";
+import SuggestButton from "@/components/SuggestButton";
 import SchoolPhotoGallery from "@/components/SchoolImage";
 import SchoolProfile from "@/components/SchoolProfile";
 import StatCard from "@/components/StatCard";
@@ -111,7 +112,10 @@ export default async function SchoolPage({ params }: PageProps) {
             <span>·</span>
             <span>PPD {school.ppd}</span>
           </div>
-          <EditSchoolLink moeCode={school.moe_code} />
+          <div className="flex items-center gap-2 flex-wrap">
+            <EditSchoolLink moeCode={school.moe_code} />
+            <SuggestButton moeCode={school.moe_code} />
+          </div>
 
           {/* 3 Stat cards with icons */}
           <div className="grid grid-cols-3 gap-4 mb-4 mt-2">

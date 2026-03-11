@@ -649,6 +649,21 @@
     "myContributions": "Sumbangan Saya",
     "comingSoon": "Akan datang — ciri-ciri akan muncul di sini apabila siap."
   },
+  "suggestions": {
+    "suggestEdit": "Cadangkan suntingan",
+    "dataCorrection": "Pembetulan Data",
+    "photoUpload": "Muat Naik Foto",
+    "note": "Nota",
+    "selectField": "Pilih medan",
+    "newValue": "Nilai baharu",
+    "yourNote": "Nota anda...",
+    "uploadPhoto": "Muat naik foto",
+    "submit": "Hantar",
+    "submitting": "Menghantar...",
+    "success": "Cadangan berjaya dihantar!",
+    "error": "Gagal menghantar cadangan",
+    "cancel": "Batal"
+  },
   "faqPage": {
     "title": "Soalan Lazim — SJK(T) Connect",
     "heading": "Soalan Lazim",

@@ -23,6 +23,7 @@ import {
   SittingBrief,
   SubscribeRequest,
   SubscriberResponse,
+  Suggestion,
   UnsubscribeResponse,
 } from "./types";
 
@@ -494,6 +495,42 @@ export async function fetchMeetingReports(): Promise<MeetingReport[]> {
 /**
  * Fetch a single parliamentary meeting report by ID.
  */
+/**
+ * Create a suggestion for a school (requires session).
+ */
+export async function createSuggestion(
+  moeCode: string,
+  data: {
+    type: string;
+    field_name?: string;
+    suggested_value?: string;
+    note?: string;
+    image?: string;
+  }
+): Promise<Suggestion> {
+  const res = await fetch(`${BASE}/schools/${moeCode}/suggestions/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+/**
+ * Fetch suggestions for a school.
+ */
+export async function fetchSuggestions(
+  moeCode: string
+): Promise<Suggestion[]> {
+  const res = await fetch(`${BASE}/schools/${moeCode}/suggestions/`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to fetch suggestions");
+  return res.json();
+}
+
 export async function fetchMeetingReport(id: number): Promise<MeetingReport | null> {
   try {
     return await fetchJSON<MeetingReport>(`${BASE}/meetings/${id}/`);

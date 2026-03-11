@@ -649,6 +649,21 @@
     "myContributions": "My Contributions",
     "comingSoon": "Coming soon — features will appear here as they are built."
   },
+  "suggestions": {
+    "suggestEdit": "Suggest an edit",
+    "dataCorrection": "Data Correction",
+    "photoUpload": "Photo Upload",
+    "note": "Note",
+    "selectField": "Select field",
+    "newValue": "New value",
+    "yourNote": "Your note...",
+    "uploadPhoto": "Upload a photo",
+    "submit": "Submit",
+    "submitting": "Submitting...",
+    "success": "Suggestion submitted successfully!",
+    "error": "Failed to submit suggestion",
+    "cancel": "Cancel"
+  },
   "faqPage": {
     "title": "FAQ — SJK(T) Connect",
     "heading": "Frequently Asked Questions",
