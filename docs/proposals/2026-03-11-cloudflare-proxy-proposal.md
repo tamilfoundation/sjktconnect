@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-11
 **Author:** Tamil Foundation technical team
-**Status:** For review (v2 — revised after advisor feedback)
+**Status:** For board approval (v3 — final, incorporating all advisor feedback)
 
 ---
 
@@ -104,11 +104,11 @@ All of these require reliable user sessions (sign-in, stay signed in, perform ac
 6. Wait for DNS propagation (typically 5-30 minutes, can take up to 24 hours)
 7. Configure Cloudflare:
    - SSL mode: "Full (strict)"
-   - CNAME record: `tamilschool.org` → `sjktconnect-web-748286712183.asia-southeast1.run.app`
+   - CNAME record: `tamilschool.org` → `sjktconnect-web-748286712183.asia-southeast1.run.app` (Note: apex/root CNAME records violate RFC 1034 and are not supported by most DNS providers. Cloudflare handles this via its proprietary "CNAME flattening" feature, which resolves the CNAME to A records at the edge. This is one reason Cloudflare specifically is a good fit — this approach would not work at a generic DNS provider.)
    - Cache rules (see Caching section below)
-8. Remove the Cloud Run domain mapping for tamilschool.org (Cloudflare replaces it)
+8. **Keep** the Cloud Run domain mapping for tamilschool.org in place (inactive/unused) rather than deleting it. This ensures rollback is a simple nameserver change with no re-verification delay.
 9. Restore NextAuth OAuth security checks (re-enable PKCE, remove `checks: []` workaround)
-10. Test sign-in end-to-end on tamilschool.org across Chrome, Firefox, Safari
+10. Test sign-in end-to-end on tamilschool.org across Chrome, Firefox, Safari, **and mobile browsers** (Chrome on Android, Safari on iOS) — Malaysian community users are likely mobile-first
 11. Verify rollback path works (see Rollback section)
 
 ### Caching Rules (configured on Day 1)
@@ -156,7 +156,7 @@ Paid tiers exist ($20+/month) but are not needed.
 
 Cloudflare does not store application data. It caches only static assets (CSS, JS, images) at edge nodes and passes all dynamic requests through to Cloud Run. User PII (Google email, display name) flows through Cloudflare's proxy but is not stored or cached.
 
-The application data remains in Supabase PostgreSQL (Singapore region, `aws-1-ap-southeast-1`). Malaysia has no data localisation law that restricts routing through CDN edge nodes, and the Tamil Foundation is an NGO, not a government body. The school data itself is public MOE data.
+The application data remains in Supabase PostgreSQL (Singapore region, `aws-1-ap-southeast-1`). Malaysia's Personal Data Protection Act 2010 (PDPA) applies to processing of personal data, and Cloudflare acts as a data processor in this architecture (traffic passes through their infrastructure). Cloudflare maintains a Data Processing Addendum (DPA) and is GDPR-compliant, which meets or exceeds PDPA requirements. As an NGO handling community user data, this models good data governance practice. The school data itself is public MOE data, and Malaysia has no data localisation law that restricts routing through CDN edge nodes.
 
 ## Rollback Plan
 
@@ -164,9 +164,11 @@ If Cloudflare needs to be removed:
 
 1. Log in to domain registrar
 2. Change nameservers back to original values (documented before migration)
-3. Re-create Cloud Run domain mapping for tamilschool.org
-4. Wait for DNS propagation
+3. Cloud Run domain mapping is still in place (kept inactive during implementation) — it reactivates automatically once DNS points back to Google
+4. Wait for DNS propagation (up to 24 hours)
 5. Re-apply the `checks: []` workaround in NextAuth config (cookies won't work without proxy)
+
+**No messy gap:** Because we keep the Cloud Run domain mapping rather than deleting it, rollback is purely a nameserver change. No re-verification, no waiting for Google to re-provision the mapping.
 
 **Rollback test:** After implementation, we will verify that the Cloud Run `.run.app` URL still serves the site correctly as a direct-access fallback. We will document the original nameserver values in the project's operational runbook.
 
