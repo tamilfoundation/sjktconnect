@@ -2,8 +2,11 @@ from django.urls import path
 
 from community.api.views import (
     approve_suggestion_view,
+    delete_image_view,
     pending_suggestions_view,
     reject_suggestion_view,
+    reorder_images_view,
+    school_images_view,
     school_suggestions_view,
     suggestion_image_view,
 )
@@ -33,5 +36,20 @@ urlpatterns = [
         "suggestions/<int:pk>/image/",
         suggestion_image_view,
         name="suggestion-image",
+    ),
+    path(
+        "schools/<str:moe_code>/images/reorder/",
+        reorder_images_view,
+        name="reorder-images",
+    ),
+    path(
+        "schools/<str:moe_code>/images/<int:image_id>/",
+        delete_image_view,
+        name="delete-image",
+    ),
+    path(
+        "schools/<str:moe_code>/images/",
+        school_images_view,
+        name="school-images",
     ),
 ]

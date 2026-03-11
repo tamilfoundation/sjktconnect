@@ -10,6 +10,7 @@ from accounts.permissions import IsProfileAuthenticated
 from community.api.serializers import SuggestionCreateSerializer, SuggestionListSerializer
 from community.models import Suggestion
 from community.services import approve_suggestion, reject_suggestion
+from outreach.models import SchoolImage
 from schools.models import School
 
 
@@ -127,3 +128,55 @@ def suggestion_image_view(request, pk):
     if not suggestion.image:
         return Response(status=status.HTTP_404_NOT_FOUND)
     return HttpResponse(bytes(suggestion.image), content_type="image/png")
+
+
+@api_view(["GET"])
+def school_images_view(request, moe_code):
+    """List images for a school, ordered by position."""
+    school = get_object_or_404(School, moe_code=moe_code)
+    images = SchoolImage.objects.filter(school=school)
+    data = [
+        {
+            "id": img.pk,
+            "image_url": img.image_url,
+            "source": img.source,
+            "position": img.position,
+            "is_primary": img.is_primary,
+            "attribution": img.attribution,
+        }
+        for img in images
+    ]
+    return Response(data)
+
+
+@api_view(["PUT"])
+@permission_classes([IsProfileAuthenticated])
+def reorder_images_view(request, moe_code):
+    """Reorder images. Body: {"order": [id1, id2, id3]}"""
+    school = get_object_or_404(School, moe_code=moe_code)
+    profile = request.user_profile
+    if profile.role != "SUPERADMIN" and profile.admin_school_id != school.moe_code:
+        return Response(
+            {"detail": "Only school admin or superadmin can reorder images."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    order = request.data.get("order", [])
+    for position, image_id in enumerate(order):
+        SchoolImage.objects.filter(pk=image_id, school=school).update(position=position)
+    return Response({"detail": "Images reordered."})
+
+
+@api_view(["DELETE"])
+@permission_classes([IsProfileAuthenticated])
+def delete_image_view(request, moe_code, image_id):
+    """Delete a school image."""
+    school = get_object_or_404(School, moe_code=moe_code)
+    profile = request.user_profile
+    if profile.role != "SUPERADMIN" and profile.admin_school_id != school.moe_code:
+        return Response(
+            {"detail": "Only school admin or superadmin can delete images."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    image = get_object_or_404(SchoolImage, pk=image_id, school=school)
+    image.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
