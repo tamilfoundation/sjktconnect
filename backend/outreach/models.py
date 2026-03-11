@@ -11,6 +11,7 @@ class SchoolImage(models.Model):
         STREET_VIEW = "STREET_VIEW", "Street View"
         PLACES = "PLACES", "Google Places"
         MANUAL = "MANUAL", "Manual Upload"
+        COMMUNITY = "COMMUNITY", "Community Upload"
 
     school = models.ForeignKey(
         "schools.School", on_delete=models.CASCADE, related_name="images"
@@ -25,10 +26,20 @@ class SchoolImage(models.Model):
         max_length=1000, blank=True, default="",
         help_text="Google Places photo_reference for re-fetching.",
     )
+    position = models.PositiveIntegerField(
+        default=0, help_text="Display order (0 = auto, lower = first)"
+    )
+    uploaded_by = models.ForeignKey(
+        "accounts.UserProfile",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uploaded_images",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["-is_primary", "-created_at"]
+        ordering = ["position", "-is_primary", "-created_at"]
 
     def __str__(self):
         label = "primary" if self.is_primary else "secondary"
