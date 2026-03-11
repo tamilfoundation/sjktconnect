@@ -662,7 +662,21 @@
     "submitting": "Menghantar...",
     "success": "Cadangan berjaya dihantar!",
     "error": "Gagal menghantar cadangan",
-    "cancel": "Batal"
+    "cancel": "Batal",
+    "mySuggestions": "Cadangan Saya",
+    "noSuggestions": "Anda belum membuat sebarang cadangan.",
+    "moderationQueue": "Barisan Moderasi",
+    "noPending": "Tiada cadangan tertunda.",
+    "approve": "Luluskan",
+    "reject": "Tolak",
+    "rejectionReason": "Sebab penolakan",
+    "approved": "Diluluskan",
+    "pending": "Tertunda",
+    "rejected": "Ditolak",
+    "pointsAwarded": "mata",
+    "currentValue": "Semasa",
+    "suggestedValue": "Dicadangkan",
+    "submittedBy": "Dihantar oleh"
   },
   "faqPage": {
     "title": "Soalan Lazim — SJK(T) Connect",

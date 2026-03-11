@@ -531,6 +531,54 @@ export async function fetchSuggestions(
   return res.json();
 }
 
+/**
+ * Fetch all suggestions by the current user.
+ */
+export async function fetchMySuggestions(): Promise<Suggestion[]> {
+  const res = await fetch(`${BASE}/suggestions/mine/`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to fetch suggestions");
+  return res.json();
+}
+
+/**
+ * Fetch pending suggestions for moderation.
+ */
+export async function fetchPendingSuggestions(): Promise<Suggestion[]> {
+  const res = await fetch(`${BASE}/suggestions/pending/`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to fetch pending suggestions");
+  return res.json();
+}
+
+/**
+ * Approve a suggestion.
+ */
+export async function approveSuggestion(id: number): Promise<Suggestion> {
+  const res = await fetch(`${BASE}/suggestions/${id}/approve/`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to approve suggestion");
+  return res.json();
+}
+
+/**
+ * Reject a suggestion with a reason.
+ */
+export async function rejectSuggestion(id: number, reason: string): Promise<Suggestion> {
+  const res = await fetch(`${BASE}/suggestions/${id}/reject/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ reason }),
+  });
+  if (!res.ok) throw new Error("Failed to reject suggestion");
+  return res.json();
+}
+
 export async function fetchMeetingReport(id: number): Promise<MeetingReport | null> {
   try {
     return await fetchJSON<MeetingReport>(`${BASE}/meetings/${id}/`);

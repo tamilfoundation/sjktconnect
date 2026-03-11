@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useEffect, useState } from "react";
 import { fetchProfile, type UserProfile } from "@/lib/auth-api";
+import MySuggestions from "@/components/MySuggestions";
 
 export default function ProfilePage() {
   const t = useTranslations("auth");
@@ -111,6 +112,11 @@ export default function ProfilePage() {
             </Link>
           </div>
         )}
+      </div>
+
+      {/* My Suggestions */}
+      <div className="mt-6">
+        <MySuggestions />
       </div>
     </div>
   );

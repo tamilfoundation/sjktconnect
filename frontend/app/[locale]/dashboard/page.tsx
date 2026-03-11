@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { fetchProfile, type UserProfile } from "@/lib/auth-api";
+import { Link } from "@/i18n/navigation";
 
 export default function DashboardPage() {
   const t = useTranslations("dashboard");
@@ -61,13 +62,18 @@ export default function DashboardPage() {
         )}
 
         {/* Moderation section */}
-        {isModerator && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+        {(isModerator || isSchoolAdmin) && (
+          <Link
+            href="/dashboard/suggestions"
+            className="bg-white rounded-xl border border-gray-200 p-5 hover:border-primary-300 hover:shadow-sm transition-all block"
+          >
             <h2 className="text-base font-semibold text-gray-900 mb-2">
               {t("moderation")}
             </h2>
-            <p className="text-xs text-gray-400">{t("comingSoon")}</p>
-          </div>
+            <p className="text-xs text-gray-500">
+              Review and approve community suggestions.
+            </p>
+          </Link>
         )}
 
         {/* Super Admin section */}

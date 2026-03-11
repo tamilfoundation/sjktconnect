@@ -662,7 +662,21 @@
     "submitting": "Submitting...",
     "success": "Suggestion submitted successfully!",
     "error": "Failed to submit suggestion",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "mySuggestions": "My Suggestions",
+    "noSuggestions": "You haven't made any suggestions yet.",
+    "moderationQueue": "Moderation Queue",
+    "noPending": "No pending suggestions.",
+    "approve": "Approve",
+    "reject": "Reject",
+    "rejectionReason": "Reason for rejection",
+    "approved": "Approved",
+    "pending": "Pending",
+    "rejected": "Rejected",
+    "pointsAwarded": "points",
+    "currentValue": "Current",
+    "suggestedValue": "Suggested",
+    "submittedBy": "Submitted by"
   },
   "faqPage": {
     "title": "FAQ — SJK(T) Connect",
