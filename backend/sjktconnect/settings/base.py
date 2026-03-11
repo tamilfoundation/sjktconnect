@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "hansard",
     "parliament",
     "accounts",
+    "community",
     "outreach",
     "subscribers",
     "broadcasts",
