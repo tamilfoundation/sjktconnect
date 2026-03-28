@@ -21,15 +21,19 @@ logger = logging.getLogger(__name__)
 BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 
 
-def send_broadcast(broadcast_id):
+def send_broadcast(broadcast_id, batch_size=0):
     """
-    Send a broadcast to all matching subscribers.
+    Send a broadcast to matching subscribers.
+
+    If batch_size > 0, sends at most batch_size emails per call and leaves
+    the broadcast in SENDING status until all recipients are done. Call
+    resume_broadcast() to continue sending in subsequent runs.
 
     1. Verify status is DRAFT, transition to SENDING
     2. Build recipient list from audience filter
     3. Send individual emails via Brevo (or console in dev)
     4. Track per-recipient delivery status
-    5. Transition to SENT when complete
+    5. Transition to SENT when all recipients are processed
 
     Returns the updated Broadcast instance.
     """
@@ -72,55 +76,22 @@ def send_broadcast(broadcast_id):
             "Broadcast %s: %d recipients created", broadcast_id, len(recipients)
         )
 
-        # I3 fix: reload with select_related to avoid N+1 queries
-        recipients = list(
-            BroadcastRecipient.objects.filter(broadcast=broadcast)
-            .select_related("subscriber")
+        sent_count, failed_count = _send_pending_recipients(
+            broadcast, api_key, frontend_url, batch_size
         )
 
-        for recipient in recipients:
-            unsubscribe_url = (
-                "{}/unsubscribe/{}/".format(frontend_url, recipient.subscriber.unsubscribe_token)
+        # Check if there are still PENDING recipients
+        pending = broadcast.recipients.filter(
+            status=BroadcastRecipient.DeliveryStatus.PENDING
+        ).count()
+        if pending > 0:
+            # More to send — stay in SENDING status
+            logger.info(
+                "Broadcast %s: batch complete, %d still pending",
+                broadcast_id, pending,
             )
-            preferences_url = (
-                "{}/preferences/{}/".format(frontend_url, recipient.subscriber.unsubscribe_token)
-            )
-            wrapped_html = _wrap_broadcast_html(
-                broadcast.html_content, unsubscribe_url, preferences_url
-            )
-
-            if not api_key:
-                # Dev mode: log to console, mark as SENT
-                logger.info(
-                    "DEV MODE — Broadcast %s to %s: %s",
-                    broadcast_id,
-                    recipient.email,
-                    broadcast.subject,
-                )
-                recipient.status = BroadcastRecipient.DeliveryStatus.SENT
-                recipient.sent_at = timezone.now()
-                recipient.save(update_fields=["status", "sent_at"])
-                sent_count += 1
-            else:
-                # Production: send via Brevo
-                success = _send_single_email(
-                    api_key=api_key,
-                    to_email=recipient.email,
-                    to_name=recipient.subscriber.name,
-                    subject=broadcast.subject,
-                    html_content=wrapped_html,
-                    text_content=broadcast.text_content,
-                    recipient=recipient,
-                )
-                if success:
-                    sent_count += 1
-                else:
-                    failed_count += 1
-
-                # Rate limit: 0.5s between emails
-                time.sleep(0.5)
-
-        broadcast.status = Broadcast.Status.SENT
+        else:
+            broadcast.status = Broadcast.Status.SENT
     except Exception:
         broadcast.status = Broadcast.Status.FAILED
         logger.exception("Broadcast %s failed during send", broadcast_id)
@@ -138,6 +109,120 @@ def send_broadcast(broadcast_id):
     )
 
     return broadcast
+
+
+def resume_broadcast(broadcast_id, batch_size=250):
+    """
+    Resume sending a broadcast that is in SENDING status.
+
+    Picks up PENDING recipients and sends the next batch_size emails.
+    Transitions to SENT when no PENDING recipients remain.
+
+    Returns the updated Broadcast instance, or None if nothing to resume.
+    """
+    broadcast = Broadcast.objects.filter(
+        pk=broadcast_id, status=Broadcast.Status.SENDING
+    ).first()
+    if not broadcast:
+        logger.info("Broadcast %s: not in SENDING status, skipping", broadcast_id)
+        return None
+
+    pending = broadcast.recipients.filter(
+        status=BroadcastRecipient.DeliveryStatus.PENDING
+    ).count()
+    if pending == 0:
+        broadcast.status = Broadcast.Status.SENT
+        broadcast.save(update_fields=["status", "updated_at"])
+        logger.info("Broadcast %s: no pending recipients, marked SENT", broadcast_id)
+        return broadcast
+
+    api_key = os.environ.get("BREVO_API_KEY")
+    frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+
+    try:
+        sent_count, failed_count = _send_pending_recipients(
+            broadcast, api_key, frontend_url, batch_size
+        )
+
+        remaining = broadcast.recipients.filter(
+            status=BroadcastRecipient.DeliveryStatus.PENDING
+        ).count()
+        if remaining == 0:
+            broadcast.status = Broadcast.Status.SENT
+            broadcast.sent_at = timezone.now()
+            broadcast.save(update_fields=["status", "sent_at", "updated_at"])
+        else:
+            logger.info(
+                "Broadcast %s: batch done, %d still pending",
+                broadcast_id, remaining,
+            )
+    except Exception:
+        broadcast.status = Broadcast.Status.FAILED
+        broadcast.save(update_fields=["status", "updated_at"])
+        logger.exception("Broadcast %s failed during resume", broadcast_id)
+
+    logger.info(
+        "Broadcast %s: %s — %d sent, %d failed this batch",
+        broadcast_id, broadcast.status, sent_count, failed_count,
+    )
+    return broadcast
+
+
+def _send_pending_recipients(broadcast, api_key, frontend_url, batch_size=0):
+    """
+    Send emails to PENDING recipients of a broadcast.
+
+    If batch_size > 0, sends at most batch_size emails.
+    Returns (sent_count, failed_count).
+    """
+    recipients = list(
+        broadcast.recipients.filter(
+            status=BroadcastRecipient.DeliveryStatus.PENDING
+        ).select_related("subscriber")
+    )
+    if batch_size > 0:
+        recipients = recipients[:batch_size]
+
+    sent_count = 0
+    failed_count = 0
+
+    for recipient in recipients:
+        unsubscribe_url = (
+            "{}/unsubscribe/{}/".format(frontend_url, recipient.subscriber.unsubscribe_token)
+        )
+        preferences_url = (
+            "{}/preferences/{}/".format(frontend_url, recipient.subscriber.unsubscribe_token)
+        )
+        wrapped_html = _wrap_broadcast_html(
+            broadcast.html_content, unsubscribe_url, preferences_url
+        )
+
+        if not api_key:
+            logger.info(
+                "DEV MODE — Broadcast %s to %s: %s",
+                broadcast.pk, recipient.email, broadcast.subject,
+            )
+            recipient.status = BroadcastRecipient.DeliveryStatus.SENT
+            recipient.sent_at = timezone.now()
+            recipient.save(update_fields=["status", "sent_at"])
+            sent_count += 1
+        else:
+            success = _send_single_email(
+                api_key=api_key,
+                to_email=recipient.email,
+                to_name=recipient.subscriber.name,
+                subject=broadcast.subject,
+                html_content=wrapped_html,
+                text_content=broadcast.text_content,
+                recipient=recipient,
+            )
+            if success:
+                sent_count += 1
+            else:
+                failed_count += 1
+            time.sleep(0.5)
+
+    return sent_count, failed_count
 
 
 def _send_single_email(api_key, to_email, to_name, subject, html_content,

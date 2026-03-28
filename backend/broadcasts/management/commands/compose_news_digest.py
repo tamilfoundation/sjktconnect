@@ -45,6 +45,12 @@ class Command(BaseCommand):
             action="store_true",
             help="Automatically send the broadcast after composing (for cron jobs)",
         )
+        parser.add_argument(
+            "--batch-size",
+            type=int,
+            default=0,
+            help="Max emails per batch (0 = send all). Use resume_sending to continue.",
+        )
 
     def handle(self, *args, **options):
         days = options["days"]
@@ -140,7 +146,18 @@ class Command(BaseCommand):
         )
 
         if options["auto_send"]:
-            send_broadcast(broadcast.pk)
-            self.stdout.write(
-                self.style.SUCCESS(f"Broadcast {broadcast.pk} sent.")
-            )
+            send_broadcast(broadcast.pk, batch_size=options["batch_size"])
+            pending = broadcast.recipients.filter(
+                status="PENDING"
+            ).count()
+            if pending > 0:
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"Broadcast {broadcast.pk}: first batch sent, "
+                        f"{pending} pending. Run resume_sending to continue."
+                    )
+                )
+            else:
+                self.stdout.write(
+                    self.style.SUCCESS(f"Broadcast {broadcast.pk} sent.")
+                )
