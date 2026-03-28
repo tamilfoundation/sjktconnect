@@ -35,16 +35,38 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        from broadcasts.models import BroadcastRecipient
+        from subscribers.models import Subscriber
+
         dry_run = options["dry_run"]
         limit = options["limit"]
 
-        # Check if welcome broadcast already exists
-        existing = Broadcast.objects.filter(
-            subject="Introducing SJK(T) Connect — Tamil School Intelligence for Our Community",
-        ).first()
+        subject = "Introducing SJK(T) Connect — Tamil School Intelligence for Our Community"
 
-        if existing and existing.status == "SENT":
-            self.stdout.write("Welcome broadcast already sent (ID: %d)." % existing.pk)
+        # Find all bulk-imported active subscribers
+        all_bulk = Subscriber.objects.filter(
+            source="BULK_IMPORT", is_active=True
+        )
+
+        # Exclude subscribers who already received a welcome broadcast
+        sent_broadcasts = Broadcast.objects.filter(subject=subject, status="SENT")
+        already_sent_ids = BroadcastRecipient.objects.filter(
+            broadcast__in=sent_broadcasts,
+            status="SENT",
+        ).values_list("subscriber_id", flat=True)
+
+        remaining = all_bulk.exclude(pk__in=already_sent_ids)
+        count = remaining.count()
+
+        if count == 0:
+            self.stdout.write("All bulk-imported subscribers have already received the welcome email.")
+            return
+
+        if dry_run:
+            self.stdout.write(
+                "DRY RUN — %d of %d bulk-imported subscribers still need the welcome email "
+                "(batch limit: %d)." % (count, all_bulk.count(), limit)
+            )
             return
 
         html_content = render_to_string(
@@ -53,30 +75,24 @@ class Command(BaseCommand):
         )
         text_content = strip_tags(html_content)
 
-        if dry_run:
-            from subscribers.models import Subscriber
-            count = Subscriber.objects.filter(
-                source="BULK_IMPORT", is_active=True
-            ).count()
-            self.stdout.write(
-                "DRY RUN — would send welcome email to %d bulk-imported subscribers "
-                "(batch limit: %d)." % (count, limit)
-            )
-            return
+        # Store the IDs of remaining subscribers so the audience filter can target them
+        remaining_ids = list(remaining[:limit].values_list("pk", flat=True))
 
         broadcast = Broadcast.objects.create(
-            subject="Introducing SJK(T) Connect — Tamil School Intelligence for Our Community",
+            subject=subject,
             html_content=html_content,
             text_content=text_content,
             audience_filter={
                 "category": "",
                 "source": "BULK_IMPORT",
-                "limit": limit,
+                "subscriber_ids": remaining_ids,
             },
             status=Broadcast.Status.DRAFT,
         )
 
         send_broadcast(broadcast.pk)
         self.stdout.write(
-            self.style.SUCCESS("Welcome broadcast %d sent." % broadcast.pk)
+            self.style.SUCCESS(
+                "Welcome broadcast %d sent to %d subscribers." % (broadcast.pk, len(remaining_ids))
+            )
         )

@@ -68,6 +68,14 @@ export async function fetchAllSchools(
 }
 
 /**
+ * Fetch all schools with minimal fields for map display.
+ * Single request (~50 KB vs ~550 KB from fetchAllSchools).
+ */
+export async function fetchMapSchools(): Promise<School[]> {
+  return fetchJSON<School[]>(`${BASE}/schools/map/`);
+}
+
+/**
  * Search schools and constituencies by query string.
  */
 export async function searchEntities(

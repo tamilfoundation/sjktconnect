@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { APIProvider, Map } from "@vis.gl/react-google-maps";
 import SchoolMarkers from "./SchoolMarkers";
@@ -9,7 +9,6 @@ import MapFilterPanel, {
   FilterToggles,
 } from "./MapFilterPanel";
 import SearchBox from "./SearchBox";
-import { fetchAllSchools } from "@/lib/api";
 import { School } from "@/lib/types";
 
 const MALAYSIA_CENTER = { lat: 4.2105, lng: 101.9758 };
@@ -26,13 +25,13 @@ const DEFAULT_TOGGLES: FilterToggles = {
   none: true,
 };
 
-export default function SchoolMap() {
+interface SchoolMapProps {
+  initialSchools: School[];
+}
+
+export default function SchoolMap({ initialSchools }: SchoolMapProps) {
   const t = useTranslations("home");
-  const tc = useTranslations("common");
-  const [allSchools, setAllSchools] = useState<School[]>([]);
   const [searchResult, setSearchResult] = useState<School | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   // Filter state
   const [colourMode, setColourMode] = useState<ColourMode>("assistance");
@@ -42,35 +41,11 @@ export default function SchoolMap() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
   const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "";
 
-  // Load all schools on mount
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    fetchAllSchools()
-      .then((schools) => {
-        if (cancelled) return;
-        const withGps = schools.filter((s) => s.gps_lat && s.gps_lng);
-        setAllSchools(withGps);
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(err.message);
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   // Filter schools based on toggles and colour mode
   const filteredSchools = useMemo(() => {
     if (searchResult) return [searchResult];
 
-    return allSchools.filter((school) => {
+    return initialSchools.filter((school) => {
       switch (colourMode) {
         case "assistance": {
           const isAided = school.assistance_type === "SBK" || school.assistance_type === "SABK";
@@ -99,7 +74,7 @@ export default function SchoolMap() {
           return true;
       }
     });
-  }, [allSchools, searchResult, colourMode, toggles, enrolmentThreshold]);
+  }, [initialSchools, searchResult, colourMode, toggles, enrolmentThreshold]);
 
   const handleToggleChange = useCallback((key: keyof FilterToggles) => {
     setToggles((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -152,37 +127,9 @@ export default function SchoolMap() {
           onEnrolmentThresholdChange={setEnrolmentThreshold}
           onReset={handleReset}
           filteredCount={filteredSchools.length}
-          totalCount={allSchools.length}
+          totalCount={initialSchools.length}
         />
       </div>
-
-      {/* Loading overlay */}
-      {loading && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/80">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600 mx-auto mb-3" />
-            <p className="text-sm text-gray-600">{t("loadingSchools")}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Error overlay */}
-      {error && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/80">
-          <div className="bg-white p-6 rounded-lg shadow text-center max-w-md">
-            <h2 className="text-lg font-semibold text-red-700 mb-2">
-              {t("failedToLoad")}
-            </h2>
-            <p className="text-sm text-gray-600 mb-4">{error}</p>
-            <button
-              className="px-4 py-2 bg-primary-600 text-white text-sm rounded hover:bg-primary-700"
-              onClick={() => window.location.reload()}
-            >
-              {tc("retry")}
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Map */}
       <div className="map-container">

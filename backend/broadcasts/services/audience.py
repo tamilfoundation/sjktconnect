@@ -49,6 +49,11 @@ def get_filtered_subscribers(filter_dict: dict) -> QuerySet[Subscriber]:
             subscribed_before = parse_datetime(subscribed_before)
         qs = qs.filter(created_at__lte=subscribed_before)
 
+    # Explicit subscriber IDs (e.g. for batch 2 welcome emails)
+    subscriber_ids = filter_dict.get("subscriber_ids")
+    if subscriber_ids:
+        qs = qs.filter(pk__in=subscriber_ids)
+
     # Source filter (e.g. BULK_IMPORT)
     source = filter_dict.get("source", "")
     if source:

@@ -32,6 +32,7 @@ from schools.api.serializers import (
     SchoolDetailSerializer,
     SchoolEditSerializer,
     SchoolListSerializer,
+    SchoolMapSerializer,
 )
 from schools.models import Constituency, DUN, School
 
@@ -69,6 +70,21 @@ class SchoolListView(ListAPIView):
         if max_enrolment:
             qs = qs.filter(enrolment__lte=int(max_enrolment))
         return qs
+
+
+class SchoolMapView(APIView):
+    """Return all active schools with minimal fields for map display.
+
+    Single non-paginated response (~50 KB vs ~550 KB from SchoolListView).
+    """
+
+    def get(self, request):
+        schools = School.objects.filter(is_active=True).only(
+            "moe_code", "short_name", "gps_lat", "gps_lng",
+            "enrolment", "preschool_enrolment", "special_enrolment",
+            "assistance_type", "location_type", "state",
+        )
+        return Response(SchoolMapSerializer(schools, many=True).data)
 
 
 class SchoolDetailView(RetrieveAPIView):

@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { fetchNews } from "@/lib/api";
 import NewsList from "@/components/NewsList";
 
-export const revalidate = 300; // 5 minutes
+export const revalidate = 86400; // 24 hours — news arrives ~1-2 per week
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("news");

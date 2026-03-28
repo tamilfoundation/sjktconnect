@@ -54,6 +54,25 @@ class SchoolListSerializer(serializers.ModelSerializer):
         return None
 
 
+class SchoolMapSerializer(serializers.ModelSerializer):
+    """Minimal school data for map pins — 10 fields instead of 23."""
+
+    class Meta:
+        model = School
+        fields = [
+            "moe_code",
+            "short_name",
+            "gps_lat",
+            "gps_lng",
+            "enrolment",
+            "preschool_enrolment",
+            "special_enrolment",
+            "assistance_type",
+            "location_type",
+            "state",
+        ]
+
+
 class SchoolImageSerializer(serializers.Serializer):
     """Read-only serializer for school images."""
 

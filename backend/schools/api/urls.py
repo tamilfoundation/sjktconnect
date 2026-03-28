@@ -19,6 +19,7 @@ from schools.api.views import (
     SchoolDetailView,
     SchoolEditView,
     SchoolListView,
+    SchoolMapView,
     SearchView,
     duitnow_qr,
 )
@@ -27,6 +28,7 @@ app_name = "schools-api"
 
 urlpatterns = [
     # Schools — edit/confirm before detail (sub-paths before bare <str:moe_code>)
+    path("schools/map/", SchoolMapView.as_view(), name="school-map"),
     path("schools/", SchoolListView.as_view(), name="school-list"),
     path("schools/<str:moe_code>/edit/", SchoolEditView.as_view(), name="school-edit"),
     path("schools/<str:moe_code>/confirm/", SchoolConfirmView.as_view(), name="school-confirm"),

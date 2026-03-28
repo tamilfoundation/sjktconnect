@@ -1,15 +1,24 @@
 import HeroSection from "@/components/HeroSection";
 import NationalStats from "@/components/NationalStats";
 import SchoolMap from "@/components/SchoolMap";
-import { fetchNationalStats } from "@/lib/api";
+import { fetchMapSchools, fetchNationalStats } from "@/lib/api";
+
+export const revalidate = 86400; // 24 hours — school data rarely changes
 
 export default async function HomePage() {
   let stats = null;
+  let schools: Awaited<ReturnType<typeof fetchMapSchools>> = [];
   try {
-    stats = await fetchNationalStats();
+    [stats, schools] = await Promise.all([
+      fetchNationalStats(),
+      fetchMapSchools(),
+    ]);
   } catch {
     // API may not be available during build — render with fallback
   }
+
+  // Filter to schools with GPS coordinates on the server
+  const mapSchools = schools.filter((s) => s.gps_lat && s.gps_lng);
 
   return (
     <>
@@ -20,7 +29,7 @@ export default async function HomePage() {
       />
       {stats && <NationalStats stats={stats} />}
       <div id="school-map">
-        <SchoolMap />
+        <SchoolMap initialSchools={mapSchools} />
       </div>
     </>
   );
