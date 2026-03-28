@@ -1,5 +1,22 @@
 # Changelog
 
+## Sprint 8.3 — Supabase Egress Optimisation (2026-03-28)
+
+### Added
+- **School Map API endpoint**: `GET /api/v1/schools/map/` — returns all active schools with 10 minimal fields (~50 KB vs ~550 KB from SchoolListView). Non-paginated, single response.
+- **`SchoolMapSerializer`**: Lightweight serializer with moe_code, short_name, gps_lat, gps_lng, enrolment, preschool_enrolment, special_enrolment, assistance_type, location_type, state.
+- **`fetchMapSchools()`** in frontend API client — calls the new lightweight endpoint.
+- **`subscriber_ids` audience filter** in broadcasts — enables targeting specific subscriber IDs for batch welcome emails.
+
+### Changed
+- **Homepage now fetches school data server-side** with ISR (revalidate every 24 hours). Previously every visitor triggered a client-side fetch to Supabase. Now Supabase is hit once per day regardless of visitor count.
+- **SchoolMap component** accepts `initialSchools` prop from server instead of fetching client-side. Removed `useEffect` fetch, loading spinner, and error overlay.
+- **News page revalidation** changed from 5 minutes to 24 hours (news arrives ~1-2 per week).
+- **`send_welcome_email` command** rewritten to track already-sent recipients, enabling batch 2 sends without duplicates.
+
+### Fixed
+- **Supabase free tier egress exceeded** (20 GB vs 5 GB quota). Root cause: every page visit fetched all 528 schools client-side. With ISR, egress drops ~1000x.
+
 ## Sprint 8.2 — Suggestion Workflow (2026-03-11)
 
 ### Added

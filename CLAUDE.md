@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 7 (Quality Consolidation) complete. Sprint 7.1 + 7.2 done.
-- **Last Sprint**: 7.2 — Medium Effort Quality Improvements (2026-03-09)
-- **Tests**: ~1248 (~966 backend + 282 frontend)
+- **Current Phase**: Phase 8 (Community Features) + Supabase optimisation. Sprint 8.3 done.
+- **Last Sprint**: 8.3 — Supabase Egress Optimisation (2026-03-28)
+- **Tests**: ~1363 (1073 backend + 290 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -236,6 +236,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 7.2 | Done | Medium Effort Quality: fuzzy school matching in linkification, MP name normalisation (honorific stripping), deterministic mention-level evaluator, unified quality_loop.py framework. 23 new tests (~966 total). Phase 7 complete. |
 | 8.1 | Done | Community Admin Panel — Auth + Roles Foundation: UserProfile model, Google auth endpoint, /me update, link-school endpoint, 4 permission classes, NextAuth.js v5, AuthProvider, UserMenu, profile page, dashboard shell. 64 new backend tests (~1030 total). |
 | 8.2 | Done | Suggestion Workflow: community app, Suggestion model (3 types, 3 statuses), create/list API, moderation queue, approve/reject with auto-apply, points system, image management API (reorder/delete), SchoolImage position+uploaded_by. Frontend: suggest form, my suggestions, moderation queue, image manager. 43 new backend + 8 new frontend tests (~1363 total). |
+| 8.3 | Done | Supabase Egress Optimisation: server-side school map data via ISR (revalidate 24h), lightweight `/api/v1/schools/map/` endpoint (10 fields, ~50 KB), SchoolMap accepts props instead of client-side fetch, news revalidation 5min→24h, welcome email batch tracking. 1363 tests (unchanged). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -253,23 +254,13 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Current state**: Sprint 8.2 (Suggestion Workflow) complete. 1073 backend + 290 frontend = 1363 tests.
-
-**Sprint 8.2 deliverables**:
-- Community app with Suggestion model (3 types, 3 statuses, points)
-- Suggestion create/list API with field validation and current value snapshot
-- Moderation queue API with approve/reject and auto-apply
-- Image management API (list, reorder, delete) for school admins
-- SchoolImage position + uploaded_by + COMMUNITY source
-- Frontend: suggest form modal, my suggestions on profile, moderation queue, image manager
-- 43 new backend + 8 new frontend tests, trilingual i18n
+**Current state**: Sprint 8.3 (Supabase Egress Optimisation) complete. 1073 backend + 290 frontend = 1363 tests. 1 commit ahead of origin (not yet pushed/deployed).
 
 **Pending (ordered)**:
-1. Deploy backend + frontend to production
-2. Run migration on production DB (`python manage.py migrate`)
-3. Test suggestion workflow end-to-end on tamilschool.org
-4. Send welcome email batch 2 (110 remaining bulk-imported subscribers)
-5. Full Hansard rebuild through Phase 7 pipeline
+1. Deploy backend + frontend to production (egress fix must go live to stay within Supabase free tier)
+2. Send welcome email batch 2 (110 remaining bulk-imported subscribers) — `send_welcome_email` now tracks already-sent
+3. Test suggestion workflow end-to-end on tamilschool.org (Sprint 8.2 features not yet deployed)
+4. Full Hansard rebuild through Phase 7 pipeline
 
 **Future work**:
 - **Close the learner feedback loop** — auto-inject learner flags into prompts, store successful corrections as pattern memory
@@ -305,14 +296,14 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **School page** (Sprint 3.6-3.7): 12-col grid (7/5 split), 3 elevated stat cards with SVG icons, preschool/special info bar, top-aligned title, metadata chip, taller gallery (400px) with overlay thumbnails, sidebar with constituency/DUN links + MiniMap + nearby schools, leadership always shown
 - **Donate page** (Sprint 4.2): `/donate/` — DonationForm (preset amounts, custom, donor info → Toyyib Pay), `/donate/thank-you/` — payment status display
 - **SupportSchoolCard** (Sprint 4.1): Sidebar card on school pages showing bank details + DuitNow QR. Hidden for schools without bank data. Bank fields editable via SchoolEditForm.
-- **Tests**: Jest + React Testing Library (265 tests)
+- **Tests**: Jest + React Testing Library (290 tests)
 - **Build**: Standalone output, 107 kB first load JS
 - **Dockerfile**: Multi-stage (deps → build → runner), port 8080
 - **Env vars**: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID`
 
 ## REST API (Sprint 1.2+)
 - All endpoints under `/api/v1/` — paginated (50/page via `?page=N`)
-- **Schools**: `GET /api/v1/schools/` (filters: `?state=`, `?ppd=`, `?constituency=`, `?skm=true`, `?min_enrolment=`, `?max_enrolment=`), `GET /api/v1/schools/<moe_code>/` (includes `leaders` array: name + role_display, ordered: Chairman → HM → PTA → Alumni), `GET /api/v1/schools/national-stats/` (total schools, students, teachers, constituencies — Sprint 3.4)
+- **Schools**: `GET /api/v1/schools/` (filters: `?state=`, `?ppd=`, `?constituency=`, `?skm=true`, `?min_enrolment=`, `?max_enrolment=`), `GET /api/v1/schools/<moe_code>/` (includes `leaders` array: name + role_display, ordered: Chairman → HM → PTA → Alumni), `GET /api/v1/schools/map/` (all active schools, 10 minimal fields, non-paginated ~50 KB — Sprint 8.3), `GET /api/v1/schools/national-stats/` (total schools, students, teachers, constituencies — Sprint 3.4)
 - **School Mentions** (Sprint 1.10): `GET /api/v1/schools/<moe_code>/mentions/` (approved parliamentary mentions, public, no pagination)
 - **School News** (Sprint 2.8): `GET /api/v1/schools/<moe_code>/news/` (approved news articles mentioning a school, public)
 - **School Edit** (Sprint 1.7, Magic Link auth): `GET/PUT /api/v1/schools/<moe_code>/edit/` (view/update school data), `POST /api/v1/schools/<moe_code>/confirm/` (2-click verify)
