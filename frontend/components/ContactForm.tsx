@@ -7,7 +7,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function ContactForm() {
   const t = useTranslations("contact");
-  const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", subject: "", message: "", website: "" });
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
 
   const handleChange = useCallback(
@@ -31,7 +31,7 @@ export default function ContactForm() {
 
         if (!res.ok) throw new Error("Failed");
         setStatus("success");
-        setForm({ name: "", email: "", subject: "", message: "" });
+        setForm({ name: "", email: "", subject: "", message: "", website: "" });
       } catch {
         setStatus("error");
       }
@@ -52,6 +52,17 @@ export default function ContactForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Honeypot — hidden from humans, bots fill it */}
+      <div aria-hidden="true" style={{ position: "absolute", left: "-9999px" }}>
+        <input
+          name="website"
+          tabIndex={-1}
+          autoComplete="off"
+          value={form.website}
+          onChange={handleChange}
+        />
+      </div>
+
       {status === "error" && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-sm text-red-700 font-medium">{t("errorTitle")}</p>

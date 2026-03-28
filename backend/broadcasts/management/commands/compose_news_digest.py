@@ -11,6 +11,7 @@ Usage:
     python manage.py compose_news_digest --dry-run
 """
 
+import os
 from datetime import timedelta
 
 from django.core.management.base import BaseCommand
@@ -83,26 +84,26 @@ class Command(BaseCommand):
         image_summary = (
             f"{big_story.get('title', '')}: {big_story.get('summary', '')}"
         )
-        hero_image_url = generate_hero_image(
+        hero_image_bytes = generate_hero_image(
             content_summary=image_summary,
             style="news",
         )
-        if hero_image_url:
+        if hero_image_bytes:
             self.stdout.write("Hero image generated")
 
+        # Render template without hero image URL first (needs broadcast PK)
+        template_context = {
+            "period_label": period_label,
+            "editors_note": digest["editors_note"],
+            "big_story": big_story,
+            "in_brief": digest.get("in_brief", []),
+            "the_number": digest.get("the_number"),
+            "worth_knowing": digest.get("worth_knowing"),
+            "hero_image_url": None,
+        }
         html_content = render_to_string(
-            "broadcasts/news_watch_digest.html",
-            {
-                "period_label": period_label,
-                "editors_note": digest["editors_note"],
-                "big_story": big_story,
-                "in_brief": digest.get("in_brief", []),
-                "the_number": digest.get("the_number"),
-                "worth_knowing": digest.get("worth_knowing"),
-                "hero_image_url": hero_image_url,
-            },
+            "broadcasts/news_watch_digest.html", template_context
         )
-
         text_content = strip_tags(html_content)
 
         broadcast = Broadcast.objects.create(
@@ -112,6 +113,24 @@ class Command(BaseCommand):
             audience_filter={"category": "NEWS_WATCH"},
             status=Broadcast.Status.DRAFT,
         )
+
+        # Re-render with hero image URL now that we have the broadcast PK
+        if hero_image_bytes:
+            broadcast.hero_image = hero_image_bytes
+            backend_url = os.environ.get(
+                "BACKEND_URL",
+                "https://sjktconnect-api-748286712183.asia-southeast1.run.app",
+            )
+            hero_url = f"{backend_url}/api/v1/broadcasts/{broadcast.pk}/hero-image/"
+            template_context["hero_image_url"] = hero_url
+            html_content = render_to_string(
+                "broadcasts/news_watch_digest.html", template_context
+            )
+            broadcast.html_content = html_content
+            broadcast.text_content = strip_tags(html_content)
+            broadcast.save(update_fields=[
+                "hero_image", "html_content", "text_content", "updated_at",
+            ])
 
         self.stdout.write(
             self.style.SUCCESS(

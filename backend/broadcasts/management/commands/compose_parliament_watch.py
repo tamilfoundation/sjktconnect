@@ -9,6 +9,8 @@ Usage:
     python manage.py compose_parliament_watch --meeting-id 1 --dry-run
 """
 
+import os
+
 from django.core.management.base import BaseCommand
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
@@ -69,27 +71,26 @@ class Command(BaseCommand):
             return
 
         # Generate optional hero image
-        hero_image_url = generate_hero_image(
+        hero_image_bytes = generate_hero_image(
             content_summary=digest["headlines"],
             style="parliament",
         )
-        if hero_image_url:
+        if hero_image_bytes:
             self.stdout.write("Hero image generated")
 
+        template_context = {
+            "meeting_name": meeting.name,
+            "start_date": meeting.start_date,
+            "end_date": meeting.end_date,
+            "headlines": digest["headlines"],
+            "developments": digest.get("developments", []),
+            "scorecard_summary": digest.get("scorecard_summary", ""),
+            "one_thing": digest.get("one_thing", ""),
+            "hero_image_url": None,
+        }
         html_content = render_to_string(
-            "broadcasts/parliament_watch.html",
-            {
-                "meeting_name": meeting.name,
-                "start_date": meeting.start_date,
-                "end_date": meeting.end_date,
-                "headlines": digest["headlines"],
-                "developments": digest.get("developments", []),
-                "scorecard_summary": digest.get("scorecard_summary", ""),
-                "one_thing": digest.get("one_thing", ""),
-                "hero_image_url": hero_image_url,
-            },
+            "broadcasts/parliament_watch.html", template_context
         )
-
         text_content = strip_tags(html_content)
 
         broadcast = Broadcast.objects.create(
@@ -98,7 +99,23 @@ class Command(BaseCommand):
             text_content=text_content,
             audience_filter={"category": "PARLIAMENT_WATCH"},
             status=Broadcast.Status.DRAFT,
+            hero_image=hero_image_bytes or b"",
         )
+
+        # Re-render with hero image URL now that we have the broadcast PK
+        if hero_image_bytes:
+            backend_url = os.environ.get(
+                "BACKEND_URL",
+                "https://sjktconnect-api-748286712183.asia-southeast1.run.app",
+            )
+            hero_url = f"{backend_url}/api/v1/broadcasts/{broadcast.pk}/hero-image/"
+            template_context["hero_image_url"] = hero_url
+            html_content = render_to_string(
+                "broadcasts/parliament_watch.html", template_context
+            )
+            broadcast.html_content = html_content
+            broadcast.text_content = strip_tags(html_content)
+            broadcast.save(update_fields=["html_content", "text_content"])
 
         self.stdout.write(
             self.style.SUCCESS(

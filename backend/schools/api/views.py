@@ -505,6 +505,11 @@ class ContactFormView(APIView):
     BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 
     def post(self, request):
+        # Honeypot: bots fill hidden fields, humans don't
+        if request.data.get("website", "").strip():
+            # Silently accept to not tip off the bot
+            return Response({"status": "sent"})
+
         name = (request.data.get("name") or "").strip()
         email = (request.data.get("email") or "").strip()
         subject = (request.data.get("subject") or "").strip()
