@@ -11,12 +11,16 @@ Usage:
 
 from django.core.management.base import BaseCommand
 from django.template.loader import render_to_string
+from django.utils import timezone
 from django.utils.html import strip_tags
 
 from broadcasts.models import Broadcast
 from broadcasts.services.sender import send_broadcast
 from broadcasts.services.urgent_alert import generate_urgent_alert
 from newswatch.models import NewsArticle
+
+# Minimum days between urgent alert emails
+THROTTLE_DAYS = 30
 
 
 class Command(BaseCommand):
@@ -31,6 +35,20 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
+
+        # Throttle: skip if an urgent alert was sent within the last N days
+        cutoff = timezone.now() - timezone.timedelta(days=THROTTLE_DAYS)
+        last_sent = Broadcast.objects.filter(
+            subject__startswith="URGENT:",
+            status=Broadcast.Status.SENT,
+            sent_at__gte=cutoff,
+        ).first()
+        if last_sent and not dry_run:
+            self.stdout.write(
+                f"Throttled — last urgent alert sent {last_sent.sent_at:%Y-%m-%d}. "
+                f"Next alert allowed after {THROTTLE_DAYS} days."
+            )
+            return
 
         # Find urgent approved articles not yet broadcast
         sent_subjects = set(
@@ -53,7 +71,12 @@ class Command(BaseCommand):
             self.stdout.write("No unsent urgent articles found.")
             return
 
-        self.stdout.write(f"Found {len(unsent)} unsent urgent article(s).")
+        # Send only the most critical article (not all unsent)
+        self.stdout.write(
+            f"Found {len(unsent)} unsent urgent article(s). "
+            f"Sending the most recent one only (throttle: {THROTTLE_DAYS} days)."
+        )
+        unsent = unsent[:1]
 
         for article in unsent:
             self.stdout.write(f"  Processing: {article.title[:60]}...")

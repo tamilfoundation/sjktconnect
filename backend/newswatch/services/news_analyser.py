@@ -53,12 +53,14 @@ Analyse the article and return a JSON object with these fields:
   - moe_code: MOE code if identifiable (string, or "" if unknown)
   Keep empty array [] if no specific Tamil schools are named.
 
-- is_urgent: Boolean. True ONLY if the article reports:
-  - School closure or merger threat
-  - Safety crisis (building collapse, flood, etc.)
-  - Student/teacher safety issue
-  - Funding cut or budget crisis affecting operations
-  - Political controversy requiring immediate response
+- is_urgent: Boolean. True ONLY for genuine crises that demand immediate
+  community action. Most articles are NOT urgent. Set true ONLY if:
+  - A specific Tamil school has been CONFIRMED closing or merging (not declining enrolment trends)
+  - An active safety emergency at a school (building collapse, flood damage, fire — not planned repairs or infrastructure upgrades)
+  - A confirmed government policy that IMMEDIATELY threatens Tamil school operations (not general education policy changes)
+  Do NOT flag as urgent: declining enrolment trends, road safety improvements,
+  heat policy announcements, dilapidated building repair approvals (these are
+  positive news), award controversies, or general advocacy articles.
 
 - urgent_reason: If is_urgent is true, one sentence explaining why.
   Empty string if not urgent.
@@ -293,6 +295,18 @@ def _generate_name_variants(distinctive):
     ).strip()
     if stripped_jalan != distinctive:
         variants.append(stripped_jalan)
+
+    # Split compound words: "Springhill" → "Spring Hill", "Greenfield" → "Green Field"
+    # Try inserting a space at each position in long words (≥8 chars, both
+    # halves ≥3 chars) to handle joined/split spelling variants.
+    for word in distinctive.split():
+        if len(word) < 8:
+            continue
+        for i in range(3, len(word) - 2):
+            split_word = word[:i] + " " + word[i:]
+            compound_variant = distinctive.replace(word, split_word)
+            if compound_variant not in variants:
+                variants.append(compound_variant)
 
     return list(dict.fromkeys(variants))  # dedupe, preserve order
 

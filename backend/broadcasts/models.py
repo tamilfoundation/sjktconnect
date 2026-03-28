@@ -34,7 +34,7 @@ class Broadcast(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     sent_at = models.DateTimeField(null=True, blank=True)
     hero_image = models.BinaryField(
-        blank=True, default=b"",
+        null=True, blank=True, default=b"",
         help_text="Hero image PNG bytes for email header",
     )
 
