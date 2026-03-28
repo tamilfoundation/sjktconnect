@@ -11,8 +11,8 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 8 (Community Features) + Supabase optimisation. Sprint 8.3 done.
-- **Last Sprint**: 8.3 — Supabase Egress Optimisation (2026-03-28)
+- **Current Phase**: Phase 8 (Community Features) + SEO. Sprint 8.4 done.
+- **Last Sprint**: 8.4 — SEO Improvements (2026-03-28)
 - **Tests**: ~1363 (1073 backend + 290 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
@@ -237,6 +237,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 8.1 | Done | Community Admin Panel — Auth + Roles Foundation: UserProfile model, Google auth endpoint, /me update, link-school endpoint, 4 permission classes, NextAuth.js v5, AuthProvider, UserMenu, profile page, dashboard shell. 64 new backend tests (~1030 total). |
 | 8.2 | Done | Suggestion Workflow: community app, Suggestion model (3 types, 3 statuses), create/list API, moderation queue, approve/reject with auto-apply, points system, image management API (reorder/delete), SchoolImage position+uploaded_by. Frontend: suggest form, my suggestions, moderation queue, image manager. 43 new backend + 8 new frontend tests (~1363 total). |
 | 8.3 | Done | Supabase Egress Optimisation: server-side school map data via ISR (revalidate 24h), lightweight `/api/v1/schools/map/` endpoint (10 fields, ~50 KB), SchoolMap accepts props instead of client-side fetch, news revalidation 5min→24h, welcome email batch tracking. 1363 tests (unchanged). |
+| 8.4 | Done | SEO Improvements: hreflang alternate links + canonical URLs on all 22 pages (fixing 69 GSC duplicates), dynamic sitemap.xml with locale alternates (static + 528 schools + constituencies), robots.txt, richer school meta titles ("SJK(T) Name | 450 Students, Grade A | Selangor"), richer constituency meta titles, lib/seo.ts helper with buildAlternates(). Frontend-only, no backend changes. 1363 tests (unchanged). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -254,13 +255,13 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Current state**: Sprint 8.3 (Supabase Egress Optimisation) complete. 1073 backend + 290 frontend = 1363 tests. 1 commit ahead of origin (not yet pushed/deployed).
+**Current state**: Sprint 8.4 (SEO Improvements) complete. 1073 backend + 290 frontend = 1363 tests. Frontend deployed (revision sjktconnect-web-00070-mgx).
 
 **Pending (ordered)**:
-1. Deploy backend + frontend to production (egress fix must go live to stay within Supabase free tier)
-2. Send welcome email batch 2 (110 remaining bulk-imported subscribers) — `send_welcome_email` now tracks already-sent
-3. Test suggestion workflow end-to-end on tamilschool.org (Sprint 8.2 features not yet deployed)
-4. Full Hansard rebuild through Phase 7 pipeline
+1. Send welcome email batch 2 (110 remaining bulk-imported subscribers) — `send_welcome_email` now tracks already-sent
+2. Test suggestion workflow end-to-end on tamilschool.org (Sprint 8.2 features deployed)
+3. Full Hansard rebuild through Phase 7 pipeline
+4. Monitor Google Search Console for hreflang/canonical pickup (allow 1-2 weeks for re-crawl)
 
 **Future work**:
 - **Close the learner feedback loop** — auto-inject learner flags into prompts, store successful corrections as pattern memory

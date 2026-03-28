@@ -1,5 +1,19 @@
 # Changelog
 
+## Sprint 8.4 — SEO Improvements (2026-03-28)
+
+### Added
+- **Hreflang alternate links**: All 22 pages now include `<link rel="alternate" hreflang="...">` tags for EN/TA/MS locales, fixing 69 "Duplicate without user-selected canonical" errors in Google Search Console.
+- **Canonical URLs**: Self-referencing `<link rel="canonical">` on all pages to prevent duplicate content indexing.
+- **Dynamic sitemap.xml**: Auto-generated sitemap with locale alternates for all static pages + 528 school pages + constituency pages. Located at `/sitemap.xml`.
+- **robots.txt**: Blocks `/api/`, `/dashboard/`, `/claim/verify/` paths from crawlers. Points to sitemap.
+- **`lib/seo.ts` helper**: `buildAlternates()` function for consistent hreflang/canonical generation across all pages.
+
+### Changed
+- **School page meta titles**: Now follow "SJK(T) Name | 450 Students, Grade A | Selangor" format for richer SERP display.
+- **School page meta descriptions**: Now include city/location, preschool/special ed availability, and a call to action.
+- **Constituency page meta titles**: Now follow "Name (Code) | 5 Tamil Schools | State" format.
+
 ## Sprint 8.3 — Supabase Egress Optimisation (2026-03-28)
 
 ### Added
