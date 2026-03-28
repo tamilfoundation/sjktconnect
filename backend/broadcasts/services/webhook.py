@@ -19,7 +19,7 @@ from subscribers.models import Subscriber
 
 logger = logging.getLogger(__name__)
 
-HARD_BOUNCE_THRESHOLD = 3
+HARD_BOUNCE_THRESHOLD = 1
 
 
 def process_brevo_event(event: dict) -> bool:
