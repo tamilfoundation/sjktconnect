@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 8 (Community Features) + SEO. Sprint 8.4 done.
-- **Last Sprint**: 8.4 — SEO Improvements (2026-03-28)
-- **Tests**: ~1363 (1073 backend + 290 frontend)
+- **Current Phase**: Phase 8 (Community Features) + Email Infrastructure. Sprint 8.5 done.
+- **Last Sprint**: 8.5 — Brevo Webhook Integration (2026-03-28)
+- **Tests**: ~1382 (1092 backend + 290 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -163,6 +163,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | `GMAIL_CLIENT_ID` | Feedback | OAuth2 client ID for feedback@tamilschool.org Gmail API |
 | `GMAIL_CLIENT_SECRET` | Feedback | OAuth2 client secret |
 | `GMAIL_REFRESH_TOKEN` | Feedback | OAuth2 refresh token (gmail.readonly scope) |
+| `BREVO_WEBHOOK_SECRET` | Optional | HMAC secret for Brevo webhook signature verification |
 
 ## Data Files (in `data/`, not in git — too large)
 
@@ -238,6 +239,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 8.2 | Done | Suggestion Workflow: community app, Suggestion model (3 types, 3 statuses), create/list API, moderation queue, approve/reject with auto-apply, points system, image management API (reorder/delete), SchoolImage position+uploaded_by. Frontend: suggest form, my suggestions, moderation queue, image manager. 43 new backend + 8 new frontend tests (~1363 total). |
 | 8.3 | Done | Supabase Egress Optimisation: server-side school map data via ISR (revalidate 24h), lightweight `/api/v1/schools/map/` endpoint (10 fields, ~50 KB), SchoolMap accepts props instead of client-side fetch, news revalidation 5min→24h, welcome email batch tracking. 1363 tests (unchanged). |
 | 8.4 | Done | SEO Improvements: hreflang alternate links + canonical URLs on all 22 pages (fixing 69 GSC duplicates), dynamic sitemap.xml with locale alternates (static + 528 schools + constituencies), robots.txt, richer school meta titles ("SJK(T) Name | 450 Students, Grade A | Selangor"), richer constituency meta titles, lib/seo.ts helper with buildAlternates(). Frontend-only, no backend changes. 1363 tests (unchanged). |
+| 8.5 | Done | Brevo Webhook Integration: webhook endpoint at /api/v1/webhooks/brevo/ for delivery tracking (delivered, opened, clicked, hard/soft bounce, spam, unsubscribed). Engagement fields on BroadcastRecipient (open_count, click_count, timestamps). Auto-deactivate subscribers after 3 hard bounces. Optional HMAC verification. 19 new backend tests. 1382 tests total. |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -255,15 +257,16 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Current state**: Sprint 8.4 (SEO Improvements) complete. 1073 backend + 290 frontend = 1363 tests. Frontend deployed (revision sjktconnect-web-00070-mgx).
+**Current state**: Sprint 8.5 (Brevo Webhook Integration) complete. 1092 backend + 290 frontend = 1382 tests. Backend deployed (revision sjktconnect-api-00080-x67). Brevo webhook activated in Brevo dashboard.
 
 **Pending (ordered)**:
 1. Send welcome email batch 2 (110 remaining bulk-imported subscribers) — `send_welcome_email` now tracks already-sent
 2. Test suggestion workflow end-to-end on tamilschool.org (Sprint 8.2 features deployed)
-3. Full Hansard rebuild through Phase 7 pipeline
+3. Monitor Brevo webhook data after next broadcast — verify delivery/open/click tracking
 4. Monitor Google Search Console for hreflang/canonical pickup (allow 1-2 weeks for re-crawl)
 
 **Future work**:
+- **Email engagement dashboard** — query open/click rates per broadcast, identify disengaged subscribers
 - **Close the learner feedback loop** — auto-inject learner flags into prompts, store successful corrections as pattern memory
 - Urgent Response System (design approved, see `docs/plans/2026-03-04-urgent-response-system-design.md`)
 - MP profile pages (combine Hansard data with contact info)
@@ -318,6 +321,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **Contact** (Sprint 3.6): `POST /api/v1/contact/` (name, email, subject, message → Brevo email, 3/hour rate limit)
 - **DuitNow QR** (Sprint 4.1): `GET /api/v1/schools/<moe_code>/duitnow-qr/` (PNG QR code with bank details, 404 if no bank data)
 - **Donations** (Sprint 4.2): `POST /api/v1/donations/` (create donation → Toyyib redirect URL), `POST /api/v1/donations/callback/` (Toyyib server callback), `GET /api/v1/donations/status/?order_id=` (check payment status)
+- **Brevo Webhook** (Sprint 8.5): `POST /api/v1/webhooks/brevo/` (delivery events: delivered, opened, clicked, hard/soft bounce, spam, unsubscribed — updates BroadcastRecipient engagement fields, auto-deactivates after 3 hard bounces)
 - CORS via `django-cors-headers` — origins from `CORS_ALLOWED_ORIGINS` env var
 - URL ordering: GeoJSON literal paths before `<str:code>` detail paths to avoid capture conflicts
 

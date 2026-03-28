@@ -1,5 +1,16 @@
 # Changelog
 
+## Sprint 8.5 — Brevo Webhook Integration (2026-03-28)
+
+### Added
+- **Brevo webhook endpoint**: `POST /api/v1/webhooks/brevo/` receives delivery events (delivered, opened, clicked, hard/soft bounce, spam, unsubscribed) from Brevo transactional API.
+- **Engagement tracking fields**: `delivered_at`, `opened_at`, `open_count`, `clicked_at`, `click_count`, `bounce_type` on BroadcastRecipient model.
+- **New delivery statuses**: `DELIVERED`, `BOUNCED`, `SPAM` added to BroadcastRecipient.DeliveryStatus.
+- **Bounce management**: `bounce_count` on Subscriber model. Auto-deactivation after 3 hard bounces.
+- **Brevo-side unsubscribe sync**: Unsubscribes triggered in Brevo are mirrored back to the subscriber database.
+- **Optional HMAC signature verification**: Set `BREVO_WEBHOOK_SECRET` env var for request authentication.
+- 19 new backend tests (webhook service + API endpoint).
+
 ## Sprint 8.4 — SEO Improvements (2026-03-28)
 
 ### Added
