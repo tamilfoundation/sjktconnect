@@ -16,6 +16,7 @@ import BoundaryMap from "@/components/BoundaryMap";
 import MentionsList from "@/components/MentionsList";
 import ContactMPCard from "@/components/ContactMPCard";
 import { Link } from "@/i18n/navigation";
+import { buildAlternates } from "@/lib/seo";
 
 export const revalidate = 3600;
 
@@ -28,12 +29,17 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   try {
     const c = await fetchConstituencyDetail(params.code);
-    const title = `${c.code} ${c.name} — SJK(T) Connect`;
-    const description = `${c.mp_name} (${c.mp_party}) represents ${c.name} constituency in ${c.state}. ${c.schools.length} Tamil school${c.schools.length !== 1 ? "s" : ""}.`;
+    const schoolCount = c.schools.length;
+    const title = `${c.name} (${c.code}) | ${schoolCount} Tamil School${schoolCount !== 1 ? "s" : ""} | ${c.state}`;
+    const scorecardNote = c.scorecard?.total_mentions
+      ? ` ${c.scorecard.total_mentions} parliamentary mentions tracked.`
+      : "";
+    const description = `MP ${c.mp_name} (${c.mp_party}) represents ${c.name} in ${c.state}. ${schoolCount} Tamil school${schoolCount !== 1 ? "s" : ""}.${scorecardNote} View MP scorecard, school data and news.`;
     return {
       title,
       description,
       openGraph: { title, description, type: "website", siteName: "SJK(T) Connect" },
+      alternates: buildAlternates(`/constituency/${params.code}`),
     };
   } catch {
     const t = await getTranslations("constituency");

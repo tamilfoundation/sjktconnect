@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { fetchNews } from "@/lib/api";
 import NewsList from "@/components/NewsList";
+import { buildAlternates } from "@/lib/seo";
 
 export const revalidate = 86400; // 24 hours — news arrives ~1-2 per week
 
@@ -16,6 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
       siteName: "SJK(T) Connect",
     },
+    alternates: buildAlternates("/news"),
   };
 }
 

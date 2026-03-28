@@ -8,6 +8,7 @@ import DemographicsCard from "@/components/DemographicsCard";
 import SchoolTable from "@/components/SchoolTable";
 import BoundaryMap from "@/components/BoundaryMap";
 import { Link } from "@/i18n/navigation";
+import { buildAlternates } from "@/lib/seo";
 
 export const revalidate = 3600;
 
@@ -26,6 +27,7 @@ export async function generateMetadata({
       title,
       description,
       openGraph: { title, description, type: "website", siteName: "SJK(T) Connect" },
+      alternates: buildAlternates(`/dun/${params.id}`),
     };
   } catch {
     const t = await getTranslations("constituency");

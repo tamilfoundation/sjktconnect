@@ -1,11 +1,13 @@
 import { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import Breadcrumb from "@/components/Breadcrumb";
+import { buildAlternates } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("legal");
   return {
     title: `${t("cookiesTitle")} | SJK(T) Connect`,
+    alternates: buildAlternates("/cookies"),
   };
 }
 

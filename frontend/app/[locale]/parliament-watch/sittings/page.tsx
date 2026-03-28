@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { fetchBriefs } from "@/lib/api";
 import BriefsList from "@/components/BriefsList";
+import { buildAlternates } from "@/lib/seo";
 
 export const revalidate = 3600;
 
@@ -11,6 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `${t("sittingBriefs")} — ${t("heading")}`,
     description: t("sittingBriefsDesc"),
+    alternates: buildAlternates("/parliament-watch/sittings"),
   };
 }
 

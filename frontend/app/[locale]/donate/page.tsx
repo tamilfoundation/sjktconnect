@@ -2,12 +2,14 @@ import { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import DonationForm from "@/components/DonationForm";
+import { buildAlternates } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("donate");
   return {
     title: `${t("pageTitle")} | SJK(T) Connect`,
     description: t("pageDescription"),
+    alternates: buildAlternates("/donate"),
   };
 }
 

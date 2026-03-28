@@ -7,6 +7,7 @@ import {
   fetchSchoolMentions,
   fetchSchoolNews,
 } from "@/lib/api";
+import { buildAlternates } from "@/lib/seo";
 import Breadcrumb from "@/components/Breadcrumb";
 import ClaimButton from "@/components/ClaimButton";
 import EditSchoolLink from "@/components/EditSchoolLink";
@@ -35,8 +36,22 @@ export async function generateMetadata({
   try {
     const school = await fetchSchoolDetail(params.moe_code);
     const name = school.short_name || school.name;
-    const title = `${name} — SJK(T) Connect`;
-    const description = `${name} (${school.moe_code}) in ${school.state}. Enrolment: ${school.enrolment?.toLocaleString() ?? "N/A"} students, ${school.teacher_count?.toLocaleString() ?? "N/A"} teachers. Grade ${school.grade || "N/A"}.`;
+
+    // Compact stats for title: "SJK(T) Damansara | 450 Students, Grade A | Selangor"
+    const stats: string[] = [];
+    if (school.enrolment) stats.push(`${school.enrolment.toLocaleString()} Students`);
+    if (school.grade) stats.push(`Grade ${school.grade}`);
+    const title = stats.length
+      ? `${name} | ${stats.join(", ")} | ${school.state}`
+      : `${name} | ${school.state} — SJK(T) Connect`;
+
+    // Rich description with location + programmes
+    const parts: string[] = [`${name} is a Tamil primary school in ${school.city || school.ppd}, ${school.state}.`];
+    if (school.enrolment) parts.push(`${school.enrolment.toLocaleString()} students and ${school.teacher_count?.toLocaleString() ?? "N/A"} teachers.`);
+    if (school.preschool_enrolment) parts.push(`Preschool: ${school.preschool_enrolment} students.`);
+    if (school.special_enrolment) parts.push(`Special education: ${school.special_enrolment} students.`);
+    parts.push("View enrolment data, parliamentary mentions, news and more.");
+    const description = parts.join(" ");
 
     return {
       title,
@@ -47,6 +62,7 @@ export async function generateMetadata({
         type: "website",
         siteName: "SJK(T) Connect",
       },
+      alternates: buildAlternates(`/school/${params.moe_code}`),
     };
   } catch {
     return {

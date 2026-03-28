@@ -2,12 +2,14 @@ import { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import Breadcrumb from "@/components/Breadcrumb";
 import ContactForm from "@/components/ContactForm";
+import { buildAlternates } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("contact");
   return {
     title: `${t("title")} | SJK(T) Connect`,
     description: t("pageDescription"),
+    alternates: buildAlternates("/contact"),
   };
 }
 

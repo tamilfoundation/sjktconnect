@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { fetchMeetingReport, fetchMeetingReports } from "@/lib/api";
 import ReportShareBar from "@/components/ReportShareBar";
+import { buildAlternates } from "@/lib/seo";
 
 export const revalidate = 3600;
 
@@ -19,6 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: t("reportTitle", { name: report.short_name }),
     description: report.executive_summary?.replace(/<[^>]*>/g, "").slice(0, 160) || "",
+    alternates: buildAlternates(`/parliament-watch/${id}`),
   };
 }
 

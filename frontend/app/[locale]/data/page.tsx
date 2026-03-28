@@ -1,12 +1,14 @@
 import { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
+import { buildAlternates } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("dataPage");
   return {
     title: t("title"),
     description: t("intro"),
+    alternates: buildAlternates("/data"),
   };
 }
 

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { fetchBrief, fetchBriefs } from "@/lib/api";
+import { buildAlternates } from "@/lib/seo";
 
 export const revalidate = 3600;
 
@@ -18,6 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: brief.title,
     description: brief.summary_html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 160),
+    alternates: buildAlternates(`/parliament-watch/sittings/${id}`),
   };
 }
 
