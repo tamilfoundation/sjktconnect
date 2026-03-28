@@ -31,6 +31,10 @@ class Subscriber(models.Model):
         max_length=30, blank=True, default="",
         help_text="Original membership status from import.",
     )
+    bounce_count = models.PositiveIntegerField(
+        default=0,
+        help_text="Hard bounce count. Auto-deactivated at 3.",
+    )
     unsubscribe_token = models.UUIDField(
         default=uuid.uuid4, unique=True, db_index=True
     )

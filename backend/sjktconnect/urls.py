@@ -22,5 +22,6 @@ urlpatterns = [
     path("", include("parliament.urls")),
     path("", include("newswatch.urls")),
     path("api/v1/donations/", include("donations.api.urls")),
+    path("api/v1/", include("broadcasts.api.urls")),
     path("api/v1/", include("community.api.urls")),
 ]

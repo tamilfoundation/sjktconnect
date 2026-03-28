@@ -56,7 +56,14 @@ class BroadcastRecipient(models.Model):
     class DeliveryStatus(models.TextChoices):
         PENDING = "PENDING", "Pending"
         SENT = "SENT", "Sent"
+        DELIVERED = "DELIVERED", "Delivered"
+        BOUNCED = "BOUNCED", "Bounced"
+        SPAM = "SPAM", "Spam Complaint"
         FAILED = "FAILED", "Failed"
+
+    class BounceType(models.TextChoices):
+        HARD = "HARD", "Hard Bounce"
+        SOFT = "SOFT", "Soft Bounce"
 
     broadcast = models.ForeignKey(
         Broadcast, on_delete=models.CASCADE, related_name="recipients"
@@ -74,6 +81,16 @@ class BroadcastRecipient(models.Model):
     )
     brevo_message_id = models.CharField(max_length=100, blank=True, default="")
     sent_at = models.DateTimeField(null=True, blank=True)
+
+    # Engagement tracking (populated by Brevo webhooks)
+    delivered_at = models.DateTimeField(null=True, blank=True)
+    opened_at = models.DateTimeField(null=True, blank=True)
+    open_count = models.PositiveIntegerField(default=0)
+    clicked_at = models.DateTimeField(null=True, blank=True)
+    click_count = models.PositiveIntegerField(default=0)
+    bounce_type = models.CharField(
+        max_length=4, choices=BounceType.choices, blank=True, default=""
+    )
 
     class Meta:
         ordering = ["email"]
