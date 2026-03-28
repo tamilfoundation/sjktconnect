@@ -11,8 +11,8 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 8 (Community Features) + Email Infrastructure. Sprint 8.5 done.
-- **Last Sprint**: 8.5 — Brevo Webhook Integration (2026-03-28)
+- **Current Phase**: Phase 8 (Community Features) + Email Infrastructure. Sprint 8.6 done.
+- **Last Sprint**: 8.6 — Email Quality & Spam Cleanup (2026-03-28)
 - **Tests**: ~1382 (1092 backend + 290 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
@@ -240,6 +240,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 8.3 | Done | Supabase Egress Optimisation: server-side school map data via ISR (revalidate 24h), lightweight `/api/v1/schools/map/` endpoint (10 fields, ~50 KB), SchoolMap accepts props instead of client-side fetch, news revalidation 5min→24h, welcome email batch tracking. 1363 tests (unchanged). |
 | 8.4 | Done | SEO Improvements: hreflang alternate links + canonical URLs on all 22 pages (fixing 69 GSC duplicates), dynamic sitemap.xml with locale alternates (static + 528 schools + constituencies), robots.txt, richer school meta titles ("SJK(T) Name | 450 Students, Grade A | Selangor"), richer constituency meta titles, lib/seo.ts helper with buildAlternates(). Frontend-only, no backend changes. 1363 tests (unchanged). |
 | 8.5 | Done | Brevo Webhook Integration: webhook endpoint at /api/v1/webhooks/brevo/ for delivery tracking (delivered, opened, clicked, hard/soft bounce, spam, unsubscribed). Engagement fields on BroadcastRecipient (open_count, click_count, timestamps). Auto-deactivate subscribers after 3 hard bounces. Optional HMAC verification. 19 new backend tests. 1382 tests total. |
+| 8.6 | Done | Email Quality & Spam Cleanup: fixed hero image bytes dumped into email HTML (compose_news_digest + compose_parliament_watch), contact form honeypot anti-spam, hard bounce threshold reduced to 1, purged 37 spam + deactivated 44 hard-bounced subscribers. 1382 tests total. |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -257,13 +258,18 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Current state**: Sprint 8.5 (Brevo Webhook Integration) complete. 1092 backend + 290 frontend = 1382 tests. Backend deployed (revision sjktconnect-api-00080-x67). Brevo webhook activated in Brevo dashboard.
+**Current state**: Sprint 8.6 (Email Quality & Spam Cleanup) complete. 1092 backend + 290 frontend = 1382 tests. 370 active subscribers (37 spam deleted, 44 hard-bounced deactivated). Hero image fix + honeypot + bounce threshold committed, needs deploy.
 
-**Pending (ordered)**:
-1. Send welcome email batch 2 (110 remaining bulk-imported subscribers) — `send_welcome_email` now tracks already-sent
-2. Test suggestion workflow end-to-end on tamilschool.org (Sprint 8.2 features deployed)
-3. Monitor Brevo webhook data after next broadcast — verify delivery/open/click tracking
-4. Monitor Google Search Console for hreflang/canonical pickup (allow 1-2 weeks for re-crawl)
+**Immediate (post-deploy)**:
+1. Deploy backend (hero image fix, honeypot, bounce threshold)
+2. Deploy frontend (honeypot field on contact form)
+3. Send welcome email batch 2 (~110 remaining bulk-imported subscribers) — `send_welcome_email`
+4. Send fresh News Watch digest to all subscribers — `compose_news_digest --auto-send`
+
+**Pending**:
+1. Test suggestion workflow end-to-end on tamilschool.org (Sprint 8.2 features deployed)
+2. Monitor Brevo webhook data after next broadcast — verify delivery/open/click tracking
+3. Monitor Google Search Console for hreflang/canonical pickup (allow 1-2 weeks for re-crawl)
 
 **Future work**:
 - **Email engagement dashboard** — query open/click rates per broadcast, identify disengaged subscribers

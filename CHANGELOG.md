@@ -1,12 +1,25 @@
 # Changelog
 
+## Sprint 8.6 — Email Quality & Spam Cleanup (2026-03-28)
+
+### Fixed
+- **Hero image bytes in email HTML**: `compose_news_digest` and `compose_parliament_watch` passed raw image bytes directly as `hero_image_url` template variable, causing ~2.5 MB of binary data to be HTML-escaped into `<img src="...">`. Now follows the correct two-pass pattern: save bytes to `broadcast.hero_image`, re-render template with API URL.
+- **Hard bounce threshold reduced to 1**: Subscribers are now immediately deactivated on first hard bounce (was 3). Dead addresses rarely recover.
+
+### Added
+- **Contact form honeypot**: Hidden `website` field on both backend and frontend. Bots that fill it get a silent 200 response; no email is sent.
+
+### Removed
+- **37 spam subscribers deleted**: Bot-injected subscribers with random-string names purged from database.
+- **44 hard-bounced subscribers deactivated**: Bulk-import contacts with dead email addresses (old Yahoo, Hotmail, corporate) deactivated based on Brevo bounce logs.
+
 ## Sprint 8.5 — Brevo Webhook Integration (2026-03-28)
 
 ### Added
 - **Brevo webhook endpoint**: `POST /api/v1/webhooks/brevo/` receives delivery events (delivered, opened, clicked, hard/soft bounce, spam, unsubscribed) from Brevo transactional API.
 - **Engagement tracking fields**: `delivered_at`, `opened_at`, `open_count`, `clicked_at`, `click_count`, `bounce_type` on BroadcastRecipient model.
 - **New delivery statuses**: `DELIVERED`, `BOUNCED`, `SPAM` added to BroadcastRecipient.DeliveryStatus.
-- **Bounce management**: `bounce_count` on Subscriber model. Auto-deactivation after 3 hard bounces.
+- **Bounce management**: `bounce_count` on Subscriber model. Auto-deactivation after 1 hard bounce (reduced from 3 in Sprint 8.6).
 - **Brevo-side unsubscribe sync**: Unsubscribes triggered in Brevo are mirrored back to the subscriber database.
 - **Optional HMAC signature verification**: Set `BREVO_WEBHOOK_SECRET` env var for request authentication.
 - 19 new backend tests (webhook service + API endpoint).
