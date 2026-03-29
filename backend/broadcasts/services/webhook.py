@@ -38,10 +38,11 @@ def process_brevo_event(event: dict) -> bool:
     # Strip angle brackets if present (Brevo sometimes wraps in < >)
     message_id = message_id.strip("<>")
 
+    # Match with or without angle brackets (sender stores with <>, webhook sends without)
     recipient = (
         BroadcastRecipient.objects
         .select_related("subscriber")
-        .filter(brevo_message_id=message_id)
+        .filter(brevo_message_id__in=[message_id, f"<{message_id}>"])
         .first()
     )
 

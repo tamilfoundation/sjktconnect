@@ -264,7 +264,7 @@ def _send_single_email(api_key, to_email, to_name, subject, html_content,
 
         recipient.status = BroadcastRecipient.DeliveryStatus.SENT
         recipient.sent_at = timezone.now()
-        recipient.brevo_message_id = data.get("messageId", "")
+        recipient.brevo_message_id = data.get("messageId", "").strip("<>")
         recipient.save(update_fields=["status", "sent_at", "brevo_message_id"])
 
         logger.info("Broadcast email sent to %s", to_email)
