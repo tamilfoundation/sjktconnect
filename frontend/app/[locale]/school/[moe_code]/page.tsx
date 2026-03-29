@@ -23,6 +23,7 @@ import SchoolHistory from "@/components/SchoolHistory";
 import SupportSchoolCard from "@/components/SupportSchoolCard";
 import { Link } from "@/i18n/navigation";
 
+export const revalidate = false;
 
 interface PageProps {
   params: { moe_code: string };

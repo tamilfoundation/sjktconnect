@@ -10,6 +10,8 @@ import BoundaryMap from "@/components/BoundaryMap";
 import { Link } from "@/i18n/navigation";
 import { buildAlternates } from "@/lib/seo";
 
+export const revalidate = false;
+
 interface PageProps {
   params: { id: string };
 }

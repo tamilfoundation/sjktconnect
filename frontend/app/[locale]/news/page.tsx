@@ -4,6 +4,8 @@ import { fetchNews } from "@/lib/api";
 import NewsList from "@/components/NewsList";
 import { buildAlternates } from "@/lib/seo";
 
+export const revalidate = false;
+
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("news");
   return {
