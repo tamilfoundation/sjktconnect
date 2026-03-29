@@ -5,8 +5,6 @@ import { fetchBriefs } from "@/lib/api";
 import BriefsList from "@/components/BriefsList";
 import { buildAlternates } from "@/lib/seo";
 
-export const revalidate = 3600;
-
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("parliamentWatch");
   return {

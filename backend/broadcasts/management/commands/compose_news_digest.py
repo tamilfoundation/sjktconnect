@@ -5,10 +5,12 @@ Fetches recent approved news articles, generates an Economist-style editorial
 digest via Gemini, renders it into an HTML email, and creates a DRAFT Broadcast
 for admin review.
 
+Automatically picks up where the last digest left off — no gaps, no overlaps.
+
 Usage:
     python manage.py compose_news_digest
-    python manage.py compose_news_digest --days 7
     python manage.py compose_news_digest --dry-run
+    python manage.py compose_news_digest --auto-send --batch-size 250
 """
 
 import os
@@ -30,12 +32,6 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--days",
-            type=int,
-            default=14,
-            help="Number of days to look back for articles (default: 14)",
-        )
-        parser.add_argument(
             "--dry-run",
             action="store_true",
             help="Print what would be generated without creating a broadcast",
@@ -52,26 +48,46 @@ class Command(BaseCommand):
             help="Max emails per batch (0 = send all). Use resume_sending to continue.",
         )
 
+    def _get_since_date(self):
+        """Find when the last news digest was created, or fall back to 14 days."""
+        last_digest = (
+            Broadcast.objects.filter(
+                audience_filter__category="NEWS_WATCH",
+            )
+            .exclude(status=Broadcast.Status.FAILED)
+            .order_by("-created_at")
+            .values_list("created_at", flat=True)
+            .first()
+        )
+        if last_digest:
+            return last_digest
+        return timezone.now() - timedelta(days=14)
+
     def handle(self, *args, **options):
-        days = options["days"]
         dry_run = options["dry_run"]
 
-        digest = generate_news_digest(days=days)
+        since = self._get_since_date()
+        days_back = (timezone.now() - since).days or 1
+
+        digest = generate_news_digest(since=since)
         if digest is None:
             self.stdout.write(
                 self.style.WARNING(
-                    "No digest generated — either no approved articles in the "
-                    f"past {days} days, or GEMINI_API_KEY is not set."
+                    "No digest generated — either no approved articles since "
+                    f"{since.strftime('%d %b %Y')}, or GEMINI_API_KEY is not set."
                 )
             )
             return
 
-        # Compute period label
+        # Compute period label from actual date range
+        start_date = since.date()
         end_date = timezone.now().date()
-        start_date = end_date - timedelta(days=days)
         period_label = (
             f"{start_date.day} {start_date.strftime('%b %Y')} \u2013 "
             f"{end_date.day} {end_date.strftime('%b %Y')}"
+        )
+        self.stdout.write(
+            f"Coverage: {start_date} to {end_date} ({days_back} days)"
         )
 
         if dry_run:

@@ -6,13 +6,13 @@ const LOCALES = ["en", "ta", "ms"];
 /**
  * Dynamic XML sitemap with hreflang alternates for all public pages.
  *
+ * Each path generates one <url> entry per locale (en, ta, ms), each with
+ * xhtml:link alternates pointing to all three versions.
+ *
  * Covers:
  * - Static pages (about, news, constituencies, etc.)
  * - Dynamic school pages (528 schools)
  * - Dynamic constituency pages
- *
- * Google will use this + the <link rel="alternate"> tags in HTML
- * to resolve the "Duplicate without user-selected canonical" issue.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const apiBase =
@@ -40,20 +40,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/cookies",
   ];
 
-  const staticEntries: MetadataRoute.Sitemap = staticPaths.map((path) => ({
-    url: `${BASE_URL}/en${path === "/" ? "" : path}`,
-    lastModified: new Date(),
-    changeFrequency: path === "/news" ? "daily" : "weekly",
-    priority: path === "/" ? 1.0 : 0.7,
-    alternates: {
-      languages: Object.fromEntries(
-        LOCALES.map((locale) => [
-          locale,
-          `${BASE_URL}/${locale}${path === "/" ? "" : path}`,
-        ])
-      ),
-    },
-  }));
+  const staticEntries = staticPaths.flatMap((path) =>
+    buildLocaleEntries(path, path === "/news" ? "daily" : "weekly", path === "/" ? 1.0 : 0.7)
+  );
 
   // Dynamic school pages
   let schoolEntries: MetadataRoute.Sitemap = [];
@@ -61,50 +50,53 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const res = await fetch(`${apiBase}/api/v1/schools/map/`);
     if (res.ok) {
       const schools: { moe_code: string }[] = await res.json();
-      schoolEntries = schools.map((s) => ({
-        url: `${BASE_URL}/en/school/${s.moe_code}`,
-        lastModified: new Date(),
-        changeFrequency: "monthly" as const,
-        priority: 0.8,
-        alternates: {
-          languages: Object.fromEntries(
-            LOCALES.map((locale) => [
-              locale,
-              `${BASE_URL}/${locale}/school/${s.moe_code}`,
-            ])
-          ),
-        },
-      }));
+      schoolEntries = schools.flatMap((s) =>
+        buildLocaleEntries(`/school/${s.moe_code}`, "monthly", 0.8)
+      );
     }
   } catch {
     // API unavailable during build — skip dynamic entries
   }
 
-  // Dynamic constituency pages
+  // Dynamic constituency pages (paginated — ~222 constituencies across multiple pages)
   let constituencyEntries: MetadataRoute.Sitemap = [];
   try {
-    const res = await fetch(`${apiBase}/api/v1/constituencies/`);
-    if (res.ok) {
+    const allConstituencies: { code: string }[] = [];
+    let url: string | null = `${apiBase}/api/v1/constituencies/`;
+    while (url) {
+      const res = await fetch(url);
+      if (!res.ok) break;
       const data = await res.json();
-      const constituencies: { code: string }[] = data.results || data;
-      constituencyEntries = constituencies.map((c) => ({
-        url: `${BASE_URL}/en/constituency/${c.code}`,
-        lastModified: new Date(),
-        changeFrequency: "monthly" as const,
-        priority: 0.7,
-        alternates: {
-          languages: Object.fromEntries(
-            LOCALES.map((locale) => [
-              locale,
-              `${BASE_URL}/${locale}/constituency/${c.code}`,
-            ])
-          ),
-        },
-      }));
+      const results: { code: string }[] = data.results || data;
+      allConstituencies.push(...results);
+      url = data.next || null;
     }
+    constituencyEntries = allConstituencies.flatMap((c) =>
+      buildLocaleEntries(`/constituency/${c.code}`, "monthly", 0.7)
+    );
   } catch {
     // API unavailable during build
   }
 
   return [...staticEntries, ...schoolEntries, ...constituencyEntries];
+}
+
+/** Build one <url> entry per locale for a given path, with cross-locale alternates. */
+function buildLocaleEntries(
+  path: string,
+  changeFrequency: "daily" | "weekly" | "monthly",
+  priority: number,
+): MetadataRoute.Sitemap {
+  const suffix = path === "/" ? "" : path;
+  return LOCALES.map((locale) => ({
+    url: `${BASE_URL}/${locale}${suffix}`,
+    lastModified: new Date(),
+    changeFrequency,
+    priority,
+    alternates: {
+      languages: Object.fromEntries(
+        LOCALES.map((l) => [l, `${BASE_URL}/${l}${suffix}`])
+      ),
+    },
+  }));
 }

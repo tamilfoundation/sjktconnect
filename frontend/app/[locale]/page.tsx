@@ -3,7 +3,6 @@ import NationalStats from "@/components/NationalStats";
 import SchoolMap from "@/components/SchoolMap";
 import { fetchMapSchools, fetchNationalStats } from "@/lib/api";
 
-export const revalidate = 86400; // 24 hours — school data rarely changes
 
 export default async function HomePage() {
   let stats = null;

@@ -14,7 +14,7 @@
 <h2 style="color:#2c3e50;font-size:18px;margin:0 0 12px 0;">The Big Story</h2>
 <div style="background:#f8f9fa;border-left:3px solid #e74c3c;padding:14px 16px;margin-bottom:24px;border-radius:0 4px 4px 0;">
     <p style="margin:0 0 6px 0;font-weight:bold;font-size:16px;">
-        <a href="{{ big_story.url }}" style="color:#1a1a2e;text-decoration:none;">{{ big_story.title }}</a>
+        <a href="{{ big_story.url }}" style="color:#1a56a8;text-decoration:underline;">{{ big_story.title }}</a>
     </p>
     <p style="margin:0 0 10px 0;font-size:13px;color:#888;">{{ big_story.source }}</p>
     <p style="margin:0 0 12px 0;color:#333;font-size:14px;line-height:1.6;">{{ big_story.summary }}</p>
@@ -30,10 +30,12 @@
 <h2 style="color:#2c3e50;font-size:18px;margin:0 0 12px 0;">In Brief</h2>
 {% for item in in_brief %}
 <div style="padding:10px 0;border-bottom:1px solid #eee;">
-    <p style="margin:0 0 4px 0;">
+    <p style="margin:0 0 6px 0;">
         {% if item.sentiment == "positive" %}<span style="display:inline-block;background:#27ae60;color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;margin-right:6px;text-transform:uppercase;font-weight:bold;">Positive</span>{% elif item.sentiment == "negative" %}<span style="display:inline-block;background:#e74c3c;color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;margin-right:6px;text-transform:uppercase;font-weight:bold;">Concerning</span>{% elif item.sentiment == "mixed" %}<span style="display:inline-block;background:#f39c12;color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;margin-right:6px;text-transform:uppercase;font-weight:bold;">Mixed</span>{% else %}<span style="display:inline-block;background:#95a5a6;color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;margin-right:6px;text-transform:uppercase;font-weight:bold;">Neutral</span>{% endif %}
-        <a href="{{ item.url }}" style="color:#1a1a2e;text-decoration:none;font-weight:bold;font-size:14px;">{{ item.title }}</a>
-        <span style="color:#888;font-size:12px;">&mdash; {{ item.source }}</span>
+        <span style="color:#888;font-size:12px;">{{ item.source }}</span>
+    </p>
+    <p style="margin:0 0 4px 0;">
+        <a href="{{ item.url }}" style="color:#1a56a8;text-decoration:underline;font-weight:bold;font-size:14px;">{{ item.title }}</a>
     </p>
     <p style="margin:4px 0 0 0;color:#333;font-size:14px;line-height:1.5;">{{ item.one_liner }}</p>
 </div>

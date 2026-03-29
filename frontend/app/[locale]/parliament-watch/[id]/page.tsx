@@ -6,8 +6,6 @@ import { fetchMeetingReport, fetchMeetingReports } from "@/lib/api";
 import ReportShareBar from "@/components/ReportShareBar";
 import { buildAlternates } from "@/lib/seo";
 
-export const revalidate = 3600;
-
 interface Props {
   params: Promise<{ id: string }>;
 }

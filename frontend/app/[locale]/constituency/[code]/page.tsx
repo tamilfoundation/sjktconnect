@@ -18,8 +18,6 @@ import ContactMPCard from "@/components/ContactMPCard";
 import { Link } from "@/i18n/navigation";
 import { buildAlternates } from "@/lib/seo";
 
-export const revalidate = 3600;
-
 interface PageProps {
   params: { code: string };
 }

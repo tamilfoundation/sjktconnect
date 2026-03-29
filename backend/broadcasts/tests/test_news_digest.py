@@ -61,7 +61,9 @@ class NewsDigestTest(TestCase):
         result = generate_news_digest()
         self.assertIsNone(result)
 
-    def test_custom_days_parameter(self):
-        """Only recent articles should be included."""
-        result = generate_news_digest(days=0)
+    def test_since_parameter_filters_articles(self):
+        """Only articles published after `since` should be included."""
+        from django.utils import timezone
+        # Set since to the future — no articles should match
+        result = generate_news_digest(since=timezone.now() + timedelta(days=1))
         self.assertIsNone(result)

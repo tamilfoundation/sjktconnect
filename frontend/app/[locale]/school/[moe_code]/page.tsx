@@ -23,8 +23,6 @@ import SchoolHistory from "@/components/SchoolHistory";
 import SupportSchoolCard from "@/components/SupportSchoolCard";
 import { Link } from "@/i18n/navigation";
 
-// ISR: revalidate every hour
-export const revalidate = 3600;
 
 interface PageProps {
   params: { moe_code: string };

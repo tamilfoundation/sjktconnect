@@ -78,17 +78,20 @@ Rules:
 """
 
 
-def generate_news_digest(days=14) -> dict | None:
+def generate_news_digest(since=None) -> dict | None:
     """Generate Economist-style editorial content from recent news articles.
 
     Args:
-        days: Number of days to look back for articles (default: 14).
+        since: datetime — only include articles published on or after this date.
+               Defaults to 14 days ago if not provided.
 
     Returns:
         dict with editors_note, big_story, in_brief, the_number, worth_knowing.
         None if no articles found, API key missing, or generation fails.
     """
-    since = timezone.now() - timedelta(days=days)
+    if since is None:
+        since = timezone.now() - timedelta(days=14)
+    days = (timezone.now() - since).days or 1
 
     articles = (
         NewsArticle.objects.filter(
