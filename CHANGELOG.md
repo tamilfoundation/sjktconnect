@@ -1,5 +1,18 @@
 # Changelog
 
+## Egress Fix — Supabase Egress Optimisation (2026-03-29)
+
+### Fixed
+- **`boundary_wkt` fetched and discarded on every API request**: Django ORM `select_related("constituency", "dun")` was fetching full rows including large WKT polygon data (5-8 KB per row) via PostgreSQL JOINs, then the serializer discarded it. Added `.defer("boundary_wkt")` to 6 non-GeoJSON views: `SchoolListView`, `SchoolDetailView`, `ConstituencyListView`, `ConstituencyDetailView`, `DUNListView`, `DUNDetailView`. Estimated ~85% reduction in Supabase egress (~1 GB/day eliminated).
+
+### Added
+- **Scraper bot IP blocking**: Next.js middleware blocks known scraper IPs (Chrome/91 bot at 88.216.210.27 was generating ~1,413 requests/day).
+- **robots.txt bot exclusions**: Blocked AhrefsBot, GPTBot, OAI-SearchBot, Amazonbot, and ClaudeBot — these generated ~95% of frontend traffic but provided no value.
+
+### Investigation
+- Full egress investigation report at `docs/egress-investigation-report.md`.
+- Root cause: 3 compounding factors — (1) ORM fetching unused boundary_wkt, (2) 95% bot traffic, (3) Next.js ISR cache broken on Cloud Run ephemeral containers.
+
 ## Sprint 8.6 — Email Quality & Spam Cleanup (2026-03-28)
 
 ### Fixed

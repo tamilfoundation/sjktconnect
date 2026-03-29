@@ -49,7 +49,7 @@ class SchoolListView(ListAPIView):
     serializer_class = SchoolListSerializer
 
     def get_queryset(self):
-        qs = School.objects.select_related("constituency", "dun").prefetch_related("images").filter(is_active=True)
+        qs = School.objects.select_related("constituency", "dun").prefetch_related("images").filter(is_active=True).defer("constituency__boundary_wkt", "dun__boundary_wkt")
         state = self.request.query_params.get("state")
         ppd = self.request.query_params.get("ppd")
         constituency = self.request.query_params.get("constituency")
@@ -91,7 +91,7 @@ class SchoolDetailView(RetrieveAPIView):
     """Retrieve a single school by MOE code."""
 
     serializer_class = SchoolDetailSerializer
-    queryset = School.objects.select_related("constituency", "dun").prefetch_related("leaders")
+    queryset = School.objects.select_related("constituency", "dun").prefetch_related("leaders").defer("constituency__boundary_wkt", "dun__boundary_wkt")
     lookup_field = "moe_code"
 
 
@@ -217,7 +217,7 @@ class ConstituencyListView(ListAPIView):
     serializer_class = ConstituencyListSerializer
 
     def get_queryset(self):
-        qs = Constituency.objects.annotate(
+        qs = Constituency.objects.defer("boundary_wkt").annotate(
             school_count=Count("schools", filter=Q(schools__is_active=True))
         ).order_by("code")
         state = self.request.query_params.get("state")
@@ -230,7 +230,7 @@ class ConstituencyDetailView(RetrieveAPIView):
     """Retrieve a single constituency with nested schools and scorecard."""
 
     serializer_class = ConstituencyDetailSerializer
-    queryset = Constituency.objects.prefetch_related(
+    queryset = Constituency.objects.defer("boundary_wkt").prefetch_related(
         "schools", "scorecards",
     )
     lookup_field = "code"
@@ -248,7 +248,7 @@ class DUNListView(ListAPIView):
     serializer_class = DUNListSerializer
 
     def get_queryset(self):
-        qs = DUN.objects.select_related("constituency")
+        qs = DUN.objects.select_related("constituency").defer("boundary_wkt", "constituency__boundary_wkt")
         state = self.request.query_params.get("state")
         constituency = self.request.query_params.get("constituency")
         if state:
@@ -262,7 +262,7 @@ class DUNDetailView(RetrieveAPIView):
     """Retrieve a single DUN with nested schools."""
 
     serializer_class = DUNDetailSerializer
-    queryset = DUN.objects.select_related("constituency").prefetch_related("schools")
+    queryset = DUN.objects.select_related("constituency").prefetch_related("schools").defer("boundary_wkt", "constituency__boundary_wkt")
 
 
 # --- Search API ---
