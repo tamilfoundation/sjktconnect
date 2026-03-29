@@ -179,6 +179,7 @@ def _send_pending_recipients(broadcast, api_key, frontend_url, batch_size=0):
         broadcast.recipients.filter(
             status=BroadcastRecipient.DeliveryStatus.PENDING
         ).select_related("subscriber")
+        .order_by("subscriber__created_at")
     )
     if batch_size > 0:
         recipients = recipients[:batch_size]
