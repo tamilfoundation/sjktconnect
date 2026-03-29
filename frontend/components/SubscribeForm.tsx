@@ -10,6 +10,7 @@ export default function SubscribeForm() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [organisation, setOrganisation] = useState("");
+  const [website, setWebsite] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -39,7 +40,7 @@ export default function SubscribeForm() {
     setLoading(true);
 
     try {
-      const result = await subscribe({ email, name, organisation });
+      const result = await subscribe({ email, name, organisation, website });
       setIsNew(result.is_new);
       setSuccess(true);
     } catch (err) {
@@ -78,6 +79,17 @@ export default function SubscribeForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Honeypot — hidden from humans, bots fill it */}
+      <div aria-hidden="true" style={{ position: "absolute", left: "-9999px" }}>
+        <input
+          name="website"
+          tabIndex={-1}
+          autoComplete="off"
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
+        />
+      </div>
+
       <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
         {t("socialProof")}
       </p>

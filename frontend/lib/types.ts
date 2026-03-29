@@ -263,6 +263,7 @@ export interface SubscribeRequest {
   email: string;
   name?: string;
   organisation?: string;
+  website?: string;
 }
 
 export interface SubscriberResponse {

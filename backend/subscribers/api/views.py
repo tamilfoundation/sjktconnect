@@ -29,6 +29,13 @@ class SubscribeView(APIView):
     permission_classes = []
 
     def post(self, request):
+        # Honeypot: bots fill hidden fields, humans don't
+        if request.data.get("website", "").strip():
+            return Response(
+                {"email": "subscriber@example.com", "name": "", "organisation": ""},
+                status=status.HTTP_201_CREATED,
+            )
+
         serializer = SubscribeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
