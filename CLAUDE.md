@@ -11,8 +11,8 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 8 (Community Features) + Email Infrastructure. Sprint 8.6 done.
-- **Last Sprint**: 8.6 — Email Quality & Spam Cleanup (2026-03-28)
+- **Current Phase**: Phase 8 (Community Features) + Email Infrastructure. Egress Fix done.
+- **Last Sprint**: Egress Fix — Supabase Egress Optimisation (2026-03-29)
 - **Tests**: ~1382 (1092 backend + 290 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
@@ -241,6 +241,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 8.4 | Done | SEO Improvements: hreflang alternate links + canonical URLs on all 22 pages (fixing 69 GSC duplicates), dynamic sitemap.xml with locale alternates (static + 528 schools + constituencies), robots.txt, richer school meta titles ("SJK(T) Name | 450 Students, Grade A | Selangor"), richer constituency meta titles, lib/seo.ts helper with buildAlternates(). Frontend-only, no backend changes. 1363 tests (unchanged). |
 | 8.5 | Done | Brevo Webhook Integration: webhook endpoint at /api/v1/webhooks/brevo/ for delivery tracking (delivered, opened, clicked, hard/soft bounce, spam, unsubscribed). Engagement fields on BroadcastRecipient (open_count, click_count, timestamps). Auto-deactivate subscribers after 3 hard bounces. Optional HMAC verification. 19 new backend tests. 1382 tests total. |
 | 8.6 | Done | Email Quality & Spam Cleanup: fixed hero image bytes dumped into email HTML (compose_news_digest + compose_parliament_watch), contact form honeypot anti-spam, hard bounce threshold reduced to 1, purged 37 spam + deactivated 44 hard-bounced subscribers. 1382 tests total. |
+| Egress Fix | Done | Supabase Egress Optimisation: `.defer("boundary_wkt")` on 6 views (~85% egress reduction), middleware IP blocking (Chrome/91 scraper), robots.txt bot exclusions (AhrefsBot, GPTBot, OAI-SearchBot, Amazonbot, ClaudeBot), Cloud Run `minScale=1`. Investigation report at `docs/egress-investigation-report.md`. 1382 tests (unchanged). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -258,18 +259,20 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Current state**: Sprint 8.6 (Email Quality & Spam Cleanup) complete. 1092 backend + 290 frontend = 1382 tests. 370 active subscribers (37 spam deleted, 44 hard-bounced deactivated). Hero image fix + honeypot + bounce threshold committed, needs deploy.
+**Current state**: Egress Fix deployed (2026-03-29). Backend rev `sjktconnect-api-00087` (.defer on 6 views), frontend rev `sjktconnect-web-00078` (bot blocking + robots.txt + minScale=1). 1092 backend + 290 frontend = 1382 tests. Baseline egress: ~1.9 GB/day. Expected post-fix: <100 MB/day.
 
-**Immediate (post-deploy)**:
-1. Deploy backend (hero image fix, honeypot, bounce threshold)
-2. Deploy frontend (honeypot field on contact form)
-3. Send welcome email batch 2 (~110 remaining bulk-imported subscribers) — `send_welcome_email`
-4. Send fresh News Watch digest to all subscribers — `compose_news_digest --auto-send`
+**Immediate (30 March)**:
+1. **CHECK SUPABASE DASHBOARD** — compare egress for 30 March against 1.9 GB/day baseline from 27-29 March
+2. If egress didn't drop: verify `.defer()` is active in deployed revision, check for other egress sources
+3. Send fresh News Watch digest — `sjktconnect-news-digest` Cloud Run job
+4. Send welcome email batch 2 (~110 remaining bulk-imported subscribers) — `send_welcome_email`
 
 **Pending**:
-1. Test suggestion workflow end-to-end on tamilschool.org (Sprint 8.2 features deployed)
-2. Monitor Brevo webhook data after next broadcast — verify delivery/open/click tracking
-3. Monitor Google Search Console for hreflang/canonical pickup (allow 1-2 weeks for re-crawl)
+1. Fix pre-existing test: `broadcasts/tests/test_webhook.py::test_hard_bounce_event` (expects old bounce threshold=3, code uses 1)
+2. Test suggestion workflow end-to-end on tamilschool.org (Sprint 8.2 features deployed)
+3. Monitor Brevo webhook data after next broadcast — verify delivery/open/click tracking
+4. Monitor Google Search Console for hreflang/canonical pickup (allow 1-2 weeks for re-crawl)
+5. Google Search Console: manually set Googlebot crawl rate (Googlebot doesn't respect Crawl-delay in robots.txt)
 
 **Future work**:
 - **Email engagement dashboard** — query open/click rates per broadcast, identify disengaged subscribers

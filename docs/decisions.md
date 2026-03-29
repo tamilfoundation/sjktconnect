@@ -29,3 +29,18 @@
 **Trade-offs:** Multiple opens/clicks only store first timestamp + count (no per-event log). Sufficient for current needs (open rate, click rate, bounce detection).
 
 **Revisit if:** We need per-event analytics (e.g. which link was clicked, time-series open patterns), or if webhook volume becomes significant enough to warrant async processing (queue).
+
+## `.defer("boundary_wkt")` over `.only()` for Egress Reduction — Egress Fix, 2026-03-29
+
+**Decision:** Use `.defer("boundary_wkt")` on 6 non-GeoJSON views to exclude large WKT polygon fields from SQL SELECT, rather than switching to `.only()` with explicit field lists.
+
+**Alternatives considered:**
+1. `.only()` with explicit field lists — more surgical but brittle (breaks when fields are added to models)
+2. Separate lightweight model/proxy for list views — over-engineered for this use case
+3. Raw SQL with explicit SELECT — loses ORM benefits, harder to maintain
+
+**Rationale:** `.defer()` is additive exclusion — it says "fetch everything except these fields". This is safer for evolving models because new fields are automatically included. The GeoJSON endpoints that need `boundary_wkt` use `.only()` with explicit field lists and were not touched.
+
+**Trade-offs:** If code later accesses a deferred field, Django issues a separate query per instance (N+1 risk). Mitigated by the fact that no serializer or `__str__` method uses `boundary_wkt`.
+
+**Revisit if:** A new serializer or view needs `boundary_wkt` alongside other data — they'd need to explicitly un-defer it or use a separate queryset.
