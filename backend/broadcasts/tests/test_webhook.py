@@ -103,7 +103,7 @@ class TestProcessBrevoEvent:
         assert recipient.bounce_type == BroadcastRecipient.BounceType.HARD
         subscriber.refresh_from_db()
         assert subscriber.bounce_count == 1
-        assert subscriber.is_active is True  # Not yet at threshold
+        assert subscriber.is_active is False  # Threshold is 1 — deactivated immediately
 
     def test_soft_bounce_event(self, recipient, subscriber):
         result = process_brevo_event({

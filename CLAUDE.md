@@ -259,20 +259,15 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Current state**: Egress Fix deployed (2026-03-29). Backend rev `sjktconnect-api-00087` (.defer on 6 views), frontend rev `sjktconnect-web-00078` (bot blocking + robots.txt + minScale=1). 1092 backend + 290 frontend = 1382 tests. Baseline egress: ~1.9 GB/day. Expected post-fix: <100 MB/day.
-
-**Immediate (30 March)**:
-1. **CHECK SUPABASE DASHBOARD** — compare egress for 30 March against 1.9 GB/day baseline from 27-29 March
-2. If egress didn't drop: verify `.defer()` is active in deployed revision, check for other egress sources
-3. Send fresh News Watch digest — `sjktconnect-news-digest` Cloud Run job
-4. Send welcome email batch 2 (~110 remaining bulk-imported subscribers) — `send_welcome_email`
+**Current state**: Backend rev `sjktconnect-api-00088` (cooldown guard + since fix + .defer), frontend rev `sjktconnect-web-00078`. All 6 Cloud Run jobs updated to rev 00088 image. Cron fixed to `0 9 * * 1` (every Monday, 7-day cooldown guard in command). 1092 backend + 290 frontend = 1382 tests.
 
 **Pending**:
-1. Fix pre-existing test: `broadcasts/tests/test_webhook.py::test_hard_bounce_event` (expects old bounce threshold=3, code uses 1)
-2. Test suggestion workflow end-to-end on tamilschool.org (Sprint 8.2 features deployed)
-3. Monitor Brevo webhook data after next broadcast — verify delivery/open/click tracking
-4. Monitor Google Search Console for hreflang/canonical pickup (allow 1-2 weeks for re-crawl)
-5. Google Search Console: manually set Googlebot crawl rate (Googlebot doesn't respect Crawl-delay in robots.txt)
+1. Test suggestion workflow end-to-end on tamilschool.org (Sprint 8.2 features deployed)
+2. Monitor Brevo webhook data after next broadcast — verify delivery/open/click tracking
+3. Monitor Google Search Console for hreflang/canonical pickup (allow 1-2 weeks for re-crawl)
+4. Google Search Console: manually set Googlebot crawl rate (Googlebot doesn't respect Crawl-delay in robots.txt)
+5. Monitor Supabase egress — compare against 1.9 GB/day baseline
+6. Send welcome email batch 2 (~110 remaining bulk-imported subscribers) — `send_welcome_email`
 
 **Future work**:
 - **Email engagement dashboard** — query open/click rates per broadcast, identify disengaged subscribers

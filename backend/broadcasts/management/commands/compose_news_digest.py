@@ -63,8 +63,28 @@ class Command(BaseCommand):
             return last_digest
         return timezone.now() - timedelta(days=14)
 
+    def _should_skip(self):
+        """Skip if a digest was already sent in the last 7 days (safety net)."""
+        recent = (
+            Broadcast.objects.filter(
+                audience_filter__category="NEWS_WATCH",
+                status__in=[Broadcast.Status.SENT, Broadcast.Status.DRAFT],
+                created_at__gte=timezone.now() - timedelta(days=7),
+            )
+            .exists()
+        )
+        return recent
+
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
+
+        if not dry_run and self._should_skip():
+            self.stdout.write(
+                self.style.WARNING(
+                    "Skipping — a news digest was already created in the last 7 days."
+                )
+            )
+            return
 
         since = self._get_since_date()
         days_back = (timezone.now() - since).days or 1
