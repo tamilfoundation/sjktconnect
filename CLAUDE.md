@@ -259,15 +259,26 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Current state**: Backend rev `sjktconnect-api-00088` (cooldown guard + since fix + .defer), frontend rev `sjktconnect-web-00078`. All 6 Cloud Run jobs updated to rev 00088 image. Cron fixed to `0 9 * * 1` (every Monday, 7-day cooldown guard in command). 1092 backend + 290 frontend = 1382 tests.
+**Current state**: News Digest & Urgent Alert Fix in progress on `fix/news-digest-urgent-alert` branch. Backend rev `sjktconnect-api-00088` in prod (awaiting new deploy). Frontend rev `sjktconnect-web-00078`. 1092+ backend + 290 frontend tests.
 
-**Pending**:
-1. Test suggestion workflow end-to-end on tamilschool.org (Sprint 8.2 features deployed)
-2. Monitor Brevo webhook data after next broadcast — verify delivery/open/click tracking
-3. Monitor Google Search Console for hreflang/canonical pickup (allow 1-2 weeks for re-crawl)
-4. Google Search Console: manually set Googlebot crawl rate (Googlebot doesn't respect Crawl-delay in robots.txt)
-5. Monitor Supabase egress — compare against 1.9 GB/day baseline
-6. Send welcome email batch 2 (~110 remaining bulk-imported subscribers) — `send_welcome_email`
+**In-flight fix** (2026-04-21 → 2026-04-22):
+- Added `Broadcast.kind` + `coverage_start_date` + `coverage_end_date` (migration 0006, backfilled)
+- Digest cadence filters by `kind=NEWS_DIGEST` (urgent alerts no longer poison cooldown)
+- `_get_since_date` uses `coverage_end + 1 day` (fixed off-by-one)
+- Urgency classifier prompt rewritten with two-gate decision + 9 examples
+- Second-pass verification downgrades false-positive urgent flags
+- Dormant `URGENT_ALERT_REQUIRE_REVIEW` flag (default false)
+- Next digest: **Mon 4 May 2026**, covers **21 Apr – 4 May**
+
+**Pending (after fix deploy)**:
+1. Deploy backend + update all 6 Cloud Run jobs
+2. Run `clear_stale_urgent_flags --dry-run` on prod, then apply
+3. Test suggestion workflow end-to-end on tamilschool.org (Sprint 8.2 features deployed)
+4. Monitor Brevo webhook data after next broadcast — verify delivery/open/click tracking
+5. Monitor Google Search Console for hreflang/canonical pickup (allow 1-2 weeks for re-crawl)
+6. Google Search Console: manually set Googlebot crawl rate (Googlebot doesn't respect Crawl-delay in robots.txt)
+7. Monitor Supabase egress — compare against 1.9 GB/day baseline
+8. Send welcome email batch 2 (~110 remaining bulk-imported subscribers) — `send_welcome_email`
 
 **Future work**:
 - **Email engagement dashboard** — query open/click rates per broadcast, identify disengaged subscribers

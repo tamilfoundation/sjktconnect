@@ -53,16 +53,58 @@ Analyse the article and return a JSON object with these fields:
   - moe_code: MOE code if identifiable (string, or "" if unknown)
   Keep empty array [] if no specific Tamil schools are named.
 
-- is_urgent: Boolean. True ONLY for genuine crises that demand immediate
-  community action. Most articles are NOT urgent. Set true ONLY if:
-  - A specific Tamil school has been CONFIRMED closing or merging (not declining enrolment trends)
-  - An active safety emergency at a school (building collapse, flood damage, fire — not planned repairs or infrastructure upgrades)
-  - A confirmed government policy that IMMEDIATELY threatens Tamil school operations (not general education policy changes)
-  Do NOT flag as urgent: declining enrolment trends, road safety improvements,
-  heat policy announcements, dilapidated building repair approvals (these are
-  positive news), award controversies, or general advocacy articles.
+- is_urgent: Boolean. Decide in TWO steps. Default to false.
 
-- urgent_reason: If is_urgent is true, one sentence explaining why.
+  STEP 1 — Does the article contain ANY of these three triggers?
+    (a) A specific named SJK(T) school confirmed closing or merging in
+        the next 30 days, announced in THIS article (not a trend, not a
+        historical reference).
+    (b) An active emergency at a named SJK(T) right now: building
+        collapse, fire, flood damage, mass illness, structural failure.
+        NOT planned repairs, announced rebuilds, or chronic conditions.
+    (c) A government decision announced in THIS article that will
+        terminate or restrict SJK(T) operations within 30 days.
+        Must be a binding restriction, NOT a permissive guideline,
+        NOT a general education policy, NOT a reiteration of an
+        existing policy.
+
+  If STEP 1 is "no" for all three, set is_urgent=false and stop here.
+
+  STEP 2 — If one of the triggers matched, answer both questions:
+    Q1: Does the Tamil community need to ACT in the next 7 days to
+        change or influence the outcome? If the decision is already
+        final and irreversible, the answer is NO — it's news, not
+        an alert.
+    Q2: Is the trigger the PRIMARY subject of the article, not a
+        passing mention, sidebar, or digression from the main topic?
+
+  Set is_urgent=true ONLY if BOTH Q1 and Q2 are "yes".
+
+  Examples that are NOT urgent (set is_urgent=false):
+  - "Heat closure policy permits HMs to shut schools when >37°C."
+    Permissive guideline — HMs gain autonomy, nothing needs to change.
+  - "SJK(T) Gopeng's 80-year-old building to be rebuilt under RM14.5M
+    project." The problem is being solved; this is good news.
+  - "SJK(T) X enrolment dropping for 5th consecutive year."
+    Chronic trend, not an event; no 7-day action window exists.
+  - "Deputy Minister visits SJK(T) Y and announces routine funding."
+    Routine visit, not an emergency.
+  - "Award controversy involving a Tamil school."
+    Advocacy topic, not a crisis requiring community action.
+  - "MoE announces general curriculum review affecting all schools."
+    General policy, not SJK(T)-specific restriction.
+
+  Examples that ARE urgent (set is_urgent=true):
+  - "SJK(T) X will close on 1 June; parents have until 15 May to
+    appeal." Named school, 30-day window, actionable deadline,
+    primary subject.
+  - "SJK(T) Y roof collapsed overnight; 200 students displaced."
+    Active emergency, named school, primary subject.
+  - "Parliament to vote next Tuesday on bill restricting SJK(T)
+    funding." Imminent binding decision, 7-day action window.
+
+- urgent_reason: If is_urgent is true, one sentence explaining which
+  trigger (a/b/c) matched and why the 7-day action window applies.
   Empty string if not urgent.
 
 Return ONLY valid JSON, no markdown fences, no extra text.
@@ -72,6 +114,38 @@ Title: {title}
 
 {body}
 --- END ARTICLE ---
+"""
+
+VERIFY_URGENT_PROMPT = """\
+You are a strict editorial reviewer checking whether an alert should be
+sent to 300+ Tamil school community subscribers as URGENT.
+
+A previous analysis flagged this article as urgent. Your job is to
+double-check. Err on the side of NOT urgent. The urgent classification
+should be rare — roughly one article per month.
+
+Article title: {title}
+
+Article summary: {summary}
+
+Reason given for urgency: {reason}
+
+An alert is URGENT only if ALL of the following are true:
+1. A specific named SJK(T) school is involved (not Tamil schools in general).
+2. There is an active emergency, confirmed imminent closure, or binding
+   government restriction taking effect within 30 days.
+3. The community can still influence the outcome by acting within 7 days.
+4. This is the primary subject of the article, not a passing mention.
+
+If ANY of the four is not clearly true, the alert is NOT urgent.
+
+Return a JSON object:
+{{
+  "confirmed": boolean,
+  "reason": "one-sentence explanation of your verdict"
+}}
+
+Return ONLY valid JSON. No markdown fences.
 """
 
 
@@ -135,6 +209,70 @@ def _validate_response(data):
     return result
 
 
+def _verify_urgency(client, article, analysis):
+    """Second-pass check that confirms urgent classification.
+
+    When the first pass sets is_urgent=True, send a narrow verification
+    prompt to a fresh Gemini call. If the verifier disagrees, downgrade
+    is_urgent to False and blank urgent_reason. The original reason and
+    verifier verdict are captured in analysis["raw_response"] for audit.
+
+    Args:
+        client: genai.Client instance.
+        article: NewsArticle instance.
+        analysis: validated analysis dict from _validate_response.
+
+    Returns:
+        The analysis dict, possibly with is_urgent downgraded.
+    """
+    if not analysis["is_urgent"]:
+        return analysis
+
+    prompt = VERIFY_URGENT_PROMPT.format(
+        title=article.title,
+        summary=analysis["summary"] or "(no summary)",
+        reason=analysis["urgent_reason"] or "(no reason given)",
+    )
+
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.0,
+            ),
+        )
+        verdict = json.loads(response.text.strip())
+    except Exception:
+        logger.exception(
+            "Urgency verification call failed for article %s — keeping first-pass verdict",
+            article.pk,
+        )
+        return analysis
+
+    confirmed = bool(verdict.get("confirmed", False))
+    verify_reason = str(verdict.get("reason", "")).strip()
+
+    # Attach audit trail regardless of outcome
+    raw = analysis.setdefault("raw_response", {})
+    raw["urgent_verification"] = {
+        "confirmed": confirmed,
+        "reason": verify_reason,
+        "first_pass_reason": analysis["urgent_reason"],
+    }
+
+    if not confirmed:
+        logger.info(
+            "Article %s urgency downgraded. First-pass: %s. Verifier: %s",
+            article.pk, analysis["urgent_reason"], verify_reason,
+        )
+        analysis["is_urgent"] = False
+        analysis["urgent_reason"] = ""
+
+    return analysis
+
+
 def analyse_article(article):
     """Analyse a single NewsArticle using Gemini Flash.
 
@@ -177,6 +315,7 @@ def analyse_article(article):
 
     result = _validate_response(data)
     result["raw_response"] = data
+    result = _verify_urgency(client, article, result)
     return result
 
 

@@ -14,7 +14,7 @@ Usage:
 """
 
 import os
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 from django.core.management.base import BaseCommand
 from django.template.loader import render_to_string
@@ -49,31 +49,40 @@ class Command(BaseCommand):
         )
 
     def _get_since_date(self):
-        """Find when the last news digest was created, or fall back to 14 days."""
-        last_digest = (
+        """Return the day after the previous digest's coverage ended.
+
+        Filters by kind=NEWS_DIGEST so urgent alerts (which also target the
+        NEWS_WATCH audience) don't poison the coverage window.
+        """
+        last_end = (
             Broadcast.objects.filter(
-                audience_filter__category="NEWS_WATCH",
+                kind=Broadcast.Kind.NEWS_DIGEST,
+                coverage_end_date__isnull=False,
             )
             .exclude(status=Broadcast.Status.FAILED)
-            .order_by("-created_at")
-            .values_list("created_at", flat=True)
+            .order_by("-coverage_end_date")
+            .values_list("coverage_end_date", flat=True)
             .first()
         )
-        if last_digest:
-            return last_digest
+        if last_end:
+            next_start = last_end + timedelta(days=1)
+            return timezone.make_aware(datetime.combine(next_start, time.min))
         return timezone.now() - timedelta(days=14)
 
     def _should_skip(self):
-        """Skip if a digest was already sent in the last 7 days (safety net)."""
-        recent = (
-            Broadcast.objects.filter(
-                audience_filter__category="NEWS_WATCH",
-                status__in=[Broadcast.Status.SENT, Broadcast.Status.DRAFT],
-                created_at__gte=timezone.now() - timedelta(days=7),
-            )
-            .exists()
-        )
-        return recent
+        """Skip if another digest was already created in the last 7 days.
+
+        Filtered to kind=NEWS_DIGEST so urgent alerts don't suppress digests.
+        """
+        return Broadcast.objects.filter(
+            kind=Broadcast.Kind.NEWS_DIGEST,
+            status__in=[
+                Broadcast.Status.SENT,
+                Broadcast.Status.SENDING,
+                Broadcast.Status.DRAFT,
+            ],
+            created_at__gte=timezone.now() - timedelta(days=7),
+        ).exists()
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
@@ -153,6 +162,9 @@ class Command(BaseCommand):
             html_content=html_content,
             text_content=text_content,
             audience_filter={"category": "NEWS_WATCH"},
+            kind=Broadcast.Kind.NEWS_DIGEST,
+            coverage_start_date=start_date,
+            coverage_end_date=end_date,
             status=Broadcast.Status.DRAFT,
         )
 

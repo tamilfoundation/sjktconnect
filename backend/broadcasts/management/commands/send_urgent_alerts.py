@@ -9,6 +9,7 @@ Usage:
     python manage.py send_urgent_alerts --dry-run
 """
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -117,8 +118,19 @@ class Command(BaseCommand):
                     "category": "NEWS_WATCH",
                     "subscribed_before": article.created_at.isoformat(),
                 },
+                kind=Broadcast.Kind.URGENT_ALERT,
                 status=Broadcast.Status.DRAFT,
             )
+
+            if settings.URGENT_ALERT_REQUIRE_REVIEW:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"  Broadcast {broadcast.pk} created as DRAFT for review. "
+                        f"URGENT_ALERT_REQUIRE_REVIEW=true is set. "
+                        f"Approve via admin to send."
+                    )
+                )
+                continue
 
             send_broadcast(broadcast.pk)
             self.stdout.write(

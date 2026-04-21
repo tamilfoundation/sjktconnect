@@ -96,6 +96,7 @@ class Command(BaseCommand):
             html_content=html_content,
             text_content=text_content,
             audience_filter={"category": "NEWS_WATCH"},
+            kind=Broadcast.Kind.URGENT_ALERT,
             status=Broadcast.Status.DRAFT,
         )
 

@@ -114,6 +114,7 @@ class Command(BaseCommand):
             html_content=html_content,
             text_content=text_content,
             audience_filter={"category": "MONTHLY_BLAST"},
+            kind=Broadcast.Kind.MONTHLY_BLAST,
             status=Broadcast.Status.DRAFT,
             hero_image=hero_image_bytes or b"",
         )

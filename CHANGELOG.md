@@ -1,5 +1,23 @@
 # Changelog
 
+## News Digest & Urgent Alert Fix (2026-04-21)
+
+### Fixed
+- **Digest cadence skipped a fortnightly cycle**: `compose_news_digest._should_skip()` and `_get_since_date()` filtered by `audience_filter__category="NEWS_WATCH"`, which matched urgent alerts as well as digests. A Broadcast 68 urgent alert on 7 Apr 2026 caused the 13 Apr digest to be wrongly skipped, and the 20 Apr digest to cover 7–20 Apr instead of 31 Mar – 20 Apr. Root cause: `audience_filter` describes *who* receives a broadcast; *what kind* of broadcast it is was never tracked. Added `Broadcast.kind` field (NEWS_DIGEST / URGENT_ALERT / MONTHLY_BLAST / PARLIAMENT_WATCH / OTHER) + `coverage_start_date` / `coverage_end_date`. All 5 writers now set `kind`. Digest cadence filters by `kind=NEWS_DIGEST` only.
+- **Digest coverage off-by-one**: `_get_since_date()` returned the previous broadcast's `created_at`, so each digest re-covered the final day of the previous digest. Now returns `coverage_end_date + 1 day`.
+- **Urgency classifier too lenient**: Rewrote the urgency section of `ANALYSIS_PROMPT` in `newswatch/services/news_analyser.py` as a two-step gate (Step 1: three narrow triggers — confirmed closure, active emergency, binding government restriction; Step 2: 7-day action window + primary subject). Added six explicit negative examples including heat-policy announcements and rebuild announcements (the real misclassification from Broadcast 68). Added three positive examples.
+
+### Added
+- **Second-pass urgency verification**: When first-pass sets `is_urgent=True`, a narrow verification prompt is called on a fresh Gemini request. If the verifier disagrees, the flag is downgraded and the first-pass reason is logged. Audit trail stored in `ai_raw_response["urgent_verification"]`.
+- **Dormant DRAFT-review feature flag**: `URGENT_ALERT_REQUIRE_REVIEW` setting (default `false`). When flipped to `true`, `send_urgent_alerts` creates a DRAFT but does not auto-send — a moderator must approve it from the admin broadcasts queue. Activate with a single `gcloud run jobs update ... --update-env-vars` with no redeploy needed.
+- **`clear_stale_urgent_flags` management command**: Clears `is_urgent=True` on articles older than 30 days that never triggered an alert. Preserves articles that did fire an alert (historical record).
+
+### Migration
+- **Migration 0006** adds `kind`, `coverage_start_date`, `coverage_end_date` and backfills all existing broadcasts. 12 URGENT_ALERT, 7 NEWS_DIGEST (with coverage dates parsed from subject), 4 MONTHLY_BLAST, 2 OTHER on local DB.
+
+### Investigation
+- Full fix plan at `docs/plans/2026-04-21-news-digest-urgent-alert-fix-plan.md`.
+
 ## Egress Fix — Supabase Egress Optimisation (2026-03-29)
 
 ### Fixed

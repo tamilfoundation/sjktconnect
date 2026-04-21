@@ -16,10 +16,25 @@ class Broadcast(models.Model):
         SENT = "SENT", "Sent"
         FAILED = "FAILED", "Failed"
 
+    class Kind(models.TextChoices):
+        NEWS_DIGEST = "NEWS_DIGEST", "News Digest"
+        URGENT_ALERT = "URGENT_ALERT", "Urgent Alert"
+        MONTHLY_BLAST = "MONTHLY_BLAST", "Monthly Blast"
+        PARLIAMENT_WATCH = "PARLIAMENT_WATCH", "Parliament Watch"
+        OTHER = "OTHER", "Other"
+
     subject = models.CharField(max_length=300)
     html_content = models.TextField(blank=True, default="")
     text_content = models.TextField(blank=True, default="")
     audience_filter = models.JSONField(default=dict, blank=True)
+    kind = models.CharField(
+        max_length=20,
+        choices=Kind.choices,
+        default=Kind.OTHER,
+        db_index=True,
+    )
+    coverage_start_date = models.DateField(null=True, blank=True)
+    coverage_end_date = models.DateField(null=True, blank=True)
     status = models.CharField(
         max_length=10, choices=Status.choices, default=Status.DRAFT
     )

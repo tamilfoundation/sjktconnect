@@ -98,6 +98,7 @@ class Command(BaseCommand):
             html_content=html_content,
             text_content=text_content,
             audience_filter={"category": "PARLIAMENT_WATCH"},
+            kind=Broadcast.Kind.PARLIAMENT_WATCH,
             status=Broadcast.Status.DRAFT,
             hero_image=hero_image_bytes or b"",
         )

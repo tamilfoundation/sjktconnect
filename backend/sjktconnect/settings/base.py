@@ -143,6 +143,15 @@ AUDIT_LOG_MODELS = [
 BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
+# Safety net for urgent alerts. When true, send_urgent_alerts creates
+# a DRAFT broadcast and does NOT auto-send — a moderator must approve
+# from /admin/broadcasts/ before it goes out. Default false preserves
+# the current auto-send behaviour. Flip to true via Cloud Run env vars
+# (no redeploy needed) if the classifier misfires.
+URGENT_ALERT_REQUIRE_REVIEW = os.environ.get(
+    "URGENT_ALERT_REQUIRE_REVIEW", "false"
+).lower() == "true"
+
 # Toyyib Pay
 TOYYIBPAY_BASE_URL = os.environ.get("TOYYIBPAY_BASE_URL", "https://toyyibpay.com")
 TOYYIBPAY_SECRET_KEY = os.environ.get("TOYYIBPAY_SECRET_KEY", "")
