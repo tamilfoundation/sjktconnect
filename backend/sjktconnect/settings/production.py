@@ -32,6 +32,11 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = False  # Cloud Run handles this
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+# Required for cross-domain cookies (tamilschool.org frontend → .run.app backend).
+# Allows SameSite=None browsers to send session cookie on cross-origin fetch calls.
+# Remove once backend is served from the same origin as the frontend (Cloudflare proxy).
+SESSION_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SAMESITE = "None"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # Database — Supabase PostgreSQL

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import transaction
 
 from community.models import Suggestion
@@ -62,7 +63,7 @@ def _apply_photo_upload(suggestion):
     ) or 0
     SchoolImage.objects.create(
         school=suggestion.school,
-        image_url=f"/api/v1/suggestions/{suggestion.pk}/image/",
+        image_url=f"{settings.BACKEND_URL}/api/v1/suggestions/{suggestion.pk}/image/",
         source="COMMUNITY",
         position=max_position + 1,
         uploaded_by=suggestion.user,
