@@ -114,6 +114,13 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
 ).split(",")
 CORS_ALLOW_CREDENTIALS = True
 
+# Public URL for the backend — used when building absolute URLs (e.g. image
+# URLs on SchoolImage records that need to resolve from the frontend domain).
+BACKEND_URL = os.environ.get(
+    "BACKEND_URL",
+    "http://localhost:8000",
+)
+
 # REST Framework defaults
 REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
