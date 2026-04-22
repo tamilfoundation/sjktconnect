@@ -1,20 +1,15 @@
 # SJK(T) Connect — Architecture Map
 
-Last updated: Audit & Community Auth sprint close (23 Apr 2026)
-
-> **Note (2026-04-23)**: this map has ~6 weeks of drift from sprints that didn't
-> update it. Only today's sprint-relevant areas (community app, feedback app,
-> UserProfile model, auth flow) have been refreshed. A full audit/refresh is
-> flagged as a pre-Sprint 11 requirement.
+Last updated: Audit & Community Auth sprint close (23 Apr 2026) — full refresh after 6 weeks of drift.
 
 ## Stack
 
 - **Backend**: Django 5.1 + DRF — Python 3.12, SQLite (dev), Supabase PostgreSQL (prod)
 - **Frontend**: Next.js 14 App Router — TypeScript, Tailwind CSS, Google Maps
 - **AI**: Gemini 2.5 Flash (Hansard analysis, news analysis, report generation, quality evaluation)
-- **Infra**: Cloud Run (API + Web), Cloud Run Jobs (6 jobs), Cloud Scheduler (6 schedules), Supabase (DB)
-- **Email**: Brevo transactional API (noreply@tamilschool.org, feedback@tamilschool.org)
-- **Domain**: tamilschool.org
+- **Infra**: Cloud Run (API + Web), Cloud Run Jobs (7), Cloud Scheduler (7), Supabase (DB + Storage in Sprint 9)
+- **Email**: Brevo transactional API (noreply@tamilschool.org, feedback@tamilschool.org); Brevo webhook endpoint `/api/v1/webhooks/brevo/` for delivery tracking (Sprint 8.5)
+- **Domain**: tamilschool.org. Served directly by Cloud Run domain mapping today — Cloudflare reverse proxy scheduled for Sprint 11 (TD-01/04)
 
 ## Backend — Django Apps
 
@@ -207,7 +202,12 @@ frontend/
 │   ├── parliament-watch/page.tsx      # Meeting reports grid
 │   ├── parliament-watch/[id]/page.tsx # Individual meeting report
 │   ├── parliament-watch/sittings/page.tsx # Sittings list
+│   ├── parliament-watch/sittings/[id]/page.tsx # Individual brief page
 │   ├── news/page.tsx                  # News articles (paginated)
+│   ├── profile/page.tsx               # Signed-in user profile (Sprint 8.1) — points, My Suggestions
+│   ├── dashboard/page.tsx             # Dashboard hub (Sprint 8.1) — gates links by role
+│   ├── dashboard/suggestions/page.tsx # Moderation queue (Sprint 8.2)
+│   ├── dashboard/images/page.tsx      # Image management: reorder, delete (Sprint 8.2)
 │   ├── donate/page.tsx                # Donation form → Toyyib Pay
 │   ├── donate/thank-you/page.tsx      # Payment status
 │   ├── subscribe/page.tsx             # Subscribe form
@@ -227,7 +227,7 @@ frontend/
 │   ├── terms/page.tsx                 # Terms of service
 │   └── cookies/page.tsx               # Cookie policy
 │
-├── components/                        # 44 components
+├── components/                        # 51 components
 │   ├── Header.tsx, Footer.tsx, LanguageSwitcher.tsx
 │   ├── HeroSection.tsx, NationalStats.tsx
 │   ├── SchoolMap.tsx, SchoolMarkers.tsx, MapFilterPanel.tsx
@@ -235,7 +235,7 @@ frontend/
 │   ├── SchoolProfile.tsx, SchoolImage.tsx, SchoolHistory.tsx
 │   ├── SchoolEditForm.tsx, SchoolTable.tsx
 │   ├── StatCard.tsx, Breadcrumb.tsx
-│   ├── ClaimButton.tsx, ClaimForm.tsx, EditSchoolLink.tsx
+│   ├── ClaimButton.tsx, ClaimForm.tsx, EditSchoolLink.tsx    # Magic-link era; all 3 removed in Sprint 11
 │   ├── MiniMap.tsx, BoundaryMap.tsx
 │   ├── MentionsSection.tsx, MentionsList.tsx
 │   ├── NewsWatchSection.tsx, NewsCard.tsx, NewsList.tsx
@@ -246,16 +246,51 @@ frontend/
 │   ├── SubscribeForm.tsx, UnsubscribeConfirmation.tsx, PreferencesForm.tsx
 │   ├── ContactForm.tsx, DonationForm.tsx
 │   ├── SupportSchoolCard.tsx          # Bank details + DuitNow QR sidebar
-│   └── ReportShareBar.tsx
+│   ├── ReportShareBar.tsx
+│   ├── AuthProvider.tsx               # Sprint 8.1 — NextAuth SessionProvider wrapper
+│   ├── UserMenu.tsx                   # Sprint 8.1 — Google OAuth sign-in + avatar dropdown
+│   ├── SuggestButton.tsx              # Sprint 8.2 — "Suggest an edit" button on school page
+│   ├── SuggestForm.tsx                # Sprint 8.2 — modal: DATA_CORRECTION / PHOTO_UPLOAD / NOTE
+│   ├── MySuggestions.tsx              # Sprint 8.2 — signed-in user's submitted suggestions
+│   ├── ModerationQueue.tsx            # Sprint 8.2 — pending suggestions list (MODERATOR/SUPERADMIN)
+│   └── ImageManager.tsx               # Sprint 8.2 — reorder/delete school images (admin UI)
 │
 ├── i18n/                              # Internationalisation (en, ta, ms)
 ├── messages/{en,ta,ms}.json           # ~162 translation keys each
 ├── lib/
 │   ├── types.ts                       # All TypeScript interfaces
 │   ├── api.ts                         # API client (auto-pagination, all endpoints)
+│   ├── auth.ts                        # NextAuth v5 config (Google provider) — `checks: []` workaround pending Sprint 11
+│   ├── auth-api.ts                    # Bridge to Django /api/v1/auth/google/
 │   └── translations.ts               # MOE jargon → English mapping
-└── __tests__/                         # Jest + RTL (282 tests)
+└── __tests__/                         # Jest + RTL (271 tests, 2 pre-existing flakies)
 ```
+
+## Cloud Run Infrastructure
+
+**Services** (2):
+- `sjktconnect-api` — Django backend, `asia-southeast1`
+- `sjktconnect-web` — Next.js frontend, `asia-southeast1`, `minScale=1` (preserves ISR cache — see TD-06)
+
+**Cloud Run Jobs** (7):
+- `sjktconnect-check-hansards` — `run_hansard_pipeline` (7-step: scrape calendar → download PDFs → extract → analyse → scorecards → briefs → reports)
+- `sjktconnect-news-pipeline` — daily news fetch → extract → analyse (Sprint 2.8)
+- `sjktconnect-news-digest` — fortnightly digest compose + send (Sprint 2.7, fixed 2026-04-21)
+- `sjktconnect-urgent-alerts` — daily urgent article check + send (Sprint 2.6)
+- `sjktconnect-monthly-blast` — monthly intelligence blast compose + send (Sprint 2.7)
+- `sjktconnect-process-feedback` — Gmail fetch → classify → auto-respond (Email Infra sprint, 2026-03-06)
+- `sjktconnect-resume-sending` — daily batch resume for in-flight broadcasts (Email Quality & Spam Cleanup, 2026-03-28)
+
+**Cloud Scheduler** (7 schedules, all MYT):
+- `sjktconnect-daily-check` — 8:00 AM daily (Hansard)
+- `sjktconnect-daily-news` — 8:30 AM daily (news pipeline)
+- `sjktconnect-urgent-alerts` — 9:30 AM daily
+- `sjktconnect-fortnightly-digest` — 9:00 AM Mondays (7-day cooldown inside the job enforces fortnightly cadence)
+- `sjktconnect-monthly-blast` — 9:00 AM, 1st of month
+- `sjktconnect-process-feedback` — 8/12/16/20 (4× daily)
+- `sjktconnect-resume-sending` — 10:00 AM daily
+
+**GCP project**: `sjktconnect` (org: tamilfoundation.org, account: admin@tamilfoundation.org)
 
 ## Data Models (key relationships)
 
