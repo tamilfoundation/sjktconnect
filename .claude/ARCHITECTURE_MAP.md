@@ -1,6 +1,11 @@
 # SJK(T) Connect — Architecture Map
 
-Last updated: Quality Engine sprint close (7 Mar 2026)
+Last updated: Audit & Community Auth sprint close (23 Apr 2026)
+
+> **Note (2026-04-23)**: this map has ~6 weeks of drift from sprints that didn't
+> update it. Only today's sprint-relevant areas (community app, feedback app,
+> UserProfile model, auth flow) have been refreshed. A full audit/refresh is
+> flagged as a pre-Sprint 11 requirement.
 
 ## Stack
 
@@ -138,15 +143,35 @@ backend/
 │       ├── analyse_news_articles.py
 │       └── run_news_pipeline.py  # Full pipeline: fetch → extract → analyse
 │
-└── donations/            # Online donations (Sprint 4.1-4.2)
-    ├── models.py         # Donation (Toyyib Pay integration)
-    ├── services.py       # Toyyib Pay API wrapper (create bill, verify payment)
-    ├── api/
-    │   ├── serializers.py
-    │   ├── views.py      # Create donation, Toyyib callback, payment status
-    │   └── urls.py       # /donations/ endpoints
+├── donations/            # Online donations (Sprint 4.1-4.2)
+│   ├── models.py         # Donation (Toyyib Pay integration)
+│   ├── services.py       # Toyyib Pay API wrapper (create bill, verify payment)
+│   ├── api/
+│   │   ├── serializers.py
+│   │   ├── views.py      # Create donation, Toyyib callback, payment status
+│   │   └── urls.py       # /donations/ endpoints
+│   └── management/commands/
+│       └── import_bank_details.py  # Import bank details from TF Excel
+│
+├── community/            # Community suggestions + moderation (Sprint 8.2)
+│   ├── models.py         # Suggestion (PHOTO_UPLOAD / DATA_CORRECTION / NOTE,
+│   │                     #   PENDING/APPROVED/REJECTED, BinaryField for image)
+│   ├── services.py       # approve_suggestion, reject_suggestion,
+│   │                     # _apply_data_correction (updates school fields),
+│   │                     # _apply_photo_upload (creates SchoolImage, uses BACKEND_URL)
+│   └── api/
+│       ├── serializers.py # SuggestionCreate + List
+│       └── views.py      # POST /schools/<moe>/suggestions/, moderation queue,
+│                          # approve/reject, suggestion_image_view (auth-gated for
+│                          # non-APPROVED after 2026-04-22 security fix),
+│                          # school-image reorder/delete
+│
+└── feedback/             # Contact form + Gmail feedback ingestion
+    ├── models.py         # FeedbackMessage, FeedbackReply
+    ├── services/
+    │   └── gmail_fetcher.py  # OAuth (gmail.readonly) — feedback@tamilschool.org inbox
     └── management/commands/
-        └── import_bank_details.py  # Import bank details from TF Excel
+        └── process_feedback.py  # Fetch → classify → auto-respond (Cloud Run job, 4x daily)
 ```
 
 ## Quality Engine (Self-Correcting Report Engine)
@@ -292,6 +317,19 @@ NewsArticle (PK: auto ID, unique: url)
 Donation (PK: auto ID)                          ← Sprint 4.2
   └── Toyyib Pay: bill_code, amount, donor info, status
 
+UserProfile (OneToOne Django User)              ← Sprint 8.1
+  ├── google_id (unique), display_name, avatar_url
+  ├── role: USER / MODERATOR / SUPERADMIN
+  ├── admin_school (OneToOne School, optional)  ← school-admin scope
+  └── points: int (awarded on approved suggestions)
+
+Suggestion                                      ← Sprint 8.2
+  ├── FK school, FK user (→ UserProfile)
+  ├── type: DATA_CORRECTION / PHOTO_UPLOAD / NOTE
+  ├── status: PENDING / APPROVED / REJECTED
+  ├── image: BinaryField (see TD-07 — moves to Supabase Storage in Sprint 9)
+  └── points_awarded: int (3 photo, 2 correction, 1 note)
+
 AuditLog — standalone, tracks admin actions
 ```
 
@@ -303,6 +341,10 @@ AuditLog — standalone, tracks admin actions
 - **3-attempt circuit breaker**: Hard cap prevents runaway API costs from correction loops
 - **Rubric is permanent, prompts are disposable**: Rubric survives model changes; prompts are versioned
 - **Learner writes to files, not code**: Pattern flags go to markdown, agents read — no auto code changes
-- **Magic Link over passwords**: Schools verify via MOE email, session-based auth
+- **Magic Link over passwords**: Schools verify via MOE email, session-based auth. **Dormant since launch** (0 contacts, 0 tokens ever). Still wired into `SchoolEditView` + `SchoolConfirmView` which are therefore unusable. Scheduled for removal in Sprint 11 (TD-02).
+- **Google OAuth + UserProfile** (Sprint 8.1, active): NextAuth v5 on frontend, Django `SessionAuthentication` on backend. Bridged via `POST /api/v1/auth/google/` — backend verifies ID token via `google.oauth2.id_token.verify_oauth2_token`, creates/fetches UserProfile, sets `request.session["user_profile_id"]`. Permission classes: `IsProfileAuthenticated`, `IsModeratorOrAbove`, `IsSuperAdmin`, `IsSchoolAdminForObject`.
+- **Cross-domain session cookies** (2026-04-22 workaround): `SESSION_COOKIE_SAMESITE = "None"` + `CSRF_COOKIE_SAMESITE = "None"` in production settings because frontend (`tamilschool.org`) and backend (`*.run.app`) are separate origins. Resolves with Cloudflare proxy in Sprint 11 (TD-04).
+- **CSRF protection** depends on DRF's `SessionAuthentication` being in `DEFAULT_AUTHENTICATION_CLASSES` — pinned explicitly (TD-08 resolved 2026-04-23). Adding `TokenAuthentication` would silently remove CSRF enforcement.
+- **OAuth security checks disabled** (`frontend/lib/auth.ts:10` has `checks: []`) as a temporary workaround for cookie loss during OAuth redirect. Restored in Sprint 11 (TD-01).
 - **Brevo with console fallback**: No API key in dev → logs to console
 - **WKT → GeoJSON on the fly**: Boundaries stored as WKT, converted at request time via shapely
