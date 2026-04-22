@@ -123,10 +123,43 @@ def reject_suggestion_view(request, pk):
 
 @api_view(["GET"])
 def suggestion_image_view(request, pk):
-    """Serve a suggestion's uploaded image as PNG."""
+    """Serve a suggestion's uploaded image.
+
+    APPROVED suggestions are publicly accessible (SchoolImage rows point here
+    and are rendered on the public school page).
+
+    PENDING/REJECTED suggestions are restricted to: the uploader, the school
+    admin for that school, or MODERATOR/SUPERADMIN roles. Enumerating these
+    publicly would leak photos that were never approved for display.
+    """
     suggestion = get_object_or_404(Suggestion, pk=pk)
     if not suggestion.image:
         return Response(status=status.HTTP_404_NOT_FOUND)
+
+    if suggestion.status != Suggestion.Status.APPROVED:
+        profile_id = request.session.get("user_profile_id")
+        if not profile_id:
+            return Response(
+                {"detail": "Authentication required."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        try:
+            from accounts.models import UserProfile
+            profile = UserProfile.objects.get(id=profile_id, is_active=True)
+        except UserProfile.DoesNotExist:
+            return Response(
+                {"detail": "Authentication required."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        is_uploader = profile.id == suggestion.user_id
+        is_school_admin = profile.admin_school_id == suggestion.school_id
+        is_privileged = profile.role in ("MODERATOR", "SUPERADMIN")
+        if not (is_uploader or is_school_admin or is_privileged):
+            return Response(
+                {"detail": "Not permitted."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
     return HttpResponse(bytes(suggestion.image), content_type="image/png")
 
 
