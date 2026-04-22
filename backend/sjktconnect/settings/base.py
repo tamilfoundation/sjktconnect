@@ -122,9 +122,17 @@ BACKEND_URL = os.environ.get(
 )
 
 # REST Framework defaults
+# SessionAuthentication is pinned explicitly — it enforces CSRF on state-changing
+# requests, which the SameSite=None session cookie workaround (see production.py)
+# depends on. Do NOT add TokenAuthentication here without a CSRF compensating
+# control: cross-site POSTs would succeed because SameSite=None attaches the
+# session cookie to any origin. See docs/tech-debt.md TD-04 + TD-08.
 REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
 }
 
 # Models tracked by AuditLog middleware
