@@ -22,12 +22,9 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 - **What it blocks**: The school-edit UX is visibly broken on the live site. Also makes the codebase hard to navigate (two auth paths for the same use case, neither obviously canonical).
 - **Cost to fix**: ~1 day. Either (a) migrate `SchoolEditView` + `SchoolConfirmView` to `IsProfileAuthenticated` + `profile.admin_school_id == school.pk` check, then delete magic-link models, services, views, tests, and frontend pages; or (b) keep magic-link and explicitly decide it's the "school-staff claim" path, OAuth is the "community" path. Strong recommendation: (a).
 
-## 🔴 TD-03 — `DATABASE_URL` in `.env` silently hijacks local tests
+## ✅ TD-03 — `DATABASE_URL` in `.env` silently hijacks local tests (RESOLVED 2026-04-23)
 
-- **What**: Repo-root `.env` auto-loads a Supabase prod DSN. Every local `manage.py test` / `pytest` attempts to run against production unless `DATABASE_URL` is explicitly unset. During the audit, running `pytest` produced 968 failures + 714 errors because tests hit prod Supabase; unsetting `DATABASE_URL` restored 1,107 passing tests.
-- **Why we accepted**: Convenience — `.env` makes `manage.py shell` hit prod for quick data checks (e.g. today's `SchoolImage` patch).
-- **What it blocks**: Correct test runs. Also invites accidental writes against prod from any local command.
-- **Cost to fix**: ~1 hour. Options: (a) guard in `manage.py` that prints target DB + requires `--confirm-prod` for writes, (b) remove `DATABASE_URL` from local `.env` (revert to sqlite) + use an explicit `.env.prod` for ops work, (c) provision a Supabase dev branch. Already tracked as item #7 in CLAUDE.md pending list. Pick (b) — operationally simplest.
+- **Status**: Resolved. `backend/manage.py` now prints a warning banner on every invocation when `DATABASE_URL` points to a non-local host, and refuses to run a hardcoded list of destructive commands (`migrate`, `flush`, `import_*`, `seed_*`, `harvest_school_images`, etc.) without `SJKTCONNECT_ALLOW_PROD_DB=1`. Read-only commands (`shell`, `test`, `check`) proceed unchanged. `pytest` still needs `DATABASE_URL=` unset for a pure sqlite run — that's now documented behaviour rather than a silent trap.
 
 ## 🟡 TD-04 — `SESSION_COOKIE_SAMESITE = "None"` workaround
 
@@ -57,12 +54,9 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 - **What it blocks**: Upload size cap is absurdly low for modern phone photos (typically 5-15 MB). Ingest from real community users would regularly fail. Also makes backups + replication heavier than needed.
 - **Cost to fix**: Replaced by Supabase Storage in Sprint 9 (TD-05).
 
-## 🟡 TD-08 — No `DEFAULT_AUTHENTICATION_CLASSES` pinned
+## ✅ TD-08 — No `DEFAULT_AUTHENTICATION_CLASSES` pinned (RESOLVED 2026-04-23)
 
-- **What**: `REST_FRAMEWORK` in `backend/sjktconnect/settings/base.py:118-121` doesn't set `DEFAULT_AUTHENTICATION_CLASSES`. DRF falls back to `(SessionAuthentication, BasicAuthentication)`. This happens to work with the existing session flow + provides CSRF protection, but it's an implicit dependency that a future change could break.
-- **Why we accepted**: Set-and-forget defaults worked at the time of Sprint 8.1.
-- **What it blocks**: Hidden dependency of TD-04's security posture. A developer adding `TokenAuthentication` wouldn't realise they're removing CSRF protection.
-- **Cost to fix**: 15 minutes. Explicitly set `DEFAULT_AUTHENTICATION_CLASSES = ["rest_framework.authentication.SessionAuthentication"]`. Add a unit test verifying it hasn't been relaxed.
+- **Status**: Resolved. `REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"]` in `backend/sjktconnect/settings/base.py` is now pinned to `["rest_framework.authentication.SessionAuthentication"]` with a prominent comment warning against adding `TokenAuthentication` without CSRF compensating controls. This locks in the hidden dependency that TD-04's security posture relies on.
 
 ## 🟡 TD-09 — Hardcoded `content_type="image/png"` on suggestion image endpoint
 
@@ -71,15 +65,14 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 - **What it blocks**: Minor — browsers don't execute scripts inside `<img>` regardless of declared format, so stored XSS is not exploitable. But opens the door to content-type confusion if a future endpoint serves SVG or raw.
 - **Cost to fix**: Replaced entirely by Sprint 9 (TD-05) which validates format, strips EXIF, resizes, and stores in typed Supabase Storage.
 
-## 🟢 TD-10 — 3 moderate npm vulnerabilities
+## 🟢 TD-10 — Next.js 14 on a superseded version (partially resolved 2026-04-23)
 
-- **What**: `npm audit` reports:
-  - `next` (<15.5.10) — DoS via Image Optimizer `remotePatterns`. We're on Next 14.
-  - `next-intl` (<4.9.1) — Open redirect
-  - `picomatch` (<2.3.2) — Glob injection (transitive)
-- **Why we accepted**: Not intentional — just haven't upgraded.
-- **What it blocks**: Nothing urgent, but clean `npm audit` is a launch hygiene item.
-- **Cost to fix**: ~30 min to upgrade, re-run tests, verify UI doesn't regress. Possibly more if Next 14→15 introduces breaking changes (check their upgrade guide).
+- **Status**: `next-intl` upgraded from 4.8.3 → 4.9.1+ on 2026-04-23, clearing the open-redirect advisory. Remaining items:
+  - `next` still on 14.2.x. The flagged Image Optimizer DoS (GHSA-9g9p-9gw9-jx7f) only triggers when `remotePatterns` is configured in `next.config.js`. **We don't use `remotePatterns`**, so we're not currently exploitable. Still worth upgrading for routine hygiene and to clear the audit report.
+  - `picomatch` (<2.3.2) is a transitive of Next 14; resolves with Next upgrade.
+- **Why we accepted**: Next 14 → 15 is a major version bump with breaking async API changes (`params`, `cookies()`, `headers()` are now promises). At least 5 app-router pages would need updates. Not worth a rushed upgrade when we're not exploitable.
+- **What it blocks**: Clean `npm audit` output at launch.
+- **Cost to fix**: ~4-6 hours for a proper Next 15 migration (test + deploy + regression check). Recommended: fold into Sprint 11 (User Management) since that sprint is already touching auth + frontend.
 
 ## 🟢 TD-11 — `accounts/services/google.py` at 25% coverage
 
@@ -122,11 +115,12 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 
 | Fix | Debt items | Sprint |
 |---|---|---|
-| Adopt Cloudflare proxy + restore OAuth checks + pin DRF auth | TD-01, TD-04, TD-08 | **Sprint 11 (User Management)** |
+| ✅ Pin DRF auth classes | TD-08 | Done 2026-04-23 |
+| ✅ Local-dev DATABASE_URL guard | TD-03 | Done 2026-04-23 |
+| ✅ next-intl upgrade | TD-10 (partial) | Done 2026-04-23 |
+| Adopt Cloudflare proxy + restore OAuth checks + Next 15 upgrade | TD-01, TD-04, TD-10 (remainder) | **Sprint 11 (User Management)** |
 | Delete magic-link system + migrate school-edit to OAuth | TD-02 | **Sprint 11 (User Management)** |
-| Local-dev DATABASE_URL guard | TD-03 | Quick fix (1 hr) — do before Sprint 11 |
 | Move images to Supabase Storage + validate format | TD-05, TD-07, TD-09, TD-06 | **Sprint 9 (Image Library)** |
 | Resolve egress regression | TD-06 | Investigated; resolves with Sprint 9 |
-| npm audit upgrades | TD-10 | Quick fix (30 min) — do before Sprint 11 |
 | Coverage gaps | TD-11, TD-12 | Absorb into relevant feature sprints |
 | Code polish | TD-13, TD-14, TD-15 | Low priority |
