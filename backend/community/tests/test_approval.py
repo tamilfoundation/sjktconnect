@@ -238,17 +238,43 @@ class ModerationAPITest(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(len(resp.data), 1)
 
-    def test_image_endpoint_returns_png(self):
+    def test_image_endpoint_returns_png_for_approved(self):
         s = Suggestion.objects.create(
             school=self.school,
             user=self.profile,
             type="PHOTO_UPLOAD",
             image=b"fake-png-data",
+            status=Suggestion.Status.APPROVED,
         )
         resp = self.client.get(f"/api/v1/suggestions/{s.pk}/image/")
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp["Content-Type"], "image/png")
         self.assertEqual(resp.content, b"fake-png-data")
+
+    def test_image_endpoint_blocks_anonymous_for_pending(self):
+        s = Suggestion.objects.create(
+            school=self.school,
+            user=self.profile,
+            type="PHOTO_UPLOAD",
+            image=b"fake-png-data",
+            status=Suggestion.Status.PENDING,
+        )
+        resp = self.client.get(f"/api/v1/suggestions/{s.pk}/image/")
+        self.assertEqual(resp.status_code, 401)
+
+    def test_image_endpoint_allows_uploader_for_pending(self):
+        s = Suggestion.objects.create(
+            school=self.school,
+            user=self.profile,
+            type="PHOTO_UPLOAD",
+            image=b"fake-png-data",
+            status=Suggestion.Status.PENDING,
+        )
+        session = self.client.session
+        session["user_profile_id"] = self.profile.id
+        session.save()
+        resp = self.client.get(f"/api/v1/suggestions/{s.pk}/image/")
+        self.assertEqual(resp.status_code, 200)
 
     def test_image_endpoint_404_when_no_image(self):
         s = Suggestion.objects.create(
