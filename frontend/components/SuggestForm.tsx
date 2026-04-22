@@ -236,7 +236,7 @@ export default function SuggestForm({ moeCode, onClose }: SuggestFormProps) {
                 {imageBase64 && (
                   <div className="mt-2">
                     <img
-                      src={imageBase64}
+                      src={`data:image/jpeg;base64,${imageBase64}`}
                       alt="Preview"
                       className="w-full max-h-48 object-cover rounded-lg"
                     />
