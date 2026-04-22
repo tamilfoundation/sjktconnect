@@ -270,15 +270,15 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - Dormant `URGENT_ALERT_REQUIRE_REVIEW` flag (default false)
 - Next digest: **Mon 4 May 2026**, covers **21 Apr – 4 May**
 
-**Pending (after fix deploy)**:
-1. Deploy backend + update all 6 Cloud Run jobs
-2. Run `clear_stale_urgent_flags --dry-run` on prod, then apply
-3. Test suggestion workflow end-to-end on tamilschool.org (Sprint 8.2 features deployed)
-4. Monitor Brevo webhook data after next broadcast — verify delivery/open/click tracking
-5. Monitor Google Search Console for hreflang/canonical pickup (allow 1-2 weeks for re-crawl)
-6. Google Search Console: manually set Googlebot crawl rate (Googlebot doesn't respect Crawl-delay in robots.txt)
-7. Monitor Supabase egress — compare against 1.9 GB/day baseline
-8. Send welcome email batch 2 (~110 remaining bulk-imported subscribers) — `send_welcome_email`
+**Pending**:
+1. Test suggestion workflow end-to-end on tamilschool.org (Sprint 8.2 features deployed)
+2. Monitor Google Search Console for hreflang/canonical pickup (allow 1-2 weeks for re-crawl)
+3. Google Search Console: manually set Googlebot crawl rate (Googlebot doesn't respect Crawl-delay in robots.txt)
+4. Monitor Supabase egress — compare against 1.9 GB/day baseline
+5. Send welcome email batch 2 (~110 remaining bulk-imported subscribers) — `send_welcome_email`
+6. **Verify urgency audit trail after first post-fix urgent alert**: when `is_urgent=True` next fires, confirm `ai_raw_response["urgent_verification"]` has `{confirmed, reason, first_pass_reason}` populated. Unit tests prove the code paths; only prod will prove the Gemini integration
+7. **Decide local-dev DATABASE_URL strategy**: the repo-root `.env` auto-loads a Supabase prod DSN, so every local `manage.py` hits prod silently. `.env` is gitignored but operational risk is live. Pick: (a) guard in `manage.py` that prints target DB + requires `--confirm-prod` for writes, (b) remove DATABASE_URL from local `.env` (revert to sqlite), (c) provision Supabase dev branch, (d) accept + document
+8. Verify 4 May 2026 cron fires with coverage "21 Apr – 4 May"
 
 **Future work**:
 - **Email engagement dashboard** — query open/click rates per broadcast, identify disengaged subscribers
