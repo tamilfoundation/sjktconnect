@@ -60,7 +60,7 @@ export default function SuggestForm({ moeCode, onClose }: SuggestFormProps) {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      setImageBase64(result);
+      setImageBase64(result.split(",")[1] ?? "");
     };
     reader.readAsDataURL(file);
   };
@@ -90,8 +90,10 @@ export default function SuggestForm({ moeCode, onClose }: SuggestFormProps) {
 
       await createSuggestion(moeCode, data);
       setSuccess(true);
-    } catch {
-      setError(t("error"));
+    } catch (err) {
+      console.error("Suggestion submit failed:", err);
+      const msg = err instanceof Error ? err.message : "";
+      setError(msg || t("error"));
     } finally {
       setSubmitting(false);
     }
@@ -234,7 +236,7 @@ export default function SuggestForm({ moeCode, onClose }: SuggestFormProps) {
                 {imageBase64 && (
                   <div className="mt-2">
                     <img
-                      src={imageBase64}
+                      src={`data:image/jpeg;base64,${imageBase64}`}
                       alt="Preview"
                       className="w-full max-h-48 object-cover rounded-lg"
                     />
