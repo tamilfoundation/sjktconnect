@@ -75,3 +75,66 @@
 **Trade-offs:** Genuine urgent classifications pay 2× Gemini calls. The verifier can also hallucinate (reject a genuine alert) — mitigated by the audit trail in `ai_raw_response["urgent_verification"]` which logs both first-pass and verifier reasons for post-hoc diagnosis, and by the dormant DRAFT-review flag as a kill switch.
 
 **Revisit if:** Classification volume grows to where 2× calls become expensive, or if the verifier shows a consistent pattern of false-negative rejections blocking genuine alerts.
+
+## SameSite=None as a bridge fix for cross-domain session cookies — Audit & Community Auth, 2026-04-22
+
+**Decision:** Add `SESSION_COOKIE_SAMESITE = "None"` and `CSRF_COOKIE_SAMESITE = "None"` to production settings as an immediate unblock for community sign-in, rather than doing the proper Cloudflare proxy adoption first.
+
+**Alternatives considered:**
+- Adopt Cloudflare proxy per `docs/proposals/2026-03-11-cloudflare-proxy-proposal.md` (~½ sprint; proper fix — makes cookies same-origin)
+- Move backend to a same-domain subdomain via Cloud Run domain mapping (blocked by the exact same cookie bug the Cloudflare proposal was written to fix)
+- Migrate to token-based auth instead of session cookies (substantial rewrite, and `SameSite=None` issue doesn't exist with bearer tokens — but CSRF protection would have to be handled elsewhere)
+
+**Rationale:** The community was unblocked at the cost of expanded CSRF surface. `SameSite=None` + `Secure` + existing CORS allowlist + DRF's `SessionAuthentication` (explicitly pinned in the same sprint via TD-08 fix) keeps CSRF protection intact today. Cloudflare is 4-6 hours of focused work that deserves its own sprint; it's already scheduled for Sprint 11 (User Management).
+
+**Trade-offs:** Chrome is phasing out third-party cookies globally sometime in 2026 — this fix has a bounded lifetime. Also expands attack surface to any site the user visits (any origin can now POST with the session cookie attached, though CORS blocks reading the response and CSRF middleware blocks most state-changing requests). Accepted because the alternative was "no community sign-in at all".
+
+**Revisit if:** Chrome enables strict third-party cookie blocking in stable channel, or if the User Management sprint (Sprint 11, Cloudflare adoption) is delayed past the first community launch date.
+
+## Prod-DB guard via opt-in `SJKTCONNECT_ALLOW_PROD_DB=1` — Audit & Community Auth, 2026-04-23
+
+**Decision:** Guard destructive `manage.py` commands behind `SJKTCONNECT_ALLOW_PROD_DB=1` when `DATABASE_URL` points to a non-local host. Scope the guard to local dev only (bypass when `K_SERVICE` env var set or `DJANGO_SETTINGS_MODULE=production`).
+
+**Alternatives considered:**
+- Remove `DATABASE_URL` from repo-root `.env`, revert to sqlite for local dev, use a separate `.env.prod` for ops work
+- Provision a Supabase dev branch
+- Just warn, don't block
+- Change the guard to opt-out (`--local-only` flag)
+
+**Rationale:** The guard's real failure mode is a sleepy developer running `python manage.py migrate` without thinking. An opt-in flag is default-safe and shows up in any command history ("why is `SJKTCONNECT_ALLOW_PROD_DB=1` in the shell history?"). Opt-out would require remembering to add a flag every time. A pure warning is too easy to ignore. Remove-from-`.env` would break the convenience of `manage.py shell` for quick prod data checks, which has been a workflow for months. Supabase dev branch is the ideal long-term answer but not worth the setup friction for this sprint.
+
+**Trade-offs:** The guard is code in `manage.py`, adding a small path every Django command pays. List of "destructive" commands is hardcoded and must be updated when new write-commands are added (accepted — Django's ecosystem is slow-moving). Relies on `K_SERVICE` being set by Cloud Run, which is a platform-provided guarantee.
+
+**Revisit if:** The hardcoded destructive-commands list grows unwieldy, or if the deployment platform changes away from Cloud Run (losing the `K_SERVICE` bypass signal).
+
+## Store school images as bytes in Supabase Storage, not URLs — Audit & Community Auth, 2026-04-22 (planning decision for Sprint 9)
+
+**Decision:** For Sprint 9 (Image Library), store image bytes in Supabase Storage bucket `school-images`, not in Postgres, not as Google Places URLs.
+
+**Alternatives considered:**
+- Keep Google Places URLs, re-harvest more frequently (weekly scheduled job)
+- Postgres `BinaryField` as used today by `Suggestion.image`
+- Google Cloud Storage bucket
+- Google Photos API (rejected at design — not a developer CDN)
+
+**Rationale:** Google Places API (New) invalidates photo resource IDs on an unpredictable cycle. Every SJK(T) school's Places photo URLs are currently returning HTTP 400 — confirming the failure mode. Re-harvesting weekly would cost ~US$14 in API calls per run (403 searches × $0.035) and still have gaps between runs. Storing bytes once and forever eliminates the dependency on Google's URL stability, and Supabase Storage is already in the stack (1 GB free tier, S3-compatible API, same project/billing/credentials as the database). GCS would add another service boundary with no benefit at this scale.
+
+**Trade-offs:** Supabase free-tier egress (2 GB/month) is a bounded ceiling — must monitor. Re-harvesting requires re-pulling bytes (not just URLs), slightly heavier one-off operation. Postgres `BinaryField` becomes available freed up when the Sprint 8.2 `Suggestion.image` field is migrated to also use Supabase Storage.
+
+**Revisit if:** Supabase free-tier egress is consistently exceeded, or if image count per school grows 10×+ beyond current 20-photo cap.
+
+## Tech debt as a living register, not per-item tickets — Audit & Community Auth, 2026-04-22
+
+**Decision:** Track tech debt in a single `docs/tech-debt.md` file with per-entry frontmatter (what / why / blocks / cost-to-fix / severity), triaged at each sprint close. Not GitHub Issues, not per-item branches, not a separate board.
+
+**Alternatives considered:**
+- GitHub Issues with `tech-debt` label
+- Per-item markdown files in `docs/tech-debt/`
+- A dedicated project board (GitHub Projects / Linear / similar)
+- Only in CLAUDE.md pending list (current pre-audit approach)
+
+**Rationale:** The value of a tech-debt register is pattern-recognition across items — "these four all resolve in the Image Library sprint, maybe bring it forward". Single-file review makes that trivial; ticket-per-item makes it invisible. CLAUDE.md pending list works for tactical sprint planning but doesn't preserve the "why we accepted this debt" context that becomes critical at triage time (6 weeks later you won't remember whether the workaround was a deliberate tradeoff or a rushed fix). A single markdown file sits alongside the codebase, version-controlled, greppable, cross-referenceable to code and retrospectives.
+
+**Trade-offs:** Not integrated with any task/project tool — if we adopt one later, entries will need to be copied or linked. Single-file review gets harder as debt count grows (mitigated by rigorous sprint-close triage + ✅ marker for resolved items with a short closure note rather than deletion).
+
+**Revisit if:** Debt count exceeds ~40 entries (at which point file-level review breaks down) or if multiple contributors need concurrent updates.

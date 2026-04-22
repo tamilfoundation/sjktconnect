@@ -242,6 +242,8 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 8.5 | Done | Brevo Webhook Integration: webhook endpoint at /api/v1/webhooks/brevo/ for delivery tracking (delivered, opened, clicked, hard/soft bounce, spam, unsubscribed). Engagement fields on BroadcastRecipient (open_count, click_count, timestamps). Auto-deactivate subscribers after 3 hard bounces. Optional HMAC verification. 19 new backend tests. 1382 tests total. |
 | 8.6 | Done | Email Quality & Spam Cleanup: fixed hero image bytes dumped into email HTML (compose_news_digest + compose_parliament_watch), contact form honeypot anti-spam, hard bounce threshold reduced to 1, purged 37 spam + deactivated 44 hard-bounced subscribers. 1382 tests total. |
 | Egress Fix | Done | Supabase Egress Optimisation: `.defer("boundary_wkt")` on 6 views (~85% egress reduction), middleware IP blocking (Chrome/91 scraper), robots.txt bot exclusions (AhrefsBot, GPTBot, OAI-SearchBot, Amazonbot, ClaudeBot), Cloud Run `minScale=1`. Investigation report at `docs/egress-investigation-report.md`. 1382 tests (unchanged). |
+| News Digest & Urgent Alert Fix | Done | `Broadcast.kind` + `coverage_start_date`/`coverage_end_date` (migration 0006). Digest cadence filters by `kind=NEWS_DIGEST`. Urgency classifier rewritten as two-gate + second-pass verification. `URGENT_ALERT_REQUIRE_REVIEW` dormant feature flag. 18 new tests. |
+| Audit & Community Auth | Done | Community Google sign-in unblocked (OAuth External/Production, `SameSite=None` cookies, admin → SUPERADMIN). Fixed 3 Sprint 8.2 bugs (photo base64 prefix, preview, relative image URL). First full-codebase audit since Sprint 0.3: `docs/tech-debt.md` with 15 entries (3 resolved: TD-03 prod-DB guard, TD-08 DRF auth pin, TD-10 next-intl upgrade). Security review patched 2 vulns (suggestion image auth). 3 new backend tests. 1109 backend + 271 frontend tests. Retrospective: `docs/retrospective-audit-community-auth.md`. |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -259,19 +261,34 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Current state**: News Digest & Urgent Alert Fix done + deployed (rev `sjktconnect-api-00092`). Today's session also shipped: OAuth consent (External/Production), SUPERADMIN role for admin@tamilfoundation.org, `SameSite=None` session cookies (cross-domain fix), photo-upload base64 + preview fixes, `BACKEND_URL` setting, community photo URL fix, auth on suggestion image endpoint. 1107 backend + 290 frontend tests. See `docs/tech-debt.md` for 15 tracked debt items.
+**Recommended next: Sprint 11 — User Management** (before Sprint 9, because it fixes the OAuth security regression and cookie hack that community uploads will otherwise inherit).
 
-**Pending**:
-1. **Punch list from 2026-04-22 audit — quick wins (total ~2 hrs)**:
-   - Pin `REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] = ["rest_framework.authentication.SessionAuthentication"]` explicitly (TD-08, 15 min)
-   - `DATABASE_URL` local-dev guard in `manage.py` (TD-03, 1 hr)
-   - `npm audit` upgrades: Next 14→15, next-intl (TD-10, 30 min)
-2. Google Search Console: manually set Googlebot crawl rate (Googlebot doesn't respect Crawl-delay in robots.txt)
-3. **Verify urgency audit trail after first post-fix urgent alert**: when `is_urgent=True` next fires, confirm `ai_raw_response["urgent_verification"]` has `{confirmed, reason, first_pass_reason}` populated. Unit tests prove the code paths; only prod will prove the Gemini integration
-4. Verify 4 May 2026 cron fires with coverage "21 Apr – 4 May"
-5. **Image Library & Community Upload sprint** — migrate school images from volatile Google Places URLs to Supabase Storage, add authenticated-user upload flow with SUPERADMIN / school-admin approval, 20-photo hard cap, lightbox modal for >5 photos. Resolves TD-05, TD-06, TD-07, TD-09. Full plan: `docs/plans/2026-04-22-image-library-sprint-plan.md`. Branch: `feat/image-library`.
-6. **User Management sprint** — adopt Cloudflare proxy per `docs/proposals/2026-03-11-cloudflare-proxy-proposal.md`, restore OAuth checks, remove `SameSite=None` workaround, delete dead magic-link system + migrate school-edit to OAuth, build `/dashboard/users` UI (list/search/role change/assign school admin/deactivate), self-service profile page. Resolves TD-01, TD-02, TD-04.
-7. **Ongoing: triage `docs/tech-debt.md`** at each sprint close. Update register when new debt is accepted or existing debt is paid down.
+**What to build** (5 bullets):
+- **Cloudflare reverse proxy** per `docs/proposals/2026-03-11-cloudflare-proxy-proposal.md` — puts `tamilschool.org/*` in front of frontend, `tamilschool.org/api/*` in front of backend. Same-origin cookies become possible.
+- **Restore OAuth security checks** — remove `checks: []` workaround in `frontend/lib/auth.ts:10`, re-enable PKCE + state. Remove `SESSION_COOKIE_SAMESITE = "None"` from `production.py` (no longer needed).
+- **Kill the dead magic-link system** — delete `SchoolContact`, `MagicLinkToken`, `IsMagicLinkAuthenticated`, `accounts/services/token.py`, claim pages, and migrate `SchoolEditView` + `SchoolConfirmView` to `IsProfileAuthenticated` + `admin_school` check (~400 LOC removed).
+- **`/dashboard/users` UI** (SUPERADMIN only) — list, search, change role, assign school admin, deactivate.
+- **Next 14 → 15 upgrade** — migrates 5+ pages using `params`/`cookies()`/`headers()` to the new async APIs. Bundled here because it touches the auth flow anyway.
+
+**Current codebase state**:
+- Prod revisions: backend `sjktconnect-api-00094-rvm`, frontend `sjktconnect-web-00081-jzn`
+- 1109 backend tests (89% coverage) + 271 frontend tests
+- 15 tech debt items tracked in `docs/tech-debt.md`; Sprint 11 resolves TD-01, TD-02, TD-04, TD-10 (remainder)
+- Clean main, no open branches, no unpushed commits
+
+**Gotchas**:
+- Cloudflare nameserver switch has 5–30 min propagation; validate on a test subdomain first
+- Next 15 breaking changes: `params`, `cookies()`, `headers()` all async — async/await must be added at every use site
+- Before starting Sprint 11: do a full `.claude/ARCHITECTURE_MAP.md` refresh (currently ~6 weeks stale — sprint 11 will touch many unmapped components)
+
+**Small passive/manual items carried over**:
+- Google Search Console: manually set Googlebot crawl rate (not controlled by robots.txt `Crawl-delay`)
+- Verify urgency audit trail after first post-fix urgent alert (`ai_raw_response["urgent_verification"]` populated)
+- Verify 4 May 2026 fortnightly cron fires with coverage "21 Apr – 4 May"
+
+**Sprint after this**: Sprint 9 — Image Library. Plan at `docs/plans/2026-04-22-image-library-sprint-plan.md`. Resolves TD-05, TD-06, TD-07, TD-09.
+
+**Ongoing**: Triage `docs/tech-debt.md` at every sprint close.
 
 **Future work**:
 - **Email engagement dashboard** — query open/click rates per broadcast, identify disengaged subscribers

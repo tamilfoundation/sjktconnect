@@ -1,5 +1,47 @@
 # Changelog
 
+## Audit & Community Auth Sprint (2026-04-22 → 2026-04-23)
+
+Two-session sprint: unblocked Google OAuth for non-tamilfoundation.org accounts, fixed three pre-existing bugs in the Sprint 8.2 suggestion workflow end-to-end, ran the project's first full-codebase audit since Sprint 0.3, and paid down three tech debt items surfaced by the audit.
+
+### Added
+- **`docs/tech-debt.md`** — tech debt register with 15 entries (what / why / blocks / cost-to-fix format). Living document, triaged each sprint close.
+- **`docs/plans/2026-04-22-image-library-sprint-plan.md`** — Sprint 9 plan: replace volatile Google Places photo URLs with Supabase Storage, add community upload flow with SUPERADMIN/school-admin approval, 20-photo hard cap, lightbox modal, moderation queue UX improvements.
+- **`BACKEND_URL` setting** (`backend/sjktconnect/settings/base.py`) — absolute URL used when building image references that must resolve from the frontend domain. Set on Cloud Run backend via `--update-env-vars`.
+- **Prod-DB guard** in `backend/manage.py` — refuses destructive commands (`migrate`, `flush`, `import_*`, `harvest_*`, etc.) when `DATABASE_URL` points to a non-local host, unless `SJKTCONNECT_ALLOW_PROD_DB=1` or running on Cloud Run (`K_SERVICE` set). Read-only commands unchanged.
+- **Explicit DRF `DEFAULT_AUTHENTICATION_CLASSES = [SessionAuthentication]`** pin — prevents silent CSRF regression if `TokenAuthentication` is added later, which would bypass `SameSite=None`'s compensating control.
+- **3 new backend tests** in `community/tests/test_approval.py` — cover approved-image public access, pending-image anonymous block, pending-image uploader access.
+
+### Changed
+- **OAuth consent screen** → External + In Production. `tamiliam@gmail.com` (and any Google account) can now sign in. Renamed from "SJK(T) Connect Feedback" to "SJK(T) Connect".
+- **`admin@tamilfoundation.org` role** → SUPERADMIN (was USER) — unlocks the Dashboard link + moderation queue in the UserMenu.
+- **Session cookies** — `SESSION_COOKIE_SAMESITE = "None"` + `CSRF_COOKIE_SAMESITE = "None"` added to production settings. Required for cross-origin `fetch()` from `tamilschool.org` to `sjktconnect-api-*.run.app` to carry the session cookie. Documented as a temporary workaround pending Cloudflare proxy adoption.
+- **`next-intl`** upgraded from 4.8.3 → 4.9.1+ (clears open-redirect advisory).
+
+### Fixed
+- **Photo upload silently failed** (Sprint 8.2 bug): `FileReader.readAsDataURL` returns a full `data:image/jpeg;base64,...` string, but backend's `base64.b64decode()` cannot parse the prefix. `frontend/components/SuggestForm.tsx` now strips the prefix before storing, then prepends it for the preview `<img>` tag.
+- **Suggestion submit error swallowed**: `catch {}` block replaced the server's real error message with a generic "Failed to submit suggestion". Now logs to console and surfaces the actual DRF detail text.
+- **Community-approved photos rendered broken** (Sprint 8.2 bug): `_apply_photo_upload` set `SchoolImage.image_url` to relative path `/api/v1/suggestions/<pk>/image/`, which the browser resolved against `tamilschool.org` (not the `.run.app` backend). Now uses absolute URL via `settings.BACKEND_URL`. Patched stale SchoolImage 1545 record directly in prod DB.
+- **Non-approved suggestion images publicly enumerable** (security, audit finding 2+5): `suggestion_image_view` served any `PENDING`/`REJECTED` suggestion's uploaded image to anyone who guessed the pk, leaking photos that were never approved. Now requires viewer to be uploader / school admin / MODERATOR / SUPERADMIN. APPROVED suggestions remain public (SchoolImage rows point here).
+
+### Security
+- **Audit finding 2 + 5** patched — see Fixed section above.
+- **3 findings deferred** — logged in `docs/tech-debt.md`:
+  - TD-01 (OAuth `checks: []` workaround, prerequisite for Sprint 11 Cloudflare)
+  - TD-04 (`SameSite=None` workaround, resolves with same Cloudflare migration)
+  - TD-09 (hardcoded `image/png` Content-Type, resolves with Sprint 9)
+
+### Audit Summary (item 12 from CLAUDE.md Next Sprint list)
+- **Dependency audit**: backend pip-audit clean; frontend npm audit showed 3 moderate issues — `next-intl` upgraded, `next` + `picomatch` deferred (we don't use `remotePatterns`, so not currently exploitable).
+- **Test coverage**: 1109 backend tests, 89% line coverage (excluding one-off management commands which are 0% by design). Frontend 271 tests pass (excluding 2 pre-existing flakies).
+- **Security review**: 5 findings — 2 patched this sprint, 3 deferred to Sprint 9 / Sprint 11 (all tracked in `docs/tech-debt.md`).
+- **Code simplification scan**: magic-link auth system (Sprint 1.6) is fully dormant (0 contacts, 0 tokens ever issued) but still wired into `SchoolEditView` + `SchoolConfirmView`, meaning the edit-school button on every school page is unusable. Resolves with Sprint 11.
+- **Tech debt register**: 15 items catalogued, 3 resolved this sprint (TD-03, TD-08, TD-10-partial).
+
+### Deployed revisions
+- Backend: `sjktconnect-api-00087` → `sjktconnect-api-00094-rvm`
+- Frontend: `sjktconnect-web-00078` → `sjktconnect-web-00081-jzn`
+
 ## News Digest & Urgent Alert Fix (2026-04-21)
 
 ### Fixed
