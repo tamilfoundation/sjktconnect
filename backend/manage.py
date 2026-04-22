@@ -25,10 +25,19 @@ _DESTRUCTIVE_COMMANDS = {
 def _check_prod_db():
     """Abort destructive commands against a prod DB unless explicitly allowed.
 
-    A DATABASE_URL that isn't localhost/sqlite is treated as potentially
-    production. Read-only commands (shell, test, check, etc.) always proceed —
-    only destructive commands are gated.
+    Only applies when running LOCALLY. Cloud Run (detected via K_SERVICE env
+    var) and production settings are expected to run migrate etc. against the
+    prod DB — that's their job. The guard exists to prevent an *accidental*
+    local `manage.py migrate` from mutating prod because the repo-root .env
+    auto-loads a Supabase DSN.
     """
+    if os.environ.get("K_SERVICE"):
+        # Running on Cloud Run — this IS the production environment.
+        return
+    if os.environ.get("DJANGO_SETTINGS_MODULE", "") == "sjktconnect.settings.production":
+        # Explicitly running production settings locally (e.g. CI). Skip guard.
+        return
+
     db_url = os.environ.get("DATABASE_URL", "")
     if not db_url:
         return
