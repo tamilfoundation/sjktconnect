@@ -259,30 +259,19 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Current state**: News Digest & Urgent Alert Fix in progress on `fix/news-digest-urgent-alert` branch. Backend rev `sjktconnect-api-00088` in prod (awaiting new deploy). Frontend rev `sjktconnect-web-00078`. 1092+ backend + 290 frontend tests.
-
-**In-flight fix** (2026-04-21 → 2026-04-22):
-- Added `Broadcast.kind` + `coverage_start_date` + `coverage_end_date` (migration 0006, backfilled)
-- Digest cadence filters by `kind=NEWS_DIGEST` (urgent alerts no longer poison cooldown)
-- `_get_since_date` uses `coverage_end + 1 day` (fixed off-by-one)
-- Urgency classifier prompt rewritten with two-gate decision + 9 examples
-- Second-pass verification downgrades false-positive urgent flags
-- Dormant `URGENT_ALERT_REQUIRE_REVIEW` flag (default false)
-- Next digest: **Mon 4 May 2026**, covers **21 Apr – 4 May**
+**Current state**: News Digest & Urgent Alert Fix done + deployed (rev `sjktconnect-api-00092`). Today's session also shipped: OAuth consent (External/Production), SUPERADMIN role for admin@tamilfoundation.org, `SameSite=None` session cookies (cross-domain fix), photo-upload base64 + preview fixes, `BACKEND_URL` setting, community photo URL fix, auth on suggestion image endpoint. 1107 backend + 290 frontend tests. See `docs/tech-debt.md` for 15 tracked debt items.
 
 **Pending**:
-1. Test suggestion workflow end-to-end on tamilschool.org (Sprint 8.2 features deployed)
-2. Monitor Google Search Console for hreflang/canonical pickup (allow 1-2 weeks for re-crawl)
-3. Google Search Console: manually set Googlebot crawl rate (Googlebot doesn't respect Crawl-delay in robots.txt)
-4. **Supabase egress regression — investigate** (NOT just monitoring). Post-fix target was <100 MB/day. Actual on 2026-04-21 dashboard: 500 MB–1 GB/day with 1014 MB spike on 11 Apr — i.e. **5–10× over target**. The Mar 29 `defer("boundary_wkt")` fix is still in place (verified 6 defers in `schools/api/views.py`), so a new source has emerged. Suspects in priority order: (a) **broken Places photo URLs** — every Places thumbnail returns HTTP 400, frontend may be retrying and burning egress on error pages, (b) crawler resurgence (check `core/middleware.py` IP block list against current logs), (c) Next.js ISR cache eviction since `minScale=1` was set, (d) new endpoint added since Mar 29 that fetches heavy fields without `.defer()`. Investigation: pull Cloud Run access logs for top-N endpoints by bytes, cross-reference Supabase row reads, run query analysis. Likely fix lands in image-library sprint (#9), but may need a faster mitigation if cost climbs.
-5. Send welcome email batch 2 (~110 remaining bulk-imported subscribers) — `send_welcome_email`
-6. **Verify urgency audit trail after first post-fix urgent alert**: when `is_urgent=True` next fires, confirm `ai_raw_response["urgent_verification"]` has `{confirmed, reason, first_pass_reason}` populated. Unit tests prove the code paths; only prod will prove the Gemini integration
-7. **Decide local-dev DATABASE_URL strategy**: the repo-root `.env` auto-loads a Supabase prod DSN, so every local `manage.py` hits prod silently. `.env` is gitignored but operational risk is live. Pick: (a) guard in `manage.py` that prints target DB + requires `--confirm-prod` for writes, (b) remove DATABASE_URL from local `.env` (revert to sqlite), (c) provision Supabase dev branch, (d) accept + document
-8. Verify 4 May 2026 cron fires with coverage "21 Apr – 4 May"
-9. **Image Library & Community Upload sprint** — migrate school images from volatile Google Places URLs to Supabase Storage, add authenticated-user upload flow with SUPERADMIN / school-admin approval, 20-photo hard cap, lightbox modal for >5 photos. Triggered by 2026-04-22 investigation finding every Places photo URL returning HTTP 400. Full plan: `docs/plans/2026-04-22-image-library-sprint-plan.md`. Branch: `feat/image-library`.
-10. **OAuth consent screen blocks non-tamilfoundation.org accounts** — Google returns "Error 403: org_internal" when signing in with personal Gmail (e.g. tamiliam@gmail.com). OAuth client `748286712183-4cr66p9qvj65c0tpdfhmo42r5o9mal0o` is set to User Type=Internal in GCP project `sjktconnect`. Fix: switch to External + Testing mode in Cloud Console (https://console.cloud.google.com/apis/credentials/consent?project=sjktconnect), add early testers to Test users list (max 100). For full public launch, submit for Google verification (4–6 weeks). Also rename OAuth consent app from "SJK(T) Connect Feedback" → "SJK(T) Connect".
-11. **User Management sprint** — fix auth foundation + build /dashboard/users UI. Part A: adopt Cloudflare per `docs/proposals/2026-03-11-cloudflare-proxy-proposal.md` (still not adopted; tamilschool.org served directly by Cloud Run), restore proper OAuth checks (currently `checks: []` in `frontend/lib/auth.ts:10` — security regression from Mar 11 workaround), validate sign-in across desktop+mobile. Part B: SUPERADMIN-only /dashboard/users page (list, search, role change, assign school admin, deactivate); decide whether to kill or fold the dormant magic-link flow (Sprint 1.6, 0 contacts ever) into OAuth; add self-service profile page (display name, points, pending suggestions).
-12. **Code + Tech Debt Audit sprint** — first full-codebase audit since Sprint 0.3 (2026-02-25, when project was 1 app / 111 tests; today 13 apps / ~1,400 tests). Combined scope: (a) **security review** — OAuth state, sessions, CORS, CSRF, rate limits, secrets, Cloud Run env vars (use `security-review` skill); (b) **code simplification** — per-app dead code, duplication, premature abstractions (use `simplify` / `code-simplifier` skill); (c) **dependency audit** — `pip-audit` + `npm audit` for CVEs; (d) **test coverage audit** — % coverage per app, identify gaps; (e) **tech debt register** — create `docs/tech-debt.md` as living document of known compromises (what, why, what it blocks, cost to fix), triaged each sprint. Deliverables: severity-ranked security punch list (fix immediately), per-app code-quality findings (fix over next 1-2 sprints), tech debt register. Recommended *before* items 11 and 9 to avoid building new surface on shaky foundations. Estimated half-sprint, ~10 files touched (mostly deletions + small refactors).
+1. **Punch list from 2026-04-22 audit — quick wins (total ~2 hrs)**:
+   - Pin `REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] = ["rest_framework.authentication.SessionAuthentication"]` explicitly (TD-08, 15 min)
+   - `DATABASE_URL` local-dev guard in `manage.py` (TD-03, 1 hr)
+   - `npm audit` upgrades: Next 14→15, next-intl (TD-10, 30 min)
+2. Google Search Console: manually set Googlebot crawl rate (Googlebot doesn't respect Crawl-delay in robots.txt)
+3. **Verify urgency audit trail after first post-fix urgent alert**: when `is_urgent=True` next fires, confirm `ai_raw_response["urgent_verification"]` has `{confirmed, reason, first_pass_reason}` populated. Unit tests prove the code paths; only prod will prove the Gemini integration
+4. Verify 4 May 2026 cron fires with coverage "21 Apr – 4 May"
+5. **Image Library & Community Upload sprint** — migrate school images from volatile Google Places URLs to Supabase Storage, add authenticated-user upload flow with SUPERADMIN / school-admin approval, 20-photo hard cap, lightbox modal for >5 photos. Resolves TD-05, TD-06, TD-07, TD-09. Full plan: `docs/plans/2026-04-22-image-library-sprint-plan.md`. Branch: `feat/image-library`.
+6. **User Management sprint** — adopt Cloudflare proxy per `docs/proposals/2026-03-11-cloudflare-proxy-proposal.md`, restore OAuth checks, remove `SameSite=None` workaround, delete dead magic-link system + migrate school-edit to OAuth, build `/dashboard/users` UI (list/search/role change/assign school admin/deactivate), self-service profile page. Resolves TD-01, TD-02, TD-04.
+7. **Ongoing: triage `docs/tech-debt.md`** at each sprint close. Update register when new debt is accepted or existing debt is paid down.
 
 **Future work**:
 - **Email engagement dashboard** — query open/click rates per broadcast, identify disengaged subscribers
