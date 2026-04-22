@@ -279,7 +279,8 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 **Gotchas**:
 - Cloudflare nameserver switch has 5–30 min propagation; validate on a test subdomain first
 - Next 15 breaking changes: `params`, `cookies()`, `headers()` all async — async/await must be added at every use site
-- Before starting Sprint 11: do a full `.claude/ARCHITECTURE_MAP.md` refresh (currently ~6 weeks stale — sprint 11 will touch many unmapped components)
+- Full Sprint 11 plan ready at `docs/plans/2026-04-23-user-management-sprint-plan.md` (6 phases, rollback plan, ~40 files, ~400 LOC removed)
+- `.claude/ARCHITECTURE_MAP.md` refreshed 2026-04-23 — current with all apps, components, and infrastructure as of today
 
 **Small passive/manual items carried over**:
 - Google Search Console: manually set Googlebot crawl rate (not controlled by robots.txt `Crawl-delay`)
