@@ -8,12 +8,9 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 
 ---
 
-## 🔴 TD-01 — OAuth security checks disabled in production
+## ✅ TD-01 — OAuth security checks disabled in production (RESOLVED 2026-04-24)
 
-- **What**: `frontend/lib/auth.ts:10` has `checks: []` on the NextAuth Google provider, disabling PKCE, state, and nonce verification.
-- **Why we accepted**: Cloud Run domain mapping drops cookies during the OAuth redirect chain. Six attempted fixes in March 2026 all failed; the `checks: []` workaround was merged (`570dea3`, 2026-03-11) to unblock sign-in and has been live since.
-- **What it blocks**: Safely shipping community-facing features. Without PKCE + state, the flow is vulnerable to CSRF on callback and authorization-code interception. Acceptable at 1-user scale; not acceptable at community launch.
-- **Cost to fix**: ~½ sprint. Adopt Cloudflare proxy per `docs/proposals/2026-03-11-cloudflare-proxy-proposal.md` to make cookies same-origin, then restore `checks: ["pkce", "state"]`. Part A of Sprint 11 (User Management).
+- **Status**: Resolved in Sprint 11 Phase 2. Cloudflare reverse proxy adopted 2026-04-23 — frontend (`tamilschool.org`) and backend (`api.tamilschool.org`) now same-site subdomains. OAuth redirect cookies survive the round-trip, `checks: ["pkce", "state"]` restored in `frontend/lib/auth.ts`. End-to-end smoke test passed: sign-in with `tamiliam@gmail.com` + suggestion submission succeed with PKCE+state verification enabled.
 
 ## 🔴 TD-02 — Magic-link auth redundant with Google Workspace sign-in
 
@@ -27,12 +24,9 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 
 - **Status**: Resolved. `backend/manage.py` now prints a warning banner on every invocation when `DATABASE_URL` points to a non-local host, and refuses to run a hardcoded list of destructive commands (`migrate`, `flush`, `import_*`, `seed_*`, `harvest_school_images`, etc.) without `SJKTCONNECT_ALLOW_PROD_DB=1`. Read-only commands (`shell`, `test`, `check`) proceed unchanged. `pytest` still needs `DATABASE_URL=` unset for a pure sqlite run — that's now documented behaviour rather than a silent trap.
 
-## 🟡 TD-04 — `SESSION_COOKIE_SAMESITE = "None"` workaround
+## ✅ TD-04 — `SESSION_COOKIE_SAMESITE = "None"` workaround (RESOLVED 2026-04-24)
 
-- **What**: Today's fix (`backend/sjktconnect/settings/production.py:36-39`) sets `SESSION_COOKIE_SAMESITE = "None"` and `CSRF_COOKIE_SAMESITE = "None"` so session cookies survive cross-origin fetch from `tamilschool.org` to `sjktconnect-api-*.run.app`.
-- **Why we accepted**: Browser third-party cookie handling blocked sign-in for anyone signing up after OAuth went live. `SameSite=None` is the minimum change that restores function.
-- **What it blocks**: `SameSite=None` expands CSRF surface (browser attaches cookie to cross-origin POSTs). Mitigated today by `Secure` flag + CORS allowlist + DRF `SessionAuthentication`'s CSRF enforcement. But the mitigation is implicit — a future change adding `TokenAuthentication` to DRF defaults would silently remove CSRF protection. Also, Chrome's third-party cookie phase-out will block these entirely some time in 2026.
-- **Cost to fix**: Same as TD-01 — Cloudflare proxy makes cookies same-origin, allowing `SameSite=Lax` and removing both risks. Until then, pin `REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] = ["rest_framework.authentication.SessionAuthentication"]` explicitly (15 min) to prevent silent regressions.
+- **Status**: Resolved in Sprint 11 Phase 2. Cloudflare proxy put frontend + backend on same registrable domain (both subdomains of `tamilschool.org`); default `SameSite=Lax` now handles cross-subdomain cookie delivery correctly. Removed `SESSION_COOKIE_SAMESITE = "None"` and `CSRF_COOKIE_SAMESITE = "None"` from `production.py`. Full CSRF protection restored via `SameSite=Lax` default. The DRF `SessionAuthentication` pin (TD-08) from 2026-04-23 remains as defense-in-depth.
 
 ## 🟡 TD-05 — School images stored as volatile Google Places URLs
 
