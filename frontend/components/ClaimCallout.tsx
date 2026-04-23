@@ -74,10 +74,7 @@ export default function ClaimCallout({
           {!session && (
             <>
               <p>
-                {t.rich("hmPrompt", {
-                  school: () => <strong>{schoolShortName}</strong>,
-                  email: () => <code className="px-1 py-0.5 rounded bg-blue-100">{schoolEmail}</code>,
-                })}
+                {t("hmPrompt", { school: schoolShortName, email: schoolEmail })}
               </p>
               <button
                 onClick={() => signIn("google")}
