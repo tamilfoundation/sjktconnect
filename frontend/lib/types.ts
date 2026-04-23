@@ -208,18 +208,16 @@ export interface SearchResults {
   constituencies: Constituency[];
 }
 
-export interface MagicLinkResponse {
-  message: string;
-  school_name: string;
-}
-
 export interface AuthUser {
-  school_moe_code: string;
-  school_name: string;
+  id: number;
+  google_id: string;
+  display_name: string;
+  avatar_url: string;
+  role: "SUPERADMIN" | "MODERATOR" | "USER";
+  admin_school: { moe_code: string; name: string } | null;
+  points: number;
+  is_active: boolean;
   email: string;
-  name: string;
-  role: string;
-  verified_at: string;
 }
 
 export interface ApiError {

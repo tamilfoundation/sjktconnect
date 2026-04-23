@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.utils import timezone
 
-from accounts.models import SchoolContact
+from accounts.models import UserProfile
 from schools.models import Constituency, School
 
 
@@ -75,12 +75,13 @@ class VerificationDashboardContextTest(TestCase):
             ppd="PPD Kinta",
             is_active=False,
         )
-        # A contact
-        cls.contact = SchoolContact.objects.create(
-            school=cls.verified_school,
-            email="jbd0050@moe.edu.my",
-            name="Test Teacher",
-            role="Headmaster",
+        # A school admin (via UserProfile.admin_school)
+        cls.contact_user = User.objects.create_user("teacher", "jbd0050@moe.edu.my")
+        cls.contact = UserProfile.objects.create(
+            user=cls.contact_user,
+            google_id="g-t",
+            display_name="Test Teacher",
+            admin_school=cls.verified_school,
         )
 
     def setUp(self):
@@ -136,17 +137,20 @@ class VerificationDashboardContextTest(TestCase):
     def test_contacts_list(self):
         contacts = list(self.ctx["contacts"])
         assert len(contacts) == 1
-        assert contacts[0].email == "jbd0050@moe.edu.my"
+        assert contacts[0].user.email == "jbd0050@moe.edu.my"
 
     def test_contacts_excludes_inactive(self):
-        SchoolContact.objects.create(
-            school=self.unverified_johor,
-            email="inactive@moe.edu.my",
+        inactive_user = User.objects.create_user("inact", "inactive@moe.edu.my")
+        UserProfile.objects.create(
+            user=inactive_user,
+            google_id="g-inact",
+            display_name="Inact",
+            admin_school=self.unverified_johor,
             is_active=False,
         )
         resp = self.client.get("/dashboard/verification/")
         contacts = list(resp.context["contacts"])
-        emails = [c.email for c in contacts]
+        emails = [c.user.email for c in contacts]
         assert "inactive@moe.edu.my" not in emails
 
     def test_template_used(self):

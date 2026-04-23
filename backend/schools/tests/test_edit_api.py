@@ -1,21 +1,22 @@
-"""Tests for School edit/confirm API endpoints and permission class."""
+"""Tests for School edit/confirm API endpoints (UserProfile-based auth)."""
 
+from django.contrib.auth.models import User
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from accounts.models import SchoolContact
+from accounts.models import UserProfile
 from core.models import AuditLog
 from schools.models import Constituency, School
 
 
-class IsMagicLinkAuthenticatedTest(TestCase):
-    """Test the Magic Link session permission class."""
+class EditAuthorisationTest(TestCase):
+    """Permission checks on /edit/ endpoint with UserProfile sessions."""
 
     def setUp(self):
         self.client = APIClient()
         self.constituency = Constituency.objects.create(
-            code="P140", name="Segamat", state="Johor"
+            code="P140", name="Segamat", state="Johor",
         )
         self.school = School.objects.create(
             moe_code="JBD0050",
@@ -25,49 +26,79 @@ class IsMagicLinkAuthenticatedTest(TestCase):
             constituency=self.constituency,
             email="jbd0050@moe.edu.my",
         )
-        self.contact = SchoolContact.objects.create(
-            school=self.school,
-            email="jbd0050@moe.edu.my",
+        self.other_school = School.objects.create(
+            moe_code="JBD0099",
+            name="SJK(T) Other",
+            short_name="SJK(T) Other",
+            state="Johor",
+            constituency=self.constituency,
         )
+
+    def _auth(self, profile):
+        session = self.client.session
+        session["user_profile_id"] = profile.id
+        session.save()
 
     def test_unauthenticated_denied(self):
         response = self.client.get(f"/api/v1/schools/{self.school.moe_code}/edit/")
         self.assertEqual(response.status_code, 403)
 
-    def test_authenticated_allowed(self):
-        session = self.client.session
-        session["school_contact_id"] = self.contact.id
-        session["school_moe_code"] = self.school.moe_code
-        session.save()
+    def test_school_admin_allowed(self):
+        user = User.objects.create_user("admin", "admin@moe.edu.my")
+        profile = UserProfile.objects.create(
+            user=user, google_id="g-a", display_name="Admin",
+            admin_school=self.school,
+        )
+        self._auth(profile)
         response = self.client.get(f"/api/v1/schools/{self.school.moe_code}/edit/")
         self.assertEqual(response.status_code, 200)
 
-    def test_inactive_contact_denied(self):
-        self.contact.is_active = False
-        self.contact.save()
-        session = self.client.session
-        session["school_contact_id"] = self.contact.id
-        session["school_moe_code"] = self.school.moe_code
-        session.save()
+    def test_superadmin_can_edit_any_school(self):
+        user = User.objects.create_user("super", "super@foo")
+        profile = UserProfile.objects.create(
+            user=user, google_id="g-s", display_name="Super", role="SUPERADMIN",
+        )
+        self._auth(profile)
+        response = self.client.get(f"/api/v1/schools/{self.school.moe_code}/edit/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_admin_of_other_school_denied(self):
+        user = User.objects.create_user("otheradmin", "x@foo")
+        profile = UserProfile.objects.create(
+            user=user, google_id="g-o", display_name="Other",
+            admin_school=self.other_school,
+        )
+        self._auth(profile)
         response = self.client.get(f"/api/v1/schools/{self.school.moe_code}/edit/")
         self.assertEqual(response.status_code, 403)
 
-    def test_nonexistent_contact_denied(self):
-        session = self.client.session
-        session["school_contact_id"] = 99999
-        session["school_moe_code"] = self.school.moe_code
-        session.save()
+    def test_regular_user_without_admin_school_denied(self):
+        user = User.objects.create_user("reg", "r@foo")
+        profile = UserProfile.objects.create(
+            user=user, google_id="g-r", display_name="Reg",
+        )
+        self._auth(profile)
+        response = self.client.get(f"/api/v1/schools/{self.school.moe_code}/edit/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_inactive_profile_denied(self):
+        user = User.objects.create_user("inactive", "i@moe.edu.my")
+        profile = UserProfile.objects.create(
+            user=user, google_id="g-i", display_name="Inactive",
+            admin_school=self.school, is_active=False,
+        )
+        self._auth(profile)
         response = self.client.get(f"/api/v1/schools/{self.school.moe_code}/edit/")
         self.assertEqual(response.status_code, 403)
 
 
 class SchoolEditViewTest(TestCase):
-    """Test GET/PUT /api/v1/schools/{moe_code}/edit/"""
+    """GET/PUT /api/v1/schools/{moe_code}/edit/"""
 
     def setUp(self):
         self.client = APIClient()
         self.constituency = Constituency.objects.create(
-            code="P140", name="Segamat", state="Johor"
+            code="P140", name="Segamat", state="Johor",
         )
         self.school = School.objects.create(
             moe_code="JBD0050",
@@ -79,14 +110,13 @@ class SchoolEditViewTest(TestCase):
             phone="07-1234567",
             enrolment=120,
         )
-        self.contact = SchoolContact.objects.create(
-            school=self.school,
-            email="jbd0050@moe.edu.my",
+        self.user = User.objects.create_user("admin", "jbd0050@moe.edu.my")
+        self.profile = UserProfile.objects.create(
+            user=self.user, google_id="g-a", display_name="Admin",
+            admin_school=self.school,
         )
-        # Set up session
         session = self.client.session
-        session["school_contact_id"] = self.contact.id
-        session["school_moe_code"] = self.school.moe_code
+        session["user_profile_id"] = self.profile.id
         session.save()
 
     def test_get_returns_school_data(self):
@@ -125,16 +155,14 @@ class SchoolEditViewTest(TestCase):
             {"phone": "07-9999999"},
             format="json",
         )
-        # Filter for our explicit audit log (has changed_fields), not the
-        # signal-created one (has only {"action": "update"})
         logs = AuditLog.objects.filter(action="update", target_id="JBD0050")
-        log = next((entry for entry in logs if "changed_fields" in entry.detail), None)
+        log = next((e for e in logs if "changed_fields" in e.detail), None)
         self.assertIsNotNone(log)
         self.assertEqual(log.target_type, "School")
         self.assertIn("phone", log.detail["changed_fields"])
+        self.assertEqual(log.detail["contact"], "jbd0050@moe.edu.my")
 
     def test_put_read_only_fields_ignored(self):
-        """Read-only fields (moe_code, name, state) should not be updated."""
         self.client.put(
             "/api/v1/schools/JBD0050/edit/",
             {"name": "Hacked Name", "state": "Sabah"},
@@ -144,27 +172,11 @@ class SchoolEditViewTest(TestCase):
         self.assertEqual(self.school.name, "SJK(T) Ladang Bikam")
         self.assertEqual(self.school.state, "Johor")
 
-    def test_wrong_school_forbidden(self):
-        """Rep can't edit a different school."""
-        other = School.objects.create(
-            moe_code="JBD0099",
-            name="SJK(T) Other",
-            short_name="SJK(T) Other",
-            state="Johor",
-            constituency=self.constituency,
-        )
-        response = self.client.get(f"/api/v1/schools/{other.moe_code}/edit/")
-        self.assertEqual(response.status_code, 403)
-
     def test_nonexistent_school_404(self):
-        session = self.client.session
-        session["school_moe_code"] = "ZZZZZZ"
-        session.save()
         response = self.client.get("/api/v1/schools/ZZZZZZ/edit/")
         self.assertEqual(response.status_code, 404)
 
     def test_partial_update(self):
-        """PUT with partial=True should only update specified fields."""
         response = self.client.put(
             "/api/v1/schools/JBD0050/edit/",
             {"name_tamil": "தோட்டம் பிக்கம்"},
@@ -173,17 +185,16 @@ class SchoolEditViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.school.refresh_from_db()
         self.assertEqual(self.school.name_tamil, "தோட்டம் பிக்கம்")
-        # Phone should remain unchanged
         self.assertEqual(self.school.phone, "07-1234567")
 
 
 class SchoolConfirmViewTest(TestCase):
-    """Test POST /api/v1/schools/{moe_code}/confirm/"""
+    """POST /api/v1/schools/{moe_code}/confirm/"""
 
     def setUp(self):
         self.client = APIClient()
         self.constituency = Constituency.objects.create(
-            code="P140", name="Segamat", state="Johor"
+            code="P140", name="Segamat", state="Johor",
         )
         self.school = School.objects.create(
             moe_code="JBD0050",
@@ -193,13 +204,13 @@ class SchoolConfirmViewTest(TestCase):
             constituency=self.constituency,
             email="jbd0050@moe.edu.my",
         )
-        self.contact = SchoolContact.objects.create(
-            school=self.school,
-            email="jbd0050@moe.edu.my",
+        self.user = User.objects.create_user("admin", "jbd0050@moe.edu.my")
+        self.profile = UserProfile.objects.create(
+            user=self.user, google_id="g-a", display_name="Admin",
+            admin_school=self.school,
         )
         session = self.client.session
-        session["school_contact_id"] = self.contact.id
-        session["school_moe_code"] = self.school.moe_code
+        session["user_profile_id"] = self.profile.id
         session.save()
 
     def test_confirm_updates_timestamp(self):
@@ -240,8 +251,5 @@ class SchoolConfirmViewTest(TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_nonexistent_school_404(self):
-        session = self.client.session
-        session["school_moe_code"] = "ZZZZZZ"
-        session.save()
         response = self.client.post("/api/v1/schools/ZZZZZZ/confirm/")
         self.assertEqual(response.status_code, 404)

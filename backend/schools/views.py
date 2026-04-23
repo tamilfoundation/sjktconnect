@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, Q
 from django.views.generic import ListView
 
-from accounts.models import SchoolContact
+from accounts.models import UserProfile
 from schools.models import School
 
 
@@ -51,11 +51,11 @@ class VerificationDashboardView(LoginRequiredMixin, ListView):
             .order_by("-count")
         )
 
-        # Verified contacts
+        # Claimed schools (school admins)
         context["contacts"] = (
-            SchoolContact.objects.filter(is_active=True)
-            .select_related("school")
-            .order_by("-verified_at")[:20]
+            UserProfile.objects.filter(admin_school__isnull=False, is_active=True)
+            .select_related("admin_school", "user")
+            .order_by("-updated_at")[:20]
         )
 
         return context

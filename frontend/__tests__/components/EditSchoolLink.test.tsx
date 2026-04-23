@@ -15,17 +15,17 @@ describe("EditSchoolLink", () => {
   it("renders nothing when not authenticated", async () => {
     mockFetchMe.mockResolvedValueOnce(null);
     const { container } = render(<EditSchoolLink moeCode="JBD0050" />);
-    // Wait for useEffect
     await waitFor(() => {
       expect(mockFetchMe).toHaveBeenCalled();
     });
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders nothing when authenticated for different school", async () => {
+  it("renders nothing when admin of a different school", async () => {
     mockFetchMe.mockResolvedValueOnce({
-      school_moe_code: "JBD0099",
-      school_name: "SJK(T) Other",
+      id: 1,
+      role: "USER",
+      admin_school: { moe_code: "JBD0099", name: "Other" },
       email: "jbd0099@moe.edu.my",
     });
     const { container } = render(<EditSchoolLink moeCode="JBD0050" />);
@@ -35,10 +35,11 @@ describe("EditSchoolLink", () => {
     expect(container.querySelector("a")).toBeNull();
   });
 
-  it("renders edit link when authenticated for this school", async () => {
+  it("renders edit link when admin for this school", async () => {
     mockFetchMe.mockResolvedValueOnce({
-      school_moe_code: "JBD0050",
-      school_name: "SJK(T) Ladang Bikam",
+      id: 1,
+      role: "USER",
+      admin_school: { moe_code: "JBD0050", name: "SJK(T) Ladang Bikam" },
       email: "jbd0050@moe.edu.my",
     });
     render(<EditSchoolLink moeCode="JBD0050" />);
@@ -49,5 +50,18 @@ describe("EditSchoolLink", () => {
       "href",
       "/school/JBD0050/edit"
     );
+  });
+
+  it("renders edit link for SUPERADMIN regardless of admin_school", async () => {
+    mockFetchMe.mockResolvedValueOnce({
+      id: 1,
+      role: "SUPERADMIN",
+      admin_school: null,
+      email: "admin@tamilfoundation.org",
+    });
+    render(<EditSchoolLink moeCode="JBD0050" />);
+    await waitFor(() => {
+      expect(screen.getByRole("link", { name: /Edit School Data/ })).toBeInTheDocument();
+    });
   });
 });

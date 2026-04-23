@@ -9,7 +9,8 @@ import {
 } from "@/lib/api";
 import { buildAlternates } from "@/lib/seo";
 import Breadcrumb from "@/components/Breadcrumb";
-import ClaimButton from "@/components/ClaimButton";
+import ClaimCallout from "@/components/ClaimCallout";
+import VerifiedBadge from "@/components/VerifiedBadge";
 import EditSchoolLink from "@/components/EditSchoolLink";
 import SuggestButton from "@/components/SuggestButton";
 import SchoolPhotoGallery from "@/components/SchoolImage";
@@ -120,6 +121,12 @@ export default async function SchoolPage({ params }: PageProps) {
           {school.name_tamil && (
             <p className="text-lg text-gray-500 font-medium mb-3">{school.name_tamil}</p>
           )}
+          <div className="mb-2">
+            <VerifiedBadge
+              claimedAt={(school as { claimed_at?: string | null }).claimed_at ?? null}
+              lastVerified={school.last_verified ?? null}
+            />
+          </div>
           <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-100 w-fit px-3 py-1.5 rounded-full mb-4">
             <span className="font-semibold text-primary-600">{school.moe_code}</span>
             <span>·</span>
@@ -171,6 +178,12 @@ export default async function SchoolPage({ params }: PageProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column: main content */}
         <div className="lg:col-span-2 space-y-6">
+          <ClaimCallout
+            moeCode={school.moe_code}
+            schoolShortName={school.short_name || school.name}
+            schoolEmail={school.email || null}
+            isClaimed={Boolean((school as { is_claimed?: boolean }).is_claimed)}
+          />
           <SchoolProfile school={school} />
 
           {/* Parliament Watch Mentions */}
@@ -271,10 +284,6 @@ export default async function SchoolPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Claim button — bottom of page */}
-      <div className="mt-8">
-        <ClaimButton moeCode={school.moe_code} />
-      </div>
     </div>
   );
 }
