@@ -64,12 +64,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const allConstituencies: { code: string }[] = [];
     let url: string | null = `${apiBase}/api/v1/constituencies/`;
     while (url) {
-      const res = await fetch(url);
+      const res: Response = await fetch(url);
       if (!res.ok) break;
-      const data = await res.json();
-      const results: { code: string }[] = data.results || data;
+      const data: { results?: { code: string }[]; next?: string | null; code?: string }[] | {
+        results?: { code: string }[];
+        next?: string | null;
+      } = await res.json();
+      const results: { code: string }[] =
+        (data as { results?: { code: string }[] }).results || (data as { code: string }[]);
       allConstituencies.push(...results);
-      url = data.next || null;
+      url = (data as { next?: string | null }).next || null;
     }
     constituencyEntries = allConstituencies.flatMap((c) =>
       buildLocaleEntries(`/constituency/${c.code}`, "monthly", 0.7)

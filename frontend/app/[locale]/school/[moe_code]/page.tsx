@@ -25,14 +25,15 @@ import { Link } from "@/i18n/navigation";
 export const revalidate = false;
 
 interface PageProps {
-  params: { moe_code: string };
+  params: Promise<{ moe_code: string }>;
 }
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
+  const { moe_code } = await params;
   try {
-    const school = await fetchSchoolDetail(params.moe_code);
+    const school = await fetchSchoolDetail(moe_code);
     const name = school.short_name || school.name;
 
     // Compact stats for title: "SJK(T) Damansara | 450 Students, Grade A | Selangor"
@@ -60,7 +61,7 @@ export async function generateMetadata({
         type: "website",
         siteName: "SJK(T) Connect",
       },
-      alternates: buildAlternates(`/school/${params.moe_code}`),
+      alternates: buildAlternates(`/school/${moe_code}`),
     };
   } catch {
     return {
@@ -70,9 +71,10 @@ export async function generateMetadata({
 }
 
 export default async function SchoolPage({ params }: PageProps) {
+  const { moe_code } = await params;
   let school;
   try {
-    school = await fetchSchoolDetail(params.moe_code);
+    school = await fetchSchoolDetail(moe_code);
   } catch {
     notFound();
   }

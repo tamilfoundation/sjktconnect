@@ -25,10 +25,12 @@ export default function SchoolEditPage() {
       // Check authentication first
       const user = await fetchMe();
       if (!user) {
-        router.push(`/claim?school=${moeCode}`);
+        router.push("/sign-in");
         return;
       }
-      if (user.school_moe_code !== moeCode) {
+      const isSuperadmin = user.role === "SUPERADMIN";
+      const isSchoolAdmin = user.admin_school?.moe_code === moeCode;
+      if (!isSuperadmin && !isSchoolAdmin) {
         setError(t("onlyYourSchool"));
         setLoading(false);
         return;

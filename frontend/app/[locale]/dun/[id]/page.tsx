@@ -13,21 +13,22 @@ import { buildAlternates } from "@/lib/seo";
 export const revalidate = false;
 
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
+  const { id } = await params;
   try {
-    const dun = await fetchDUNDetail(parseInt(params.id, 10));
+    const dun = await fetchDUNDetail(parseInt(id, 10));
     const title = `${dun.code} ${dun.name} — SJK(T) Connect`;
     const description = `${dun.name} (${dun.code}) state constituency in ${dun.state}. ${dun.schools.length} Tamil school${dun.schools.length !== 1 ? "s" : ""}.${dun.adun_name ? ` ADUN: ${dun.adun_name}` : ""}`;
     return {
       title,
       description,
       openGraph: { title, description, type: "website", siteName: "SJK(T) Connect" },
-      alternates: buildAlternates(`/dun/${params.id}`),
+      alternates: buildAlternates(`/dun/${id}`),
     };
   } catch {
     const t = await getTranslations("constituency");
@@ -36,9 +37,10 @@ export async function generateMetadata({
 }
 
 export default async function DUNPage({ params }: PageProps) {
+  const { id } = await params;
   const t = await getTranslations("constituency");
   const tc = await getTranslations("common");
-  const dunId = parseInt(params.id, 10);
+  const dunId = parseInt(id, 10);
   if (isNaN(dunId)) {
     notFound();
   }
