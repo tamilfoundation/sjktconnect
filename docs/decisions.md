@@ -196,3 +196,32 @@
 **Trade-offs:** Less Internet evidence of "Next 16 in production" patterns at the time of upgrade (Next 16 is days old). Mitigated by the upgrade being mechanical (4 files for params API + a `global.d.ts` shim for the auto-generated types issue).
 
 **Revisit if:** Next 16 introduces a breaking change in a minor version that requires us to pin back.
+
+## One school, one admin (auto-unassign on reassignment) — Sprint 12, 2026-04-24
+
+**Decision:** When SUPERADMIN assigns School X to User B via `PATCH /api/v1/auth/admin/users/<id>/`, if School X is already bound to User A's `admin_school`, User A is automatically un-bound (`admin_school=NULL`) as part of the same atomic update.
+
+**Alternatives considered:**
+- Allow multiple admins per school (ManyToMany instead of OneToOne) — changes the data model and requires a permission-aggregation design.
+- Reject the assignment with 409 Conflict if school is taken — forces SUPERADMIN to do two operations (unassign A, assign B).
+
+**Rationale:** One-school-one-admin matches the real-world use case (each school has one HM; multi-admin is an edge case we don't need now). `admin_school` is already a OneToOneField. Auto-unassign is safe because SUPERADMIN is doing it deliberately (via the UI flow). No silent side-effect on the unassigned user's other permissions — they retain role=USER and can still submit suggestions, upload photos, etc.
+
+**Trade-offs:** If SUPERADMIN meant to assign a different school to B but picked the wrong one from the search dropdown, they've accidentally unassigned A. Mitigated by: (a) confirmation-style modal UX, (b) `claimed_at` is NOT reset on unassign so history is preserved, (c) reassignment is reversible by re-assigning A in one click.
+
+**Revisit if:** Schools start having deputy HMs who need separate admin access, or if MANY schools share cluster-level admins.
+
+## Self-demotion safety over allow-with-warning — Sprint 12, 2026-04-24
+
+**Decision:** SUPERADMIN cannot change their own role away from SUPERADMIN or deactivate their own account via the admin endpoints. Returns 403 with clear error. Applied at serializer/view level, covered by 3 dedicated tests.
+
+**Alternatives considered:**
+- Allow with confirmation modal ("Are you sure? You won't be able to undo this without another SUPERADMIN.")
+- Soft-require: allow only if at least one other SUPERADMIN exists
+- Hard-require: always forbid regardless of state
+
+**Rationale:** At current scale (1 SUPERADMIN), self-demotion would lock the entire organisation out of user management. Recovery path is manual DB update via Django admin, which is manageable but annoying. Prevention is strictly cheaper than recovery. Confirmation modal is easy to tap-through by accident. "Allow if 2+ SUPERADMINs" is more permissive but adds branching logic that's rarely exercised and potentially buggy.
+
+**Trade-offs:** If we ever WANT to transfer SUPERADMIN cleanly (promote B, then demote A), it takes two steps instead of one — promote the new one first, then someone else can demote A. Acceptable friction.
+
+**Revisit if:** We adopt 3+ SUPERADMINs and want convenient role rotation, or if we build a formal "transfer role" flow.

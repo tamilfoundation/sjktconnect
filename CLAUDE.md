@@ -245,6 +245,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | News Digest & Urgent Alert Fix | Done | `Broadcast.kind` + `coverage_start_date`/`coverage_end_date` (migration 0006). Digest cadence filters by `kind=NEWS_DIGEST`. Urgency classifier rewritten as two-gate + second-pass verification. `URGENT_ALERT_REQUIRE_REVIEW` dormant feature flag. 18 new tests. |
 | Audit & Community Auth | Done | Community Google sign-in unblocked (OAuth External/Production, `SameSite=None` cookies, admin → SUPERADMIN). Fixed 3 Sprint 8.2 bugs (photo base64 prefix, preview, relative image URL). First full-codebase audit since Sprint 0.3: `docs/tech-debt.md` with 15 entries (3 resolved: TD-03 prod-DB guard, TD-08 DRF auth pin, TD-10 next-intl upgrade). Security review patched 2 vulns (suggestion image auth). 3 new backend tests. 1109 backend + 271 frontend tests. Retrospective: `docs/retrospective-audit-community-auth.md`. |
 | User Management 11a | Done | Cloudflare reverse proxy adopted (tamilschool.org + api.tamilschool.org, both Cloudflare-proxied with Google-managed SSL). OAuth checks restored to `["pkce", "state"]`. SameSite=None workaround removed. Magic-link system fully deleted (~400 LOC); auto-claim on `@moe.edu.my` Google sign-in (~10 LOC) replaces it. New EmailClaimIndicator component renders inline next to the email — Google-style: claim link when unclaimed, ✓ Verified pill when claimed. SchoolEditView migrated to UserProfile auth. Next 14 → 16 upgrade with global.d.ts shim + async params migration on 5 pages. Resolves TD-01, TD-02, TD-04 + partial TD-10. 1076 backend + 258 frontend tests. Retrospective: `docs/retrospective-user-management-11a.md`. Phase 5 (`/dashboard/users` UI) deferred to Sprint 11b. |
+| 12 | Done | User Management UI: SUPERADMIN `/dashboard/users` page with filter/search/table + RoleChangeModal + SchoolAssignModal + deactivate/reactivate; self-demotion safety checks (cannot change own role away from SUPERADMIN, cannot deactivate self). MeView PATCH for self-service display name edit. UserMenu adds "User Management" link for SUPERADMIN. Profile page: editable display name, removed broken `/claim` CTA. 30 new backend tests. **TD-01 re-opened** (regression): Next 16 + Auth.js v5 beta.30 state/PKCE cookie round-trip regressed; `checks: []` workaround reinstated, proper fix deferred to Sprint 16. 1106 backend + 258 frontend tests. |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -262,47 +263,52 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Recommended next: Sprint 12 — User Management UI** (first of a 5-sprint roadmap approved 2026-04-24 via `Settings/_workflows/implementation-planning.md`).
+**Recommended next: Sprint 13 — Image Storage Migration** (second of the 5-sprint roadmap approved 2026-04-24).
 
-### 5-Sprint Roadmap (approved 2026-04-24)
+### 5-Sprint Roadmap (progress after Sprint 12 close)
 
-| # | Sprint | Goal | Files | Complexity | Resolves |
-|---|---|---|---|---|---|
-| 12 | **User Management UI** | SUPERADMIN dashboard for managing users + self-service profile enhancements | ~10 | Low | — |
-| 13 | **Image Storage Migration** | Replace volatile Places URLs with Supabase Storage bytes; re-harvest once; display unchanged | ~12 | Medium | TD-05, TD-06, TD-13 |
-| 14 | **Community Photo Uploads** | Upload endpoint + validation + perceptual-hash dedup + 20-photo cap + moderation gating | ~15 | Medium | TD-07, TD-09 |
-| 15 | **Image Display Polish** | Lightbox modal for >5 photos; pin/unpin/restore/report; moderation UX polish | ~10 | Low | — |
-| 16 | **Code-Quality Pass** | Coverage for Google OAuth + PDF extractor; refactor inline role checks; fix flaky tests; clear npm audit residuals | ~8 | Low | TD-10 residual, TD-11, TD-12, TD-14, TD-15 |
+| # | Sprint | Status |
+|---|---|---|
+| 12 | User Management UI | ✅ Done 2026-04-24 |
+| 13 | **Image Storage Migration** | **Next** — resolves TD-05, TD-06, TD-13 |
+| 14 | Community Photo Uploads | Queued — resolves TD-07, TD-09 |
+| 15 | Image Display Polish | Queued |
+| 16 | Code-Quality Pass | Queued — resolves TD-01 regression, TD-10 residual, TD-11, TD-12, TD-14, TD-15 |
 
-### Sprint 12 — What to build (full spec)
+### Sprint 13 — What to build
 
-- Backend `GET /api/v1/admin/users/` (paginated, filterable by role / has_admin_school / search)
-- Backend `PATCH /api/v1/admin/users/<id>/` (role change, admin_school assign/unassign, is_active toggle)
-- Backend safety check: SUPERADMIN cannot demote themselves via PATCH (returns 403)
-- Frontend `/dashboard/users` page — list with filters, per-row actions
-- Frontend `RoleChangeModal`, `SchoolAssignModal` (searchable school picker), deactivate/restore
-- Frontend profile page additions: editable display name, points display, "My Suggestions" list
-- UserMenu: "User Management" link visible only to SUPERADMIN
-- ~25 new backend tests + ~10 new frontend tests
+- Add Supabase Storage bucket `school-images` integration (`django-storages[boto3]` + S3-compat config).
+- Extend `SchoolImage` with `image_file = ImageField(upload_to="schools/<moe_code>/")` alongside the existing `image_url`. Migration backfills are a no-op.
+- New `migrate_images_to_storage` management command: download bytes from each live `image_url`, upload to Supabase, populate `image_file`. Idempotent, resumable, skips dead URLs (will replace them via re-harvest).
+- Rewrite `harvest_places_images` + `harvest_satellite_image` to download bytes and upload to Supabase, not just store URLs.
+- Run `harvest_school_images --source places` once to refresh the 400'd Places URLs, then `migrate_images_to_storage` to pull bytes.
+- Serializer change: `image_url` field returns the Supabase-hosted URL (via `MEDIA_URL`-style resolution), not the Google URL.
+- ~12 files touched. Plan: `docs/plans/2026-04-22-image-library-sprint-plan.md` Phase 1 section.
 
-### Current codebase state (Sprint 11a close, 2026-04-24)
+### Sprint 13 pre-sprint user tasks
 
-- Prod: `sjktconnect-api-00097-5k7` + `sjktconnect-web-00088-kz2`
-- 1076 backend tests (89% coverage) + 258 frontend tests (excluding 2 pre-existing flakies)
-- 7 tech debt items open in `docs/tech-debt.md`
-- Cloudflare proxy live; `tamilschool.org` + `api.tamilschool.org` same-site; OAuth PKCE+state active; magic-link deleted; auto-claim on `@moe.edu.my` Google sign-in active
-- Main is clean, no open branches
+- Create Supabase Storage bucket `school-images` in the Supabase dashboard (public read, authenticated write). Note S3-compat credentials (access key + secret + endpoint).
+- Confirm ~US$14 Places API re-harvest budget is OK within the RM10/month GCP budget (may need to spread over 2 billing cycles).
 
-### Sprint 12 gotchas
+### Current codebase state (Sprint 12 close, 2026-04-24)
 
-- Sprint 12 plan ref: `docs/plans/2026-04-23-user-management-sprint-plan.md` Phase 5 section already written
-- No external dependencies; purely additive
-- Self-demotion safety check is easy to miss — include a specific test for it
+- Prod: `sjktconnect-api-00098-hsr` + `sjktconnect-web-00092-7ts`
+- 1106 backend tests (+30 Sprint 12) + 258 frontend tests (excluding 2 pre-existing flakies)
+- 7 tech debt items open + TD-01 re-opened (Auth.js v5 state-cookie regression)
+- Cloudflare proxy live; magic-link deleted; auto-claim on `@moe.edu.my` active; SUPERADMIN user management UI live; self-service profile edits live
+- `/dashboard/users` reveals 5 live community sign-ups since Sprint 11a — the auth foundation is being used
 
-### Sprint 13 pre-sprint tasks (do before sprint-start of 13)
+### Gotchas carried into Sprint 13
 
-- Create Supabase Storage bucket `school-images` (public read, authenticated write)
-- Confirm ~US$14 Places API re-harvest budget is OK within RM10/month GCP budget
+- Frontend rebuild with `--source .` can invalidate in-flight OAuth sessions (cookies lose sync between old and new revisions); accept as transient during deploy
+- `NEXT_PUBLIC_API_URL` is baked into Dockerfile ENV at build time — don't change runtime env vars to affect it
+- Sprint 13 will touch `SchoolImage` model and migrations; run `python manage.py makemigrations outreach --dry-run` first to preview before committing
+
+### TD-01 regression follow-up (Sprint 16)
+
+- `checks: []` re-applied in `frontend/lib/auth.ts` as pragmatic unblock.
+- Symptom: `InvalidCheck: state value could not be parsed` error on OAuth callback.
+- Hypotheses to investigate: (a) `@auth/core@0.41` + Next 16 + Turbopack cookie handling, (b) cookie prefix `__Host-` + Cloudflare proxy header forwarding, (c) bump `next-auth` past `5.0.0-beta.30`.
 
 ### Small passive/manual items carried over (no engineering work)
 

@@ -1,5 +1,43 @@
 # Changelog
 
+## Sprint 12 — User Management UI (2026-04-24)
+
+First sprint of the 5-sprint roadmap agreed via `implementation-planning.md`. Single coherent deliverable, shipped in one session.
+
+### Added
+- **Backend `GET /api/v1/auth/admin/users/`** — SUPERADMIN-only paginated list. Filters: `role`, `has_admin_school`, `is_active`, `search` (matches display_name, email, moe_code, school short_name).
+- **Backend `PATCH /api/v1/auth/admin/users/<id>/`** — SUPERADMIN-only. Updates `role`, `admin_school` (by moe_code string or null), `is_active`. Assigning a school swaps the existing admin off (one school, one admin).
+- **Backend `DELETE /api/v1/auth/admin/users/<id>/`** — soft delete via `is_active=False`.
+- **Self-demotion safety checks** on PATCH + DELETE: SUPERADMIN cannot change own role away from SUPERADMIN, cannot deactivate own account.
+- **Backend `PATCH /api/v1/auth/me/`** (self-service) — accepts `display_name` update only; other fields ignored at serializer level.
+- **New serializers** in `accounts/api/serializers.py`: `UserProfileUpdateSerializer`, `UserProfileAdminListSerializer`, `UserProfileAdminUpdateSerializer`.
+- **Frontend `/dashboard/users` page** — SUPERADMIN-gated list UI with filter controls (role, school-admin, status, search).
+- **New components**: `UserManagementTable`, `RoleChangeModal`, `SchoolAssignModal` (searchable school picker via existing `searchEntities()`).
+- **`UserMenu` dropdown** — new "User Management" link visible only for SUPERADMIN role.
+- **Profile page `/profile`** — editable display name (inline edit + save/cancel + error surfacing).
+- **30 new backend tests** in `accounts/tests/test_admin_users.py` covering permission matrix, self-demotion, filters, validation.
+- **i18n**: en/ta/ms `userManagement.*` + `auth.*` additions (edit, save, saving, cancel, userManagement, noSchoolHint, etc.).
+
+### Changed
+- `MeView` extended to accept PATCH (display_name update) alongside existing GET.
+- Removed broken "Claim your school" CTA on profile page (pointed to deleted `/claim`); replaced with `noSchoolHint` text explaining auto-claim via `@moe.edu.my` sign-in.
+
+### Fixed
+- **Sign-in broken after deploy (Sprint 12 deploy side-effect)**: Auth.js v5 beta + Next 16 state/PKCE cookie round-trip regressed. Removed duplicate `NEXTAUTH_SECRET`/`NEXTAUTH_URL` env vars in favour of Auth.js v5 `AUTH_SECRET` + `AUTH_URL` conventions. Still broken → reverted `checks: ["pkce", "state"]` to `checks: []` as pragmatic unblock (same workaround as pre-Sprint-11a Phase 2). **TD-01 re-opened** with detailed root cause + Sprint 16 follow-up note in the code.
+
+### Security
+- **TD-01 re-opened** (regression): Auth.js v5 beta.30 + Next 16 state/PKCE cookie round-trip broken. `checks: []` workaround reinstated. Root cause investigation scheduled for Sprint 16.
+
+### Deployed revisions
+- Backend: `sjktconnect-api-00097-5k7` → `sjktconnect-api-00098-hsr`
+- Frontend: `sjktconnect-web-00088-kz2` → `sjktconnect-web-00092-7ts` (4 revisions during the sign-in debug loop)
+
+### Tests
+- Backend: 1076 → 1106 (+30). Frontend: 258 (unchanged).
+
+### Prod community growth since Sprint 11a close
+- UserProfile count: 2 → 5 (3 community sign-ins without any promotion): khathijah123mohamedrasul@gmail.com, deneshkumaar@mitra.gov.my, rinishhaa@tamilfoundation.org. tamiliam@gmail.com now has 11 points from earlier test suggestions.
+
 ## User Management Sprint — Part A (Sprint 11a, 2026-04-23 → 2026-04-24)
 
 Four-phase sprint covering auth foundation + magic-link removal + Next.js major upgrade. Phase 5 (`/dashboard/users` SUPERADMIN UI + profile page additions) deferred to Sprint 11b.
