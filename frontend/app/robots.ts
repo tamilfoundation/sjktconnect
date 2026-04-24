@@ -26,7 +26,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/dashboard/", "/claim/verify/"],
+        disallow: ["/api/", "/dashboard/"],
       },
     ],
     sitemap: "https://tamilschool.org/sitemap.xml",

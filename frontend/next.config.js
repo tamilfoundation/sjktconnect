@@ -6,8 +6,9 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 const nextConfig = {
   output: "standalone",
   typescript: {
-    // Next.js 14 auto-generated .next/types files use bare React.ReactNode
-    // which TypeScript 5.9+ can't resolve. Type-checking done via tsc separately.
+    // Pre-existing implicit-any issues in components (BoundaryMap, etc.) — type-check
+    // is done via tsc in dev and via test runner. Revisit as part of a dedicated
+    // type-hygiene pass (see docs/tech-debt.md TD-11/14 slot for future work).
     ignoreBuildErrors: true,
   },
 };

@@ -21,14 +21,15 @@ import { buildAlternates } from "@/lib/seo";
 export const revalidate = false;
 
 interface PageProps {
-  params: { code: string };
+  params: Promise<{ code: string }>;
 }
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
+  const { code } = await params;
   try {
-    const c = await fetchConstituencyDetail(params.code);
+    const c = await fetchConstituencyDetail(code);
     const schoolCount = c.schools.length;
     const title = `${c.name} (${c.code}) | ${schoolCount} Tamil School${schoolCount !== 1 ? "s" : ""} | ${c.state}`;
     const scorecardNote = c.scorecard?.total_mentions
@@ -39,7 +40,7 @@ export async function generateMetadata({
       title,
       description,
       openGraph: { title, description, type: "website", siteName: "SJK(T) Connect" },
-      alternates: buildAlternates(`/constituency/${params.code}`),
+      alternates: buildAlternates(`/constituency/${code}`),
     };
   } catch {
     const t = await getTranslations("constituency");
@@ -48,19 +49,20 @@ export async function generateMetadata({
 }
 
 export default async function ConstituencyPage({ params }: PageProps) {
+  const { code } = await params;
   const t = await getTranslations("constituency");
   const tc = await getTranslations("common");
   let constituency;
   try {
-    constituency = await fetchConstituencyDetail(params.code);
+    constituency = await fetchConstituencyDetail(code);
   } catch {
     notFound();
   }
 
   const [geoJSON, duns, mentions] = await Promise.all([
-    fetchConstituencyGeoJSON(params.code),
-    fetchDUNs({ constituency: params.code }),
-    fetchConstituencyMentions(params.code),
+    fetchConstituencyGeoJSON(code),
+    fetchDUNs({ constituency: code }),
+    fetchConstituencyMentions(code),
   ]);
 
   const totalEnrolment = constituency.schools.reduce(

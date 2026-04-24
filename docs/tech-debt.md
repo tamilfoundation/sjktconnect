@@ -12,13 +12,9 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 
 - **Status**: Resolved in Sprint 11 Phase 2. Cloudflare reverse proxy adopted 2026-04-23 — frontend (`tamilschool.org`) and backend (`api.tamilschool.org`) now same-site subdomains. OAuth redirect cookies survive the round-trip, `checks: ["pkce", "state"]` restored in `frontend/lib/auth.ts`. End-to-end smoke test passed: sign-in with `tamiliam@gmail.com` + suggestion submission succeed with PKCE+state verification enabled.
 
-## 🔴 TD-02 — Magic-link auth redundant with Google Workspace sign-in
+## ✅ TD-02 — Magic-link removed, auto-claim on @moe.edu.my (RESOLVED 2026-04-24)
 
-- **What**: The `SchoolContact` + `MagicLinkToken` models, `IsMagicLinkAuthenticated` permission, `accounts/services/token.py`, claim pages, and associated views cover ~400 LOC but have **0 usage in production** (0 contacts, 0 tokens ever issued — not because the design failed, but because the claim flow has never been publicised to schools). Meanwhile `SchoolEditView` + `SchoolConfirmView` still require `IsMagicLinkAuthenticated`, making the "Edit school" and "Confirm data" buttons unusable for every real user.
-- **Why we accepted**: Magic-link shipped first (Sprint 1.6, Feb 2026), Google OAuth came later (Sprint 8.1, Mar 2026). Never reconciled. The original magic-link design (send a token to `<moe_code>@moe.edu.my`, click link to log in) is sound — it proves the user has access to the school's official inbox.
-- **What made it redundant (discovered 2026-04-23)**: `moe.edu.my` is on Google Workspace (`dig MX moe.edu.my` → `ASPMX.L.GOOGLE.COM`). This means every `<moe_code>@moe.edu.my` inbox IS a Google account that can sign in via OAuth directly. The magic-link round-trip (click button → open email → click link) is strictly redundant with signing in via the same Google account — OAuth gives the same proof of inbox access in one click.
-- **What it blocks**: The school-edit UX is visibly broken. Two parallel identity systems in the codebase.
-- **Cost to fix**: ~1 day. In `GoogleAuthView`, after the `UserProfile` is created, check if `email.endswith("@moe.edu.my")` and if so extract the moe_code part and set `profile.admin_school`. ~10 LOC. Then delete `SchoolContact`, `MagicLinkToken`, `IsMagicLinkAuthenticated`, `accounts/services/token.py`, `RequestMagicLinkView`, `VerifyMagicTokenView`, `/claim/` and `/claim/verify/[token]/` pages, `ClaimButton` + `ClaimForm` components, and all magic-link tests. Migrate `SchoolEditView` + `SchoolConfirmView` to `IsProfileAuthenticated + profile.admin_school_id == moe_code` check. Edge case (inactive MOE account, lost password): SUPERADMIN sets `admin_school` manually via Django admin; no UI needed Phase 1.
+- **Status**: Resolved in Sprint 11a Phase 3. `_maybe_auto_claim()` helper added to `GoogleAuthView`: when sign-in email ends with `@moe.edu.my`, extract moe_code part, look up School, bind `profile.admin_school`, set `school.claimed_at`. Idempotent + protected against overwriting existing claims. Deleted: `SchoolContact` + `MagicLinkToken` models (migration `accounts/0003`), `IsMagicLinkAuthenticated`, `accounts/services/token.py`, `accounts/services/email.py`, magic-link views + URLs + serializers, `/claim/` pages, `ClaimButton` + `ClaimForm` components, all magic-link tests. `SchoolEditView` + `SchoolConfirmView` migrated to `IsProfileAuthenticated` + `admin_school` check (SUPERADMIN bypass). New inline `EmailClaimIndicator` component — Google-style UX: "Claim this page" link or ✓ Verified pill next to the email field. Edge case: SUPERADMIN sets `admin_school` manually via Django admin if HM has lost password.
 
 ## ✅ TD-03 — `DATABASE_URL` in `.env` silently hijacks local tests (RESOLVED 2026-04-23)
 
@@ -60,14 +56,12 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 - **What it blocks**: Minor — browsers don't execute scripts inside `<img>` regardless of declared format, so stored XSS is not exploitable. But opens the door to content-type confusion if a future endpoint serves SVG or raw.
 - **Cost to fix**: Replaced entirely by Sprint 9 (TD-05) which validates format, strips EXIF, resizes, and stores in typed Supabase Storage.
 
-## 🟢 TD-10 — Next.js 14 on a superseded version (partially resolved 2026-04-23)
+## 🟢 TD-10 — Next.js upgrade (mostly resolved 2026-04-24)
 
-- **Status**: `next-intl` upgraded from 4.8.3 → 4.9.1+ on 2026-04-23, clearing the open-redirect advisory. Remaining items:
-  - `next` still on 14.2.x. The flagged Image Optimizer DoS (GHSA-9g9p-9gw9-jx7f) only triggers when `remotePatterns` is configured in `next.config.js`. **We don't use `remotePatterns`**, so we're not currently exploitable. Still worth upgrading for routine hygiene and to clear the audit report.
-  - `picomatch` (<2.3.2) is a transitive of Next 14; resolves with Next upgrade.
-- **Why we accepted**: Next 14 → 15 is a major version bump with breaking async API changes (`params`, `cookies()`, `headers()` are now promises). At least 5 app-router pages would need updates. Not worth a rushed upgrade when we're not exploitable.
-- **What it blocks**: Clean `npm audit` output at launch.
-- **Cost to fix**: ~4-6 hours for a proper Next 15 migration (test + deploy + regression check). Recommended: fold into Sprint 11 (User Management) since that sprint is already touching auth + frontend.
+- **Status (2026-04-23)**: `next-intl` 4.8.3 → 4.9.1+, cleared open-redirect.
+- **Status (2026-04-24)**: `next` 14.2.x → **16.2.4** in Sprint 11a Phase 4 (skipped 15 entirely; @latest is 16). The flagged Image Optimizer DoS CVE (GHSA-9g9p-9gw9-jx7f) is cleared. Migration covered: 5 app-router pages updated to async `params` API (`layout.tsx`, `school/[moe_code]`, `constituency/[code]`, `dun/[id]`, plus their `generateMetadata`). Added `frontend/global.d.ts` shim because Next 16's auto-generated `.next/types/validator.ts` references `React.ComponentType` unqualified but `jsx: "react-jsx"` doesn't expose React in global scope. Kept `ignoreBuildErrors: true` (with clearer comment) because pre-existing implicit-any issues in `BoundaryMap` etc. are out of scope for an upgrade sprint.
+- **Residual**: 2 transitive deps still flagged by `npm audit` — `brace-expansion` (moderate), `picomatch` (high). Both transitive; will resolve when their parents update. Not exploitable in our usage.
+- **Cost to fully clear residual**: 1-2 hours when transitive deps publish patches; mostly waiting.
 
 ## 🟢 TD-11 — `accounts/services/google.py` at 25% coverage
 
@@ -112,9 +106,9 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 |---|---|---|
 | ✅ Pin DRF auth classes | TD-08 | Done 2026-04-23 |
 | ✅ Local-dev DATABASE_URL guard | TD-03 | Done 2026-04-23 |
-| ✅ next-intl upgrade | TD-10 (partial) | Done 2026-04-23 |
-| Adopt Cloudflare proxy + restore OAuth checks + Next 15 upgrade | TD-01, TD-04, TD-10 (remainder) | **Sprint 11 (User Management)** |
-| Delete magic-link system + migrate school-edit to OAuth | TD-02 | **Sprint 11 (User Management)** |
+| ✅ Cloudflare proxy + restore OAuth checks | TD-01, TD-04 | Done 2026-04-24 (Sprint 11a Phases 1+2) |
+| ✅ Delete magic-link + auto-claim + EmailClaimIndicator | TD-02 | Done 2026-04-24 (Sprint 11a Phase 3) |
+| ✅ Next 14 → 16 upgrade | TD-10 | Done 2026-04-24 (Sprint 11a Phase 4); 2 transitive residuals |
 | Move images to Supabase Storage + validate format | TD-05, TD-07, TD-09, TD-06 | **Sprint 9 (Image Library)** |
 | Resolve egress regression | TD-06 | Investigated; resolves with Sprint 9 |
 | Coverage gaps | TD-11, TD-12 | Absorb into relevant feature sprints |

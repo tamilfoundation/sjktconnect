@@ -1,5 +1,62 @@
 # Changelog
 
+## User Management Sprint — Part A (Sprint 11a, 2026-04-23 → 2026-04-24)
+
+Four-phase sprint covering auth foundation + magic-link removal + Next.js major upgrade. Phase 5 (`/dashboard/users` SUPERADMIN UI + profile page additions) deferred to Sprint 11b.
+
+### Phase 1 — Cloudflare reverse proxy adoption
+- Cloudflare set up as DNS + proxy for `tamilschool.org`. Nameservers switched at Exabytes registrar to `cody.ns.cloudflare.com` + `oaklyn.ns.cloudflare.com`. Cloud Run domain mapping kept active for rollback.
+- New subdomain `api.tamilschool.org` mapped to Cloud Run `sjktconnect-api` via Google-managed SSL (verified domain ownership in Search Console; cert issued in ~10 min).
+- DNS table cleaned: DKIM CNAMEs (`brevo1._domainkey`, `brevo2._domainkey`) set to **DNS only** (NOT proxied) so Brevo email auth keeps working. MX records DNS only. A records + `www` + `api` proxied through Cloudflare.
+- SSL/TLS mode: Full (strict).
+- Backend env vars updated: `ALLOWED_HOSTS` + `CSRF_TRUSTED_ORIGINS` add `api.tamilschool.org`.
+- Frontend Dockerfile rebuilt with `NEXT_PUBLIC_API_URL=https://api.tamilschool.org` baked in (Next.js NEXT_PUBLIC_* are compile-time, not runtime).
+
+### Phase 2 — Restore OAuth security + remove cross-domain workarounds
+- Removed `SESSION_COOKIE_SAMESITE = "None"` + `CSRF_COOKIE_SAMESITE = "None"` from `production.py`. Default `SameSite=Lax` is correct now that frontend + backend are same-site (both subdomains of `tamilschool.org`).
+- Restored `checks: ["pkce", "state"]` in `frontend/lib/auth.ts` (NextAuth Google provider). The `checks: []` workaround that had been live since 2026-03-11 is gone.
+
+### Phase 3 — Delete magic-link, add auto-claim, redesign claim UX
+- Migration `accounts/0003`: drop `MagicLinkToken` + `SchoolContact` tables.
+- Migration `schools/0009`: add `school.claimed_at` field.
+- New auto-claim logic in `GoogleAuthView`: if Google email ends with `@moe.edu.my`, extract the moe_code part and bind `profile.admin_school` automatically. Sets `school.claimed_at`. Idempotent. Skipped if school already claimed by another profile or if profile already has a school.
+- `SchoolEditView` + `SchoolConfirmView` migrated from `IsMagicLinkAuthenticated` to `IsProfileAuthenticated` + `admin_school` check (SUPERADMIN bypass). The Edit School Data button on every school page is now usable.
+- Deleted: `accounts/services/token.py`, `accounts/services/email.py`, `IsMagicLinkAuthenticated`, `RequestMagicLinkView`, `VerifyTokenView`, `LinkSchoolView`, all magic-link tests.
+- Frontend deletions: `/claim/page.tsx`, `/claim/verify/[token]/page.tsx`, `ClaimButton.tsx`, `ClaimForm.tsx`, `requestMagicLink`/`verifyMagicLink` from `lib/api.ts`, `MagicLinkResponse` type.
+- New `EmailClaimIndicator` component renders inline next to the email in the School Details card — Google-style. Three states:
+  - **Claimed**: small green ✓ Verified pill (click expands tooltip with claim + verify dates).
+  - **Unclaimed, signed-out**: small "Claim this page" text link → opens modal with "Sign in with Google to claim" CTA.
+  - **Unclaimed, signed in as wrong account**: same link → modal explains "Signed in as X, only the school's MOE email can claim" + sign-out button.
+  - Modal has "Copy link to share" secondary action for visitors who aren't the HM.
+- Removed `ClaimCallout` (the original big blue banner) and `VerifiedBadge` (next to school name) — replaced by inline indicator. School page is clean by default.
+- Verified mechanism: `dig MX moe.edu.my` → all 5 records resolve to `*.ASPMX.L.GOOGLE.COM`. Every `<moe_code>@moe.edu.my` IS a Google Workspace account; sign-in proves access to the same inbox the magic-link mechanism would have emailed.
+
+### Phase 4 — Next 14 → 16 upgrade
+- `next` 14.2.x → 16.2.4 (skipped 15 entirely; @latest is 16).
+- Migrated 5 app-router files to new async `params` API: `layout.tsx` (locale), `school/[moe_code]/page.tsx`, `constituency/[code]/page.tsx`, `dun/[id]/page.tsx`, plus their `generateMetadata` functions.
+- Added `frontend/global.d.ts` shim: Next 16's auto-generated `.next/types/validator.ts` references `React.ComponentType` unqualified, but `jsx: "react-jsx"` doesn't expose React in global scope. Shim re-exports the namespace.
+- Cleaned up stale `user.school_moe_code` usage in `school/[moe_code]/edit/page.tsx` (exposed by type-check; replaced with `user.admin_school?.moe_code` + SUPERADMIN bypass).
+- Explicit `Response` type on `app/sitemap.ts` `fetch()` to satisfy Next 16's stricter inference.
+- Kept `ignoreBuildErrors: true` in `next.config.js` with clearer comment — pre-existing implicit-any issues in `BoundaryMap` etc. are out of scope for an upgrade sprint.
+- npm audit: Next CVE (GHSA-9g9p-9gw9-jx7f) cleared. 2 transitive issues remain (`brace-expansion` moderate, `picomatch` high).
+
+### Tests
+- Backend: 1076 (was 1109). Net change: -33 (deleted magic-link tests across `test_api.py`, `test_models.py`, `test_link_school.py`, `test_me_endpoint.py`, `test_edit_api.py`, `test_dashboard.py`) + 7 (new `test_auto_claim.py` covering the auto-claim matrix) + 5 (rewritten `test_edit_api.py` for UserProfile-based auth) + 1 (new `test_me_endpoint.py` inactive-profile test) − tests that were collapsed.
+- Frontend: 258 (was 271). Net change: -8 (deleted `ClaimButton.test.tsx`, `ClaimForm.test.tsx`) - 5 (rewritten api-auth + EditSchoolLink tests under new shape).
+
+### Resolved tech debt
+- TD-01 OAuth checks restored
+- TD-02 Magic-link deleted; auto-claim live
+- TD-04 SameSite=None workaround removed
+- TD-10 partially closed (Next upgraded; 2 transitive deps remain)
+
+### Deferred to Sprint 11b
+- Phase 5: `/dashboard/users` SUPERADMIN UI + profile page additions. Not blocking — SUPERADMIN can manage roles via Django admin (`/admin/accounts/userprofile/`) for now.
+
+### Deployed revisions
+- Backend: `sjktconnect-api-00094-rvm` → `sjktconnect-api-00097-5k7`
+- Frontend: `sjktconnect-web-00081-jzn` → `sjktconnect-web-00088-XXX` (Phase 4)
+
 ## Audit & Community Auth Sprint (2026-04-22 → 2026-04-23)
 
 Two-session sprint: unblocked Google OAuth for non-tamilfoundation.org accounts, fixed three pre-existing bugs in the Sprint 8.2 suggestion workflow end-to-end, ran the project's first full-codebase audit since Sprint 0.3, and paid down three tech debt items surfaced by the audit.

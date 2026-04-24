@@ -8,7 +8,6 @@ import {
   GeoJSONFeature,
   GeoJSONFeatureCollection,
   HansardMention,
-  MagicLinkResponse,
   MeetingReport,
   NationalStats,
   NewsArticle,
@@ -257,40 +256,6 @@ export async function fetchDUNGeoJSON(
 export function getUniqueStates(schools: School[]): string[] {
   const states = new Set(schools.map((s) => s.state));
   return Array.from(states).sort();
-}
-
-/**
- * Request a magic link for the given MOE email.
- */
-export async function requestMagicLink(
-  email: string
-): Promise<MagicLinkResponse> {
-  const res = await fetch(`${BASE}/auth/request-magic-link/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || `API error: ${res.status}`);
-  }
-  return data;
-}
-
-/**
- * Verify a magic link token.
- */
-export async function verifyMagicLink(
-  token: string
-): Promise<AuthUser> {
-  const res = await fetch(`${BASE}/auth/verify/${token}/`, {
-    credentials: "include",
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || `API error: ${res.status}`);
-  }
-  return data;
 }
 
 /**

@@ -146,8 +146,6 @@ AUDIT_LOG_MODELS = [
     "hansard.MentionedSchool",
     "parliament.MPScorecard",
     "parliament.SittingBrief",
-    "accounts.SchoolContact",
-    "accounts.MagicLinkToken",
     "subscribers.Subscriber",
     "subscribers.SubscriptionPreference",
     "broadcasts.Broadcast",

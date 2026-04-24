@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { SchoolDetail } from "@/lib/types";
 import { isEmpty } from "@/lib/translations";
+import EmailClaimIndicator from "@/components/EmailClaimIndicator";
 
 interface SchoolProfileProps {
   school: SchoolDetail;
@@ -34,7 +35,21 @@ export default function SchoolProfile({ school }: SchoolProfileProps) {
                   .join(", ") || "—"
               }
             />
-            {school.email && <DetailRow label={t("email")} value={school.email} />}
+            {school.email && (
+              <DetailRow
+                label={t("email")}
+                value={school.email}
+                trailing={
+                  <EmailClaimIndicator
+                    moeCode={school.moe_code}
+                    schoolEmail={school.email}
+                    isClaimed={Boolean((school as unknown as { is_claimed?: boolean }).is_claimed)}
+                    claimedAt={(school as unknown as { claimed_at?: string | null }).claimed_at ?? null}
+                    lastVerified={school.last_verified ?? null}
+                  />
+                }
+              />
+            )}
             {!isEmpty(school.phone) && (
               <DetailRow label={t("phone")} value={school.phone} />
             )}
@@ -94,11 +109,22 @@ export default function SchoolProfile({ school }: SchoolProfileProps) {
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({
+  label,
+  value,
+  trailing,
+}: {
+  label: string;
+  value: string;
+  trailing?: React.ReactNode;
+}) {
   return (
-    <div>
+    <div className="relative">
       <dt className="text-gray-500">{label}</dt>
-      <dd className="text-gray-800 font-medium mt-0.5">{value}</dd>
+      <dd className="text-gray-800 font-medium mt-0.5">
+        {value}
+        {trailing}
+      </dd>
     </div>
   );
 }

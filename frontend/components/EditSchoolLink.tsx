@@ -15,9 +15,10 @@ export default function EditSchoolLink({ moeCode }: EditSchoolLinkProps) {
 
   useEffect(() => {
     fetchMe().then((user) => {
-      if (user && user.school_moe_code === moeCode) {
-        setCanEdit(true);
-      }
+      if (!user) return;
+      const isSuper = user.role === "SUPERADMIN";
+      const isAdmin = user.admin_school?.moe_code === moeCode;
+      if (isSuper || isAdmin) setCanEdit(true);
     });
   }, [moeCode]);
 

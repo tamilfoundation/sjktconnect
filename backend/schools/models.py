@@ -127,6 +127,10 @@ class School(models.Model):
     is_active = models.BooleanField(default=True)
     last_verified = models.DateTimeField(null=True, blank=True)
     verified_by = models.CharField(max_length=100, blank=True, default="")
+    claimed_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="When a school admin first claimed this page via @moe.edu.my sign-in",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

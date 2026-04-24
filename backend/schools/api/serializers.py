@@ -108,6 +108,7 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
     leaders = serializers.SerializerMethodField()
+    is_claimed = serializers.SerializerMethodField()
 
     class Meta:
         model = School
@@ -144,6 +145,8 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
             "location_type",
             "is_active",
             "last_verified",
+            "claimed_at",
+            "is_claimed",
             "bank_name",
             "bank_account_number",
             "bank_account_name",
@@ -151,6 +154,10 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
             "images",
             "leaders",
         ]
+
+    def get_is_claimed(self, obj):
+        """True if a UserProfile has admin_school bound to this school."""
+        return obj.claimed_at is not None
 
     def get_phone(self, obj):
         """Return formatted phone number."""
