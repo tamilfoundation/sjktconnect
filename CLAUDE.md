@@ -262,41 +262,54 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Recommended next: Sprint 9 — Image Library** (before Sprint 11b, because every school page currently shows broken Places photos and Sprint 9 fixes it directly).
+**Recommended next: Sprint 12 — User Management UI** (first of a 5-sprint roadmap approved 2026-04-24 via `Settings/_workflows/implementation-planning.md`).
 
-**What to build** (5 bullets):
-- **Supabase Storage bucket** `school-images` + `django-storages[boto3]` integration. Replace volatile Google Places URLs (currently 100% returning HTTP 400) with persistent bytes.
-- **Migration command** `migrate_images_to_storage` — one-time downloads each existing `image_url` and uploads bytes to Supabase. Idempotent, resumable.
-- **Community photo upload flow** — auth-gated POST endpoint, Pillow validation (≥640×400, JPEG/PNG/WebP, ≤5MB, EXIF stripped, resized to 1600px), perceptual-hash dedup, 5/user/day + 20/school/day rate limits.
-- **Moderation** — approve requires SUPERADMIN or school admin (`admin_school`). Hard cap of 20 APPROVED photos per school; over-cap requests return 409. Soft delete (30-day archive); restore endpoint.
-- **Lightbox modal frontend** — show 1 hero + 4 thumbnails, "View all N photos" button opens modal with full set, paginated.
+### 5-Sprint Roadmap (approved 2026-04-24)
 
-**Current codebase state**:
-- Prod revisions: backend `sjktconnect-api-00097-5k7`, frontend `sjktconnect-web-00088-XXX` (Phase 4 deploying at sprint close)
-- 1076 backend tests (89% coverage) + 258 frontend tests
-- 11 tech debt items tracked; Sprint 9 resolves TD-05, TD-06, TD-07, TD-09
-- Cloudflare proxy live; OAuth + same-site cookies restored; magic-link gone; auto-claim active
-- Open branches: `feat/user-management-b` will be merged to main at sprint close
+| # | Sprint | Goal | Files | Complexity | Resolves |
+|---|---|---|---|---|---|
+| 12 | **User Management UI** | SUPERADMIN dashboard for managing users + self-service profile enhancements | ~10 | Low | — |
+| 13 | **Image Storage Migration** | Replace volatile Places URLs with Supabase Storage bytes; re-harvest once; display unchanged | ~12 | Medium | TD-05, TD-06, TD-13 |
+| 14 | **Community Photo Uploads** | Upload endpoint + validation + perceptual-hash dedup + 20-photo cap + moderation gating | ~15 | Medium | TD-07, TD-09 |
+| 15 | **Image Display Polish** | Lightbox modal for >5 photos; pin/unpin/restore/report; moderation UX polish | ~10 | Low | — |
+| 16 | **Code-Quality Pass** | Coverage for Google OAuth + PDF extractor; refactor inline role checks; fix flaky tests; clear npm audit residuals | ~8 | Low | TD-10 residual, TD-11, TD-12, TD-14, TD-15 |
 
-**Gotchas**:
-- Sprint 9 plan ready at `docs/plans/2026-04-22-image-library-sprint-plan.md` (5 phases, hard cap, modal, moderation UX)
-- Supabase free tier egress = 2 GB/month; lightbox + ISR caching keeps it under
-- ~403 Places API search calls needed for one-shot re-harvest before migrating bytes (~US$14)
-- Sprint 11b (Phase 5: `/dashboard/users` SUPERADMIN UI) intentionally deferred — currently solvable via Django admin (`/admin/accounts/userprofile/`); not blocking
+### Sprint 12 — What to build (full spec)
 
-**Sprint 11b scope** (after Sprint 9):
-- `/dashboard/users` SUPERADMIN-only UI: list, search, role change, assign school admin, deactivate
-- Profile page additions: editable display name, points display, "My Suggestions" list
-- ~25 new tests; ~10 files
-- Self-demotion safety check on PATCH
+- Backend `GET /api/v1/admin/users/` (paginated, filterable by role / has_admin_school / search)
+- Backend `PATCH /api/v1/admin/users/<id>/` (role change, admin_school assign/unassign, is_active toggle)
+- Backend safety check: SUPERADMIN cannot demote themselves via PATCH (returns 403)
+- Frontend `/dashboard/users` page — list with filters, per-row actions
+- Frontend `RoleChangeModal`, `SchoolAssignModal` (searchable school picker), deactivate/restore
+- Frontend profile page additions: editable display name, points display, "My Suggestions" list
+- UserMenu: "User Management" link visible only to SUPERADMIN
+- ~25 new backend tests + ~10 new frontend tests
 
-**Small passive/manual items carried over**:
+### Current codebase state (Sprint 11a close, 2026-04-24)
+
+- Prod: `sjktconnect-api-00097-5k7` + `sjktconnect-web-00088-kz2`
+- 1076 backend tests (89% coverage) + 258 frontend tests (excluding 2 pre-existing flakies)
+- 7 tech debt items open in `docs/tech-debt.md`
+- Cloudflare proxy live; `tamilschool.org` + `api.tamilschool.org` same-site; OAuth PKCE+state active; magic-link deleted; auto-claim on `@moe.edu.my` Google sign-in active
+- Main is clean, no open branches
+
+### Sprint 12 gotchas
+
+- Sprint 12 plan ref: `docs/plans/2026-04-23-user-management-sprint-plan.md` Phase 5 section already written
+- No external dependencies; purely additive
+- Self-demotion safety check is easy to miss — include a specific test for it
+
+### Sprint 13 pre-sprint tasks (do before sprint-start of 13)
+
+- Create Supabase Storage bucket `school-images` (public read, authenticated write)
+- Confirm ~US$14 Places API re-harvest budget is OK within RM10/month GCP budget
+
+### Small passive/manual items carried over (no engineering work)
+
 - Google Search Console: manually set Googlebot crawl rate
 - Verify urgency audit trail after first post-fix urgent alert
 - Verify 4 May 2026 fortnightly cron fires with coverage "21 Apr – 4 May"
-- 2 transitive npm deps still in audit (`brace-expansion`, `picomatch`) — non-blocking residual of TD-10
-
-**Sprint after this**: Sprint 9 — Image Library. Plan at `docs/plans/2026-04-22-image-library-sprint-plan.md`. Resolves TD-05, TD-06, TD-07, TD-09.
+- 2 transitive npm deps still in audit (`brace-expansion`, `picomatch`) — resolves in Sprint 16
 
 **Ongoing**: Triage `docs/tech-debt.md` at every sprint close.
 

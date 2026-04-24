@@ -108,8 +108,9 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 | ✅ Local-dev DATABASE_URL guard | TD-03 | Done 2026-04-23 |
 | ✅ Cloudflare proxy + restore OAuth checks | TD-01, TD-04 | Done 2026-04-24 (Sprint 11a Phases 1+2) |
 | ✅ Delete magic-link + auto-claim + EmailClaimIndicator | TD-02 | Done 2026-04-24 (Sprint 11a Phase 3) |
-| ✅ Next 14 → 16 upgrade | TD-10 | Done 2026-04-24 (Sprint 11a Phase 4); 2 transitive residuals |
-| Move images to Supabase Storage + validate format | TD-05, TD-07, TD-09, TD-06 | **Sprint 9 (Image Library)** |
-| Resolve egress regression | TD-06 | Investigated; resolves with Sprint 9 |
-| Coverage gaps | TD-11, TD-12 | Absorb into relevant feature sprints |
-| Code polish | TD-13, TD-14, TD-15 | Low priority |
+| ✅ Next 14 → 16 upgrade | TD-10 | Done 2026-04-24 (Sprint 11a Phase 4); residual cleared in Sprint 16 |
+| Sprint 12 — User Management UI | — | Next (no TD resolution) |
+| Sprint 13 — Image Storage Migration | TD-05, TD-06, TD-13 | After Sprint 12 |
+| Sprint 14 — Community Photo Uploads | TD-07, TD-09 | After Sprint 13 |
+| Sprint 15 — Image Display Polish | — | After Sprint 14 |
+| Sprint 16 — Code-Quality Pass | TD-10 residual, TD-11, TD-12, TD-14, TD-15 | Last of 5-sprint roadmap |
