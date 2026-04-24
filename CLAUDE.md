@@ -244,6 +244,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | Egress Fix | Done | Supabase Egress Optimisation: `.defer("boundary_wkt")` on 6 views (~85% egress reduction), middleware IP blocking (Chrome/91 scraper), robots.txt bot exclusions (AhrefsBot, GPTBot, OAI-SearchBot, Amazonbot, ClaudeBot), Cloud Run `minScale=1`. Investigation report at `docs/egress-investigation-report.md`. 1382 tests (unchanged). |
 | News Digest & Urgent Alert Fix | Done | `Broadcast.kind` + `coverage_start_date`/`coverage_end_date` (migration 0006). Digest cadence filters by `kind=NEWS_DIGEST`. Urgency classifier rewritten as two-gate + second-pass verification. `URGENT_ALERT_REQUIRE_REVIEW` dormant feature flag. 18 new tests. |
 | Audit & Community Auth | Done | Community Google sign-in unblocked (OAuth External/Production, `SameSite=None` cookies, admin → SUPERADMIN). Fixed 3 Sprint 8.2 bugs (photo base64 prefix, preview, relative image URL). First full-codebase audit since Sprint 0.3: `docs/tech-debt.md` with 15 entries (3 resolved: TD-03 prod-DB guard, TD-08 DRF auth pin, TD-10 next-intl upgrade). Security review patched 2 vulns (suggestion image auth). 3 new backend tests. 1109 backend + 271 frontend tests. Retrospective: `docs/retrospective-audit-community-auth.md`. |
+| User Management 11a | Done | Cloudflare reverse proxy adopted (tamilschool.org + api.tamilschool.org, both Cloudflare-proxied with Google-managed SSL). OAuth checks restored to `["pkce", "state"]`. SameSite=None workaround removed. Magic-link system fully deleted (~400 LOC); auto-claim on `@moe.edu.my` Google sign-in (~10 LOC) replaces it. New EmailClaimIndicator component renders inline next to the email — Google-style: claim link when unclaimed, ✓ Verified pill when claimed. SchoolEditView migrated to UserProfile auth. Next 14 → 16 upgrade with global.d.ts shim + async params migration on 5 pages. Resolves TD-01, TD-02, TD-04 + partial TD-10. 1076 backend + 258 frontend tests. Retrospective: `docs/retrospective-user-management-11a.md`. Phase 5 (`/dashboard/users` UI) deferred to Sprint 11b. |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -261,31 +262,39 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Recommended next: Sprint 11 — User Management** (before Sprint 9, because it fixes the OAuth security regression and cookie hack that community uploads will otherwise inherit).
+**Recommended next: Sprint 9 — Image Library** (before Sprint 11b, because every school page currently shows broken Places photos and Sprint 9 fixes it directly).
 
 **What to build** (5 bullets):
-- **Cloudflare reverse proxy** per `docs/proposals/2026-03-11-cloudflare-proxy-proposal.md` — puts `tamilschool.org/*` in front of frontend, `tamilschool.org/api/*` in front of backend. Same-origin cookies become possible.
-- **Restore OAuth security checks** — remove `checks: []` workaround in `frontend/lib/auth.ts:10`, re-enable PKCE + state. Remove `SESSION_COOKIE_SAMESITE = "None"` from `production.py` (no longer needed).
-- **Replace magic-link with auto-claim on Google Workspace sign-in** — `moe.edu.my` is on Google Workspace (verified via `dig MX` on 2026-04-23), so every `<moe_code>@moe.edu.my` inbox is a Google account. Magic-link's email round-trip is strictly redundant with OAuth. Fix: in `GoogleAuthView` after `UserProfile` creation, if `email.endswith("@moe.edu.my")`, extract the moe_code part and bind `profile.admin_school` automatically (~10 LOC). Then delete `SchoolContact`, `MagicLinkToken`, `IsMagicLinkAuthenticated`, `accounts/services/token.py`, claim pages, ClaimButton/ClaimForm components, and all magic-link tests (~400 LOC removed). Migrate `SchoolEditView` + `SchoolConfirmView` to `IsProfileAuthenticated` + `admin_school` check. Edge case fallback: SUPERADMIN assigns `admin_school` manually via Django admin.
-- **`/dashboard/users` UI** (SUPERADMIN only) — list, search, change role, assign school admin, deactivate.
-- **Next 14 → 15 upgrade** — migrates 5+ pages using `params`/`cookies()`/`headers()` to the new async APIs. Bundled here because it touches the auth flow anyway.
+- **Supabase Storage bucket** `school-images` + `django-storages[boto3]` integration. Replace volatile Google Places URLs (currently 100% returning HTTP 400) with persistent bytes.
+- **Migration command** `migrate_images_to_storage` — one-time downloads each existing `image_url` and uploads bytes to Supabase. Idempotent, resumable.
+- **Community photo upload flow** — auth-gated POST endpoint, Pillow validation (≥640×400, JPEG/PNG/WebP, ≤5MB, EXIF stripped, resized to 1600px), perceptual-hash dedup, 5/user/day + 20/school/day rate limits.
+- **Moderation** — approve requires SUPERADMIN or school admin (`admin_school`). Hard cap of 20 APPROVED photos per school; over-cap requests return 409. Soft delete (30-day archive); restore endpoint.
+- **Lightbox modal frontend** — show 1 hero + 4 thumbnails, "View all N photos" button opens modal with full set, paginated.
 
 **Current codebase state**:
-- Prod revisions: backend `sjktconnect-api-00094-rvm`, frontend `sjktconnect-web-00081-jzn`
-- 1109 backend tests (89% coverage) + 271 frontend tests
-- 15 tech debt items tracked in `docs/tech-debt.md`; Sprint 11 resolves TD-01, TD-02, TD-04, TD-10 (remainder)
-- Clean main, no open branches, no unpushed commits
+- Prod revisions: backend `sjktconnect-api-00097-5k7`, frontend `sjktconnect-web-00088-XXX` (Phase 4 deploying at sprint close)
+- 1076 backend tests (89% coverage) + 258 frontend tests
+- 11 tech debt items tracked; Sprint 9 resolves TD-05, TD-06, TD-07, TD-09
+- Cloudflare proxy live; OAuth + same-site cookies restored; magic-link gone; auto-claim active
+- Open branches: `feat/user-management-b` will be merged to main at sprint close
 
 **Gotchas**:
-- Cloudflare nameserver switch has 5–30 min propagation; validate on a test subdomain first
-- Next 15 breaking changes: `params`, `cookies()`, `headers()` all async — async/await must be added at every use site
-- Full Sprint 11 plan ready at `docs/plans/2026-04-23-user-management-sprint-plan.md` (6 phases, rollback plan, ~40 files, ~400 LOC removed)
-- `.claude/ARCHITECTURE_MAP.md` refreshed 2026-04-23 — current with all apps, components, and infrastructure as of today
+- Sprint 9 plan ready at `docs/plans/2026-04-22-image-library-sprint-plan.md` (5 phases, hard cap, modal, moderation UX)
+- Supabase free tier egress = 2 GB/month; lightbox + ISR caching keeps it under
+- ~403 Places API search calls needed for one-shot re-harvest before migrating bytes (~US$14)
+- Sprint 11b (Phase 5: `/dashboard/users` SUPERADMIN UI) intentionally deferred — currently solvable via Django admin (`/admin/accounts/userprofile/`); not blocking
+
+**Sprint 11b scope** (after Sprint 9):
+- `/dashboard/users` SUPERADMIN-only UI: list, search, role change, assign school admin, deactivate
+- Profile page additions: editable display name, points display, "My Suggestions" list
+- ~25 new tests; ~10 files
+- Self-demotion safety check on PATCH
 
 **Small passive/manual items carried over**:
-- Google Search Console: manually set Googlebot crawl rate (not controlled by robots.txt `Crawl-delay`)
-- Verify urgency audit trail after first post-fix urgent alert (`ai_raw_response["urgent_verification"]` populated)
+- Google Search Console: manually set Googlebot crawl rate
+- Verify urgency audit trail after first post-fix urgent alert
 - Verify 4 May 2026 fortnightly cron fires with coverage "21 Apr – 4 May"
+- 2 transitive npm deps still in audit (`brace-expansion`, `picomatch`) — non-blocking residual of TD-10
 
 **Sprint after this**: Sprint 9 — Image Library. Plan at `docs/plans/2026-04-22-image-library-sprint-plan.md`. Resolves TD-05, TD-06, TD-07, TD-09.
 

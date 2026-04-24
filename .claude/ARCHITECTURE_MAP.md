@@ -1,15 +1,15 @@
 # SJK(T) Connect — Architecture Map
 
-Last updated: Audit & Community Auth sprint close (23 Apr 2026) — full refresh after 6 weeks of drift.
+Last updated: User Management Sprint 11a close (24 Apr 2026)
 
 ## Stack
 
 - **Backend**: Django 5.1 + DRF — Python 3.12, SQLite (dev), Supabase PostgreSQL (prod)
-- **Frontend**: Next.js 14 App Router — TypeScript, Tailwind CSS, Google Maps
+- **Frontend**: Next.js 16 App Router — TypeScript, Tailwind CSS, Google Maps. Async params API (Sprint 11a Phase 4 upgrade from 14)
 - **AI**: Gemini 2.5 Flash (Hansard analysis, news analysis, report generation, quality evaluation)
 - **Infra**: Cloud Run (API + Web), Cloud Run Jobs (7), Cloud Scheduler (7), Supabase (DB + Storage in Sprint 9)
 - **Email**: Brevo transactional API (noreply@tamilschool.org, feedback@tamilschool.org); Brevo webhook endpoint `/api/v1/webhooks/brevo/` for delivery tracking (Sprint 8.5)
-- **Domain**: tamilschool.org. Served directly by Cloud Run domain mapping today — Cloudflare reverse proxy scheduled for Sprint 11 (TD-01/04)
+- **Domain**: `tamilschool.org` (frontend) + `api.tamilschool.org` (backend) — both Cloudflare-proxied with Google-managed SSL via Cloud Run domain mappings. Both subdomains share the registrable domain so cookies are same-site (Sprint 11a Phase 1)
 
 ## Backend — Django Apps
 
@@ -90,13 +90,12 @@ backend/
 │       ├── backfill_speakers.py       # Backfill speakers from Hansard text
 │       └── dedup_mentions.py          # Remove duplicate mentions
 │
-├── accounts/             # Magic Link authentication (Sprint 1.6)
-│   ├── models.py         # MagicLinkToken (UUID, 24h expiry), SchoolContact (verified rep)
-│   ├── permissions.py    # IsMagicLinkAuthenticated — DRF permission
+├── accounts/             # Google OAuth + UserProfile (Sprint 8.1, magic-link removed in Sprint 11a)
+│   ├── models.py         # UserProfile (Google id, role, admin_school, points)
+│   ├── permissions.py    # IsProfileAuthenticated, IsModeratorOrAbove, IsSuperAdmin, IsSchoolAdminForObject
 │   ├── services/
-│   │   ├── token.py      # validate_moe_email, find_school_by_email, create/verify tokens
-│   │   └── email.py      # Brevo transactional email (console fallback in dev)
-│   └── api/              # /auth/ endpoints
+│   │   └── google.py     # Google ID token verification (verify_oauth2_token)
+│   └── api/              # GoogleAuthView (with auto-claim for @moe.edu.my), MeView
 │
 ├── outreach/             # School images + email outreach (Sprint 1.8)
 │   ├── models.py         # SchoolImage (satellite/places/manual), OutreachEmail
@@ -235,7 +234,8 @@ frontend/
 │   ├── SchoolProfile.tsx, SchoolImage.tsx, SchoolHistory.tsx
 │   ├── SchoolEditForm.tsx, SchoolTable.tsx
 │   ├── StatCard.tsx, Breadcrumb.tsx
-│   ├── ClaimButton.tsx, ClaimForm.tsx, EditSchoolLink.tsx    # Magic-link era; all 3 removed in Sprint 11
+│   ├── EditSchoolLink.tsx                # Visible to school admin (admin_school) or SUPERADMIN
+│   ├── EmailClaimIndicator.tsx           # Inline next to email: "Claim this page" link OR ✓ Verified pill (Sprint 11a)
 │   ├── MiniMap.tsx, BoundaryMap.tsx
 │   ├── MentionsSection.tsx, MentionsList.tsx
 │   ├── NewsWatchSection.tsx, NewsCard.tsx, NewsList.tsx
@@ -307,10 +307,11 @@ DUN (PK: auto ID, unique: code+constituency)
 School (PK: moe_code "JBD0050")
   ├── has many SchoolAliases (FK school)
   ├── has many MentionedSchools (FK school)
-  ├── has many SchoolContacts (FK school)
   ├── has many SchoolImages (FK school)
   ├── has many OutreachEmails (FK school)
   ├── has many SchoolLeaders (FK school)       ← 4 roles: Chairman, HM, PTA, Alumni
+  ├── has one admin_profile (OneToOne UserProfile, optional) ← school-admin (Sprint 11a)
+  ├── claimed_at: DateTimeField nullable      ← set on first auto-claim (Sprint 11a)
   └── bank fields: bank_name, bank_account_number, bank_account_name
 
 HansardSitting (PK: auto ID, unique: sitting_date)

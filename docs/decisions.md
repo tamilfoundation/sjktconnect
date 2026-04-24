@@ -138,3 +138,61 @@
 **Trade-offs:** Not integrated with any task/project tool — if we adopt one later, entries will need to be copied or linked. Single-file review gets harder as debt count grows (mitigated by rigorous sprint-close triage + ✅ marker for resolved items with a short closure note rather than deletion).
 
 **Revisit if:** Debt count exceeds ~40 entries (at which point file-level review breaks down) or if multiple contributors need concurrent updates.
+
+## Subdomain over path-based routing for the API — Sprint 11a Phase 1, 2026-04-23
+
+**Decision:** Map the backend at `api.tamilschool.org` (Cloud Run domain mapping + Cloudflare proxy) instead of routing `tamilschool.org/api/*` to the backend via Cloudflare Workers.
+
+**Alternatives considered:**
+- Path-based routing via Cloudflare Worker (`tamilschool.org/api/*` → backend, `tamilschool.org/*` → frontend) — required writing + maintaining a Worker.
+- Single-domain monorepo where the frontend's API routes (`/api/*`) proxy to Django — adds an extra hop per request.
+
+**Rationale:** Subdomain is simpler operationally — separate Cloud Run services map cleanly to separate Cloud Run domain mappings. Both subdomains share `tamilschool.org` as the registrable domain, so the browser treats them as same-site for cookie purposes — `SameSite=Lax` works as if they were the same origin. No Worker code required. SSL via Google's managed certs per service. Future flexibility: if we split into multiple backends or move one off Cloud Run, subdomains let us swap independently.
+
+**Trade-offs:** Two SSL certs to manage (both auto-renewed by Google, so trivial). Two domain mappings to keep alive. Slightly more DNS records.
+
+**Revisit if:** We need Service Worker / Workbox for offline support that requires same-origin scope, or if we move to a CDN that charges per zone.
+
+## Auto-claim on @moe.edu.my Google Workspace sign-in — Sprint 11a Phase 3, 2026-04-23
+
+**Decision:** Replace magic-link email round-trip with auto-binding `profile.admin_school` whenever a Google sign-in's email matches `<moe_code>@moe.edu.my` for an active School. Delete the magic-link system entirely.
+
+**Alternatives considered:**
+- Keep magic-link as a parallel path for users without Workspace access (e.g. lost password) — deferred to SUPERADMIN manual assignment fallback.
+- Approve-by-SUPERADMIN claim flow (no automated binding) — doesn't scale to 528 schools.
+- Verify a screenshot or document upload — too fragile and process-heavy.
+
+**Rationale:** Verified via `dig MX moe.edu.my` that all 5 records resolve to `*.ASPMX.L.GOOGLE.COM`. Every `<moe_code>@moe.edu.my` IS a Google Workspace account. Signing in with that account proves the same thing the magic-link round-trip proved (access to the school's official inbox), in one click instead of four. Removed ~400 LOC of code that had 0 production users.
+
+**Trade-offs:** Schools whose MOE account is inactive or whose admin has lost the password can't auto-claim. Mitigated by SUPERADMIN manual assignment via Django admin (one DB write per edge case). Also: if a single Google Workspace allows multiple users to share the same `<moe_code>@moe.edu.my` mailbox (unlikely but possible), the first to sign in wins the claim — resolvable by SUPERADMIN re-assigning.
+
+**Revisit if:** MOE migrates off Google Workspace, or if we discover a meaningful fraction of schools whose accounts are inactive enough to warrant an alternate verification path.
+
+## Inline EmailClaimIndicator over banner callout — Sprint 11a Phase 3, 2026-04-24
+
+**Decision:** Render the claim/verified status as a small inline indicator next to the school's email field in the School Details card, not as a full-width alert callout at the top of the school page.
+
+**Alternatives considered:**
+- Big blue "This page is unclaimed" callout at the top (the original v1 — built and rejected within 15 minutes of shipping).
+- Banner above the school name.
+- Footer link only.
+
+**Rationale:** User feedback after seeing v1 in production: "ugly, looks like Google's 'Own this business?'". Google Business profile renders ownership state as small inline text near the data it relates to, not as a top-of-page alert. The inline indicator is discoverable without dominating the layout, and the affordance lives next to the field that establishes the relationship (the email).
+
+**Trade-offs:** Less attention-grabbing for headteachers who land on the page cold (the big banner had higher conversion potential). Mitigated by: (a) the indicator is in the email row that any HM looking at their school will scan, (b) the modal that opens on click contains the full sign-in CTA, (c) "Copy link to share" stays as a secondary action for non-HM visitors who want to alert the HM.
+
+**Revisit if:** Initial school-claim conversion is low after launch. Could A/B test a small banner alongside the indicator.
+
+## Skip Next 15, jump to Next 16 — Sprint 11a Phase 4, 2026-04-24
+
+**Decision:** Run `npm install next@latest` which resolved to `16.2.4` rather than pinning to `15.x`. Migrate the codebase for Next 16 in one upgrade cycle.
+
+**Alternatives considered:**
+- Pin to `next@15` first, ship, then upgrade to 16 in a follow-up sprint — two upgrade cycles.
+- Stay on 14 indefinitely — leaves the unresolved npm audit CVE in place even if not actively exploitable.
+
+**Rationale:** The breaking changes between 14→15 and 15→16 are similar (async params/cookies/headers in both). One migration cycle covers both. We're not running production-critical Next 15-only code (e.g. partial prerendering experiments), so there's no transition value from a 15 stop.
+
+**Trade-offs:** Less Internet evidence of "Next 16 in production" patterns at the time of upgrade (Next 16 is days old). Mitigated by the upgrade being mechanical (4 files for params API + a `global.d.ts` shim for the auto-generated types issue).
+
+**Revisit if:** Next 16 introduces a breaking change in a minor version that requires us to pin back.
