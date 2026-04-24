@@ -97,6 +97,15 @@ export default function UserMenu() {
               {t("dashboard")}
             </Link>
           )}
+          {role === "SUPERADMIN" && (
+            <Link
+              href="/dashboard/users"
+              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              onClick={() => setOpen(false)}
+            >
+              {t("userManagement")}
+            </Link>
+          )}
           <button
             onClick={() => signOut()}
             className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"

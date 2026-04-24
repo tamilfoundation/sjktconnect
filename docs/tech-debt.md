@@ -8,9 +8,13 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 
 ---
 
-## ✅ TD-01 — OAuth security checks disabled in production (RESOLVED 2026-04-24)
+## 🔴 TD-01 — OAuth security checks disabled in production (RE-OPENED 2026-04-24)
 
-- **Status**: Resolved in Sprint 11 Phase 2. Cloudflare reverse proxy adopted 2026-04-23 — frontend (`tamilschool.org`) and backend (`api.tamilschool.org`) now same-site subdomains. OAuth redirect cookies survive the round-trip, `checks: ["pkce", "state"]` restored in `frontend/lib/auth.ts`. End-to-end smoke test passed: sign-in with `tamiliam@gmail.com` + suggestion submission succeed with PKCE+state verification enabled.
+- **Status**: **REGRESSED** in Sprint 12. Had been resolved in Sprint 11a Phase 2 (Cloudflare + same-site cookies + `checks: ["pkce", "state"]`). During Sprint 12 smoke-test, sign-in started failing with `[auth][error] InvalidCheck: state value could not be parsed`. Reverted to `checks: []` in `frontend/lib/auth.ts` as pragmatic unblock; sign-in works again.
+- **Root cause (hypothesised, not confirmed)**: Next 16 + Auth.js v5 beta.30 + `@auth/core@0.41.0` combination breaks the state/PKCE cookie round-trip — cookie is set before Google redirect but is unparseable on callback. Did not regress immediately after Next 16 upgrade (sign-in worked), only after Sprint 12 deploy — so something specific changed between Sprint 11a Phase 4 deploy and Sprint 12 deploy (possibly a transitive dep during `npm ci` in Dockerfile build, though lockfile hasn't changed).
+- **Debug attempts (all failed to fix)**: (a) Added `AUTH_SECRET`/`AUTH_URL` env vars alongside legacy `NEXTAUTH_*`. (b) Removed `NEXTAUTH_*` entirely, keeping only v5-native `AUTH_*`. State cookie still unparseable.
+- **What it blocks**: Safely shipping community-facing features. OAuth flow lacks PKCE + state protection against CSRF on callback and authorization-code interception.
+- **Cost to fix**: ~2–4 hours. Sprint 16 investigation path: (1) bump `next-auth` past beta.30 — check if beta.32+ or stable 5.x exists, (2) try explicit cookie config with `cookies: { state: { options: { ... } } }` in auth.ts, (3) check `__Host-` cookie prefix compat with Cloudflare, (4) add DevTools cookie trace during sign-in flow to see which cookie is missing/corrupted, (5) worst case: downgrade Next to 15 to bisect.
 
 ## ✅ TD-02 — Magic-link removed, auto-claim on @moe.edu.my (RESOLVED 2026-04-24)
 
@@ -109,8 +113,9 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 | ✅ Cloudflare proxy + restore OAuth checks | TD-01, TD-04 | Done 2026-04-24 (Sprint 11a Phases 1+2) |
 | ✅ Delete magic-link + auto-claim + EmailClaimIndicator | TD-02 | Done 2026-04-24 (Sprint 11a Phase 3) |
 | ✅ Next 14 → 16 upgrade | TD-10 | Done 2026-04-24 (Sprint 11a Phase 4); residual cleared in Sprint 16 |
-| Sprint 12 — User Management UI | — | Next (no TD resolution) |
-| Sprint 13 — Image Storage Migration | TD-05, TD-06, TD-13 | After Sprint 12 |
+| ✅ Sprint 12 — User Management UI | — | Done 2026-04-24 |
+| 🔴 TD-01 re-opened (Next 16 + Auth.js state cookie regression) | TD-01 | Investigation in Sprint 16 |
+| Sprint 13 — Image Storage Migration | TD-05, TD-06, TD-13 | Next |
 | Sprint 14 — Community Photo Uploads | TD-07, TD-09 | After Sprint 13 |
 | Sprint 15 — Image Display Polish | — | After Sprint 14 |
-| Sprint 16 — Code-Quality Pass | TD-10 residual, TD-11, TD-12, TD-14, TD-15 | Last of 5-sprint roadmap |
+| Sprint 16 — Code-Quality Pass | TD-01 (re-opened), TD-10 residual, TD-11, TD-12, TD-14, TD-15 | Last of 5-sprint roadmap |

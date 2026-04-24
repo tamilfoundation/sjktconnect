@@ -2,16 +2,25 @@ import logging
 
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.generics import ListAPIView
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.decorators import permission_classes as permission_classes_decorator
+from django.db.models import Q
+from django.shortcuts import get_object_or_404
 
 from accounts.models import UserProfile
+from accounts.permissions import IsProfileAuthenticated, IsSuperAdmin
 from accounts.services.google import verify_google_token
 from schools.models import School
 
 from .serializers import (
     GoogleAuthSerializer,
+    UserProfileAdminListSerializer,
+    UserProfileAdminUpdateSerializer,
     UserProfileSerializer,
+    UserProfileUpdateSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -55,29 +64,47 @@ def _maybe_auto_claim(profile, email):
 
 
 class MeView(APIView):
-    """Return the current user's profile.
+    """GET + PATCH the current user's profile.
 
     Only supports Google OAuth session (user_profile_id in Django session).
     Magic-link auth has been removed — see docs/tech-debt.md TD-02 resolution.
+
+    PATCH lets the user update their own display_name.
     """
 
-    def get(self, request):
+    def _get_profile(self, request):
         profile_id = request.session.get("user_profile_id")
         if not profile_id:
-            return Response(
-                {"detail": "Not authenticated"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+            return None
         try:
-            profile = UserProfile.objects.select_related(
+            return UserProfile.objects.select_related(
                 "admin_school", "user",
             ).get(id=profile_id, is_active=True)
         except UserProfile.DoesNotExist:
+            return None
+
+    def get(self, request):
+        profile = self._get_profile(request)
+        if profile is None:
             return Response(
                 {"detail": "Not authenticated"},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
         return Response(UserProfileSerializer(profile).data)
+
+    def patch(self, request):
+        profile = self._get_profile(request)
+        if profile is None:
+            return Response(
+                {"detail": "Not authenticated"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        serializer = UserProfileUpdateSerializer(profile, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(UserProfileSerializer(profile).data)
+
+
 
 
 class GoogleAuthView(APIView):
@@ -138,3 +165,102 @@ class GoogleAuthView(APIView):
         # Reload to pick up admin_school if just-claimed
         profile = UserProfile.objects.select_related("admin_school").get(id=profile.id)
         return Response(UserProfileSerializer(profile).data)
+
+
+# --- SUPERADMIN user management ---
+
+class AdminUserListView(ListAPIView):
+    """GET /api/v1/auth/admin/users/ — paginated list of UserProfiles.
+
+    SUPERADMIN only. Filters:
+      ?role=SUPERADMIN|MODERATOR|USER
+      ?has_admin_school=true|false
+      ?search=<substring> (matches display_name, email, admin_school.moe_code, admin_school.short_name)
+      ?is_active=true|false
+    """
+
+    permission_classes = [IsProfileAuthenticated, IsSuperAdmin]
+    serializer_class = UserProfileAdminListSerializer
+
+    def get_queryset(self):
+        qs = UserProfile.objects.select_related("user", "admin_school").all()
+
+        role = self.request.query_params.get("role")
+        if role:
+            qs = qs.filter(role=role)
+
+        has_admin_school = self.request.query_params.get("has_admin_school")
+        if has_admin_school == "true":
+            qs = qs.filter(admin_school__isnull=False)
+        elif has_admin_school == "false":
+            qs = qs.filter(admin_school__isnull=True)
+
+        is_active = self.request.query_params.get("is_active")
+        if is_active == "true":
+            qs = qs.filter(is_active=True)
+        elif is_active == "false":
+            qs = qs.filter(is_active=False)
+
+        search = self.request.query_params.get("search", "").strip()
+        if search:
+            qs = qs.filter(
+                Q(display_name__icontains=search)
+                | Q(user__email__icontains=search)
+                | Q(admin_school__moe_code__icontains=search)
+                | Q(admin_school__short_name__icontains=search)
+            )
+
+        return qs.order_by("-updated_at")
+
+
+class AdminUserDetailView(APIView):
+    """PATCH /api/v1/auth/admin/users/<id>/ — update role / admin_school / is_active.
+    DELETE — soft-delete (sets is_active=False).
+
+    SUPERADMIN only. Prevents self-demotion: a SUPERADMIN cannot change their
+    own role away from SUPERADMIN or set their own is_active=False.
+    """
+
+    permission_classes = [IsProfileAuthenticated, IsSuperAdmin]
+
+    def _check_not_self_demote(self, request, target, validated):
+        """Return an error Response if this would self-demote, else None."""
+        if target.id != request.user_profile.id:
+            return None
+
+        new_role = validated.get("role")
+        if new_role is not None and new_role != "SUPERADMIN":
+            return Response(
+                {"detail": "You cannot change your own role away from SUPERADMIN."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if validated.get("is_active") is False:
+            return Response(
+                {"detail": "You cannot deactivate your own account."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return None
+
+    def patch(self, request, pk):
+        target = get_object_or_404(UserProfile, pk=pk)
+        serializer = UserProfileAdminUpdateSerializer(target, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        self_error = self._check_not_self_demote(request, target, serializer.validated_data)
+        if self_error:
+            return self_error
+
+        serializer.save()
+        target.refresh_from_db()
+        return Response(UserProfileAdminListSerializer(target).data)
+
+    def delete(self, request, pk):
+        target = get_object_or_404(UserProfile, pk=pk)
+        if target.id == request.user_profile.id:
+            return Response(
+                {"detail": "You cannot deactivate your own account."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        target.is_active = False
+        target.save(update_fields=["is_active", "updated_at"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
