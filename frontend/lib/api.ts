@@ -274,6 +274,92 @@ export async function fetchMe(): Promise<AuthUser | null> {
 }
 
 /**
+ * Update the current user's own display_name.
+ */
+export async function updateMyProfile(
+  displayName: string,
+): Promise<AuthUser> {
+  const res = await fetch(`${BASE}/auth/me/`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ display_name: displayName }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.display_name?.[0] || err.detail || "Update failed");
+  }
+  return res.json();
+}
+
+// --- SUPERADMIN user management ---
+
+export interface AdminUserRow {
+  id: number;
+  display_name: string;
+  avatar_url: string;
+  email: string;
+  role: "SUPERADMIN" | "MODERATOR" | "USER";
+  admin_school: { moe_code: string; name: string } | null;
+  points: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminUserListFilters {
+  role?: string;
+  has_admin_school?: "true" | "false";
+  is_active?: "true" | "false";
+  search?: string;
+  page?: number;
+}
+
+export async function fetchAdminUsers(
+  filters: AdminUserListFilters = {},
+): Promise<{ count: number; next: string | null; previous: string | null; results: AdminUserRow[] }> {
+  const qs = new URLSearchParams();
+  if (filters.role) qs.set("role", filters.role);
+  if (filters.has_admin_school) qs.set("has_admin_school", filters.has_admin_school);
+  if (filters.is_active) qs.set("is_active", filters.is_active);
+  if (filters.search) qs.set("search", filters.search);
+  if (filters.page) qs.set("page", String(filters.page));
+  const res = await fetch(`${BASE}/auth/admin/users/?${qs.toString()}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to load users");
+  return res.json();
+}
+
+export async function updateAdminUser(
+  id: number,
+  patch: { role?: string; admin_school?: string | null; is_active?: boolean },
+): Promise<AdminUserRow> {
+  const res = await fetch(`${BASE}/auth/admin/users/${id}/`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || err.admin_school?.[0] || err.role?.[0] || "Update failed");
+  }
+  return res.json();
+}
+
+export async function deactivateAdminUser(id: number): Promise<void> {
+  const res = await fetch(`${BASE}/auth/admin/users/${id}/`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok && res.status !== 204) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Deactivate failed");
+  }
+}
+
+/**
  * Fetch school edit data (requires Magic Link session).
  */
 export async function fetchSchoolEdit(
