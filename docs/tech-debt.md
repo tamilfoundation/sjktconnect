@@ -28,19 +28,14 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 
 - **Status**: Resolved in Sprint 11 Phase 2. Cloudflare proxy put frontend + backend on same registrable domain (both subdomains of `tamilschool.org`); default `SameSite=Lax` now handles cross-subdomain cookie delivery correctly. Removed `SESSION_COOKIE_SAMESITE = "None"` and `CSRF_COOKIE_SAMESITE = "None"` from `production.py`. Full CSRF protection restored via `SameSite=Lax` default. The DRF `SessionAuthentication` pin (TD-08) from 2026-04-23 remains as defense-in-depth.
 
-## 🟡 TD-05 — School images stored as volatile Google Places URLs
+## ✅ TD-05 — School images stored as volatile Google Places URLs (RESOLVED 2026-04-26)
 
-- **What**: `outreach/services/image_harvester.py` stores `places.googleapis.com/.../photos/...` URLs in `SchoolImage.image_url`. All such URLs on SJK(T) schools now return HTTP 400 (`INVALID_ARGUMENT`) — Google has invalidated the photo resource IDs. Every school page on tamilschool.org currently shows broken hero images + 3 broken Places thumbnails; only the satellite fallback renders. Also: every page load triggers browser requests to these dead URLs, bloating egress (see TD-06).
-- **Why we accepted**: Storing URLs was cheap; re-harvesting ~monthly was presumed sufficient. Turns out Google rotates resource IDs on a shorter and unpredictable cycle.
-- **What it blocks**: Visible product quality (broken images on every school page). Community trust. And it's the likely driver of TD-06.
-- **Cost to fix**: 1 full sprint. Plan in `docs/plans/2026-04-22-image-library-sprint-plan.md` — store bytes in Supabase Storage, add community upload flow, 20-photo cap, moderation. Sprint 9.
+- **Status**: Resolved in Sprint 13. `SchoolImage.image_file` (ImageField → Supabase Storage `school-images` bucket via S3-compat `django-storages`) added. `display_url` property prefers `image_file.url`, falls back to legacy `image_url`. Harvester rewritten to download bytes server-side and persist via `image_file.save()`. Production migration: 1009 PLACES + 528 SATELLITE re-harvested + 1 COMMUNITY migrated; **1534/1534 (100%) on Supabase Storage**. Broken-images sitewide issue is gone — verified on tamilschool.org school pages and map InfoWindow.
 
-## 🟡 TD-06 — Supabase egress regression
+## ✅ TD-06 — Supabase egress regression (PROVISIONALLY RESOLVED 2026-04-26 — monitor for 1 week)
 
-- **What**: Target was <100 MB/day after the March 29 egress fix. Actual on 2026-04-21 dashboard: 500 MB–1 GB/day, with a 1014 MB spike on 11 Apr. `defer("boundary_wkt")` fix is still in place (6 defers in `schools/api/views.py`), so a new egress source has emerged.
-- **Why we accepted**: Not intentionally — unnoticed drift since the March fix.
-- **What it blocks**: Cost risk. Supabase free tier cap is 5 GB/month. At 1 GB/day we'd blow the cap by day 5 every billing cycle. Next.js image-optimiser retries on the dead Places URLs (TD-05) are the prime suspect.
-- **Cost to fix**: Likely resolves automatically when TD-05 ships. Until then, run a 2-4 hour investigation to confirm hypothesis via Cloud Run access logs. Already tracked as item #4 in CLAUDE.md pending list.
+- **Status**: Almost certainly resolved by Sprint 13 (TD-05 fix). Hypothesised root cause was Next.js image-optimiser retrying on dead Google Places URLs — those URLs are now gone. Hero images now served from `kafuxsinrbqafvarckxu.storage.supabase.co` (Supabase Storage CDN), bypassing our backend entirely.
+- **Verification plan**: Monitor Supabase egress dashboard for 7 days post-2026-04-26; flip from "PROVISIONALLY RESOLVED" to ✅ definitively resolved after one full week shows <100 MB/day. Listed in CLAUDE.md "Small passive items" for Sprint 14 close.
 
 ## 🟡 TD-07 — `Suggestion.image` stored in Postgres `BinaryField`
 
@@ -81,12 +76,9 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 - **What it blocks**: Regressions in edge-case PDFs (encrypted, image-only, malformed) would surface only in production.
 - **Cost to fix**: 2-3 hours. Add a small fixtures directory with 3-4 edge-case PDFs and matching assertion cases.
 
-## 🟢 TD-13 — `uploaded_by` on `SchoolImage` never set by harvester
+## ✅ TD-13 — `uploaded_by` on `SchoolImage` never set by harvester (RESOLVED 2026-04-26)
 
-- **What**: `SchoolImage.uploaded_by` FK to `UserProfile` exists (added Sprint 8.2) but is never set by `harvest_satellite_image` or `harvest_places_images` — only populated when community uploads approve. So for the vast majority of images the field is NULL.
-- **Why we accepted**: Semantically correct — harvester images weren't uploaded by any user.
-- **What it blocks**: Nothing. Flagged only because reading the code you might expect it to always be set.
-- **Cost to fix**: No fix needed — could add a comment explaining that NULL means harvester-sourced.
+- **Status**: Resolved as a no-op in Sprint 13. Confirmed semantically correct — harvester images weren't uploaded by any user, so NULL is the right value. Documented in `outreach/services/image_harvester.py` docstring + `SchoolImage.uploaded_by` field help_text. No code change required; closing for clarity.
 
 ## 🟢 TD-14 — Inconsistent `role` checks across views
 
@@ -114,8 +106,8 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 | ✅ Delete magic-link + auto-claim + EmailClaimIndicator | TD-02 | Done 2026-04-24 (Sprint 11a Phase 3) |
 | ✅ Next 14 → 16 upgrade | TD-10 | Done 2026-04-24 (Sprint 11a Phase 4); residual cleared in Sprint 16 |
 | ✅ Sprint 12 — User Management UI | — | Done 2026-04-24 |
+| ✅ Sprint 13 — Image Storage Migration | TD-05 ✅, TD-06 (provisional) ✅, TD-13 ✅ | Done 2026-04-26 |
 | 🔴 TD-01 re-opened (Next 16 + Auth.js state cookie regression) | TD-01 | Investigation in Sprint 16 |
-| Sprint 13 — Image Storage Migration | TD-05, TD-06, TD-13 | Next |
-| Sprint 14 — Community Photo Uploads | TD-07, TD-09 | After Sprint 13 |
+| Sprint 14 — Community Photo Uploads | TD-07, TD-09 | Next |
 | Sprint 15 — Image Display Polish | — | After Sprint 14 |
 | Sprint 16 — Code-Quality Pass | TD-01 (re-opened), TD-10 residual, TD-11, TD-12, TD-14, TD-15 | Last of 5-sprint roadmap |

@@ -74,12 +74,19 @@ class SchoolMapSerializer(serializers.ModelSerializer):
 
 
 class SchoolImageSerializer(serializers.Serializer):
-    """Read-only serializer for school images."""
+    """Read-only serializer for school images.
 
-    image_url = serializers.URLField()
+    Sprint 13: image_url returns Supabase Storage URL (image_file.url) when
+    set, falling back to legacy image_url for unmigrated rows.
+    """
+
+    image_url = serializers.SerializerMethodField()
     source = serializers.CharField()
     is_primary = serializers.BooleanField()
     attribution = serializers.CharField()
+
+    def get_image_url(self, obj):
+        return obj.display_url
 
 
 class SchoolLeaderSerializer(serializers.ModelSerializer):
@@ -164,10 +171,14 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
         return format_phone(obj.phone)
 
     def get_image_url(self, obj):
-        """Return the primary image URL for this school, or None."""
+        """Return the primary image URL for this school, or None.
+
+        Sprint 13: prefers Supabase Storage (image_file.url) over the legacy
+        image_url. SchoolImage.display_url encapsulates the fallback.
+        """
         primary = obj.images.filter(is_primary=True).first()
         if primary:
-            return primary.image_url
+            return primary.display_url or None
         return None
 
     def get_images(self, obj):

@@ -1,13 +1,13 @@
 # SJK(T) Connect — Architecture Map
 
-Last updated: User Management Sprint 11a close (24 Apr 2026)
+Last updated: Sprint 13 close (26 Apr 2026)
 
 ## Stack
 
-- **Backend**: Django 5.1 + DRF — Python 3.12, SQLite (dev), Supabase PostgreSQL (prod)
+- **Backend**: Django 5.1 + DRF — Python 3.12, SQLite (dev), Supabase PostgreSQL (prod). `django-storages[boto3]` + `Pillow` for image storage (Sprint 13)
 - **Frontend**: Next.js 16 App Router — TypeScript, Tailwind CSS, Google Maps. Async params API (Sprint 11a Phase 4 upgrade from 14)
 - **AI**: Gemini 2.5 Flash (Hansard analysis, news analysis, report generation, quality evaluation)
-- **Infra**: Cloud Run (API + Web), Cloud Run Jobs (7), Cloud Scheduler (7), Supabase (DB + Storage in Sprint 9)
+- **Infra**: Cloud Run (API + Web), Cloud Run Jobs (7), Cloud Scheduler (7), Supabase (PostgreSQL DB + Storage bucket `school-images`, S3-compat). `STORAGES["default"]` = `S3Storage` in prod, `FileSystemStorage` in dev/tests
 - **Email**: Brevo transactional API (noreply@tamilschool.org, feedback@tamilschool.org); Brevo webhook endpoint `/api/v1/webhooks/brevo/` for delivery tracking (Sprint 8.5)
 - **Domain**: `tamilschool.org` (frontend) + `api.tamilschool.org` (backend) — both Cloudflare-proxied with Google-managed SSL via Cloud Run domain mappings. Both subdomains share the registrable domain so cookies are same-site (Sprint 11a Phase 1)
 
@@ -97,13 +97,17 @@ backend/
 │   │   └── google.py     # Google ID token verification (verify_oauth2_token)
 │   └── api/              # GoogleAuthView (with auto-claim for @moe.edu.my), MeView
 │
-├── outreach/             # School images + email outreach (Sprint 1.8)
-│   ├── models.py         # SchoolImage (satellite/places/manual), OutreachEmail
+├── outreach/             # School images + email outreach (Sprint 1.8, storage refactored Sprint 13)
+│   ├── models.py         # SchoolImage (image_file: ImageField → Supabase Storage,
+│   │                     # image_url: legacy fallback, display_url property),
+│   │                     # OutreachEmail
 │   ├── services/
-│   │   ├── image_harvester.py  # Google Static Maps + Places API image harvesting
+│   │   ├── image_harvester.py  # Downloads bytes from Static Maps + Places API,
+│   │   │                       # uploads via image_file.save() (Sprint 13 rewrite)
 │   │   └── email_sender.py     # Brevo outreach email sending
 │   └── management/commands/
 │       ├── harvest_school_images.py
+│       ├── migrate_images_to_storage.py  # One-shot URL → Supabase Storage migrator (Sprint 13)
 │       └── send_outreach_emails.py
 │
 ├── subscribers/          # Subscriber management (Sprint 2.1)
@@ -363,8 +367,17 @@ Suggestion                                      ← Sprint 8.2
   ├── FK school, FK user (→ UserProfile)
   ├── type: DATA_CORRECTION / PHOTO_UPLOAD / NOTE
   ├── status: PENDING / APPROVED / REJECTED
-  ├── image: BinaryField (see TD-07 — moves to Supabase Storage in Sprint 9)
+  ├── image: BinaryField (legacy — being removed in Sprint 14, replaced by direct upload to SchoolImage.image_file)
   └── points_awarded: int (3 photo, 2 correction, 1 note)
+
+SchoolImage                                     ← Sprint 1.8 + Sprint 13 storage refactor
+  ├── FK school
+  ├── source: SATELLITE / PLACES / MANUAL / COMMUNITY
+  ├── image_file: ImageField → Supabase Storage (S3Storage), upload_to schools/<moe_code>/
+  ├── image_url: legacy URL field (kept for fallback; new harvests leave blank)
+  ├── display_url: @property — image_file.url if set, else image_url
+  ├── is_primary, position, uploaded_by (FK UserProfile, nullable)
+  └── 1534 rows / 100% on Supabase Storage as of Sprint 13 close
 
 AuditLog — standalone, tracks admin actions
 ```
@@ -379,7 +392,8 @@ AuditLog — standalone, tracks admin actions
 - **Learner writes to files, not code**: Pattern flags go to markdown, agents read — no auto code changes
 - **Magic Link over passwords**: Schools verify via MOE email, session-based auth. **Dormant since launch** (0 contacts, 0 tokens ever). Still wired into `SchoolEditView` + `SchoolConfirmView` which are therefore unusable. Scheduled for removal in Sprint 11 (TD-02).
 - **Google OAuth + UserProfile** (Sprint 8.1, active): NextAuth v5 on frontend, Django `SessionAuthentication` on backend. Bridged via `POST /api/v1/auth/google/` — backend verifies ID token via `google.oauth2.id_token.verify_oauth2_token`, creates/fetches UserProfile, sets `request.session["user_profile_id"]`. Permission classes: `IsProfileAuthenticated`, `IsModeratorOrAbove`, `IsSuperAdmin`, `IsSchoolAdminForObject`.
-- **Cross-domain session cookies** (2026-04-22 workaround): `SESSION_COOKIE_SAMESITE = "None"` + `CSRF_COOKIE_SAMESITE = "None"` in production settings because frontend (`tamilschool.org`) and backend (`*.run.app`) are separate origins. Resolves with Cloudflare proxy in Sprint 11 (TD-04).
+- **Cross-domain session cookies**: Resolved Sprint 11a — Cloudflare proxy gives both `tamilschool.org` and `api.tamilschool.org` the same registrable domain so cookies are same-site (TD-04 closed).
+- **Volatile Google Places URLs replaced with Supabase Storage** (Sprint 13): Originally Sprint 1.8 stored only `image_url` (Google Places photo references), which Google invalidates after weeks → broken images sitewide. Now bytes are downloaded at harvest time and uploaded to Supabase Storage; URLs are stable. `display_url` property provides backwards-compat with any unmigrated rows. Resolves TD-05, TD-06, TD-13.
 - **CSRF protection** depends on DRF's `SessionAuthentication` being in `DEFAULT_AUTHENTICATION_CLASSES` — pinned explicitly (TD-08 resolved 2026-04-23). Adding `TokenAuthentication` would silently remove CSRF enforcement.
 - **OAuth security checks disabled** (`frontend/lib/auth.ts:10` has `checks: []`) as a temporary workaround for cookie loss during OAuth redirect. Restored in Sprint 11 (TD-01).
 - **Brevo with console fallback**: No API key in dev → logs to console

@@ -13,10 +13,27 @@ class SchoolImage(models.Model):
         MANUAL = "MANUAL", "Manual Upload"
         COMMUNITY = "COMMUNITY", "Community Upload"
 
+    def _upload_to(instance, filename):  # noqa: N805
+        """Per-school directory in the Supabase Storage bucket.
+
+        e.g. schools/JBD0050/places-abc123.jpg
+        """
+        return f"schools/{instance.school_id}/{filename}"
+
     school = models.ForeignKey(
         "schools.School", on_delete=models.CASCADE, related_name="images"
     )
-    image_url = models.URLField(max_length=1000)
+    image_url = models.URLField(
+        max_length=1000, blank=True, default="",
+        help_text=(
+            "Legacy field for Sprint 8.2 era images stored as Google Places URLs. "
+            "New images use image_file (Sprint 13). Kept nullable for migration."
+        ),
+    )
+    image_file = models.ImageField(
+        upload_to=_upload_to, blank=True, null=True,
+        help_text="Bytes stored in Supabase Storage (Sprint 13).",
+    )
     source = models.CharField(max_length=20, choices=Source.choices)
     is_primary = models.BooleanField(default=False)
     width = models.IntegerField(null=True, blank=True)
@@ -44,6 +61,21 @@ class SchoolImage(models.Model):
     def __str__(self):
         label = "primary" if self.is_primary else "secondary"
         return f"{self.school_id} — {self.source} ({label})"
+
+    @property
+    def display_url(self):
+        """The URL the frontend should render.
+
+        Prefers Supabase-hosted bytes (image_file). Falls back to legacy
+        image_url for rows that haven't been migrated yet. May return ""
+        if neither is set.
+        """
+        if self.image_file:
+            try:
+                return self.image_file.url
+            except (ValueError, AttributeError):
+                pass
+        return self.image_url or ""
 
 
 class OutreachEmail(models.Model):

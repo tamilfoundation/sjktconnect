@@ -85,6 +85,11 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
+# MEDIA_ROOT is only used by FileSystemStorage fallback (local dev / tests).
+# Production uses Supabase Storage via STORAGES["default"] — see below.
+MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = "/media/"
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGIN_URL = "/accounts/login/"
@@ -120,6 +125,64 @@ BACKEND_URL = os.environ.get(
     "BACKEND_URL",
     "http://localhost:8000",
 )
+
+# --- Supabase Storage (S3-compatible) for school images ---
+# Configured in Sprint 13. Used by SchoolImage.image_file via django-storages.
+# When SUPABASE_STORAGE_ACCESS_KEY is unset (e.g. in local dev / tests),
+# Django falls back to the default FileSystemStorage so tests don't need
+# network access.
+SUPABASE_STORAGE_ENDPOINT = os.environ.get("SUPABASE_STORAGE_ENDPOINT", "")
+SUPABASE_STORAGE_REGION = os.environ.get("SUPABASE_STORAGE_REGION", "ap-southeast-1")
+SUPABASE_STORAGE_BUCKET = os.environ.get("SUPABASE_STORAGE_BUCKET", "school-images")
+SUPABASE_STORAGE_ACCESS_KEY = os.environ.get("SUPABASE_STORAGE_ACCESS_KEY", "")
+SUPABASE_STORAGE_SECRET_KEY = os.environ.get("SUPABASE_STORAGE_SECRET_KEY", "")
+# Public URL prefix (without the S3 protocol) where bucket files are served.
+# Supabase Storage exposes objects at https://<project>.storage.supabase.co/storage/v1/object/public/<bucket>/<path>
+SUPABASE_STORAGE_PUBLIC_URL = os.environ.get(
+    "SUPABASE_STORAGE_PUBLIC_URL",
+    SUPABASE_STORAGE_ENDPOINT.replace("/s3", "/object/public") if SUPABASE_STORAGE_ENDPOINT else "",
+)
+
+if SUPABASE_STORAGE_ACCESS_KEY and SUPABASE_STORAGE_SECRET_KEY:
+    _default_storage = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "access_key": SUPABASE_STORAGE_ACCESS_KEY,
+            "secret_key": SUPABASE_STORAGE_SECRET_KEY,
+            "bucket_name": SUPABASE_STORAGE_BUCKET,
+            "region_name": SUPABASE_STORAGE_REGION,
+            "endpoint_url": SUPABASE_STORAGE_ENDPOINT,
+            # Public bucket — no signed URLs needed
+            "querystring_auth": False,
+            # Path-based addressing for S3-compat services
+            "addressing_style": "path",
+            # Don't ACL — Supabase ignores ACLs and bucket policy controls access
+            "default_acl": None,
+            "file_overwrite": False,
+            # Cache assets aggressively (rotated by content hash if needed)
+            "object_parameters": {
+                "CacheControl": "public, max-age=86400",
+            },
+            # Public URL prefix for serving (overrides default S3 URL builder)
+            "custom_domain": (
+                SUPABASE_STORAGE_PUBLIC_URL.replace("https://", "").rstrip("/")
+                + f"/{SUPABASE_STORAGE_BUCKET}"
+            ) if SUPABASE_STORAGE_PUBLIC_URL else None,
+            "url_protocol": "https:",
+        },
+    }
+else:
+    # Local dev / tests: use sqlite-friendly filesystem storage.
+    _default_storage = {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    }
+
+STORAGES = {
+    "default": _default_storage,
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 
 # REST Framework defaults
 # SessionAuthentication is pinned explicitly — it enforces CSRF on state-changing

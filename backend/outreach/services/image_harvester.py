@@ -1,14 +1,20 @@
 """Service for harvesting school images from Google APIs.
 
-Supports two sources:
+Sources:
 - SATELLITE: Google Static Maps API (constructed from GPS coordinates)
 - PLACES: Google Places API (real photos of the school)
+
+Sprint 13: bytes are downloaded once and uploaded to Supabase Storage via
+SchoolImage.image_file. The legacy image_url field is no longer populated
+for new harvest runs (kept on the model for unmigrated rows).
 """
 
 import logging
 import os
+import uuid
 
 import requests
+from django.core.files.base import ContentFile
 
 from outreach.models import SchoolImage
 from schools.models import School
@@ -19,6 +25,9 @@ STATIC_MAPS_BASE = "https://maps.googleapis.com/maps/api/staticmap"
 PLACES_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
 PLACES_PHOTO_BASE = "https://places.googleapis.com/v1"
 
+# Don't try to download more than 5 MB per image (matches the Sprint 14 cap).
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
 
 def _get_api_key() -> str:
     """Get Google Maps API key from environment."""
@@ -28,10 +37,34 @@ def _get_api_key() -> str:
     )
 
 
+def _download_bytes(url: str, *, timeout: int = 30) -> bytes | None:
+    """Download a URL and return bytes, or None on failure / oversize."""
+    try:
+        resp = requests.get(url, timeout=timeout, stream=True)
+        resp.raise_for_status()
+        # Don't load oversized payloads into memory
+        chunks = []
+        total = 0
+        for chunk in resp.iter_content(chunk_size=64 * 1024):
+            total += len(chunk)
+            if total > MAX_IMAGE_BYTES:
+                logger.warning("Image at %s exceeds %d bytes — skipping", url, MAX_IMAGE_BYTES)
+                return None
+            chunks.append(chunk)
+        return b"".join(chunks)
+    except requests.RequestException:
+        logger.exception("Failed to download %s", url)
+        return None
+
+
 def harvest_satellite_image(school: School) -> SchoolImage | None:
     """Create a satellite static map image for a school using GPS coordinates.
 
-    Returns the created/updated SchoolImage or None if the school has no GPS data.
+    Bytes are downloaded from Google Static Maps and uploaded to Supabase
+    Storage via SchoolImage.image_file. The remote URL contains an API key,
+    so we never store it.
+
+    Returns the created/updated SchoolImage or None on failure.
     """
     if not school.gps_lat or not school.gps_lng:
         logger.warning(
@@ -45,27 +78,34 @@ def harvest_satellite_image(school: School) -> SchoolImage | None:
         logger.warning("No Google Maps API key — skipping satellite")
         return None
 
-    image_url = (
+    fetch_url = (
         f"{STATIC_MAPS_BASE}"
         f"?center={school.gps_lat},{school.gps_lng}"
         f"&zoom=18&size=640x400&maptype=satellite"
         f"&key={api_key}"
     )
 
+    image_bytes = _download_bytes(fetch_url)
+    if image_bytes is None:
+        return None
+
     # Determine if this should be primary (only if no existing primary)
     has_primary = school.images.filter(is_primary=True).exists()
 
-    image, _ = SchoolImage.objects.update_or_create(
+    # Delete existing SATELLITE row before recreating (one slot, one source)
+    school.images.filter(source=SchoolImage.Source.SATELLITE).delete()
+
+    image = SchoolImage(
         school=school,
         source=SchoolImage.Source.SATELLITE,
-        defaults={
-            "image_url": image_url,
-            "is_primary": not has_primary,
-            "width": 640,
-            "height": 400,
-            "attribution": "Google Maps",
-        },
+        image_url="",  # legacy field — no longer populated
+        is_primary=not has_primary,
+        width=640,
+        height=400,
+        attribution="Google Maps",
     )
+    filename = f"satellite-{uuid.uuid4().hex[:12]}.png"
+    image.image_file.save(filename, ContentFile(image_bytes), save=True)
     return image
 
 
@@ -74,11 +114,9 @@ def harvest_places_images(
 ) -> list[SchoolImage]:
     """Search Google Places for the school and fetch up to *max_photos* photos.
 
-    Performs a clean re-harvest: deletes any existing PLACES images for the
-    school before creating new ones.  The first photo is set as primary
-    (demoting any other primaries); subsequent photos are non-primary.
-
-    Returns a list of created SchoolImage objects (may be empty).
+    Bytes are downloaded from Places photo URLs and uploaded to Supabase
+    Storage. Performs a clean re-harvest: deletes any existing PLACES images
+    for the school before creating new ones. The first photo becomes primary.
     """
     api_key = _get_api_key()
     if not api_key:
@@ -136,26 +174,31 @@ def harvest_places_images(
     created: list[SchoolImage] = []
     for i, photo in enumerate(photos[:max_photos]):
         photo_name = photo["name"]
-        photo_url = (
+        fetch_url = (
             f"{PLACES_PHOTO_BASE}/{photo_name}/media"
             f"?maxWidthPx=640&key={api_key}"
         )
+        image_bytes = _download_bytes(fetch_url)
+        if image_bytes is None:
+            continue
 
         attribution = ""
         author_attrs = photo.get("authorAttributions", [])
         if author_attrs:
             attribution = author_attrs[0].get("displayName", "")
 
-        image = SchoolImage.objects.create(
+        image = SchoolImage(
             school=school,
             source=SchoolImage.Source.PLACES,
-            image_url=photo_url,
+            image_url="",  # legacy field
             is_primary=(i == 0),
             width=photo.get("widthPx", 640),
             height=photo.get("heightPx"),
             attribution=attribution,
             photo_reference=photo_name,
         )
+        filename = f"places-{uuid.uuid4().hex[:12]}.jpg"
+        image.image_file.save(filename, ContentFile(image_bytes), save=True)
         created.append(image)
 
     return created
