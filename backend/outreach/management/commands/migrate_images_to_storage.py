@@ -18,6 +18,7 @@ import requests
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 from django.db import connection
+from django.db.models import Q
 
 from outreach.models import SchoolImage
 
@@ -60,7 +61,11 @@ class Command(BaseCommand):
         dry_run = options["dry_run"]
         source = options["source"]
 
-        qs = SchoolImage.objects.filter(image_file="").exclude(image_url="")
+        # FileField is nullable on this model — empty rows can be either NULL
+        # or empty string depending on how they were created.
+        qs = SchoolImage.objects.filter(
+            Q(image_file__isnull=True) | Q(image_file=""),
+        ).exclude(image_url="")
         if source:
             qs = qs.filter(source=source)
 

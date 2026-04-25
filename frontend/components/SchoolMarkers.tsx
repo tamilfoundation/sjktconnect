@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { AdvancedMarker, InfoWindow, Pin } from "@vis.gl/react-google-maps";
 import { Link } from "@/i18n/navigation";
 import { School } from "@/lib/types";
+import { fetchSchoolDetail } from "@/lib/api";
 import { ColourMode } from "./MapFilterPanel";
 
 interface SchoolMarkersProps {
@@ -78,6 +79,24 @@ export default function SchoolMarkers({
     () => schools.filter((s) => s.gps_lat !== null && s.gps_lng !== null),
     [schools]
   );
+
+  // Lazy-load full school detail (image_url, teacher_count, grade) when an
+  // InfoWindow opens. The /schools/map/ endpoint returns only ~10 fields per
+  // school to keep egress down (Sprint 8.3 fix). On click, fetch the full
+  // detail for that one school and merge into selectedSchool.
+  useEffect(() => {
+    if (!selectedSchool || selectedSchool.image_url !== undefined) return;
+    let cancelled = false;
+    fetchSchoolDetail(selectedSchool.moe_code).then((detail) => {
+      if (cancelled) return;
+      setSelectedSchool((prev) =>
+        prev && prev.moe_code === detail.moe_code
+          ? { ...prev, ...detail }
+          : prev
+      );
+    }).catch(() => { /* keep placeholder UI on error */ });
+    return () => { cancelled = true; };
+  }, [selectedSchool?.moe_code]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
