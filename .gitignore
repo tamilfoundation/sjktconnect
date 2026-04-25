@@ -65,3 +65,6 @@ tsconfig.tsbuildinfo
 
 # Git worktrees
 .worktrees/
+
+# Sprint 13: local FileSystemStorage media root (test/dev only — prod uses Supabase Storage)
+backend/media/
