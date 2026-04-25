@@ -50,10 +50,11 @@ NEWS_WATCH_RSS_FEEDS = [
     url.strip() for url in _rss_feeds.split(",") if url.strip()
 ]
 
-# WhiteNoise for static files on Cloud Run
+# WhiteNoise for static files on Cloud Run.
+# Inject the WhiteNoise static-files backend into the STORAGES dict that base.py
+# already populates (with Supabase Storage as default for media files). Don't
+# replace the dict entirely — that would lose the Supabase media config.
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa: F405
-STORAGES = {
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
+STORAGES["staticfiles"] = {  # noqa: F405
+    "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
 }

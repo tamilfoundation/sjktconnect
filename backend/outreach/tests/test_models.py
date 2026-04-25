@@ -69,3 +69,37 @@ class SchoolImagePositionTest(TestCase):
         self.assertEqual(
             SchoolImage.Source(img.source).label, "Community Upload"
         )
+
+
+class SchoolImageDisplayUrlTest(TestCase):
+    """Sprint 13: display_url prefers image_file.url, falls back to image_url."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.school = School.objects.create(
+            moe_code="JBD0050", name="SJK(T) X", short_name="SJK(T) X", state="Johor",
+        )
+
+    def test_display_url_uses_legacy_url_when_no_file(self):
+        img = SchoolImage.objects.create(
+            school=self.school, source="PLACES",
+            image_url="https://example.com/legacy.jpg",
+        )
+        assert img.display_url == "https://example.com/legacy.jpg"
+
+    def test_display_url_uses_image_file_when_set(self):
+        from django.core.files.base import ContentFile
+        img = SchoolImage.objects.create(
+            school=self.school, source="SATELLITE",
+            image_url="https://legacy.example.com/old.jpg",
+        )
+        img.image_file.save("new.jpg", ContentFile(b"bytes"), save=True)
+        # display_url should now serve from storage, not the legacy URL
+        assert img.display_url != "https://legacy.example.com/old.jpg"
+        assert img.display_url  # non-empty
+
+    def test_display_url_empty_when_neither_set(self):
+        img = SchoolImage.objects.create(
+            school=self.school, source="PLACES",
+        )
+        assert img.display_url == ""
