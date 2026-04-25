@@ -225,3 +225,49 @@
 **Trade-offs:** If we ever WANT to transfer SUPERADMIN cleanly (promote B, then demote A), it takes two steps instead of one — promote the new one first, then someone else can demote A. Acceptable friction.
 
 **Revisit if:** We adopt 3+ SUPERADMINs and want convenient role rotation, or if we build a formal "transfer role" flow.
+
+## Supabase Storage (S3-compat) over GCS for school images — Sprint 13, 2026-04-26
+
+**Decision:** Store school image bytes in a dedicated Supabase Storage bucket (`school-images`), accessed via the S3-compatible endpoint, configured as Django's `STORAGES["default"]` backend (`storages.backends.s3.S3Storage`). Files are public; no signed URLs.
+
+**Alternatives considered:**
+1. Google Cloud Storage bucket in the same `sjktconnect` GCP project — requires another credential set + IAM management + an additional CDN config. Egress to Cloud Run from GCS is free in-region, but cross-region from frontend visitors costs.
+2. Cloudflare R2 — also S3-compatible, free egress, but adds a third infra provider beyond Cloud Run + Supabase.
+3. Keep storing URLs (status quo) and re-harvest more aggressively — doesn't solve the root cause; Google can still rotate IDs.
+4. Postgres BinaryField — already proved unsuitable for community uploads (TD-07).
+
+**Rationale:** We're already on Supabase for Postgres. Adding Storage is one menu click + one bucket policy + one set of S3 credentials in the same dashboard. `django-storages[boto3]` makes the integration boring (one settings block, no per-call code changes). Public read access matches our use case (school photos are public-by-design). Public bucket means the URLs are stable forever — `display_url` returns a CDN URL that lives at `kafuxsinrbqafvarckxu.storage.supabase.co/storage/v1/object/public/school-images/schools/<moe>/...`. Frontend bypasses our backend entirely for image bytes, eliminating the egress burden TD-06 was tracking.
+
+**Trade-offs:** Bound to Supabase Storage pricing tiers (free 1 GB / 2 GB egress per month at our current plan). At 1534 images × ~150 KB avg ≈ 230 MB of stored bytes; well within free tier. Not portable to a different Postgres provider without bucket migration. Can't use signed URLs without flipping `querystring_auth=True` and rotating credentials, but that's a setting change not a re-architecture.
+
+**Revisit if:** Storage volume crosses 5 GB (consider lower-cost archival tier or GCS), or if we ever need per-user signed access (e.g. for un-approved community uploads visible only to moderators — currently solved by keeping image bytes private inside `Suggestion.image` BinaryField until approval).
+
+## `display_url` property over conditional fallback at every callsite — Sprint 13, 2026-04-26
+
+**Decision:** Add `SchoolImage.display_url` as a `@property` that returns `image_file.url` if `image_file` is set, otherwise falls back to legacy `image_url`. Callers use `obj.display_url` and don't branch on which field is populated. Legacy `image_url` field is retained, not dropped.
+
+**Alternatives considered:**
+1. Drop `image_url` immediately and require all rows to have `image_file` before merge — forces an atomic migration with no rollback path; one bad row breaks every API call.
+2. Branch in every serializer / view (`obj.image_file.url if obj.image_file else obj.image_url`) — duplication across ~5 call sites + every new caller has to remember.
+3. Custom field manager / queryset method — heavier than a property, no real benefit.
+
+**Rationale:** The migration was always going to be staged: harvester rewrite → migrate command → re-harvest passes for failed rows. During staging, some rows have `image_file`, some still have `image_url`, some have both. A property hides this entirely. Once the migration was 100% complete (post-Sprint-13), `image_url` becomes redundant — but keeping it costs nothing at the row level (it's a TextField that's already there) and gives us a free safety net if a future `image_file` write fails (corruption, accidental delete) — old `image_url` value still exists for forensics.
+
+**Trade-offs:** Two fields covering roughly the same thing is a faint code smell. Schema is slightly bloated. We could drop `image_url` in a future cleanup sprint once we're confident no row depends on it; tracking as a low-priority cleanup item, not urgent.
+
+**Revisit if:** We need to enforce "every row must have image_file" for some downstream invariant (e.g. analytics on byte size), or if `image_url` accumulates real divergent data we'd want to clean up.
+
+## Lazy-fetch detail on InfoWindow open over including all fields in `/schools/map/` — Sprint 13, 2026-04-26
+
+**Decision:** Keep `/api/v1/schools/map/` trimmed to ~10 fields (Sprint 8.3 egress fix). When the map InfoWindow opens, lazy-fetch the full school detail via `fetchSchoolDetail(moe_code)` and merge into local state. No re-harvest is triggered — the detail endpoint reads existing `SchoolImage` rows.
+
+**Alternatives considered:**
+1. Add `image_url` (and other display fields) back to `/schools/map/` — undoes the Sprint 8.3 egress optimisation that brought map payload from ~500 KB to ~50 KB. Egress cost would likely double.
+2. Server-render the InfoWindow content in the same payload as a HTML blob — heavy, awkward for SPA-style interaction, breaks i18n flow.
+3. Pre-fetch all 528 detail records on map mount — similar payload bloat as #1, with worse cache characteristics.
+
+**Rationale:** The map is a high-traffic page (Googlebot + organic). The InfoWindow is a low-frequency interaction (only opens when a user clicks a pin). Optimising for the high-frequency case (map render) and paying the cost on the low-frequency case (detail fetch on click) is the correct trade-off. The detail fetch is also opportunistically cacheable by the browser since the URL is deterministic per school.
+
+**Trade-offs:** Brief UX delay (~200ms typical) between clicking a pin and seeing the full hero image. Mitigated by rendering placeholder UI immediately + populating image when fetch resolves. Cancellation flag prevents stale-merge if the user clicks rapidly between pins.
+
+**Revisit if:** Detail-fetch latency becomes user-perceptible (>500ms p95), or if InfoWindow click-through rate becomes high enough that bundling fields into the map payload is cheaper overall.

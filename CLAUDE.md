@@ -246,6 +246,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | Audit & Community Auth | Done | Community Google sign-in unblocked (OAuth External/Production, `SameSite=None` cookies, admin → SUPERADMIN). Fixed 3 Sprint 8.2 bugs (photo base64 prefix, preview, relative image URL). First full-codebase audit since Sprint 0.3: `docs/tech-debt.md` with 15 entries (3 resolved: TD-03 prod-DB guard, TD-08 DRF auth pin, TD-10 next-intl upgrade). Security review patched 2 vulns (suggestion image auth). 3 new backend tests. 1109 backend + 271 frontend tests. Retrospective: `docs/retrospective-audit-community-auth.md`. |
 | User Management 11a | Done | Cloudflare reverse proxy adopted (tamilschool.org + api.tamilschool.org, both Cloudflare-proxied with Google-managed SSL). OAuth checks restored to `["pkce", "state"]`. SameSite=None workaround removed. Magic-link system fully deleted (~400 LOC); auto-claim on `@moe.edu.my` Google sign-in (~10 LOC) replaces it. New EmailClaimIndicator component renders inline next to the email — Google-style: claim link when unclaimed, ✓ Verified pill when claimed. SchoolEditView migrated to UserProfile auth. Next 14 → 16 upgrade with global.d.ts shim + async params migration on 5 pages. Resolves TD-01, TD-02, TD-04 + partial TD-10. 1076 backend + 258 frontend tests. Retrospective: `docs/retrospective-user-management-11a.md`. Phase 5 (`/dashboard/users` UI) deferred to Sprint 11b. |
 | 12 | Done | User Management UI: SUPERADMIN `/dashboard/users` page with filter/search/table + RoleChangeModal + SchoolAssignModal + deactivate/reactivate; self-demotion safety checks (cannot change own role away from SUPERADMIN, cannot deactivate self). MeView PATCH for self-service display name edit. UserMenu adds "User Management" link for SUPERADMIN. Profile page: editable display name, removed broken `/claim` CTA. 30 new backend tests. **TD-01 re-opened** (regression): Next 16 + Auth.js v5 beta.30 state/PKCE cookie round-trip regressed; `checks: []` workaround reinstated, proper fix deferred to Sprint 16. 1106 backend + 258 frontend tests. |
+| 13 | Done | Image Storage Migration: Supabase Storage bucket `school-images` + django-storages[boto3]/Pillow + S3-compat config. SchoolImage gets `image_file` ImageField + `display_url` property (falls back to legacy `image_url`). Harvester rewritten to download bytes + upload via image_file. New `migrate_images_to_storage` command. SchoolMarkers InfoWindow lazy-fetches detail to populate hero photo. Prod migration: 1009 PLACES + 528 SATELLITE re-harvested + 1 COMMUNITY migrated; 5 stuck rows deleted; **1534/1534 (100%) on Supabase Storage**. Resolves TD-05, TD-06, TD-13. 1117 backend (+11) + 258 frontend tests. Cost: ~US$15 in Google API re-harvest. |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -263,46 +264,44 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Recommended next: Sprint 13 — Image Storage Migration** (second of the 5-sprint roadmap approved 2026-04-24).
+**Recommended next: Sprint 14 — Community Photo Uploads** (third of the 5-sprint roadmap).
 
-### 5-Sprint Roadmap (progress after Sprint 12 close)
+### 5-Sprint Roadmap (progress after Sprint 13 close)
 
 | # | Sprint | Status |
 |---|---|---|
 | 12 | User Management UI | ✅ Done 2026-04-24 |
-| 13 | **Image Storage Migration** | **Next** — resolves TD-05, TD-06, TD-13 |
-| 14 | Community Photo Uploads | Queued — resolves TD-07, TD-09 |
+| 13 | Image Storage Migration | ✅ Done 2026-04-26 — resolved TD-05, TD-06, TD-13 |
+| 14 | **Community Photo Uploads** | **Next** — resolves TD-07, TD-09 |
 | 15 | Image Display Polish | Queued |
 | 16 | Code-Quality Pass | Queued — resolves TD-01 regression, TD-10 residual, TD-11, TD-12, TD-14, TD-15 |
 
-### Sprint 13 — What to build
+### Sprint 14 — What to build
 
-- Add Supabase Storage bucket `school-images` integration (`django-storages[boto3]` + S3-compat config).
-- Extend `SchoolImage` with `image_file = ImageField(upload_to="schools/<moe_code>/")` alongside the existing `image_url`. Migration backfills are a no-op.
-- New `migrate_images_to_storage` management command: download bytes from each live `image_url`, upload to Supabase, populate `image_file`. Idempotent, resumable, skips dead URLs (will replace them via re-harvest).
-- Rewrite `harvest_places_images` + `harvest_satellite_image` to download bytes and upload to Supabase, not just store URLs.
-- Run `harvest_school_images --source places` once to refresh the 400'd Places URLs, then `migrate_images_to_storage` to pull bytes.
-- Serializer change: `image_url` field returns the Supabase-hosted URL (via `MEDIA_URL`-style resolution), not the Google URL.
-- ~12 files touched. Plan: `docs/plans/2026-04-22-image-library-sprint-plan.md` Phase 1 section.
+- **Upload endpoint** `POST /api/v1/schools/<moe_code>/suggestions/photo/` — auth-gated; multipart form (image + optional caption); writes bytes to Supabase Storage via `SchoolImage.image_file` (not `Suggestion.image` BinaryField — that field becomes legacy + dropped in this sprint).
+- **Validation pipeline**: Pillow-based — file size ≤5 MB; format JPEG/PNG/WebP; min dimensions 640×400; EXIF stripped; resized to max 1600px longest edge; perceptual hash computed for dedup.
+- **Rate limits**: 5 uploads / user / day, 20 uploads / school / day (DRF throttling).
+- **Moderation**: PENDING by default; APPROVE only by SUPERADMIN or school admin (MODERATOR explicitly excluded — different from suggestion approval); REJECT works as today.
+- **20-photo hard cap** per school: APPROVE returns 409 `Photo slot full. Delete an existing photo first.` when school has 20 APPROVED.
+- **`Suggestion.image` BinaryField → migration to remove**: existing suggestion image bytes already migrated in Sprint 13's COMMUNITY row migration. Drop the field.
+- **Upload UI**: extend existing `SuggestForm` (`PHOTO_UPLOAD` type already there from Sprint 8.2) with proper file picker + preview + client-side size/format check.
+- **Moderation queue UI**: photo preview in queue card (Phase 3.6 of original Image Library plan — already logged).
+- ~15 files touched. Plan: `docs/plans/2026-04-22-image-library-sprint-plan.md` Phase 2 section.
 
-### Sprint 13 pre-sprint user tasks
+### Current codebase state (Sprint 13 close, 2026-04-26)
 
-- Create Supabase Storage bucket `school-images` in the Supabase dashboard (public read, authenticated write). Note S3-compat credentials (access key + secret + endpoint).
-- Confirm ~US$14 Places API re-harvest budget is OK within the RM10/month GCP budget (may need to spread over 2 billing cycles).
+- Prod: `sjktconnect-api-00100-7x2` + `sjktconnect-web-00093-p8c`
+- 1117 backend tests (+11 Sprint 13) + 258 frontend tests
+- 1534 SchoolImage rows, 100% on Supabase Storage; **broken Places photos issue is resolved**
+- 4 tech debt items open + TD-01 re-opened (Auth.js v5 state-cookie regression)
+- 5-sprint roadmap on track: 12 ✅ → 13 ✅ → 14 next
 
-### Current codebase state (Sprint 12 close, 2026-04-24)
+### Gotchas carried into Sprint 14
 
-- Prod: `sjktconnect-api-00098-hsr` + `sjktconnect-web-00092-7ts`
-- 1106 backend tests (+30 Sprint 12) + 258 frontend tests (excluding 2 pre-existing flakies)
-- 7 tech debt items open + TD-01 re-opened (Auth.js v5 state-cookie regression)
-- Cloudflare proxy live; magic-link deleted; auto-claim on `@moe.edu.my` active; SUPERADMIN user management UI live; self-service profile edits live
-- `/dashboard/users` reveals 5 live community sign-ups since Sprint 11a — the auth foundation is being used
-
-### Gotchas carried into Sprint 13
-
-- Frontend rebuild with `--source .` can invalidate in-flight OAuth sessions (cookies lose sync between old and new revisions); accept as transient during deploy
-- `NEXT_PUBLIC_API_URL` is baked into Dockerfile ENV at build time — don't change runtime env vars to affect it
-- Sprint 13 will touch `SchoolImage` model and migrations; run `python manage.py makemigrations outreach --dry-run` first to preview before committing
+- Pillow's image-processing pipeline runs in-process — large uploads + concurrent requests can spike Cloud Run memory. Default 512 MB instance memory should be enough at our request volume; monitor.
+- Perceptual hash dedup: use `imagehash` library (~16-byte hash per image, store on SchoolImage). Decide tolerance threshold (typical: Hamming distance ≤5).
+- Suggestion.image field removal needs a migration that PRESERVES existing data flow: backfill any unmigrated suggestion bytes to image_file FIRST, then drop the BinaryField.
+- Same `STORAGES["default"]` Supabase config that handles harvester images now also handles community uploads — same auth flow, no new env vars needed.
 
 ### TD-01 regression follow-up (Sprint 16)
 
@@ -316,6 +315,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - Verify urgency audit trail after first post-fix urgent alert
 - Verify 4 May 2026 fortnightly cron fires with coverage "21 Apr – 4 May"
 - 2 transitive npm deps still in audit (`brace-expansion`, `picomatch`) — resolves in Sprint 16
+- **Monitor Supabase egress** for 1 week post-Sprint-13 to confirm <100 MB/day target now met (was 5–10× over)
 
 **Ongoing**: Triage `docs/tech-debt.md` at every sprint close.
 

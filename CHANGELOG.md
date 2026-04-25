@@ -1,5 +1,45 @@
 # Changelog
 
+## Sprint 13 — Image Storage Migration (2026-04-25 → 2026-04-26)
+
+Second sprint of the 5-sprint roadmap. Replaces volatile Google Places URLs with persistent bytes in Supabase Storage. Single coherent deliverable, shipped across two sessions because the harvest + migration steps took ~30 min wall time.
+
+### Added
+- **Supabase Storage bucket `school-images`** (public read, authenticated write, 5 MB limit, JPEG/PNG/WebP). Created via Supabase dashboard.
+- **`django-storages[boto3]>=1.14`** + **`Pillow>=10.0`** in `requirements.txt`.
+- **`STORAGES["default"]`** in `backend/sjktconnect/settings/base.py` configured to `storages.backends.s3.S3Storage` when `SUPABASE_STORAGE_*` env vars are present (5 vars: `ENDPOINT`, `REGION`, `BUCKET`, `ACCESS_KEY`, `SECRET_KEY`). Falls back to `FileSystemStorage` for local dev / tests.
+- **`SchoolImage.image_file = ImageField(upload_to="schools/<moe_code>/")`** alongside the legacy `image_url` field. Migration `outreach/0004_add_image_file_field.py` adds the column. Existing `image_url` field made `blank=True`.
+- **`SchoolImage.display_url` property**: returns `image_file.url` if set, falls back to `image_url`. Centralises the URL-resolution logic so serializers don't need to branch.
+- **`migrate_images_to_storage` management command**: idempotent, resumable, source-filterable. Downloads each unmigrated SchoolImage's `image_url` and uploads bytes to Supabase. Batched commits + `connection.close()` every 50 to avoid Supabase pooler write drops.
+- **`MEDIA_ROOT = BASE_DIR / "media"`** in base.py + `backend/media/` in `.gitignore` — so local FileSystemStorage fallback writes don't leak into the repo.
+- **Lazy-fetch on `SchoolMarkers` InfoWindow**: when a marker is clicked, fetch `/api/v1/schools/<moe_code>/` to populate `image_url` + `teacher_count` (fields trimmed from the `/schools/map/` endpoint by Sprint 8.3 egress fix). InfoWindow now shows the real hero photo + ratio after a ~200ms detail-fetch delay.
+- **11 new backend tests**: `test_models.SchoolImageDisplayUrlTest` (3 — display_url fallback logic), `test_migrate_command` (6 — dry-run, success, idempotent, dead URL, source filter, empty-set), additional `test_image_harvester` cases for byte-based flow + skipped-failed-download scenario.
+
+### Changed
+- **`harvest_satellite_image`** + **`harvest_places_images`** in `outreach/services/image_harvester.py`: download bytes from Google APIs and write via `image_file.save()` instead of storing the API-key-bearing URL. New helper `_download_bytes()` with 5 MB cap. Per-school upload path: `schools/<moe_code>/<source>-<uuid>.<ext>`. Existing `image_url` field no longer populated by harvests.
+- **`SchoolDetailSerializer.get_image_url`** + **`SchoolImageSerializer.image_url`**: both use `obj.display_url` so frontend gets Supabase URLs after migration without code changes.
+- **`production.py`**: STORAGES uses `STORAGES["staticfiles"] = {...}` augmentation (don't replace the dict) so base.py's Supabase media config survives.
+- All existing `test_image_harvester` tests rewritten for byte-based flow (`mock requests.get` + `iter_content`).
+
+### Fixed
+- **TD-05** (broken Places URLs on every school page): all 1009 prior PLACES rows replaced with re-harvested bytes uploaded to Supabase. Verified `curl -sI https://kafuxsinrbqafvarckxu.storage.supabase.co/storage/v1/object/public/school-images/...` returns 200 + image/jpeg.
+- **TD-06** (Supabase egress regression): no more browser retries to dead `places.googleapis.com/.../media` URLs. The 5–10× egress baseline should drop to <100 MB/day target as cached responses expire.
+- **TD-13** (`uploaded_by` NULL on harvester images): no actionable code change — confirmed semantic intent (NULL = harvester-sourced, set = community-uploaded). Closed with documentation in code.
+
+### Production migration ops (executed during sprint)
+- `harvest_school_images` (full, 528 schools) on 2026-04-25 → 1005 PLACES rows created. Cost: ~US$14 in Places API search + photo-fetch calls (within RM10/month budget; spread across cycle).
+- `harvest_school_images --source satellite` on 2026-04-25 → 528 SATELLITE rows created. Cost: ~US$1 in Static Maps calls. Required the *frontend* `AIzaSyAx...` API key (the Places-only `AIzaSyCk...` key returned 403 for Static Maps).
+- `migrate_images_to_storage` on 2026-04-26 → 1 COMMUNITY row migrated.
+- Manual cleanup: 5 stuck rows deleted (4 PLACES with no current Google photos, 1 COMMUNITY with broken pre-`BACKEND_URL` relative URL).
+- **Final state: 1534 SchoolImage rows, 1534 with `image_file` (100%)**.
+
+### Tests
+- Backend: 1106 → 1117 (+11). Frontend: 258 (unchanged — no new component tests for SchoolMarkers, that pre-existed without coverage).
+
+### Deployed revisions
+- Backend: `sjktconnect-api-00098-hsr` → `sjktconnect-api-00100-7x2` (Sprint 13 backend, then env-var update revision `00099-jtr`).
+- Frontend: `sjktconnect-web-00092-7ts` → `sjktconnect-web-00093-p8c` (lazy-fetch InfoWindow fix).
+
 ## Sprint 12 — User Management UI (2026-04-24)
 
 First sprint of the 5-sprint roadmap agreed via `implementation-planning.md`. Single coherent deliverable, shipped in one session.
