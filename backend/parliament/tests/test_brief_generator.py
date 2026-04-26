@@ -1,5 +1,6 @@
 """Tests for brief generator service."""
 
+import os
 from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
@@ -16,6 +17,14 @@ from parliament.services.brief_generator import (
 )
 
 
+# TD-17 (Sprint 16): pin GEMINI_API_KEY to "" for the whole module so brief
+# generation always takes the template-fallback path. Without this guard, the
+# tests went non-deterministic the moment GEMINI_API_KEY was set in the local
+# .env — Gemini would paraphrase mention summaries and break literal-substring
+# assertions (e.g. "Tamil school repairs" → "delays in SJK(T) repair works").
+# These tests verify the wiring around brief generation, not prose quality;
+# prose is exercised separately in tests that explicitly mock the Gemini call.
+@patch.dict(os.environ, {"GEMINI_API_KEY": ""}, clear=False)
 class GenerateBriefTests(TestCase):
     """Test brief generation from approved mentions."""
 
