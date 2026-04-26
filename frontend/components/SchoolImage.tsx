@@ -80,12 +80,9 @@ export default function SchoolPhotoGallery({
           />
         </button>
 
-        {/* Caption overlay (bottom centre) */}
-        {active.caption && (
-          <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-xs text-white bg-black/55 px-3 py-1.5 rounded backdrop-blur-sm max-w-[80%] text-center truncate">
-            {active.caption}
-          </div>
-        )}
+        {/* Caption is rendered in the lightbox + image manager only — putting
+            it on the hero collides with the thumbnail strip and the attribution
+            tag, both of which already anchor to the bottom edge. */}
 
         {/* "View all N photos" overlay — top-right when there are more than 5 */}
         {photoList.length > 5 && (
