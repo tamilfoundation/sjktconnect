@@ -13,6 +13,7 @@ from django.shortcuts import get_object_or_404
 from accounts.models import UserProfile
 from accounts.permissions import IsProfileAuthenticated, IsSuperAdmin
 from accounts.services.google import verify_google_token
+from rest_framework.permissions import AllowAny
 from schools.models import School
 
 from .serializers import (
@@ -61,6 +62,25 @@ def _maybe_auto_claim(profile, email):
         school.save(update_fields=["claimed_at", "updated_at"])
 
     logger.info("Auto-claim: %s -> school %s", email, school.moe_code)
+
+
+class LogoutView(APIView):
+    """Clear the Django session so fetchMe() returns null.
+
+    Sprint 15 hotfix: NextAuth's signOut() only clears the frontend JWT.
+    Without this endpoint the Django session cookie outlives the sign-out
+    and `fetchMe()` keeps returning the user, leaving admin-only UI
+    (EditSchoolLink etc.) visible. Frontend UserMenu.signOut() now calls
+    this endpoint as part of its sign-out flow.
+
+    Idempotent — calling on a session that's already empty returns 204.
+    AllowAny so a stale session can sign itself out without authenticating.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        request.session.flush()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class MeView(APIView):

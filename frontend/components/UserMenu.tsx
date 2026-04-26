@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
+import { logoutDjangoSession } from "@/lib/auth-api";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { syncGoogleAuth, type UserProfile } from "@/lib/auth-api";
@@ -107,7 +108,14 @@ export default function UserMenu() {
             </Link>
           )}
           <button
-            onClick={() => signOut()}
+            onClick={async () => {
+              // Clear the Django session BEFORE the JWT so fetchMe() starts
+              // returning null immediately for admin-gated UI elsewhere on
+              // the page. Otherwise EditSchoolLink + ImageManager links
+              // outlive the sign-out (Sprint 15 hotfix).
+              await logoutDjangoSession();
+              signOut();
+            }}
             className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
           >
             {t("signOut")}

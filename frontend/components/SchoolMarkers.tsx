@@ -85,7 +85,12 @@ export default function SchoolMarkers({
   // school to keep egress down (Sprint 8.3 fix). On click, fetch the full
   // detail for that one school and merge into selectedSchool.
   useEffect(() => {
-    if (!selectedSchool || selectedSchool.image_url !== undefined) return;
+    // Refetch when image_url is missing OR explicitly empty/null. The
+    // /search/ endpoint historically returned image_url="" for Sprint 13-
+    // migrated rows where image_file holds the bytes — without this fix,
+    // the InfoWindow showed the placeholder for every searched school
+    // even though the detail endpoint had the proper Supabase URL.
+    if (!selectedSchool || selectedSchool.image_url) return;
     let cancelled = false;
     fetchSchoolDetail(selectedSchool.moe_code).then((detail) => {
       if (cancelled) return;

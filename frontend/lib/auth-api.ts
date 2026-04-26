@@ -36,3 +36,20 @@ export async function fetchProfile(): Promise<UserProfile | null> {
     return null;
   }
 }
+
+/**
+ * Flush the Django session cookie. Call BEFORE next-auth's signOut() so
+ * fetchMe() returns null to admin-gated UI immediately. Without this,
+ * Django session outlives the JWT and EditSchoolLink etc. stay visible.
+ * Best-effort: a network failure here doesn't block the JWT sign-out.
+ */
+export async function logoutDjangoSession(): Promise<void> {
+  try {
+    await fetch(`${API_URL}/api/v1/auth/logout/`, {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch {
+    // ignore — JWT sign-out still proceeds in caller
+  }
+}

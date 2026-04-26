@@ -47,10 +47,15 @@ class SchoolListSerializer(serializers.ModelSerializer):
         ]
 
     def get_image_url(self, obj):
-        """Return the primary image URL, or None."""
+        """Return the primary image URL, or None.
+
+        Uses display_url so Sprint 13-migrated rows (where the legacy
+        image_url field is empty and bytes live in image_file via Supabase
+        Storage) return the Supabase URL instead of an empty string.
+        """
         primary = obj.images.filter(is_primary=True).first()
         if primary:
-            return primary.image_url
+            return primary.display_url or None
         return None
 
 
