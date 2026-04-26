@@ -115,6 +115,7 @@ describe("SubscribeForm", () => {
         email: "user@example.com",
         name: "Test",
         organisation: "PIBG",
+        website: "",
       });
     });
   });
