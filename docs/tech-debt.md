@@ -94,6 +94,13 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 - **What it blocks**: CI signal quality (once CI exists — currently no `.github/workflows/`).
 - **Cost to fix**: 1 hour. Diagnose — likely async `waitFor` timeout tuning.
 
+## 🟢 TD-17 — Brittle LLM-output assertion in `test_html_contains_all_summaries`
+
+- **What**: `parliament/tests/test_brief_generator.py:70` calls real Gemini and asserts the literal phrase `"Tamil school repairs"` appears in the generated brief HTML. Gemini paraphrases freely — recent runs returned `"delays in SJK(T) repair works"` (semantically identical, lexically different) and the assertion fails. Discovered during Sprint 14 full-suite run (980 tests, 1 LLM flake).
+- **Why we accepted**: Inherited from Sprint 0.4 era. The test predates the move to deterministic mocking.
+- **What it blocks**: CI signal quality. Future automated CI would page on this LLM flake without value.
+- **Cost to fix**: 30 min. Either (a) mock the Gemini call and assert on the mock input/output, or (b) loosen the assertion to a stem like `repair`. **Sprint 16** alongside TD-15.
+
 ## 🟡 TD-16 — Frontend dashboard pages render for signed-out users
 
 - **What**: `/dashboard/users` (and likely sibling dashboard pages — `/dashboard/suggestions`, `/dashboard/images`) render the full UI to signed-out users. Root cause: `useEffect(() => fetchMe().then(me => !me && router.push("/")))` in `frontend/app/[locale]/dashboard/users/page.tsx:49-63` has no `.catch()`. If `fetchMe()` throws on 401 (no session), the redirect never fires and the page falls through to render whatever stale state is in `users[]`. Verified on prod 2026-04-26: signed-out tab on `tamilschool.org/en/dashboard/users` shows the full user table with Role/School/Deactivate buttons.
@@ -117,4 +124,4 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 | 🔴 TD-01 re-opened (Next 16 + Auth.js state cookie regression) | TD-01 | Investigation in Sprint 16 |
 | Sprint 14 — Community Photo Uploads | TD-07, TD-09, TD-16 (suggestions page only) | Next |
 | Sprint 15 — Image Display Polish | — | After Sprint 14 |
-| Sprint 16 — Code-Quality Pass | TD-01 (re-opened), TD-10 residual, TD-11, TD-12, TD-14, TD-15, TD-16 (users + images pages) | Last of 5-sprint roadmap |
+| Sprint 16 — Code-Quality Pass | TD-01 (re-opened), TD-10 residual, TD-11, TD-12, TD-14, TD-15, TD-16 (users + images pages), TD-17 | Last of 5-sprint roadmap |

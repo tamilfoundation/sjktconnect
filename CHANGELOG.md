@@ -1,6 +1,8 @@
 # Changelog
 
-## Sprint 14 — Community Photo Uploads (2026-04-26 — IN PROGRESS)
+## Sprint 14 — Community Photo Uploads (2026-04-26)
+
+**Deployed**: backend `sjktconnect-api-00101-klw`, frontend `sjktconnect-web-00094-gqx`. Migration `community.0002_drop_image_add_pending` applied on prod Supabase.
 
 Third sprint of the 5-sprint roadmap. Replaces the Sprint 8.2 base64-into-BinaryField photo flow with multipart uploads → Supabase Storage. Adds Pillow validation, perceptual-hash dedup, daily throttling, a 20-photo cap on approve, a hero-pin endpoint, and a `IsPhotoApprover` permission that excludes MODERATORs from photo decisions. Resolves TD-07 + TD-09 + TD-16 (suggestions-page portion).
 
