@@ -80,10 +80,12 @@ class SchoolImageSerializer(serializers.Serializer):
     set, falling back to legacy image_url for unmigrated rows.
     """
 
+    id = serializers.IntegerField()
     image_url = serializers.SerializerMethodField()
     source = serializers.CharField()
     is_primary = serializers.BooleanField()
     attribution = serializers.CharField()
+    caption = serializers.CharField()
 
     def get_image_url(self, obj):
         return obj.display_url

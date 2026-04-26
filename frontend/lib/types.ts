@@ -28,6 +28,7 @@ export interface SchoolImageData {
   position: number;
   is_primary: boolean;
   attribution: string;
+  caption: string;
 }
 
 export interface SchoolLeader {

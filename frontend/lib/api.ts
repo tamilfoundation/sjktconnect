@@ -739,6 +739,32 @@ export async function deleteSchoolImage(moeCode: string, imageId: number): Promi
 }
 
 /**
+ * Update an image's caption (Sprint 15).
+ * Permission: SUPERADMIN or this school's admin. Server caps at 200 chars.
+ */
+export async function updateImageCaption(
+  moeCode: string,
+  imageId: number,
+  caption: string,
+): Promise<{ id: number; caption: string }> {
+  const res = await fetch(
+    `${API_URL}/api/v1/schools/${moeCode}/images/${imageId}/caption/`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ caption }),
+    },
+  );
+  if (!res.ok) {
+    let detail = "Failed to save caption";
+    try { detail = (await res.json()).detail || detail; } catch { /* ignore */ }
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
+/**
  * Make this image the school's hero (is_primary=true).
  * Permission: SUPERADMIN or this school's admin (Sprint 14).
  */

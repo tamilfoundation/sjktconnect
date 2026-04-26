@@ -7,6 +7,7 @@ import {
   fetchSchoolImages,
   pinSchoolImage,
   reorderSchoolImages,
+  updateImageCaption,
 } from "@/lib/api";
 import { SchoolImageData } from "@/lib/types";
 
@@ -121,6 +122,43 @@ export default function ImageManager({ moeCode }: ImageManagerProps) {
     }
   };
 
+  // Caption editing — one image at a time.
+  const [editingCaptionFor, setEditingCaptionFor] = useState<number | null>(null);
+  const [captionDraft, setCaptionDraft] = useState("");
+  const [captionSaving, setCaptionSaving] = useState(false);
+
+  const startEditCaption = (image: SchoolImageData) => {
+    setEditingCaptionFor(image.id);
+    setCaptionDraft(image.caption || "");
+    setError(null);
+    setSuccessMessage(null);
+  };
+
+  const cancelEditCaption = () => {
+    setEditingCaptionFor(null);
+    setCaptionDraft("");
+  };
+
+  const saveCaption = async (imageId: number) => {
+    setCaptionSaving(true);
+    setError(null);
+    try {
+      const result = await updateImageCaption(moeCode, imageId, captionDraft.slice(0, 200));
+      setImages((prev) =>
+        prev.map((img) =>
+          img.id === imageId ? { ...img, caption: result.caption } : img,
+        ),
+      );
+      setEditingCaptionFor(null);
+      setCaptionDraft("");
+      setSuccessMessage("Caption saved.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save caption.");
+    } finally {
+      setCaptionSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="text-center py-12 text-gray-500">Loading...</div>
@@ -205,6 +243,52 @@ export default function ImageManager({ moeCode }: ImageManagerProps) {
                 >
                   <span aria-hidden>★</span> Hero
                 </span>
+              )}
+            </div>
+
+            {/* Caption row */}
+            <div className="px-3 pt-3 pb-1">
+              {editingCaptionFor === image.id ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={captionDraft}
+                    onChange={(e) => setCaptionDraft(e.target.value.slice(0, 200))}
+                    rows={2}
+                    placeholder="Add a short caption (max 200 chars)"
+                    className="w-full text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  />
+                  <div className="flex items-center gap-2 justify-between">
+                    <span className="text-[10px] text-gray-400">
+                      {captionDraft.length}/200
+                    </span>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => saveCaption(image.id)}
+                        disabled={captionSaving}
+                        className="px-2 py-1 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 rounded disabled:opacity-50"
+                      >
+                        {captionSaving ? "Saving…" : "Save"}
+                      </button>
+                      <button
+                        onClick={cancelEditCaption}
+                        disabled={captionSaving}
+                        className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => startEditCaption(image)}
+                  className="w-full text-left text-xs text-gray-600 hover:text-gray-900 italic truncate"
+                  title="Click to edit caption"
+                >
+                  {image.caption || (
+                    <span className="text-gray-400 not-italic">+ Add caption</span>
+                  )}
+                </button>
               )}
             </div>
 

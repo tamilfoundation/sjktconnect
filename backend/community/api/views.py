@@ -287,6 +287,7 @@ def school_images_view(request, moe_code):
             "position": img.position,
             "is_primary": img.is_primary,
             "attribution": img.attribution,
+            "caption": img.caption,
         }
         for img in images
     ]
@@ -332,6 +333,42 @@ def delete_image_view(request, moe_code, image_id):
             pass
     image.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+CAPTION_MAX_LEN = 200
+
+
+@api_view(["PATCH"])
+@permission_classes([IsProfileAuthenticated])
+def update_image_caption_view(request, moe_code, image_id):
+    """Update an image's caption (Sprint 15).
+
+    Body: {"caption": "..."} (str, ≤200 chars).
+    Permission: SUPERADMIN OR this school's bound admin.
+    """
+    school = get_object_or_404(School, moe_code=moe_code)
+    profile = request.user_profile
+    if profile.role != "SUPERADMIN" and profile.admin_school_id != school.pk:
+        return Response(
+            {"detail": "Only school admin or superadmin can edit captions."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    image = get_object_or_404(SchoolImage, pk=image_id, school=school)
+    caption = request.data.get("caption", "")
+    if not isinstance(caption, str):
+        return Response(
+            {"detail": "caption must be a string."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if len(caption) > CAPTION_MAX_LEN:
+        return Response(
+            {"detail": f"caption too long; max {CAPTION_MAX_LEN} characters.",
+             "code": "too_long"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    image.caption = caption.strip()
+    image.save(update_fields=["caption"])
+    return Response({"id": image.pk, "caption": image.caption})
 
 
 @api_view(["POST"])

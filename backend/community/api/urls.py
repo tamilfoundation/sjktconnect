@@ -10,6 +10,7 @@ from community.api.views import (
     school_images_view,
     school_photo_upload_view,
     school_suggestions_view,
+    update_image_caption_view,
 )
 
 urlpatterns = [
@@ -47,6 +48,11 @@ urlpatterns = [
         "schools/<str:moe_code>/images/<int:image_id>/pin/",
         pin_image_view,
         name="pin-image",
+    ),
+    path(
+        "schools/<str:moe_code>/images/<int:image_id>/caption/",
+        update_image_caption_view,
+        name="update-image-caption",
     ),
     path(
         "schools/<str:moe_code>/images/<int:image_id>/",

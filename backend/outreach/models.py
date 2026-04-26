@@ -39,6 +39,10 @@ class SchoolImage(models.Model):
     width = models.IntegerField(null=True, blank=True)
     height = models.IntegerField(null=True, blank=True)
     attribution = models.CharField(max_length=500, blank=True, default="")
+    caption = models.CharField(
+        max_length=200, blank=True, default="",
+        help_text="Optional human-written caption shown in the lightbox + image manager (Sprint 15).",
+    )
     photo_reference = models.CharField(
         max_length=1000, blank=True, default="",
         help_text="Google Places photo_reference for re-fetching.",
