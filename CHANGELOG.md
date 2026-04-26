@@ -1,5 +1,46 @@
 # Changelog
 
+## Sprint 16 — Code-Quality Pass (2026-04-27)
+
+**Deployed**: backend `sjktconnect-api-00105-wwd` (TD-14 refactor), frontend `sjktconnect-web-00103-phl` (TD-01) → `00104-d4n` (TD-18). Both auth fixes user-verified on prod.
+
+Final sprint of the 5-sprint roadmap (12 → 13 → 14 → 15 → 16). Closed all open tech debt that was triaged into this sprint except TD-11 + TD-12 (test-coverage padding, deferred). Both auth bugs that have shadowed Sprint 12 onwards (TD-01 and TD-18) are resolved; SuperAdmin and regular users can now sign in with full PKCE+state CSRF protection AND see role-correct CTAs without a manual page refresh.
+
+### Added
+- **`frontend/lib/auth-events.ts`** — module-scoped pub/sub emitter (`emitProfileReady` / `onProfileReady`). Tiny (~30 lines, no deps). Used by `UserMenu` to broadcast "Django session is ready" after `syncGoogleAuth()` resolves; consumed by `EditSchoolLink` and `SuggestButton` to re-fetch `/me` on the explicit signal instead of racing the cookie write.
+
+### Changed
+- **`frontend/lib/auth.ts`** — bumped `next-auth` 5.0.0-beta.30 → beta.31 (pulls `@auth/core` 0.41.0 → 0.41.2). Restored `checks: ["pkce", "state"]` on the Google provider — back to full OAuth CSRF protection after the Sprint 12 regression. Overrode `@auth/core`'s default `csrfToken` cookie name to use `__Secure-` prefix instead of the stricter `__Host-` (root cause of TD-01: Cloudflare's proxy / Cloud Run header pipeline modifies `Set-Cookie` in ways that violate `__Host-` semantics, silently dropping the cookie at the browser).
+- **`frontend/components/UserMenu.tsx`** — fires `emitProfileReady()` after `syncGoogleAuth()` resolves (closes the TD-18 race for downstream auth-aware components).
+- **`frontend/components/EditSchoolLink.tsx`** + **`SuggestButton.tsx`** — subscribe to `onProfileReady`; first fetch attempts immediately on `status === "authenticated"` (cheap, often races the cookie write), then re-fetches when the explicit signal fires. No polling, no setTimeout. Same pattern is now established for any future role-aware UI element.
+- **`frontend/app/[locale]/dashboard/users/page.tsx`** — added `.catch(() => router.push("/"))` to the `fetchMe()` SUPERADMIN gate (TD-16 residual). On a 401 from the backend (signed-out user, network error), the redirect now fires instead of falling through to render the user table chrome. Backend remained correctly gated by `IsSuperAdmin` so no data ever leaked, but the bug was a trust signal.
+- **`backend/community/api/views.py`** — extracted `_can_moderate_or_owns_school(profile, school_id)` helper. Replaces 4 inline duplications of the "MODERATOR/SUPERADMIN OR bound school admin" check across `pending_suggestions_view` (gate + filter), `approve_suggestion_view`, and `reject_suggestion_view`. Pure refactor. (TD-14)
+
+### Tests
+- 4 fixed pre-existing test failures inherited from Sprint 15 (`EditSchoolLink.test.tsx` + `SuggestButton.test.tsx` didn't mock the new `useSession` dependency added by Sprint 15's hotfix; `SubscribeForm.test.tsx` was missing the `website: ""` honeypot field added in Sprint 8.6). Sprint 15's "285 frontend tests passing" claim was actually 282 pass + 3 fail — discovered when running the suite at the top of Sprint 16. (TD-15)
+- `parliament/tests/test_brief_generator.py` now `@patch.dict(os.environ, {"GEMINI_API_KEY": ""}, clear=False)` at the class level — forces brief generation down the template-fallback path, removing the non-deterministic LLM dependency that's been flaking the literal-substring assertions since Sprint 0.4. The tests verify generate_brief wiring (title, mention count, HTML containing fixture summaries, social post length); prose-quality tests live elsewhere and mock genai directly. (TD-17)
+- Final tally: **1155 backend + 289 frontend tests** (no flakes; TD-15 + TD-17 cleared).
+
+### Resolved tech debt
+- **TD-01** — OAuth checks restored to `["pkce", "state"]` after `__Secure-`-prefix override on csrfToken cookie + `next-auth` bump. User-verified on prod 2026-04-27 (`web-00103-phl`).
+- **TD-10** — Last residual was `brace-expansion` + `picomatch` transitive deps; both bumped via `npm audit fix` (no `--force`).
+- **TD-14** — Role checks consolidated.
+- **TD-15** — Frontend test flakes deflaked.
+- **TD-16** — `/dashboard/users` chrome leak closed; other dashboard pages already had acceptable fallback UX.
+- **TD-17** — Brief generator LLM flake pinned to template fallback.
+- **TD-18** — Sign-in CTA race fixed via `auth-events` emitter. User-verified on prod 2026-04-27 (`web-00104-d4n`) — both `tamiliam` (USER) and `admin` (SUPERADMIN) accounts confirmed.
+
+### Deferred (out of scope for this sprint)
+- **TD-11** — `accounts/services/google.py` at 25% coverage. Test-coverage padding; not blocking anything.
+- **TD-12** — `hansard/pipeline/extractor.py` at 26% coverage. Same.
+
+### Deploys
+- frontend: `web-00102-v4f` → `web-00103-phl` (TD-01) → `web-00104-d4n` (TD-18). Two deploys, within the per-feature budget.
+- backend: `api-00104-qm7` → `api-00105-wwd` (TD-14 refactor; backend has no behavioural change so this could have been deferred but shipped to keep main and prod in sync at sprint close).
+
+### Roadmap status
+**The 5-sprint roadmap is complete.** Sprint 12 (User Management UI) → Sprint 13 (Image Storage Migration) → Sprint 14 (Community Photo Uploads) → Sprint 15 (Image Display Polish) → **Sprint 16 (Code-Quality Pass)** all delivered between 2026-04-24 and 2026-04-27.
+
 ## Sprint 15 — Image Display Polish (2026-04-26)
 
 **Deployed**: backend `sjktconnect-api-00104-qm7`, frontend `sjktconnect-web-00102-v4f`. Migration `outreach.0005_add_caption` applied on prod Supabase.

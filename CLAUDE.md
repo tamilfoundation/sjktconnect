@@ -12,8 +12,8 @@
 ## Project Status
 
 - **Current Phase**: Phase 8 (Community Features) + 5-Sprint Image/Auth Roadmap.
-- **Last Sprint**: Sprint 15 — Image Display Polish (2026-04-26)
-- **Tests**: 1440 (1155 backend + 285 frontend)
+- **Last Sprint**: Sprint 16 — Code-Quality Pass (2026-04-27) — completes the 5-sprint roadmap
+- **Tests**: 1444 (1155 backend + 289 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -249,6 +249,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 13 | Done | Image Storage Migration: Supabase Storage bucket `school-images` + django-storages[boto3]/Pillow + S3-compat config. SchoolImage gets `image_file` ImageField + `display_url` property (falls back to legacy `image_url`). Harvester rewritten to download bytes + upload via image_file. New `migrate_images_to_storage` command. SchoolMarkers InfoWindow lazy-fetches detail to populate hero photo. Prod migration: 1009 PLACES + 528 SATELLITE re-harvested + 1 COMMUNITY migrated; 5 stuck rows deleted; **1534/1534 (100%) on Supabase Storage**. Resolves TD-05, TD-06, TD-13. 1117 backend (+11) + 258 frontend tests. Cost: ~US$15 in Google API re-harvest. |
 | 14 | Done | Community Photo Uploads: Drop `Suggestion.image` BinaryField; new multipart endpoint `POST /schools/<moe>/suggestions/photo/` with Pillow validation (≤5 MB / JPEG/PNG/WebP / ≥640×400 / EXIF strip / 1600px resize / pHash dedup). DRF throttling 5/user/day + 20/school/day via custom scoped throttles. New `IsPhotoApprover` permission (SUPERADMIN OR bound school admin only — MODERATOR excluded). 20-photo cap on approve returns 409 `slot_full`. Reject deletes the staged file. New `POST /schools/<moe>/images/<id>/pin/` makes a photo the hero. Frontend SuggestForm rewritten to multipart with file picker + client-side validation + typed error surfacing. ImageManager gets ⭐ Make hero button. ModerationQueue shows photo preview + clickable school link + slot-full banner. Resolves TD-07 + TD-09 + TD-16 (suggestions-page portion). 28 new backend + 5 new frontend tests; final tally 1145 backend + 286 frontend (1 LLM-flake in parliament/test_brief_generator → TD-17, 1 SubscribeForm flake → TD-15). Deployed `sjktconnect-api-00101-klw` + `sjktconnect-web-00094-gqx`. |
 | 15 | Done | Image Display Polish: `SchoolImage.caption` (CharField max 200) + migration `outreach/0005_add_caption`; `PATCH /schools/<moe>/images/<id>/caption/` (IsPhotoApprover); `POST /api/v1/auth/logout/` flushes Django session (fixes frontend/Django session divergence that left Edit button visible after sign-out). Frontend: `PhotoLightbox` wrapper around `yet-another-react-lightbox` (lazy-imported via next/dynamic), gallery click-to-zoom + "View all N photos" overlay, `ImageManager` inline caption editor. SchoolListSerializer image_url switched to `display_url` (fixes map InfoWindow placeholder for Sprint-13-migrated rows). EditSchoolLink + SuggestButton now reactive to NextAuth status; SuggestButton hides for SUPERADMIN + bound admin of the viewed school so Edit/Suggest CTAs are mutually exclusive per role. Public hero caption overlay removed (collided with thumbnail strip on 6+ photo schools); caption preserved in lightbox + admin editor. 10 new backend + 5 new frontend tests; final tally 1155 backend + 285 frontend. Deployed `sjktconnect-api-00104-qm7` + `sjktconnect-web-00102-v4f`. |
+| 16 | Done | Code-Quality Pass — final of 5-sprint roadmap. **TD-01 RESOLVED**: bumped next-auth beta.30→beta.31, overrode `@auth/core`'s default csrfToken cookie name to use `__Secure-` prefix instead of `__Host-` (Cloudflare proxy was modifying Set-Cookie in ways that violated `__Host-` semantics, silently dropping the cookie), restored `checks: ["pkce", "state"]`. **TD-18 RESOLVED**: separate root cause from TD-01. Race between UserMenu's syncGoogleAuth (writes Django session) and EditSchoolLink/SuggestButton's fetchMe; new `lib/auth-events.ts` module-scoped pub/sub emitter; UserMenu fires emitProfileReady() after syncGoogleAuth resolves; CTAs subscribe and re-fetch on signal. Both auth fixes user-verified on prod (tamiliam USER + admin SUPERADMIN both confirmed 2026-04-27). **TD-14 RESOLVED**: extracted `_can_moderate_or_owns_school` helper in `community/api/views.py`, replaces 4 inline duplications. **TD-16 RESOLVED**: `.catch(() => router.push("/"))` on `/dashboard/users` fetchMe gate. **TD-15 RESOLVED**: 4 fixed pre-existing test failures inherited from Sprint 15 (mock useSession in EditSchoolLink/SuggestButton tests; honeypot field in SubscribeForm test). **TD-17 RESOLVED**: `@patch.dict` pinning `GEMINI_API_KEY=""` at class level for `test_brief_generator`. **TD-10 RESOLVED**: brace-expansion + picomatch transitive bumps via `npm audit fix`. TD-11 + TD-12 (test-coverage padding) deferred to a future sprint. 1155 backend + 289 frontend tests. Deploys: `web-00102-v4f` → `web-00103-phl` (TD-01) → `web-00104-d4n` (TD-18); `api-00104-qm7` → `api-00105-wwd` (TD-14). |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -266,9 +267,9 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Recommended next: Sprint 16 — Code-Quality Pass** (final sprint of the 5-sprint roadmap).
+**5-sprint roadmap is COMPLETE** as of Sprint 16 close (2026-04-27). No new sprint scheduled — pick up future work from the Future work list below or open the next priority from `docs/tech-debt.md`.
 
-### 5-Sprint Roadmap (progress after Sprint 15 close)
+### 5-Sprint Roadmap — final state
 
 | # | Sprint | Status |
 |---|---|---|
@@ -276,39 +277,30 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 13 | Image Storage Migration | ✅ Done 2026-04-26 — resolved TD-05, TD-06, TD-13 |
 | 14 | Community Photo Uploads | ✅ Done 2026-04-26 — resolved TD-07, TD-09, TD-16 (suggestions portion) |
 | 15 | Image Display Polish | ✅ Done 2026-04-26 |
-| 16 | **Code-Quality Pass** | **In Progress** (started 2026-04-26) — TD-01 regression, TD-10 residual, TD-14, TD-15, TD-16 (users+images pages), TD-17, TD-18, npm transitive audit. TD-11 + TD-12 (test-coverage padding) deferred. |
+| 16 | Code-Quality Pass | ✅ Done 2026-04-27 — resolved TD-01, TD-10, TD-14, TD-15, TD-16 (users page), TD-17, TD-18 |
 
-### Sprint 16 — What to build
+### Current codebase state (Sprint 16 close, 2026-04-27)
 
-- **TD-01 Auth.js v5 state/PKCE cookie regression**: investigate the three hypotheses in the post-Sprint-12 retrospective — (a) `@auth/core@0.41` + Next 16 + Turbopack cookie handling, (b) `__Host-` cookie prefix vs Cloudflare proxy header forwarding, (c) bumping `next-auth` past `5.0.0-beta.30`. Goal: remove the `checks: []` workaround and restore `["pkce", "state"]` without breaking OAuth callback.
-- **TD-10 next-intl residual**: any leftover items from the trilingual upgrade.
-- **TD-11, TD-12, TD-14**: triage from `docs/tech-debt.md` at sprint start.
-- **TD-15 SubscribeForm flake**: deflake the test (consistent failure mode is documented; root-cause it instead of marking xfail).
-- **TD-17 LLM flake in `parliament/test_brief_generator`**: same — root-cause the flake.
-- **TD-18 sign-in CTA reactivity**: Edit / Suggest buttons on the school page require a manual page refresh after sign-in to appear. Sign-out reactivity already works (Sprint 15 hotfix). Likely related to the same Auth.js v5 / Next 16 cookie round-trip issue as TD-01 — investigate together.
-- **Transitive npm audit** (`brace-expansion`, `picomatch`): bump to clean.
-- Plan to be drafted at sprint start via `Settings/_workflows/sprint-start.md`.
+- Prod: `sjktconnect-api-00105-wwd` + `sjktconnect-web-00104-d4n`.
+- 1155 backend tests + 289 frontend tests, all passing (no flakes).
+- OAuth fully secured: PKCE + state checks active, `__Secure-` csrfToken cookie compatible with Cloudflare proxy.
+- Sign-in CTA race resolved via `lib/auth-events.ts` pub/sub; Edit / Suggest buttons appear without manual refresh after sign-in.
+- 5-sprint roadmap closed. The community-features arc (12 → 16) is complete.
 
-### Current codebase state (Sprint 15 close, 2026-04-26)
+### Open tech debt remaining
 
-- Prod: `sjktconnect-api-00104-qm7` + `sjktconnect-web-00102-v4f`
-- 1155 backend tests (+10 Sprint 15) + 285 frontend tests (+5 net Sprint 15)
-- `SchoolImage.caption` populated on demand; lightbox live on all school pages.
-- Sign-in/out frontend reactivity restored; Edit/Suggest CTAs mutually exclusive per role; logout flushes Django session via `/api/v1/auth/logout/`.
-- 5-sprint roadmap on track: 12 ✅ → 13 ✅ → 14 ✅ → 15 ✅ → 16 next.
+- **TD-07** (🟡 medium) — `Suggestion.image` BinaryField. Note: text says "replaced by Sprint 9 (TD-05)" — verify TD-05 closure also retired the BinaryField; if so, can be marked resolved.
+- **TD-09** (🟡 medium) — Hardcoded `content_type="image/png"` on suggestion image endpoint. Same — likely already retired by Sprint 14 photo flow rewrite.
+- **TD-11** (🟢 low) — `accounts/services/google.py` 25% coverage. Test-coverage padding.
+- **TD-12** (🟢 low) — `hansard/pipeline/extractor.py` 26% coverage. Same.
 
-### Gotchas carried into Sprint 16
+TD-07/09 should be triaged at the next session — they're flagged as resolved-by-other-sprints in the body but never marked `✅` in the header. TD-11/12 can wait indefinitely.
 
-- `yet-another-react-lightbox` is ESM-only — Jest doesn't transform `node_modules` by default, so unit-testing the wrapper requires either adding `transformIgnorePatterns` exception or sticking with the integration-test approach used in Sprint 15.
-- `next/dynamic` lazy import of the lightbox keeps it out of SSR — keep that pattern when adding any other client-only heavy lib in Sprint 16.
-- Frontend session reactivity pattern (subscribe to `useSession()` status + re-fetch `/me` on transition) is now established — reuse for any future role-aware UI element instead of one-shot `useEffect` `fetchMe()` calls.
-- `IsPhotoApprover` is the canonical permission for *any* per-image mutation (pin, caption, delete-photo). Re-use it; don't re-derive the SUPERADMIN-or-bound-admin matrix in new endpoints.
+### Gotchas carried out of Sprint 16
 
-### TD-01 regression follow-up (Sprint 16)
-
-- `checks: []` re-applied in `frontend/lib/auth.ts` as pragmatic unblock.
-- Symptom: `InvalidCheck: state value could not be parsed` error on OAuth callback.
-- Hypotheses to investigate: (a) `@auth/core@0.41` + Next 16 + Turbopack cookie handling, (b) cookie prefix `__Host-` + Cloudflare proxy header forwarding, (c) bump `next-auth` past `5.0.0-beta.30`.
+- **Half-applied tech-debt fixes**: Sprint 15's test-suite claim ("285 passing") was actually 282 pass + 3 fail. The Sprint 15 hotfix added a useSession dep to two components without updating their tests; nobody re-ran the full suite at sprint close. Lesson: the close workflow should run `npm test` (and pytest) and record the actual result, not the expected one.
+- **`__Host-` cookie prefix is incompatible with Cloudflare proxy** in our config. Any future cookie-related Auth.js change must override that prefix to `__Secure-`. The override now lives in `frontend/lib/auth.ts`; don't strip it.
+- **Auth-events pattern is now the canonical way** to coordinate "Django session is ready" between `UserMenu` and any auth-aware component. Future role-gated UI should subscribe to `onProfileReady` rather than re-deriving the race-mitigation logic.
 
 ### Small passive/manual items carried over (no engineering work)
 

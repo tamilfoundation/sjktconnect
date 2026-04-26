@@ -362,3 +362,51 @@
 **Trade-offs:** A bot hitting `/logout/` constantly adds a Cloud Run request count but zero state change. At our scale, the cost is negligible. If it ever became measurable, throttling would be the right tool, not permission gating.
 
 **Revisit if:** Logout becomes a user-visible action with side effects beyond session flush (e.g. invalidating refresh tokens, broadcasting a "user signed out" event), in which case the surface needs to be re-evaluated as a whole.
+
+## `__Secure-` cookie override on csrfToken instead of upstream patch — Sprint 16, 2026-04-27
+
+**Decision:** In `frontend/lib/auth.ts`, override `@auth/core`'s default `csrfToken` cookie name from `__Host-authjs.csrf-token` to `__Secure-authjs.csrf-token`. All other Auth.js cookies (state, pkceCodeVerifier, sessionToken) keep their `__Secure-` defaults.
+
+**Alternatives considered:**
+1. **Fork @auth/core or pin a custom build** — guarantees the change can't drift, but maintenance burden across every upstream release.
+2. **Configure Cloudflare to stop modifying `Set-Cookie`** — would require finding which Cloudflare feature does the modification (Page Rules? Workers? Cache?) and disabling it; risks breaking other behaviour we depend on; opaque to future maintainers.
+3. **Override cookie name in our auth.ts (chosen)** — surgical, preserves the security intent of cookie prefixes (we drop one notch from `__Host-` to `__Secure-`, keeping the secure-context + httpOnly + sameSite=lax guarantees), survives Auth.js upgrades because cookies override is a public API.
+4. **Drop CSRF cookie entirely** — strictly worse than option 3; removes the protection rather than adapting it to Cloudflare.
+
+**Rationale:** The `__Host-` prefix's strict requirements (no `Domain` attribute, `Path=/`, must be from a secure origin) are incompatible with Cloudflare's `Set-Cookie` rewriting behaviour in our config. The browser silently drops the cookie when prefix semantics are violated. `__Secure-` keeps the secure-only + httpOnly properties without the `Domain`/`Path` strictness, which is the actual constraint Cloudflare can't satisfy. The state and pkceCodeVerifier cookies — which contain the actual OAuth flow secrets — already default to `__Secure-` and survive Cloudflare unchanged, so the security story is consistent: every flow-secret cookie is secure-only, none rely on `__Host-` strictness.
+
+**Trade-offs:** We give up the `__Host-` extra-strict guarantee on the csrfToken cookie (no `Domain` override). At our scale, with a single registrable domain (tamilschool.org) where all auth happens, the `Domain` defence is practically unused. If we ever multi-tenant onto subdomains where csrfToken-cookie scope matters, we'd need to revisit — but that's a different deployment shape.
+
+**Revisit if:** Cloudflare changes its `Set-Cookie` handling to be `__Host-`-compliant (would let us tighten back), or if we deploy on a different proxy/CDN that doesn't have this issue, or if Auth.js stops exposing the cookies override.
+
+## Module-scoped pub/sub for "Django session ready" — Sprint 16, 2026-04-27
+
+**Decision:** Created `frontend/lib/auth-events.ts` — a ~30-line module-scoped pub/sub emitter (`emitProfileReady` / `onProfileReady`). `UserMenu` calls `emitProfileReady()` after `syncGoogleAuth()` resolves; `EditSchoolLink` and `SuggestButton` subscribe via `onProfileReady` and re-fetch `/me` on the signal. No React Context, no TanStack Query, no setTimeout polling.
+
+**Alternatives considered:**
+1. **React Context with profile state** — would force a Provider above every component that needs auth. Most components on the school page don't need auth at all; wrapping all of them in a context to serve two consumers is overkill.
+2. **TanStack Query / SWR** — gives us proper cache invalidation + retry-on-window-focus. Heavyweight introduction (new dep, new concept, ~50 KB) for two consumers. Would be the right call if we had 5+ auth-aware components, but we don't.
+3. **setTimeout retry in the consumers** — quick and dirty: if fetchMe returns null while authenticated, retry after 500ms, give up after 3 tries. Hides the race rather than fixing it; brittle to changes in the cookie-write timing.
+4. **Move syncGoogleAuth into AuthProvider so it runs before any consumer mounts** — the cleanest architectural fix, but requires lifting the syncGoogleAuth + profile state up the tree, plus a Context for consumers. Heavier change for the same outcome.
+5. **Module-scoped pub/sub (chosen)** — minimum viable abstraction. Two consumers wire in with `useEffect(() => onProfileReady(load), [])`; UserMenu fires the signal once. No global Provider, no waterfall.
+
+**Rationale:** The race is a one-shot ordering problem between two effects that both react to the same NextAuth state transition. The minimum information needed to fix it is a single signal: "the Django session is ready." A module-scoped Set + emit() + on() expresses exactly that, no more. Pure JavaScript, no React-specific machinery. If a future consumer outside the React tree needs the same signal (a service worker, a background fetch handler), the module just exports `onProfileReady` and they wire in.
+
+**Trade-offs:** No React Context means no automatic re-render — consumers have to call setState themselves inside the listener. Acceptable for our two consumers; if we ever have 5+, a Context or SWR is worth re-evaluating. Also: module-scoped state survives hot reload differently than Context — but our build doesn't do React Refresh of this module path so it's not a concern.
+
+**Revisit if:** A third or fourth auth-aware component starts subscribing — at that point a `useCurrentProfile()` custom hook or full Context becomes more ergonomic.
+
+## TD-11 + TD-12 (test-coverage padding) deferred indefinitely — Sprint 16, 2026-04-27
+
+**Decision:** TD-11 (`accounts/services/google.py` 25% coverage) and TD-12 (`hansard/pipeline/extractor.py` 26% coverage) are marked deferred — no scheduled sprint. They'll be picked up if and when the underlying code changes or starts producing bugs.
+
+**Alternatives considered:**
+1. **Sprint 17 dedicated to test-coverage** — would honour the "every TD eventually closes" pattern but adds a sprint of low-leverage work for coverage on stable, well-exercised paths.
+2. **Roll into Sprint 16 (chosen at sprint-start)** — would have stretched a Code-Quality Pass into a Test-Coverage Pass too. Different in flavour; would have lost focus.
+3. **Defer indefinitely (final choice at close)** — the code in question (Google ID token verification, PDF extraction) hasn't changed in 8 sprints and hasn't produced a single bug since the modules were written. Coverage as a number doesn't mean these paths are correct; it means certain branches aren't exercised by tests. Adding tests now costs time without reducing real risk.
+
+**Rationale:** Test coverage is a means, not an end. The 25% and 26% numbers come from large try/except branches and dead-code-via-environment paths (e.g. SQLite vs Postgres) that are intentionally untested in the local suite — they'd require fixture proliferation to exercise. The actual user-facing flows (sign in works, hansard PDFs extract correctly) are tested via integration / end-to-end paths. Marking these "deferred indefinitely" is more honest than "Sprint 17" if there's no real plan to do them.
+
+**Trade-offs:** If the underlying code ever DOES break in an untested branch, the regression won't be caught by the suite. Acceptable: those branches are well-isolated (Google's verify_oauth2_token error paths; pdfplumber's encrypted-PDF path), and a real failure surfaces visibly on prod before silently corrupting data.
+
+**Revisit if:** Either module starts producing bugs in production, OR a refactor of either module is on the table (in which case adding tests around the change is the right move).

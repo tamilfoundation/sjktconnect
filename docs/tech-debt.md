@@ -8,13 +8,12 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 
 ---
 
-## 🔴 TD-01 — OAuth security checks disabled in production (RE-OPENED 2026-04-24)
+## ✅ TD-01 — OAuth security checks restored (RESOLVED 2026-04-27, Sprint 16)
 
-- **Status**: **REGRESSED** in Sprint 12. Had been resolved in Sprint 11a Phase 2 (Cloudflare + same-site cookies + `checks: ["pkce", "state"]`). During Sprint 12 smoke-test, sign-in started failing with `[auth][error] InvalidCheck: state value could not be parsed`. Reverted to `checks: []` in `frontend/lib/auth.ts` as pragmatic unblock; sign-in works again.
-- **Root cause (hypothesised, not confirmed)**: Next 16 + Auth.js v5 beta.30 + `@auth/core@0.41.0` combination breaks the state/PKCE cookie round-trip — cookie is set before Google redirect but is unparseable on callback. Did not regress immediately after Next 16 upgrade (sign-in worked), only after Sprint 12 deploy — so something specific changed between Sprint 11a Phase 4 deploy and Sprint 12 deploy (possibly a transitive dep during `npm ci` in Dockerfile build, though lockfile hasn't changed).
-- **Debug attempts (all failed to fix)**: (a) Added `AUTH_SECRET`/`AUTH_URL` env vars alongside legacy `NEXTAUTH_*`. (b) Removed `NEXTAUTH_*` entirely, keeping only v5-native `AUTH_*`. State cookie still unparseable.
-- **What it blocks**: Safely shipping community-facing features. OAuth flow lacks PKCE + state protection against CSRF on callback and authorization-code interception.
-- **Cost to fix**: ~2–4 hours. Sprint 16 investigation path: (1) bump `next-auth` past beta.30 — check if beta.32+ or stable 5.x exists, (2) try explicit cookie config with `cookies: { state: { options: { ... } } }` in auth.ts, (3) check `__Host-` cookie prefix compat with Cloudflare, (4) add DevTools cookie trace during sign-in flow to see which cookie is missing/corrupted, (5) worst case: downgrade Next to 15 to bisect.
+- **Status**: Resolved. `checks: ["pkce", "state"]` is back on the Google provider. PKCE + state CSRF protection is enforced on every OAuth callback. User-verified on prod web-00103-phl by `tamiliam` (USER) and `admin` (SUPERADMIN) sign-in cycles.
+- **Actual root cause**: `__Host-` cookie prefix on the csrfToken cookie was incompatible with Cloudflare's proxy / Cloud Run header pipeline. The `__Host-` prefix forbids a `Domain` attribute and requires `Path=/` from a secure origin; Cloudflare modifies `Set-Cookie` in ways that violate `__Host-` semantics, silently dropping the cookie at the browser. Auth.js then read back a missing/garbled state value on callback, surfacing as `InvalidCheck: state value could not be parsed`.
+- **Fix applied** (Sprint 16): in `frontend/lib/auth.ts`, override `@auth/core`'s default cookie config to use `__Secure-` prefix instead of `__Host-` for csrfToken (the only cookie that defaulted to `__Host-`). Also bumped `next-auth` 5.0.0-beta.30 → beta.31 (pulls in `@auth/core` 0.41.0 → 0.41.2) to stay current with upstream Next 16 support. Restored `checks: ["pkce", "state"]`.
+- **Hypotheses falsified**: (a) `@auth/core@0.41` + Turbopack — bumping made no observable difference on its own; (c) bumping past beta.30 — same. Hypothesis (b) `__Host-` + Cloudflare proxy turned out to be the real cause.
 
 ## ✅ TD-02 — Magic-link removed, auto-claim on @moe.edu.my (RESOLVED 2026-04-24)
 
@@ -55,12 +54,11 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 - **What it blocks**: Minor — browsers don't execute scripts inside `<img>` regardless of declared format, so stored XSS is not exploitable. But opens the door to content-type confusion if a future endpoint serves SVG or raw.
 - **Cost to fix**: Replaced entirely by Sprint 9 (TD-05) which validates format, strips EXIF, resizes, and stores in typed Supabase Storage.
 
-## 🟢 TD-10 — Next.js upgrade (mostly resolved 2026-04-24)
+## ✅ TD-10 — Next.js upgrade (RESOLVED 2026-04-27, Sprint 16)
 
 - **Status (2026-04-23)**: `next-intl` 4.8.3 → 4.9.1+, cleared open-redirect.
 - **Status (2026-04-24)**: `next` 14.2.x → **16.2.4** in Sprint 11a Phase 4 (skipped 15 entirely; @latest is 16). The flagged Image Optimizer DoS CVE (GHSA-9g9p-9gw9-jx7f) is cleared. Migration covered: 5 app-router pages updated to async `params` API (`layout.tsx`, `school/[moe_code]`, `constituency/[code]`, `dun/[id]`, plus their `generateMetadata`). Added `frontend/global.d.ts` shim because Next 16's auto-generated `.next/types/validator.ts` references `React.ComponentType` unqualified but `jsx: "react-jsx"` doesn't expose React in global scope. Kept `ignoreBuildErrors: true` (with clearer comment) because pre-existing implicit-any issues in `BoundaryMap` etc. are out of scope for an upgrade sprint.
-- **Residual**: 2 transitive deps still flagged by `npm audit` — `brace-expansion` (moderate), `picomatch` (high). Both transitive; will resolve when their parents update. Not exploitable in our usage.
-- **Cost to fully clear residual**: 1-2 hours when transitive deps publish patches; mostly waiting.
+- **Status (2026-04-27)**: Sprint 16 ran `npm audit fix` (no `--force`); brace-expansion + picomatch + handlebars all bumped at patch level (6 transitive deps moved). Residual cleared.
 
 ## 🟢 TD-11 — `accounts/services/google.py` at 25% coverage
 
@@ -80,40 +78,33 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 
 - **Status**: Resolved as a no-op in Sprint 13. Confirmed semantically correct — harvester images weren't uploaded by any user, so NULL is the right value. Documented in `outreach/services/image_harvester.py` docstring + `SchoolImage.uploaded_by` field help_text. No code change required; closing for clarity.
 
-## 🟢 TD-14 — Inconsistent `role` checks across views
+## ✅ TD-14 — Role checks consolidated (RESOLVED 2026-04-27, Sprint 16)
 
-- **What**: Several views duplicate role checks inline, e.g. `if profile.role not in ("MODERATOR", "SUPERADMIN"): ...` appears at least 5 times across `community/api/views.py`. The `IsModeratorOrAbove` permission class already expresses this.
-- **Why we accepted**: Per-view checks grew organically. Consolidation wasn't prioritised.
-- **What it blocks**: Nothing functional. But it's a place where adding a new role (e.g. `SCHOOL_ADMIN`) requires changes in many places.
-- **Cost to fix**: 1-2 hours. Refactor views to use `@permission_classes([IsProfileAuthenticated, IsModeratorOrAbove])` where appropriate.
+- **Status**: Resolved. Extracted `_can_moderate_or_owns_school(profile, school_id)` helper in `community/api/views.py`. Replaces 4 inline duplications across `pending_suggestions_view` (gate + filter), `approve_suggestion_view`, and `reject_suggestion_view`. Pure refactor; 70 community tests pass. Note: a true permission CLASS refactor wasn't ideal here because the school_id comes from the suggestion object (not the request), so DRF's `has_object_permission` would have needed the suggestion fetched first in the view anyway. Helper function was the right abstraction at this scale.
 
-## 🟢 TD-15 — 2 pre-existing flaky frontend tests
+## ✅ TD-15 — Frontend test flakes deflaked (RESOLVED 2026-04-27, Sprint 16)
 
-- **What**: `SubscribeForm.test.tsx` (calls subscribe with all fields) and `SchoolEditForm.test.tsx` (confirms data on button click) fail intermittently during `npm test`. Other 288 tests pass consistently.
-- **Why we accepted**: Flaky, not known-wrong. Not a blocker.
-- **What it blocks**: CI signal quality (once CI exists — currently no `.github/workflows/`).
-- **Cost to fix**: 1 hour. Diagnose — likely async `waitFor` timeout tuning.
+- **Status**: Resolved. Investigation found these were never flaky — they were stably broken. `SubscribeForm.test.tsx` was missing the `website: ""` honeypot field added by Sprint 8.6. `EditSchoolLink.test.tsx` and `SuggestButton.test.tsx` (added to the failure list during Sprint 16) didn't mock the `useSession` dependency added by Sprint 15's hotfix. All four fixed; 289/289 frontend tests pass.
+- **Lesson** (logged in lessons.md): the Sprint 15 close didn't actually re-run the test suite, so the "285 passing" claim went into MEMORY.md as fact when reality was 282 pass + 3 fail. Sprint-close workflow needs to record actual test output.
 
-## 🟢 TD-17 — Brittle LLM-output assertion in `test_html_contains_all_summaries`
+## ✅ TD-17 — Brief-generator LLM flake fixed (RESOLVED 2026-04-27, Sprint 16)
 
-- **What**: `parliament/tests/test_brief_generator.py:70` calls real Gemini and asserts the literal phrase `"Tamil school repairs"` appears in the generated brief HTML. Gemini paraphrases freely — recent runs returned `"delays in SJK(T) repair works"` (semantically identical, lexically different) and the assertion fails. Discovered during Sprint 14 full-suite run (980 tests, 1 LLM flake).
-- **Why we accepted**: Inherited from Sprint 0.4 era. The test predates the move to deterministic mocking.
-- **What it blocks**: CI signal quality. Future automated CI would page on this LLM flake without value.
-- **Cost to fix**: 30 min. Either (a) mock the Gemini call and assert on the mock input/output, or (b) loosen the assertion to a stem like `repair`. **Sprint 16** alongside TD-15.
+- **Status**: Resolved. Class-level `@patch.dict(os.environ, {"GEMINI_API_KEY": ""}, clear=False)` on `GenerateBriefTests` forces the brief generator down the template-fallback path, removing the non-deterministic LLM dependency. The tests verify wiring (title, mention count, HTML containing fixture summaries, social post length); prose-quality tests live elsewhere and mock genai directly. 24/24 brief generator tests pass deterministically.
 
-## 🟡 TD-16 — Frontend dashboard pages render for signed-out users
+## ✅ TD-16 — Dashboard signed-out chrome leak fixed (RESOLVED 2026-04-27, Sprint 16)
 
 - **What**: `/dashboard/users` (and likely sibling dashboard pages — `/dashboard/suggestions`, `/dashboard/images`) render the full UI to signed-out users. Root cause: `useEffect(() => fetchMe().then(me => !me && router.push("/")))` in `frontend/app/[locale]/dashboard/users/page.tsx:49-63` has no `.catch()`. If `fetchMe()` throws on 401 (no session), the redirect never fires and the page falls through to render whatever stale state is in `users[]`. Verified on prod 2026-04-26: signed-out tab on `tamilschool.org/en/dashboard/users` shows the full user table with Role/School/Deactivate buttons.
 - **Why we accepted**: Discovered post-Sprint-12 close. **Backend is correctly gated** — `AdminUserListView` has `IsSuperAdmin` permission, so no data leaks and every PATCH/DELETE returns 403. Bug is UX/security-cosmetic (signed-out users see admin chrome but cannot mutate anything).
 - **What it blocks**: Trust signal — non-technical observers will think the platform is insecure even though backend permissions hold. Also masks the SUPERADMIN-only nature of the page from school admins, who might assume they can see the same UI.
-- **Cost to fix**: 30 min. Add `.catch(() => router.push("/"))` to every `fetchMe()` call inside dashboard pages, render `null` (not the page chrome) until `currentProfileId !== null`. Also verify school-admin-scoped pages gate by role correctly, not just by truthy session. **Sprint 14 will apply the fix to `/dashboard/suggestions` as part of its photo-approval UI work** (in-scope file). The `/dashboard/users` and `/dashboard/images` fixes belong in **Sprint 16** (Code-Quality Pass).
+- **Status (2026-04-27)**: Sprint 16 added `.catch(() => router.push("/"))` to the SUPERADMIN gate in `/dashboard/users` (the page that was actually leaking the table chrome on signed-out tabs). `/dashboard/images` and `dashboard/page.tsx` already render a "please sign in" fallback when profile is null — acceptable UX, no chrome leak. `/dashboard/suggestions` was already gated by useSession status (Sprint 14 hotfix). Backend was correctly gated by `IsSuperAdmin` throughout, so no data ever leaked.
 
-## 🟢 TD-18 — School page CTAs need a refresh after sign-in to appear
+## ✅ TD-18 — Sign-in CTA race fixed (RESOLVED 2026-04-27, Sprint 16)
 
 - **What**: After signing in via the UserMenu on a school page (`/school/<moe>`), the Edit School Data button (SUPERADMIN/bound admin) and Suggest button (other authenticated users) do not appear until the user manually refreshes. Sign-out reactivity works (Sprint 15 hotfix `80b51a0`); sign-in reactivity does not. Both `EditSchoolLink` and `SuggestButton` already subscribe to `useSession()` status and re-fetch `/me` on transition — confirmed by user testing on prod 2026-04-26 web revision `sjktconnect-web-00102-v4f`.
 - **Why we accepted**: Minor UX papercut, not a security issue (backend remains correctly gated). One extra page refresh after sign-in is the workaround.
 - **What it blocks**: Nothing functional. UX polish only.
-- **Cost to fix**: 30-60 min. Hypotheses: (a) NextAuth `useSession()` `status` transitions to `"authenticated"` before the Django session cookie round-trips, so the `/me` fetch fires with stale cookies and 401s; (b) the Google OAuth callback returns to `/api/auth/callback/...` and the user lands on the school page from a hard nav (not client-side) after the session is established, so the components mount before the JWT is ready — but other components on the same page that use `useSession()` directly do reflect the signed-in state. Investigate by adding logging around the `EditSchoolLink` `useEffect` to confirm whether it fires on the post-callback render and whether `fetchMe()` returns null vs throws. **Sprint 16** alongside the rest of the auth-cookie work (TD-01).
+- **Actual root cause**: hypothesis (a) was right. Race between two effects that both fire when `useSession()` flips to `"authenticated"`: UserMenu's `syncGoogleAuth(idToken)` POST writes the Django session cookie, while EditSchoolLink/SuggestButton's `fetchMe()` reads it. The fetch frequently arrived at the backend before the POST committed, returning null and hiding the CTA. Manual refresh "fixed" it because the cookie from the prior round was now in place at mount.
+- **Fix applied** (Sprint 16): new `frontend/lib/auth-events.ts` (~30-line module-scoped pub/sub emitter). UserMenu fires `emitProfileReady()` after `syncGoogleAuth()` resolves; EditSchoolLink + SuggestButton subscribe via `onProfileReady()` and re-fetch on signal. No polling, no setTimeout. User-verified on prod 2026-04-27 (`web-00104-d4n`) by both `tamiliam` (USER) and `admin` (SUPERADMIN).
 
 ---
 
@@ -133,4 +124,4 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 | Sprint 15 — Image Display Polish | — | After Sprint 14 |
 | ✅ Sprint 14 — Community Photo Uploads | TD-07, TD-09, TD-16 (suggestions page only) | Done 2026-04-26 |
 | ✅ Sprint 15 — Image Display Polish | — | Done 2026-04-26 |
-| Sprint 16 — Code-Quality Pass | TD-01 (re-opened), TD-10 residual, TD-11, TD-12, TD-14, TD-15, TD-16 (users + images pages), TD-17, TD-18 | Last of 5-sprint roadmap |
+| ✅ Sprint 16 — Code-Quality Pass | TD-01 ✅, TD-10 ✅, TD-14 ✅, TD-15 ✅, TD-16 (users page) ✅, TD-17 ✅, TD-18 ✅. TD-11 + TD-12 deferred (test-coverage padding). | Done 2026-04-27 — final of 5-sprint roadmap |
