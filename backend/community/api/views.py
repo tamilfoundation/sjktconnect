@@ -54,6 +54,26 @@ def _is_photo_approver(profile, school_id) -> bool:
     return bool(profile.admin_school_id and profile.admin_school_id == school_id)
 
 
+def _can_moderate_or_owns_school(profile, school_id=None) -> bool:
+    """Suggestion-moderation permission check.
+
+    True for MODERATOR + SUPERADMIN (any school), or for the bound admin
+    of `school_id` when provided. When school_id is None, only checks
+    that the user is a privileged role (used by the queue list view —
+    school admins ALSO get to see the queue, but their query is filtered
+    to their own school by the caller).
+    """
+    if not profile:
+        return False
+    if profile.role in ("MODERATOR", "SUPERADMIN"):
+        return True
+    if not profile.admin_school_id:
+        return False
+    if school_id is None:
+        return True
+    return profile.admin_school_id == school_id
+
+
 @api_view(["GET", "POST"])
 @parser_classes([JSONParser])
 @permission_classes([IsProfileAuthenticated])
@@ -192,7 +212,7 @@ def pending_suggestions_view(request):
     """Moderation queue — all pending suggestions."""
     profile = request.user_profile
 
-    if profile.role not in ("MODERATOR", "SUPERADMIN") and not profile.admin_school_id:
+    if not _can_moderate_or_owns_school(profile):
         return Response(
             {"detail": "You do not have permission to view the moderation queue."},
             status=status.HTTP_403_FORBIDDEN,
@@ -238,12 +258,11 @@ def approve_suggestion_view(request, pk):
                 status=status.HTTP_409_CONFLICT,
             )
     else:
-        if profile.role not in ("MODERATOR", "SUPERADMIN"):
-            if profile.admin_school_id != suggestion.school_id:
-                return Response(
-                    {"detail": "You can only approve suggestions for your own school."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+        if not _can_moderate_or_owns_school(profile, suggestion.school_id):
+            return Response(
+                {"detail": "You can only approve suggestions for your own school."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
     result = approve_suggestion(suggestion, profile)
     return Response(SuggestionListSerializer(result).data)
@@ -262,12 +281,11 @@ def reject_suggestion_view(request, pk):
                 status=status.HTTP_403_FORBIDDEN,
             )
     else:
-        if profile.role not in ("MODERATOR", "SUPERADMIN"):
-            if profile.admin_school_id != suggestion.school_id:
-                return Response(
-                    {"detail": "You can only reject suggestions for your own school."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+        if not _can_moderate_or_owns_school(profile, suggestion.school_id):
+            return Response(
+                {"detail": "You can only reject suggestions for your own school."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
     reason = request.data.get("reason", "")
     result = reject_suggestion(suggestion, profile, reason)
