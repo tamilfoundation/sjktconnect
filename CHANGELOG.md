@@ -1,5 +1,38 @@
 # Changelog
 
+## Sprint 15 — Image Display Polish (2026-04-26)
+
+**Deployed**: backend `sjktconnect-api-00104-qm7`, frontend `sjktconnect-web-00102-v4f`. Migration `outreach.0005_add_caption` applied on prod Supabase.
+
+Fourth sprint of the 5-sprint roadmap. Adds a per-image caption that surfaces in a full-screen lightbox on public school pages and an inline editor in the admin Image Manager. Hotfixes during the sprint addressed (a) the public hero showing the placeholder house emoji even for schools with valid photos, (b) the Edit School Data button persisting after sign-out, and (c) the Edit + Suggest CTAs both rendering for users who can already edit directly.
+
+### Added
+- **`SchoolImage.caption`** — `CharField(max_length=200, blank=True)`. Migration `outreach/0005_add_caption.py`. Surfaced in `SchoolImageSerializer` + `school_images_view` alongside existing `id`.
+- **`PATCH /api/v1/schools/<moe_code>/images/<id>/caption/`** — caption editor endpoint. Permission: `IsPhotoApprover` (SUPERADMIN OR bound school admin — same matrix as Sprint 14 hero-pin). 200-char hard cap, type-checked, empty string clears.
+- **`POST /api/v1/auth/logout/`** — flushes the Django session. AllowAny + idempotent so a stale session can self-clear without authenticating. Called by `UserMenu` before `next-auth signOut()` to fix the frontend/Django session divergence that left the Edit button visible after sign-out.
+- **Frontend `PhotoLightbox`** component — wraps `yet-another-react-lightbox` (~15 KB gzipped) with the Captions plugin. Lazy-imported via `next/dynamic` in `SchoolImage.tsx` so the lib loads on first click and stays out of SSR.
+- **`SchoolImage` gallery interactions**: hero click opens lightbox; thumbnails switch hero on single click and open the lightbox on double-click; "View all N photos" overlay button appears top-right when total > 5.
+- **`ImageManager` inline caption editor**: per-image textarea + char counter + Save/Cancel + optimistic update via `updateImageCaption()`.
+- **`scripts/audit_image_counts.py`** — promoted from a throwaway helper. Walks the public API to find schools with >N images. Useful for validating the "View all N photos" overlay and harvester coverage spot-checks.
+
+### Changed
+- **`SchoolListSerializer.get_image_url`**: returns `primary.display_url` instead of `primary.image_url`. The legacy raw field is empty for Sprint-13-migrated rows, so search results were carrying `image_url=""`. Combined with a too-loose `!== undefined` guard in `SchoolMarkers` this caused the map InfoWindow to skip the lazy detail-fetch and render the placeholder forever. Guard tightened to a truthy check (defence in depth).
+- **`EditSchoolLink`** + **`SuggestButton`** — both now subscribe to `useSession()` status and re-fetch `/me` on every transition. Fixes two visibility bugs:
+  - *Sign-out:* Edit button hides immediately without a hard refresh.
+  - *Sign-in:* Edit button appears as soon as the JWT lands, not only after the next page load.
+  - *Role overlap:* `SuggestButton` now hides for SUPERADMIN and for the bound admin of the school being viewed, so the two CTAs become mutually exclusive: SUPERADMIN sees Edit only; a bound admin sees Edit on their school + Suggest on others; MODERATORs and regular users see Suggest only; signed-out users see neither.
+- **`PhotoLightbox`** slide rendering: passes only `description` (not both `title` and `description`), so the Captions plugin no longer renders the caption twice.
+- **Public hero**: caption overlay removed. It collided with the bottom thumbnail strip on schools with 6+ photos (e.g. SJK(T) Vivekananda). Caption is preserved in the lightbox and the admin editor — matching Google Photos / Flickr index-vs-detail UX convention.
+
+### Tests
+- 8 new backend tests in `community/tests/test_image_caption.py` (happy path, 5-role permission matrix, 200-char reject, type-check, clear via empty string).
+- 2 new backend tests for the logout flush endpoint (clears session + idempotent on already-empty session).
+- 5 net new frontend tests across `ImageManager.test.tsx` (caption editor) and `SchoolImage.test.tsx` (lightbox open paths). One unit test removed (`PhotoLightbox.test.tsx` — `yet-another-react-lightbox` is ESM-only and Jest doesn't transform `node_modules` by default; the wrapper is exercised via `SchoolImage` integration tests).
+- Final tally: **1155 backend + 285 frontend tests**. SubscribeForm flake remains (TD-15).
+
+### Migrations
+- `outreach/0005_add_caption.py` — Add `SchoolImage.caption` (CharField max_length=200, blank=True).
+
 ## Sprint 14 — Community Photo Uploads (2026-04-26)
 
 **Deployed**: backend `sjktconnect-api-00101-klw`, frontend `sjktconnect-web-00094-gqx`. Migration `community.0002_drop_image_add_pending` applied on prod Supabase.

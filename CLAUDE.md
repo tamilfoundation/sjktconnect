@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 8 (Community Features) + Email Infrastructure. Egress Fix done.
-- **Last Sprint**: Egress Fix — Supabase Egress Optimisation (2026-03-29)
-- **Tests**: ~1382 (1092 backend + 290 frontend)
+- **Current Phase**: Phase 8 (Community Features) + 5-Sprint Image/Auth Roadmap.
+- **Last Sprint**: Sprint 15 — Image Display Polish (2026-04-26)
+- **Tests**: 1440 (1155 backend + 285 frontend)
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -248,6 +248,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 12 | Done | User Management UI: SUPERADMIN `/dashboard/users` page with filter/search/table + RoleChangeModal + SchoolAssignModal + deactivate/reactivate; self-demotion safety checks (cannot change own role away from SUPERADMIN, cannot deactivate self). MeView PATCH for self-service display name edit. UserMenu adds "User Management" link for SUPERADMIN. Profile page: editable display name, removed broken `/claim` CTA. 30 new backend tests. **TD-01 re-opened** (regression): Next 16 + Auth.js v5 beta.30 state/PKCE cookie round-trip regressed; `checks: []` workaround reinstated, proper fix deferred to Sprint 16. 1106 backend + 258 frontend tests. |
 | 13 | Done | Image Storage Migration: Supabase Storage bucket `school-images` + django-storages[boto3]/Pillow + S3-compat config. SchoolImage gets `image_file` ImageField + `display_url` property (falls back to legacy `image_url`). Harvester rewritten to download bytes + upload via image_file. New `migrate_images_to_storage` command. SchoolMarkers InfoWindow lazy-fetches detail to populate hero photo. Prod migration: 1009 PLACES + 528 SATELLITE re-harvested + 1 COMMUNITY migrated; 5 stuck rows deleted; **1534/1534 (100%) on Supabase Storage**. Resolves TD-05, TD-06, TD-13. 1117 backend (+11) + 258 frontend tests. Cost: ~US$15 in Google API re-harvest. |
 | 14 | Done | Community Photo Uploads: Drop `Suggestion.image` BinaryField; new multipart endpoint `POST /schools/<moe>/suggestions/photo/` with Pillow validation (≤5 MB / JPEG/PNG/WebP / ≥640×400 / EXIF strip / 1600px resize / pHash dedup). DRF throttling 5/user/day + 20/school/day via custom scoped throttles. New `IsPhotoApprover` permission (SUPERADMIN OR bound school admin only — MODERATOR excluded). 20-photo cap on approve returns 409 `slot_full`. Reject deletes the staged file. New `POST /schools/<moe>/images/<id>/pin/` makes a photo the hero. Frontend SuggestForm rewritten to multipart with file picker + client-side validation + typed error surfacing. ImageManager gets ⭐ Make hero button. ModerationQueue shows photo preview + clickable school link + slot-full banner. Resolves TD-07 + TD-09 + TD-16 (suggestions-page portion). 28 new backend + 5 new frontend tests; final tally 1145 backend + 286 frontend (1 LLM-flake in parliament/test_brief_generator → TD-17, 1 SubscribeForm flake → TD-15). Deployed `sjktconnect-api-00101-klw` + `sjktconnect-web-00094-gqx`. |
+| 15 | Done | Image Display Polish: `SchoolImage.caption` (CharField max 200) + migration `outreach/0005_add_caption`; `PATCH /schools/<moe>/images/<id>/caption/` (IsPhotoApprover); `POST /api/v1/auth/logout/` flushes Django session (fixes frontend/Django session divergence that left Edit button visible after sign-out). Frontend: `PhotoLightbox` wrapper around `yet-another-react-lightbox` (lazy-imported via next/dynamic), gallery click-to-zoom + "View all N photos" overlay, `ImageManager` inline caption editor. SchoolListSerializer image_url switched to `display_url` (fixes map InfoWindow placeholder for Sprint-13-migrated rows). EditSchoolLink + SuggestButton now reactive to NextAuth status; SuggestButton hides for SUPERADMIN + bound admin of the viewed school so Edit/Suggest CTAs are mutually exclusive per role. Public hero caption overlay removed (collided with thumbnail strip on 6+ photo schools); caption preserved in lightbox + admin editor. 10 new backend + 5 new frontend tests; final tally 1155 backend + 285 frontend. Deployed `sjktconnect-api-00104-qm7` + `sjktconnect-web-00102-v4f`. |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -265,44 +266,42 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Recommended next: Sprint 14 — Community Photo Uploads** (third of the 5-sprint roadmap).
+**Recommended next: Sprint 16 — Code-Quality Pass** (final sprint of the 5-sprint roadmap).
 
-### 5-Sprint Roadmap (progress after Sprint 13 close)
+### 5-Sprint Roadmap (progress after Sprint 15 close)
 
 | # | Sprint | Status |
 |---|---|---|
 | 12 | User Management UI | ✅ Done 2026-04-24 |
 | 13 | Image Storage Migration | ✅ Done 2026-04-26 — resolved TD-05, TD-06, TD-13 |
-| 14 | **Community Photo Uploads** | **Next** — resolves TD-07, TD-09 |
-| 15 | Image Display Polish | Queued |
-| 16 | Code-Quality Pass | Queued — resolves TD-01 regression, TD-10 residual, TD-11, TD-12, TD-14, TD-15 |
+| 14 | Community Photo Uploads | ✅ Done 2026-04-26 — resolved TD-07, TD-09, TD-16 (suggestions portion) |
+| 15 | Image Display Polish | ✅ Done 2026-04-26 |
+| 16 | **Code-Quality Pass** | **Next** — resolves TD-01 regression, TD-10 residual, TD-11, TD-12, TD-14, TD-15, TD-17 |
 
-### Sprint 14 — What to build
+### Sprint 16 — What to build
 
-- **Upload endpoint** `POST /api/v1/schools/<moe_code>/suggestions/photo/` — auth-gated; multipart form (image + optional caption); writes bytes to Supabase Storage via `SchoolImage.image_file` (not `Suggestion.image` BinaryField — that field becomes legacy + dropped in this sprint).
-- **Validation pipeline**: Pillow-based — file size ≤5 MB; format JPEG/PNG/WebP; min dimensions 640×400; EXIF stripped; resized to max 1600px longest edge; perceptual hash computed for dedup.
-- **Rate limits**: 5 uploads / user / day, 20 uploads / school / day (DRF throttling).
-- **Moderation**: PENDING by default; APPROVE only by SUPERADMIN or school admin (MODERATOR explicitly excluded — different from suggestion approval); REJECT works as today.
-- **20-photo hard cap** per school: APPROVE returns 409 `Photo slot full. Delete an existing photo first.` when school has 20 APPROVED.
-- **`Suggestion.image` BinaryField → migration to remove**: existing suggestion image bytes already migrated in Sprint 13's COMMUNITY row migration. Drop the field.
-- **Upload UI**: extend existing `SuggestForm` (`PHOTO_UPLOAD` type already there from Sprint 8.2) with proper file picker + preview + client-side size/format check.
-- **Moderation queue UI**: photo preview in queue card (Phase 3.6 of original Image Library plan — already logged).
-- ~15 files touched. Plan: `docs/plans/2026-04-22-image-library-sprint-plan.md` Phase 2 section.
+- **TD-01 Auth.js v5 state/PKCE cookie regression**: investigate the three hypotheses in the post-Sprint-12 retrospective — (a) `@auth/core@0.41` + Next 16 + Turbopack cookie handling, (b) `__Host-` cookie prefix vs Cloudflare proxy header forwarding, (c) bumping `next-auth` past `5.0.0-beta.30`. Goal: remove the `checks: []` workaround and restore `["pkce", "state"]` without breaking OAuth callback.
+- **TD-10 next-intl residual**: any leftover items from the trilingual upgrade.
+- **TD-11, TD-12, TD-14**: triage from `docs/tech-debt.md` at sprint start.
+- **TD-15 SubscribeForm flake**: deflake the test (consistent failure mode is documented; root-cause it instead of marking xfail).
+- **TD-17 LLM flake in `parliament/test_brief_generator`**: same — root-cause the flake.
+- **Transitive npm audit** (`brace-expansion`, `picomatch`): bump to clean.
+- Plan to be drafted at sprint start via `Settings/_workflows/sprint-start.md`.
 
-### Current codebase state (Sprint 13 close, 2026-04-26)
+### Current codebase state (Sprint 15 close, 2026-04-26)
 
-- Prod: `sjktconnect-api-00100-7x2` + `sjktconnect-web-00093-p8c`
-- 1117 backend tests (+11 Sprint 13) + 258 frontend tests
-- 1534 SchoolImage rows, 100% on Supabase Storage; **broken Places photos issue is resolved**
-- 4 tech debt items open + TD-01 re-opened (Auth.js v5 state-cookie regression)
-- 5-sprint roadmap on track: 12 ✅ → 13 ✅ → 14 next
+- Prod: `sjktconnect-api-00104-qm7` + `sjktconnect-web-00102-v4f`
+- 1155 backend tests (+10 Sprint 15) + 285 frontend tests (+5 net Sprint 15)
+- `SchoolImage.caption` populated on demand; lightbox live on all school pages.
+- Sign-in/out frontend reactivity restored; Edit/Suggest CTAs mutually exclusive per role; logout flushes Django session via `/api/v1/auth/logout/`.
+- 5-sprint roadmap on track: 12 ✅ → 13 ✅ → 14 ✅ → 15 ✅ → 16 next.
 
-### Gotchas carried into Sprint 14
+### Gotchas carried into Sprint 16
 
-- Pillow's image-processing pipeline runs in-process — large uploads + concurrent requests can spike Cloud Run memory. Default 512 MB instance memory should be enough at our request volume; monitor.
-- Perceptual hash dedup: use `imagehash` library (~16-byte hash per image, store on SchoolImage). Decide tolerance threshold (typical: Hamming distance ≤5).
-- Suggestion.image field removal needs a migration that PRESERVES existing data flow: backfill any unmigrated suggestion bytes to image_file FIRST, then drop the BinaryField.
-- Same `STORAGES["default"]` Supabase config that handles harvester images now also handles community uploads — same auth flow, no new env vars needed.
+- `yet-another-react-lightbox` is ESM-only — Jest doesn't transform `node_modules` by default, so unit-testing the wrapper requires either adding `transformIgnorePatterns` exception or sticking with the integration-test approach used in Sprint 15.
+- `next/dynamic` lazy import of the lightbox keeps it out of SSR — keep that pattern when adding any other client-only heavy lib in Sprint 16.
+- Frontend session reactivity pattern (subscribe to `useSession()` status + re-fetch `/me` on transition) is now established — reuse for any future role-aware UI element instead of one-shot `useEffect` `fetchMe()` calls.
+- `IsPhotoApprover` is the canonical permission for *any* per-image mutation (pin, caption, delete-photo). Re-use it; don't re-derive the SUPERADMIN-or-bound-admin matrix in new endpoints.
 
 ### TD-01 regression follow-up (Sprint 16)
 
