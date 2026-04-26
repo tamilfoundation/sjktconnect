@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { fetchMe } from "@/lib/api";
+import { onProfileReady } from "@/lib/auth-events";
 
 interface EditSchoolLinkProps {
   moeCode: string;
@@ -17,22 +18,31 @@ export default function EditSchoolLink({ moeCode }: EditSchoolLinkProps) {
 
   useEffect(() => {
     // Reset on sign-out / unknown so the button hides immediately without
-    // a hard refresh. Re-fetch on sign-in so the button appears as soon as
-    // the JWT lands, not only after the next page load.
+    // a hard refresh. On sign-in, fetchMe races UserMenu's syncGoogleAuth
+    // POST that sets the Django session cookie — so we (a) try once now,
+    // (b) re-try on the auth-events "profile ready" signal that fires
+    // after syncGoogleAuth resolves. This is what closes TD-18: previously
+    // the first fetch returned null and the button stayed hidden until
+    // the next page load. Re-querying on the explicit signal removes the
+    // race without polling.
     if (status !== "authenticated") {
       setCanEdit(false);
       return;
     }
     let cancelled = false;
-    fetchMe()
-      .then((user) => {
-        if (cancelled || !user) return;
-        const isSuper = user.role === "SUPERADMIN";
-        const isAdmin = user.admin_school?.moe_code === moeCode;
-        if (isSuper || isAdmin) setCanEdit(true);
-      })
-      .catch(() => { /* keep hidden on error */ });
-    return () => { cancelled = true; };
+    const load = () => {
+      fetchMe()
+        .then((user) => {
+          if (cancelled || !user) return;
+          const isSuper = user.role === "SUPERADMIN";
+          const isAdmin = user.admin_school?.moe_code === moeCode;
+          if (isSuper || isAdmin) setCanEdit(true);
+        })
+        .catch(() => { /* keep hidden on error */ });
+    };
+    load();
+    const unsub = onProfileReady(load);
+    return () => { cancelled = true; unsub(); };
   }, [moeCode, status]);
 
   if (!canEdit) return null;

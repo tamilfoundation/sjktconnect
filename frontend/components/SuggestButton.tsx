@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { fetchMe } from "@/lib/api";
+import { onProfileReady } from "@/lib/auth-events";
 import SuggestForm from "@/components/SuggestForm";
 
 interface SuggestButtonProps {
@@ -31,17 +32,25 @@ export default function SuggestButton({ moeCode }: SuggestButtonProps) {
       return;
     }
     let cancelled = false;
-    fetchMe()
-      .then((user) => {
-        if (cancelled || !user) return;
-        const isSuper = user.role === "SUPERADMIN";
-        const isAdminOfThis = user.admin_school?.moe_code === moeCode;
-        // Suggest is for users who can't edit directly. Hide for the two
-        // roles that already get the Edit button.
-        setCanSuggest(!isSuper && !isAdminOfThis);
-      })
-      .catch(() => setCanSuggest(false));
-    return () => { cancelled = true; };
+    const load = () => {
+      fetchMe()
+        .then((user) => {
+          if (cancelled || !user) return;
+          const isSuper = user.role === "SUPERADMIN";
+          const isAdminOfThis = user.admin_school?.moe_code === moeCode;
+          // Suggest is for users who can't edit directly. Hide for the two
+          // roles that already get the Edit button.
+          setCanSuggest(!isSuper && !isAdminOfThis);
+        })
+        .catch(() => setCanSuggest(false));
+    };
+    // Try once immediately; re-fetch on the auth-events "profile ready"
+    // signal (fired by UserMenu after syncGoogleAuth resolves) to close
+    // the race where the first fetch lands before the Django session
+    // cookie does. TD-18.
+    load();
+    const unsub = onProfileReady(load);
+    return () => { cancelled = true; unsub(); };
   }, [moeCode, status]);
 
   if (!canSuggest) return null;

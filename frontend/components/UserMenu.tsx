@@ -6,6 +6,7 @@ import { logoutDjangoSession } from "@/lib/auth-api";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { syncGoogleAuth, type UserProfile } from "@/lib/auth-api";
+import { emitProfileReady } from "@/lib/auth-events";
 
 export default function UserMenu() {
   const t = useTranslations("auth");
@@ -14,11 +15,18 @@ export default function UserMenu() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Sync with backend when session is available
+  // Sync with backend when session is available. After the Django session
+  // cookie is set, broadcast "profile ready" so other auth-aware components
+  // (EditSchoolLink, SuggestButton) can re-fetch — their first fetchMe
+  // racing this POST is exactly why CTAs needed a manual refresh after
+  // sign-in (TD-18).
   useEffect(() => {
     if (session && (session as any).id_token && !profile) {
       syncGoogleAuth((session as any).id_token)
-        .then(setProfile)
+        .then((p) => {
+          setProfile(p);
+          emitProfileReady();
+        })
         .catch(() => {});
     }
   }, [session, profile]);
