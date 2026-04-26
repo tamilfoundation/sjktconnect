@@ -43,10 +43,12 @@ export default function PhotoLightbox({
       img.caption,
       img.attribution ? `${sourceLabel} — ${img.attribution}` : sourceLabel,
     ].filter(Boolean);
+    // Caption goes in `description` only; the Captions plugin renders it
+    // as a single footer block. Setting `title` would duplicate the caption
+    // as a top-left header on top of the same footer.
     return {
       src: img.image_url,
       alt: img.caption || schoolName,
-      title: img.caption || undefined,
       description: descriptionParts.join(" · "),
     };
   });
