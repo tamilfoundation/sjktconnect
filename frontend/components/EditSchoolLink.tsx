@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { fetchMe } from "@/lib/api";
@@ -11,16 +12,28 @@ interface EditSchoolLinkProps {
 
 export default function EditSchoolLink({ moeCode }: EditSchoolLinkProps) {
   const t = useTranslations("parliamentWatch");
+  const { status } = useSession();
   const [canEdit, setCanEdit] = useState(false);
 
   useEffect(() => {
-    fetchMe().then((user) => {
-      if (!user) return;
-      const isSuper = user.role === "SUPERADMIN";
-      const isAdmin = user.admin_school?.moe_code === moeCode;
-      if (isSuper || isAdmin) setCanEdit(true);
-    });
-  }, [moeCode]);
+    // Reset on sign-out / unknown so the button hides immediately without
+    // a hard refresh. Re-fetch on sign-in so the button appears as soon as
+    // the JWT lands, not only after the next page load.
+    if (status !== "authenticated") {
+      setCanEdit(false);
+      return;
+    }
+    let cancelled = false;
+    fetchMe()
+      .then((user) => {
+        if (cancelled || !user) return;
+        const isSuper = user.role === "SUPERADMIN";
+        const isAdmin = user.admin_school?.moe_code === moeCode;
+        if (isSuper || isAdmin) setCanEdit(true);
+      })
+      .catch(() => { /* keep hidden on error */ });
+    return () => { cancelled = true; };
+  }, [moeCode, status]);
 
   if (!canEdit) return null;
 

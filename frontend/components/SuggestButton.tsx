@@ -1,20 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
+import { fetchMe } from "@/lib/api";
 import SuggestForm from "@/components/SuggestForm";
 
 interface SuggestButtonProps {
   moeCode: string;
 }
 
+/**
+ * Suggest-an-edit CTA. Visible to authenticated users who CANNOT directly
+ * edit this school:
+ *   * SUPERADMIN — hidden (use Edit School Data instead)
+ *   * Bound admin of this school — hidden (use Edit School Data instead)
+ *   * Bound admin of a different school — visible (suggest, don't edit)
+ *   * MODERATOR / regular USER — visible
+ *   * Signed-out — hidden (must sign in to suggest)
+ */
 export default function SuggestButton({ moeCode }: SuggestButtonProps) {
   const t = useTranslations("suggestions");
-  const { data: session } = useSession();
+  const { status } = useSession();
+  const [canSuggest, setCanSuggest] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
-  if (!session) return null;
+  useEffect(() => {
+    if (status !== "authenticated") {
+      setCanSuggest(false);
+      return;
+    }
+    let cancelled = false;
+    fetchMe()
+      .then((user) => {
+        if (cancelled || !user) return;
+        const isSuper = user.role === "SUPERADMIN";
+        const isAdminOfThis = user.admin_school?.moe_code === moeCode;
+        // Suggest is for users who can't edit directly. Hide for the two
+        // roles that already get the Edit button.
+        setCanSuggest(!isSuper && !isAdminOfThis);
+      })
+      .catch(() => setCanSuggest(false));
+    return () => { cancelled = true; };
+  }, [moeCode, status]);
+
+  if (!canSuggest) return null;
 
   return (
     <>
