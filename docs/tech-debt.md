@@ -108,6 +108,13 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 - **What it blocks**: Trust signal — non-technical observers will think the platform is insecure even though backend permissions hold. Also masks the SUPERADMIN-only nature of the page from school admins, who might assume they can see the same UI.
 - **Cost to fix**: 30 min. Add `.catch(() => router.push("/"))` to every `fetchMe()` call inside dashboard pages, render `null` (not the page chrome) until `currentProfileId !== null`. Also verify school-admin-scoped pages gate by role correctly, not just by truthy session. **Sprint 14 will apply the fix to `/dashboard/suggestions` as part of its photo-approval UI work** (in-scope file). The `/dashboard/users` and `/dashboard/images` fixes belong in **Sprint 16** (Code-Quality Pass).
 
+## 🟢 TD-18 — School page CTAs need a refresh after sign-in to appear
+
+- **What**: After signing in via the UserMenu on a school page (`/school/<moe>`), the Edit School Data button (SUPERADMIN/bound admin) and Suggest button (other authenticated users) do not appear until the user manually refreshes. Sign-out reactivity works (Sprint 15 hotfix `80b51a0`); sign-in reactivity does not. Both `EditSchoolLink` and `SuggestButton` already subscribe to `useSession()` status and re-fetch `/me` on transition — confirmed by user testing on prod 2026-04-26 web revision `sjktconnect-web-00102-v4f`.
+- **Why we accepted**: Minor UX papercut, not a security issue (backend remains correctly gated). One extra page refresh after sign-in is the workaround.
+- **What it blocks**: Nothing functional. UX polish only.
+- **Cost to fix**: 30-60 min. Hypotheses: (a) NextAuth `useSession()` `status` transitions to `"authenticated"` before the Django session cookie round-trips, so the `/me` fetch fires with stale cookies and 401s; (b) the Google OAuth callback returns to `/api/auth/callback/...` and the user lands on the school page from a hard nav (not client-side) after the session is established, so the components mount before the JWT is ready — but other components on the same page that use `useSession()` directly do reflect the signed-in state. Investigate by adding logging around the `EditSchoolLink` `useEffect` to confirm whether it fires on the post-callback render and whether `fetchMe()` returns null vs throws. **Sprint 16** alongside the rest of the auth-cookie work (TD-01).
+
 ---
 
 ## Triage for next sprints
@@ -124,4 +131,6 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 | 🔴 TD-01 re-opened (Next 16 + Auth.js state cookie regression) | TD-01 | Investigation in Sprint 16 |
 | Sprint 14 — Community Photo Uploads | TD-07, TD-09, TD-16 (suggestions page only) | Next |
 | Sprint 15 — Image Display Polish | — | After Sprint 14 |
-| Sprint 16 — Code-Quality Pass | TD-01 (re-opened), TD-10 residual, TD-11, TD-12, TD-14, TD-15, TD-16 (users + images pages), TD-17 | Last of 5-sprint roadmap |
+| ✅ Sprint 14 — Community Photo Uploads | TD-07, TD-09, TD-16 (suggestions page only) | Done 2026-04-26 |
+| ✅ Sprint 15 — Image Display Polish | — | Done 2026-04-26 |
+| Sprint 16 — Code-Quality Pass | TD-01 (re-opened), TD-10 residual, TD-11, TD-12, TD-14, TD-15, TD-16 (users + images pages), TD-17, TD-18 | Last of 5-sprint roadmap |

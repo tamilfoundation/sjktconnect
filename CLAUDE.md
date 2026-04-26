@@ -276,7 +276,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 13 | Image Storage Migration | ✅ Done 2026-04-26 — resolved TD-05, TD-06, TD-13 |
 | 14 | Community Photo Uploads | ✅ Done 2026-04-26 — resolved TD-07, TD-09, TD-16 (suggestions portion) |
 | 15 | Image Display Polish | ✅ Done 2026-04-26 |
-| 16 | **Code-Quality Pass** | **Next** — resolves TD-01 regression, TD-10 residual, TD-11, TD-12, TD-14, TD-15, TD-17 |
+| 16 | **Code-Quality Pass** | **Next** — resolves TD-01 regression, TD-10 residual, TD-11, TD-12, TD-14, TD-15, TD-17, TD-18 |
 
 ### Sprint 16 — What to build
 
@@ -285,6 +285,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 - **TD-11, TD-12, TD-14**: triage from `docs/tech-debt.md` at sprint start.
 - **TD-15 SubscribeForm flake**: deflake the test (consistent failure mode is documented; root-cause it instead of marking xfail).
 - **TD-17 LLM flake in `parliament/test_brief_generator`**: same — root-cause the flake.
+- **TD-18 sign-in CTA reactivity**: Edit / Suggest buttons on the school page require a manual page refresh after sign-in to appear. Sign-out reactivity already works (Sprint 15 hotfix). Likely related to the same Auth.js v5 / Next 16 cookie round-trip issue as TD-01 — investigate together.
 - **Transitive npm audit** (`brace-expansion`, `picomatch`): bump to clean.
 - Plan to be drafted at sprint start via `Settings/_workflows/sprint-start.md`.
 

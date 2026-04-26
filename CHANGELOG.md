@@ -33,6 +33,9 @@ Fourth sprint of the 5-sprint roadmap. Adds a per-image caption that surfaces in
 ### Migrations
 - `outreach/0005_add_caption.py` — Add `SchoolImage.caption` (CharField max_length=200, blank=True).
 
+### Known issues
+- **TD-18** — After sign-in on a school page, the Edit / Suggest CTA only appears after a manual page refresh. Sign-out reactivity works (this sprint's hotfix). Suspected to share root cause with TD-01 (Auth.js v5 + Next 16 cookie round-trip). Deferred to Sprint 16.
+
 ## Sprint 14 — Community Photo Uploads (2026-04-26)
 
 **Deployed**: backend `sjktconnect-api-00101-klw`, frontend `sjktconnect-web-00094-gqx`. Migration `community.0002_drop_image_add_pending` applied on prod Supabase.
