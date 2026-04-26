@@ -1,8 +1,18 @@
 # Image Library & Community Upload — Sprint Plan
 
 **Date**: 2026-04-22
-**Branch**: `feat/image-library`
+**Branch**: `feat/image-library` (originally one branch; split into Sprint 13/14/15/16 branches)
 **Goal**: Move school images from volatile Google Places URLs into Supabase Storage, and add a community upload flow gated by SUPERADMIN / school admin approval.
+
+## Status (as of 2026-04-26)
+
+| Phase | Sprint | Status |
+|---|---|---|
+| Phase 1 — Storage Foundation | 13 | ✅ Done — see `docs/retrospective-sprint13.md` |
+| Phase 2 — Upload & Moderation API | 14 | ✅ Done — see `docs/retrospective-sprint14.md` |
+| Phase 3.3, 3.5, 3.6 — SuggestForm + queue UX | 14 | ✅ Done |
+| Phase 3.1, 3.2, 3.4 — Lightbox + gallery + image manager polish | 15 | Queued |
+| Phase 4 — Drop legacy `image_url` field | 16 | Queued |
 
 ## Context
 

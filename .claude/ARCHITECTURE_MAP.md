@@ -1,6 +1,6 @@
 # SJK(T) Connect — Architecture Map
 
-Last updated: Sprint 13 close (26 Apr 2026)
+Last updated: Sprint 14 close (26 Apr 2026)
 
 ## Stack
 
@@ -104,6 +104,8 @@ backend/
 │   ├── services/
 │   │   ├── image_harvester.py  # Downloads bytes from Static Maps + Places API,
 │   │   │                       # uploads via image_file.save() (Sprint 13 rewrite)
+│   │   ├── image_processor.py  # Pillow validate/strip-EXIF/resize/pHash for community
+│   │   │                       # photo uploads (Sprint 14)
 │   │   └── email_sender.py     # Brevo outreach email sending
 │   └── management/commands/
 │       ├── harvest_school_images.py
@@ -151,17 +153,25 @@ backend/
 │   └── management/commands/
 │       └── import_bank_details.py  # Import bank details from TF Excel
 │
-├── community/            # Community suggestions + moderation (Sprint 8.2)
+├── community/            # Community suggestions + moderation (Sprint 8.2, photo flow rewritten Sprint 14)
 │   ├── models.py         # Suggestion (PHOTO_UPLOAD / DATA_CORRECTION / NOTE,
-│   │                     #   PENDING/APPROVED/REJECTED, BinaryField for image)
-│   ├── services.py       # approve_suggestion, reject_suggestion,
-│   │                     # _apply_data_correction (updates school fields),
-│   │                     # _apply_photo_upload (creates SchoolImage, uses BACKEND_URL)
+│   │                     #   PENDING/APPROVED/REJECTED, pending_image: ImageField →
+│   │                     #   Supabase Storage UUID path, phash: indexed pHash for dedup)
+│   ├── services.py       # approve_suggestion (copies pending_image bytes into
+│   │                     #   SchoolImage.image_file, enforces 20-photo cap),
+│   │                     # reject_suggestion (deletes staged file),
+│   │                     # _apply_data_correction (updates school fields)
 │   └── api/
-│       ├── serializers.py # SuggestionCreate + List
-│       └── views.py      # POST /schools/<moe>/suggestions/, moderation queue,
-│                          # approve/reject, suggestion_image_view (auth-gated for
-│                          # non-APPROVED after 2026-04-22 security fix),
+│       ├── serializers.py # SuggestionCreate (non-photo only) + List with pending_image_url
+│       ├── permissions.py # IsPhotoApprover (SUPERADMIN OR bound school admin —
+│       │                  #   MODERATOR explicitly excluded for photo decisions)
+│       ├── throttles.py  # PhotoUploadUserThrottle 5/day + PhotoUploadSchoolThrottle 20/day
+│       └── views.py      # JSON: school_suggestions_view (data corrections + notes);
+│                          # MULTIPART: school_photo_upload_view (Pillow validate, pHash
+│                          #   dedup, throttled);
+│                          # approve/reject (PHOTO_UPLOAD branch uses IsPhotoApprover +
+│                          #   20-photo cap → 409 slot_full);
+│                          # pin_image_view (atomic hero swap),
 │                          # school-image reorder/delete
 │
 └── feedback/             # Contact form + Gmail feedback ingestion
@@ -363,11 +373,13 @@ UserProfile (OneToOne Django User)              ← Sprint 8.1
   ├── admin_school (OneToOne School, optional)  ← school-admin scope
   └── points: int (awarded on approved suggestions)
 
-Suggestion                                      ← Sprint 8.2
+Suggestion                                      ← Sprint 8.2 + Sprint 14 photo refactor
   ├── FK school, FK user (→ UserProfile)
   ├── type: DATA_CORRECTION / PHOTO_UPLOAD / NOTE
   ├── status: PENDING / APPROVED / REJECTED
-  ├── image: BinaryField (legacy — being removed in Sprint 14, replaced by direct upload to SchoolImage.image_file)
+  ├── pending_image: ImageField → Supabase Storage `pending/<uuid>.<ext>` (PHOTO_UPLOAD only,
+  │     cleared on approve/reject; UUID path = unguessable URL on public bucket)
+  ├── phash: indexed CharField (16-char) — perceptual hash for (school + user) dedup
   └── points_awarded: int (3 photo, 2 correction, 1 note)
 
 SchoolImage                                     ← Sprint 1.8 + Sprint 13 storage refactor
