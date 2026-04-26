@@ -10,6 +10,7 @@ import {
 import { buildAlternates } from "@/lib/seo";
 import Breadcrumb from "@/components/Breadcrumb";
 import EditSchoolLink from "@/components/EditSchoolLink";
+import ManageImagesLink from "@/components/ManageImagesLink";
 import SuggestButton from "@/components/SuggestButton";
 import SchoolPhotoGallery from "@/components/SchoolImage";
 import SchoolProfile from "@/components/SchoolProfile";
@@ -130,6 +131,7 @@ export default async function SchoolPage({ params }: PageProps) {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <EditSchoolLink moeCode={school.moe_code} />
+            <ManageImagesLink moeCode={school.moe_code} />
             <SuggestButton moeCode={school.moe_code} />
           </div>
 
