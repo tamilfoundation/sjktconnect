@@ -1,4 +1,18 @@
+import uuid
+
 from django.db import models
+
+
+def _pending_upload_to(instance, filename):
+    """Pending uploads live under an unguessable UUID path until approved.
+
+    Supabase bucket is public-read; using UUIDs (32 hex chars) makes the URL
+    unenumerable so a moderator-only image can't be discovered by guessing.
+    On approval, bytes are copied into a SchoolImage row under
+    schools/<moe>/<filename>; the original pending file is deleted.
+    """
+    ext = (filename.rsplit(".", 1)[-1] if "." in filename else "jpg").lower()
+    return f"pending/{uuid.uuid4().hex}.{ext}"
 
 
 class Suggestion(models.Model):
@@ -38,7 +52,15 @@ class Suggestion(models.Model):
     current_value = models.TextField(blank=True, default="")
     suggested_value = models.TextField(blank=True, default="")
     note = models.TextField(blank=True, default="")
-    image = models.BinaryField(blank=True, default=b"")
+    pending_image = models.ImageField(
+        upload_to=_pending_upload_to, blank=True, null=True,
+        help_text="Validated bytes for PHOTO_UPLOAD (Supabase Storage). "
+                  "Cleared on approve (copied to SchoolImage) or reject.",
+    )
+    phash = models.CharField(
+        max_length=32, blank=True, default="", db_index=True,
+        help_text="Perceptual hash for dedup. Computed at upload time.",
+    )
     reviewed_by = models.ForeignKey(
         "accounts.UserProfile",
         on_delete=models.SET_NULL,

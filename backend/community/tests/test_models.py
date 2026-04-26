@@ -38,13 +38,19 @@ class SuggestionModelTest(TestCase):
         self.assertEqual(str(s), "ABC1234 — Data Correction (Pending)")
 
     def test_create_photo_upload(self):
+        from django.core.files.base import ContentFile
+        from community.tests.fixtures import valid_png_bytes
+
         s = Suggestion.objects.create(
             school=self.school,
             user=self.profile,
             type=Suggestion.Type.PHOTO_UPLOAD,
-            image=b"fake-png-bytes",
+            phash="abc123def456",
         )
+        s.pending_image.save("test.png", ContentFile(valid_png_bytes()), save=True)
         self.assertEqual(s.type, Suggestion.Type.PHOTO_UPLOAD)
+        self.assertTrue(s.pending_image)
+        self.assertEqual(s.phash, "abc123def456")
 
     def test_create_note(self):
         s = Suggestion.objects.create(

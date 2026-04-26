@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import {
-  fetchSchoolImages,
-  reorderSchoolImages,
   deleteSchoolImage,
+  fetchSchoolImages,
+  pinSchoolImage,
+  reorderSchoolImages,
 } from "@/lib/api";
 import { SchoolImageData } from "@/lib/types";
 
@@ -106,6 +107,20 @@ export default function ImageManager({ moeCode }: ImageManagerProps) {
     }
   };
 
+  const handlePin = async (imageId: number) => {
+    try {
+      setError(null);
+      await pinSchoolImage(moeCode, imageId);
+      // Optimistic local update — exactly one image is_primary at a time.
+      setImages((prev) =>
+        prev.map((img) => ({ ...img, is_primary: img.id === imageId })),
+      );
+      setSuccessMessage("Hero photo updated.");
+    } catch {
+      setError("Failed to set hero photo.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="text-center py-12 text-gray-500">Loading...</div>
@@ -184,14 +199,17 @@ export default function ImageManager({ moeCode }: ImageManagerProps) {
                 {SOURCE_LABELS[image.source] || image.source}
               </span>
               {image.is_primary && (
-                <span className="absolute top-2 right-2 px-2 py-0.5 bg-primary-600 text-white text-xs rounded">
-                  Primary
+                <span
+                  className="absolute top-2 right-2 px-2 py-0.5 bg-primary-600 text-white text-xs rounded inline-flex items-center gap-1"
+                  title="Hero photo"
+                >
+                  <span aria-hidden>★</span> Hero
                 </span>
               )}
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-between p-3">
+            <div className="flex items-center justify-between p-3 gap-2">
               <div className="flex gap-1">
                 <button
                   onClick={() => moveUp(index)}
@@ -232,12 +250,22 @@ export default function ImageManager({ moeCode }: ImageManagerProps) {
                   </svg>
                 </button>
               </div>
-              <button
-                onClick={() => handleDelete(image.id)}
-                className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
-              >
-                {t("deleteImage")}
-              </button>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => handlePin(image.id)}
+                  disabled={image.is_primary}
+                  className="px-3 py-1 text-sm text-primary-700 hover:bg-primary-50 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="Make this the school's hero photo"
+                >
+                  {image.is_primary ? "★ Hero" : "Make hero"}
+                </button>
+                <button
+                  onClick={() => handleDelete(image.id)}
+                  className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
+                >
+                  {t("deleteImage")}
+                </button>
+              </div>
             </div>
           </div>
         ))}

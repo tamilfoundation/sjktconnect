@@ -329,6 +329,7 @@ export interface SittingBrief {
 export interface Suggestion {
   id: number;
   school: string;
+  school_moe_code: string;
   user_name: string;
   school_name: string;
   type: "DATA_CORRECTION" | "PHOTO_UPLOAD" | "NOTE";
@@ -337,6 +338,7 @@ export interface Suggestion {
   current_value: string;
   suggested_value: string;
   note: string;
+  pending_image_url: string;
   reviewed_by_name: string | null;
   review_note: string;
   points_awarded: number;

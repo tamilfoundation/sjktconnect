@@ -4,11 +4,12 @@ from community.api.views import (
     approve_suggestion_view,
     delete_image_view,
     pending_suggestions_view,
+    pin_image_view,
     reject_suggestion_view,
     reorder_images_view,
     school_images_view,
+    school_photo_upload_view,
     school_suggestions_view,
-    suggestion_image_view,
 )
 
 urlpatterns = [
@@ -16,6 +17,11 @@ urlpatterns = [
         "schools/<str:moe_code>/suggestions/",
         school_suggestions_view,
         name="school-suggestions",
+    ),
+    path(
+        "schools/<str:moe_code>/suggestions/photo/",
+        school_photo_upload_view,
+        name="school-photo-upload",
     ),
     path(
         "suggestions/pending/",
@@ -33,14 +39,14 @@ urlpatterns = [
         name="suggestion-reject",
     ),
     path(
-        "suggestions/<int:pk>/image/",
-        suggestion_image_view,
-        name="suggestion-image",
-    ),
-    path(
         "schools/<str:moe_code>/images/reorder/",
         reorder_images_view,
         name="reorder-images",
+    ),
+    path(
+        "schools/<str:moe_code>/images/<int:image_id>/pin/",
+        pin_image_view,
+        name="pin-image",
     ),
     path(
         "schools/<str:moe_code>/images/<int:image_id>/",
