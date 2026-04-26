@@ -2,18 +2,19 @@
 
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Link } from "@/i18n/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth-api";
-import { searchEntities } from "@/lib/api";
+import { fetchSchoolDetail } from "@/lib/api";
 import ImageManager from "@/components/ImageManager";
 
-type SchoolHit = {
-  moe_code: string;
-  short_name?: string | null;
-  name?: string;
-};
-
+/**
+ * School-image manager. Always operates on a single school identified by
+ * the `?school=<moe>` query parameter, which is set by the "Manage images"
+ * link on the school edit page. Bound school admins are auto-redirected
+ * to their own school. SUPERADMIN must arrive with the param set.
+ */
 export default function DashboardImagesPage() {
   const t = useTranslations("suggestions");
   const { status } = useSession();
@@ -21,11 +22,9 @@ export default function DashboardImagesPage() {
   const [loading, setLoading] = useState(true);
 
   const searchParams = useSearchParams();
-  const initialMoe = searchParams.get("school") || "";
-  const [selectedMoe, setSelectedMoe] = useState<string>(initialMoe);
-  const [selectedLabel, setSelectedLabel] = useState<string>("");
-  const [query, setQuery] = useState("");
-  const [hits, setHits] = useState<SchoolHit[]>([]);
+  const moeFromQuery = searchParams.get("school") || "";
+  const [moeCode, setMoeCode] = useState(moeFromQuery);
+  const [schoolName, setSchoolName] = useState<string>("");
 
   useEffect(() => {
     fetchProfile()
@@ -33,40 +32,23 @@ export default function DashboardImagesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Bound school admin: jump straight to their school.
+  // Bound school admin without query param → use their school.
   useEffect(() => {
     if (!profile) return;
-    if (profile.role !== "SUPERADMIN" && profile.admin_school) {
-      setSelectedMoe(profile.admin_school.moe_code);
-      setSelectedLabel(profile.admin_school.name);
+    if (!moeFromQuery && profile.role !== "SUPERADMIN" && profile.admin_school) {
+      setMoeCode(profile.admin_school.moe_code);
+      setSchoolName(profile.admin_school.name);
     }
-  }, [profile]);
+  }, [profile, moeFromQuery]);
 
-  // Picker search debounced.
+  // Resolve a friendly school name once we know the moe code.
   useEffect(() => {
-    if (profile?.role !== "SUPERADMIN") return;
-    if (query.trim().length < 2) {
-      setHits([]);
-      return;
-    }
-    let cancelled = false;
-    const t = setTimeout(() => {
-      searchEntities(query.trim()).then((r) => {
-        if (cancelled) return;
-        setHits(r.schools as SchoolHit[]);
-      });
-    }, 200);
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
-  }, [query, profile?.role]);
-
-  const isSuperadmin = profile?.role === "SUPERADMIN";
-  const canManage = useMemo(
-    () => Boolean(profile && (isSuperadmin || profile.admin_school)),
-    [profile, isSuperadmin],
-  );
+    if (!moeCode) return;
+    if (schoolName) return;
+    fetchSchoolDetail(moeCode)
+      .then((s) => setSchoolName(s.short_name || s.name))
+      .catch(() => setSchoolName(moeCode));
+  }, [moeCode, schoolName]);
 
   if (status === "loading" || loading) {
     return (
@@ -84,6 +66,22 @@ export default function DashboardImagesPage() {
     );
   }
 
+  const canManage =
+    profile.role === "SUPERADMIN" ||
+    Boolean(profile.admin_school && profile.admin_school.moe_code === moeCode);
+
+  if (!moeCode) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-16 text-center text-gray-500 space-y-3">
+        <p>Open this page from a school&rsquo;s edit page.</p>
+        <p className="text-xs text-gray-400">
+          The image manager always operates on a specific school. Use the
+          &ldquo;Manage images&rdquo; button on the school&rsquo;s edit page.
+        </p>
+      </div>
+    );
+  }
+
   if (!canManage) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-16 text-center text-gray-500">
@@ -94,74 +92,23 @@ export default function DashboardImagesPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">
-        {t("imageManager")}
-      </h1>
-
-      {isSuperadmin ? (
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            School
-          </label>
-          {selectedMoe ? (
-            <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg px-3 py-2">
-              <span className="text-sm text-gray-900">
-                {selectedLabel || selectedMoe}
-              </span>
-              <button
-                onClick={() => {
-                  setSelectedMoe("");
-                  setSelectedLabel("");
-                  setQuery("");
-                }}
-                className="text-xs text-primary-600 hover:underline ml-auto"
-              >
-                Change
-              </button>
-            </div>
-          ) : (
-            <div className="relative">
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by school name or MOE code…"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-              {hits.length > 0 && (
-                <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
-                  {hits.map((h) => (
-                    <li key={h.moe_code}>
-                      <button
-                        onClick={() => {
-                          setSelectedMoe(h.moe_code);
-                          setSelectedLabel(h.short_name || h.name || h.moe_code);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
-                      >
-                        <span className="font-medium">{h.short_name || h.name}</span>
-                        <span className="text-gray-500 ml-2">{h.moe_code}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">
+            {t("imageManager")}
+          </h1>
+          <p className="text-sm text-gray-500">
+            {schoolName || moeCode}
+          </p>
         </div>
-      ) : (
-        <p className="text-sm text-gray-500 mb-8">
-          {profile.admin_school?.name}
-        </p>
-      )}
-
-      {selectedMoe ? (
-        <ImageManager moeCode={selectedMoe} />
-      ) : (
-        <div className="text-center py-12 text-gray-500 text-sm">
-          Select a school above to manage its images.
-        </div>
-      )}
+        <Link
+          href={`/school/${moeCode}/edit`}
+          className="text-sm text-primary-600 hover:underline whitespace-nowrap"
+        >
+          ← Back to edit
+        </Link>
+      </div>
+      <ImageManager moeCode={moeCode} />
     </div>
   );
 }
