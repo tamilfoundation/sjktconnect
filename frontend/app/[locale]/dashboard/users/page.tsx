@@ -45,20 +45,25 @@ export default function UsersDashboardPage() {
     }
   }, [role, hasAdminSchool, isActive, search]);
 
-  // Gate by SUPERADMIN on mount
+  // Gate by SUPERADMIN on mount. Uses .catch so a 401 from the backend
+  // (signed-out user with no Django session) doesn't fall through to the
+  // page chrome — TD-16. Render-side `currentProfileId === null` keeps the
+  // table hidden until auth resolves.
   useEffect(() => {
-    fetchMe().then((me) => {
-      if (!me) {
-        router.push("/");
-        return;
-      }
-      if (me.role !== "SUPERADMIN") {
-        router.push("/dashboard");
-        return;
-      }
-      setCurrentProfileId(me.id);
-      load();
-    });
+    fetchMe()
+      .then((me) => {
+        if (!me) {
+          router.push("/");
+          return;
+        }
+        if (me.role !== "SUPERADMIN") {
+          router.push("/dashboard");
+          return;
+        }
+        setCurrentProfileId(me.id);
+        load();
+      })
+      .catch(() => router.push("/"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
