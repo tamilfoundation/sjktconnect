@@ -137,37 +137,15 @@ archived_at      DateTimeField, null
 
 ---
 
-## Phase 3 — Frontend
+## Phase 3 — Frontend (✅ Sprint 14 + Sprint 15)
 
-### 3.1 `SchoolPhotoGallery` rewrite
-- Shows 1 hero + 4 thumbs (unchanged)
-- If total > 5: overlay "View all N photos" button on hero
-- Images ordered by backend-computed `display_score`
+Closed across two sprints:
+- **Sprint 14** delivered 3.3 (upload UI), 3.5 (photo approval queue), and 3.6 (moderation queue polish).
+- **Sprint 15** delivered 3.1 (gallery rewrite + "View all N" overlay), 3.2 (lightbox with captions), and 3.4 (`/dashboard/images` polish — caption editor; pin/unpin shipped in Sprint 14).
 
-### 3.2 Lightbox modal
-- `yet-another-react-lightbox` (~15 KB gzipped)
-- Full-screen, swipe on mobile, arrow keys on desktop
-- Per-photo: attribution, caption, upload date, report button
+Archived tab + restore button (3.4 residual) deferred — soft-delete UX wasn't requested by users; revisit when there's actual demand.
 
-### 3.3 Upload UI
-- Extend `SuggestForm` (`PHOTO_UPLOAD` already an option from Sprint 8.2)
-- Add file picker + drag-drop + preview + client-side size/format validation
-
-### 3.4 `/dashboard/images`
-- Extend Sprint 8.2 admin view
-- Add: pin/unpin toggle, caption editor, archived tab, restore button
-- Visibility: school admins for their school only; SUPERADMIN for all
-
-### 3.5 `/dashboard/suggestions` — photo approval
-- Photo preview in review queue
-- Approve/reject buttons; reject opens reason textarea
-- Banner when school at 20/20: "Delete existing photo first"
-
-### 3.6 Moderation queue UX polish (from 2026-04-22 E2E testing)
-Feedback from first end-to-end moderation test — carry forward into Image Library sprint:
-- **School name as clickable link**: in the queue card, `SJK(T) Ladang Sungai Raya` should link to `/school/<moe_code>` so moderators can open the profile in a new tab to verify context before approving. Currently plain text.
-- **Photo preview in queue card**: for `PHOTO_UPLOAD` suggestions, render the image inline in the moderation card (not just the "Photo Upload" badge). Without seeing the photo, a moderator cannot make an informed approve/reject decision.
-- **Delete approved image flow**: after a photo is approved, a moderator must have a discoverable way to remove it (e.g. a "Remove" button on each image in `/dashboard/images`, or a back-link from the school page's photo gallery for privileged users). Already covered by Phase 2.3 (soft delete API) + Phase 3.4 (`/dashboard/images` management UI) — make sure the UX is obvious.
+See `docs/retrospective-sprint14.md` and `docs/retrospective-sprint15.md` for what shipped.
 
 ---
 

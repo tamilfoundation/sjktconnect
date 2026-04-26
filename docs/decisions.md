@@ -316,3 +316,49 @@
 **Trade-offs:** Slightly more storage churn — uploads that ultimately can't be approved still consume Supabase egress + storage briefly. At our scale (community uploads are rare) this is negligible. A janitor command can clean up long-PENDING photos for schools at cap if it ever becomes a real cost.
 
 **Revisit if:** Storage cost becomes meaningful (we'd need ~10× more uploads-per-day before this matters), or if the moderator queue regularly fills with un-approvable photos at popular schools.
+
+## `yet-another-react-lightbox` over alternatives — Sprint 15, 2026-04-26
+
+**Decision:** Adopted `yet-another-react-lightbox` (~15 KB gzipped, MIT, with first-party Captions plugin) for the public photo lightbox. Lazy-imported via `next/dynamic` so the lib loads on first click and is excluded from SSR + the first-load JS budget.
+
+**Alternatives considered:**
+1. **`react-image-lightbox`** — older, ~30 KB, last meaningful release 2021. Discontinued in spirit.
+2. **`react-photo-view`** — small, smooth pinch-zoom, but no caption plugin and no plugin architecture for future features (download, share).
+3. **`yet-another-react-lightbox`** — actively maintained, plugin architecture, captions/zoom/thumbs/fullscreen plugins available individually. ESM-only.
+4. **Hand-roll a `<dialog>` + `useEffect` swipe handler** — total control, no dep, but ~200 lines + a swipe library + accessibility work. Not worth it for our scale.
+
+**Rationale:** Smallest actively-maintained option with a clean plugin interface. The plugin architecture means we can add zoom/share/download in Sprint 16+ without changing the wrapper. Lazy-loading neutralises the bundle-size concern for users who never click a photo.
+
+**Trade-offs:** ESM-only ships breaks Jest unit tests of the wrapper without a `transformIgnorePatterns` exception. Resolved by leaning on integration tests in `SchoolImage.test.tsx` instead of unit-testing `PhotoLightbox` in isolation. Lessons.md captures the general rule for any future ESM-only frontend lib.
+
+**Revisit if:** The plugin architecture becomes a maintenance burden as we add more interactive features (e.g. report-photo button, in-lightbox edit), or if a meaningfully smaller actively-maintained alternative emerges.
+
+## `SchoolImage.caption` (not `Suggestion.caption`) — Sprint 15, 2026-04-26
+
+**Decision:** The caption field lives on `SchoolImage`, edited via `PATCH /schools/<moe>/images/<id>/caption/` post-approval. The `Suggestion` model does not get a caption field; uploaders cannot supply a caption at upload time.
+
+**Alternatives considered:**
+1. **Caption on `Suggestion`, copied to `SchoolImage` at approve** — uploaders write captions, moderators edit before approving. More user-friendly but doubles the edit surface (two places where a caption can be wrong).
+2. **Caption on both, with `SchoolImage.caption` taking precedence** — most flexible, but the precedence rule is the kind of subtle gotcha that breaks 6 months later.
+3. **Caption only on `SchoolImage`, edited post-approval (chosen)** — simpler lifecycle: caption is a property of the persistent image, not of the ephemeral suggestion.
+
+**Rationale:** Captions describe the *photo* (e.g. "Hall block, viewed from the field"), which is a property of the persistent image. Letting uploaders write captions adds a moderation surface (offensive captions, misleading claims) without commensurate value at our current scale. Editing post-approval keeps the moderation workflow focused on the photo itself; captions can be polished by school admins after the fact.
+
+**Trade-offs:** Loses the "uploader's voice" aspect. If we ever want photo attribution to the uploader-as-author, we'd need a separate `attribution` field — but that's distinct from a descriptive caption and can be added later without breaking this decision.
+
+**Revisit if:** Community uploads scale enough that the SUPERADMIN bandwidth for caption editing becomes a bottleneck, OR if uploaders start consistently providing context in their suggestion notes that would make a better caption than what admins write.
+
+## Logout endpoint is `AllowAny` + idempotent — Sprint 15, 2026-04-26
+
+**Decision:** `POST /api/v1/auth/logout/` flushes `request.session` with no permission check (`AllowAny`) and returns 200 on every call, including when the session is already empty.
+
+**Alternatives considered:**
+1. **`IsAuthenticated` permission** — only allows logout when there's an active session. Symmetrical with login. **Rejected** because the bug we're fixing is exactly "the session is stale and the user wants to flush it without re-authenticating".
+2. **Return 401 if no session to flush** — symmetric with HTTP semantics but useless to the frontend (which would have to ignore the 401).
+3. **`AllowAny` + idempotent (chosen)** — calling logout always succeeds regardless of state. Frontend doesn't have to branch on session state.
+
+**Rationale:** Logout is the operation that exists to handle the "I want to be in a logged-out state" command. Refusing the request because the user is already logged out (or has a stale credential) defeats the purpose. CSRF is mitigated by the request being a no-op for unauthenticated callers — there's nothing to forge.
+
+**Trade-offs:** A bot hitting `/logout/` constantly adds a Cloud Run request count but zero state change. At our scale, the cost is negligible. If it ever became measurable, throttling would be the right tool, not permission gating.
+
+**Revisit if:** Logout becomes a user-visible action with side effects beyond session flush (e.g. invalidating refresh tokens, broadcasting a "user signed out" event), in which case the surface needs to be re-evaluated as a whole.
