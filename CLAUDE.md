@@ -276,7 +276,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 13 | Image Storage Migration | ✅ Done 2026-04-26 — resolved TD-05, TD-06, TD-13 |
 | 14 | Community Photo Uploads | ✅ Done 2026-04-26 — resolved TD-07, TD-09, TD-16 (suggestions portion) |
 | 15 | Image Display Polish | ✅ Done 2026-04-26 |
-| 16 | **Code-Quality Pass** | **Next** — resolves TD-01 regression, TD-10 residual, TD-11, TD-12, TD-14, TD-15, TD-17, TD-18 |
+| 16 | **Code-Quality Pass** | **In Progress** (started 2026-04-26) — TD-01 regression, TD-10 residual, TD-14, TD-15, TD-16 (users+images pages), TD-17, TD-18, npm transitive audit. TD-11 + TD-12 (test-coverage padding) deferred. |
 
 ### Sprint 16 — What to build
 
