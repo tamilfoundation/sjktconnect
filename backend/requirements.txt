@@ -47,6 +47,7 @@ qrcode[pil]>=7.0
 # Image storage (Supabase Storage via S3-compatible API)
 django-storages[boto3]>=1.14
 Pillow>=10.0
+imagehash>=4.3
 
 # Testing
 pytest>=8.0

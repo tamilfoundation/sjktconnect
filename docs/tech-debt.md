@@ -94,6 +94,20 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 - **What it blocks**: CI signal quality (once CI exists — currently no `.github/workflows/`).
 - **Cost to fix**: 1 hour. Diagnose — likely async `waitFor` timeout tuning.
 
+## 🟢 TD-17 — Brittle LLM-output assertion in `test_html_contains_all_summaries`
+
+- **What**: `parliament/tests/test_brief_generator.py:70` calls real Gemini and asserts the literal phrase `"Tamil school repairs"` appears in the generated brief HTML. Gemini paraphrases freely — recent runs returned `"delays in SJK(T) repair works"` (semantically identical, lexically different) and the assertion fails. Discovered during Sprint 14 full-suite run (980 tests, 1 LLM flake).
+- **Why we accepted**: Inherited from Sprint 0.4 era. The test predates the move to deterministic mocking.
+- **What it blocks**: CI signal quality. Future automated CI would page on this LLM flake without value.
+- **Cost to fix**: 30 min. Either (a) mock the Gemini call and assert on the mock input/output, or (b) loosen the assertion to a stem like `repair`. **Sprint 16** alongside TD-15.
+
+## 🟡 TD-16 — Frontend dashboard pages render for signed-out users
+
+- **What**: `/dashboard/users` (and likely sibling dashboard pages — `/dashboard/suggestions`, `/dashboard/images`) render the full UI to signed-out users. Root cause: `useEffect(() => fetchMe().then(me => !me && router.push("/")))` in `frontend/app/[locale]/dashboard/users/page.tsx:49-63` has no `.catch()`. If `fetchMe()` throws on 401 (no session), the redirect never fires and the page falls through to render whatever stale state is in `users[]`. Verified on prod 2026-04-26: signed-out tab on `tamilschool.org/en/dashboard/users` shows the full user table with Role/School/Deactivate buttons.
+- **Why we accepted**: Discovered post-Sprint-12 close. **Backend is correctly gated** — `AdminUserListView` has `IsSuperAdmin` permission, so no data leaks and every PATCH/DELETE returns 403. Bug is UX/security-cosmetic (signed-out users see admin chrome but cannot mutate anything).
+- **What it blocks**: Trust signal — non-technical observers will think the platform is insecure even though backend permissions hold. Also masks the SUPERADMIN-only nature of the page from school admins, who might assume they can see the same UI.
+- **Cost to fix**: 30 min. Add `.catch(() => router.push("/"))` to every `fetchMe()` call inside dashboard pages, render `null` (not the page chrome) until `currentProfileId !== null`. Also verify school-admin-scoped pages gate by role correctly, not just by truthy session. **Sprint 14 will apply the fix to `/dashboard/suggestions` as part of its photo-approval UI work** (in-scope file). The `/dashboard/users` and `/dashboard/images` fixes belong in **Sprint 16** (Code-Quality Pass).
+
 ---
 
 ## Triage for next sprints
@@ -108,6 +122,6 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 | ✅ Sprint 12 — User Management UI | — | Done 2026-04-24 |
 | ✅ Sprint 13 — Image Storage Migration | TD-05 ✅, TD-06 (provisional) ✅, TD-13 ✅ | Done 2026-04-26 |
 | 🔴 TD-01 re-opened (Next 16 + Auth.js state cookie regression) | TD-01 | Investigation in Sprint 16 |
-| Sprint 14 — Community Photo Uploads | TD-07, TD-09 | Next |
+| Sprint 14 — Community Photo Uploads | TD-07, TD-09, TD-16 (suggestions page only) | Next |
 | Sprint 15 — Image Display Polish | — | After Sprint 14 |
-| Sprint 16 — Code-Quality Pass | TD-01 (re-opened), TD-10 residual, TD-11, TD-12, TD-14, TD-15 | Last of 5-sprint roadmap |
+| Sprint 16 — Code-Quality Pass | TD-01 (re-opened), TD-10 residual, TD-11, TD-12, TD-14, TD-15, TD-16 (users + images pages), TD-17 | Last of 5-sprint roadmap |

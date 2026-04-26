@@ -1,5 +1,43 @@
 # Changelog
 
+## Sprint 14 — Community Photo Uploads (2026-04-26)
+
+**Deployed**: backend `sjktconnect-api-00101-klw`, frontend `sjktconnect-web-00094-gqx`. Migration `community.0002_drop_image_add_pending` applied on prod Supabase.
+
+Third sprint of the 5-sprint roadmap. Replaces the Sprint 8.2 base64-into-BinaryField photo flow with multipart uploads → Supabase Storage. Adds Pillow validation, perceptual-hash dedup, daily throttling, a 20-photo cap on approve, a hero-pin endpoint, and a `IsPhotoApprover` permission that excludes MODERATORs from photo decisions. Resolves TD-07 + TD-09 + TD-16 (suggestions-page portion).
+
+### Added
+- **`backend/outreach/services/image_processor.py`**: Pillow-backed validate → strip EXIF → resize to 1600px → compute pHash. Stable error codes (`too_large`, `too_small`, `unsupported_format`, `invalid_image`, `empty`).
+- **`POST /api/v1/schools/<moe_code>/suggestions/photo/`**: multipart upload endpoint. Validation (≤5 MB, JPEG/PNG/WebP, ≥640×400), pHash dedup against `(school + user)` PENDING/APPROVED uploads, scoped throttling. Creates `Suggestion(type=PHOTO_UPLOAD, status=PENDING)` with bytes in `Suggestion.pending_image` (Supabase Storage, UUID path).
+- **`POST /api/v1/schools/<moe_code>/images/<id>/pin/`**: makes a photo the school's hero (`is_primary=True`). Atomically clears `is_primary` on siblings. Permission: `IsPhotoApprover`.
+- **`backend/community/api/permissions.py` — `IsPhotoApprover`**: SUPERADMIN OR `admin_school_id == school_id`. MODERATOR explicitly NOT a photo approver (Image Library plan Decision #5).
+- **`backend/community/api/throttles.py`**: `PhotoUploadUserThrottle` (5/day) + `PhotoUploadSchoolThrottle` (20/day). Configured via `REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]`.
+- **`Suggestion.pending_image` ImageField** + **`Suggestion.phash` indexed CharField**: replaces the dropped `image` BinaryField. Migration `community/0002_drop_image_add_pending.py`.
+- **`SuggestionListSerializer.pending_image_url`**: surfaces the staged Storage URL to authorised viewers via the moderation queue API.
+- **Frontend `SuggestForm`**: file picker + preview + client-side size/format/dimensions check + multipart `FormData` POST to `uploadSchoolPhoto()`. Typed error surfacing for `duplicate`, `too_large`, `too_small`, `unsupported_format`, `throttled`.
+- **Frontend `ImageManager`**: ⭐ Make hero button per image; current hero shows ★ Hero badge + disabled.
+- **Frontend `ModerationQueue`**: photo preview rendered inline from `pending_image_url`; school name as link to `/school/<moe_code>` (target=_blank); 20-photo `slot_full` 409 surfaces as an inline amber banner; reject reason now multi-line textarea.
+- **`PhotoUploadError` typed Error class** in `lib/api.ts` with `setPrototypeOf` fix for ES5-target instanceof checks.
+
+### Changed
+- **`approve_suggestion` service**: PHOTO_UPLOAD path now reads bytes from `Suggestion.pending_image`, copies them into a fresh `SchoolImage.image_file` under `schools/<moe>/`, then clears the pending file. Cap enforcement remains in the API view (`PHOTO_CAP_PER_SCHOOL = 20`); service is the defence in depth.
+- **`reject_suggestion` service**: PHOTO_UPLOAD now deletes the staged file from Supabase Storage best-effort.
+- **`approveSuggestion` (frontend)**: split into `approvePhotoSuggestion()` which surfaces 409 `slot_full` as a typed result.
+- **`createSuggestion` signature** narrowed to `DATA_CORRECTION | NOTE` — photos use `uploadSchoolPhoto()`.
+- **`SchoolImage.image_url`** in the school-images list endpoint now returns `display_url` (Sprint 13 backwards-compat property), so the frontend doesn't need to know about the dual-field model.
+
+### Removed
+- **`Suggestion.image` BinaryField** (migration 0002 `drop_image_add_pending`). Sprint 13's COMMUNITY pass already migrated existing bytes to SchoolImage.
+- **`/api/v1/suggestions/<id>/image/` endpoint** + `suggestion_image_view`. Bytes are now served by Supabase Storage directly via `display_url` / `pending_image_url`.
+
+### Tests
+- 28 new backend tests across `community/tests/test_photo_upload.py` (validation matrix, pHash dedup, throttle, owner-school rejected), `test_photo_approve_cap.py` (20-cap 409, reject deletes file), `test_photo_approver_perm.py` (5-role matrix incl. MODERATOR-rejected case), `test_pin_image.py` (atomic primary swap, permission, foreign-image 404). Existing `test_approval.py` rewritten for the new flow.
+- 5 new frontend tests across `__tests__/components/SuggestForm.test.tsx` (client-side type/size rejection, backend duplicate error message), `ImageManager.test.tsx` (hero badge state, pin button click + optimistic update), `ModerationQueue.test.tsx` (photo preview, school link, slot-full banner).
+- Final tally: 1145 backend + 286 frontend tests (`SubscribeForm` flake remains, TD-15).
+
+### Migrations
+- `community/0002_drop_image_add_pending.py` — Remove `image` BinaryField; add `pending_image` ImageField + `phash` CharField (indexed).
+
 ## Sprint 13 — Image Storage Migration (2026-04-25 → 2026-04-26)
 
 Second sprint of the 5-sprint roadmap. Replaces volatile Google Places URLs with persistent bytes in Supabase Storage. Single coherent deliverable, shipped across two sessions because the harvest + migration steps took ~30 min wall time.

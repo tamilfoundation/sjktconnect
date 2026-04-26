@@ -271,3 +271,48 @@
 **Trade-offs:** Brief UX delay (~200ms typical) between clicking a pin and seeing the full hero image. Mitigated by rendering placeholder UI immediately + populating image when fetch resolves. Cancellation flag prevents stale-merge if the user clicks rapidly between pins.
 
 **Revisit if:** Detail-fetch latency becomes user-perceptible (>500ms p95), or if InfoWindow click-through rate becomes high enough that bundling fields into the map payload is cheaper overall.
+
+## `Suggestion.pending_image` ImageField over a separate StagedPhoto model — Sprint 14, 2026-04-26
+
+**Decision:** Add `pending_image: ImageField` directly on `Suggestion` (path: `pending/<uuid>.<ext>` on the public `school-images` Supabase bucket). On approve, copy bytes to a fresh `SchoolImage.image_file`; on reject, delete the file. Bytes for un-approved uploads sit on a public bucket but at unguessable UUID paths.
+
+**Alternatives considered:**
+1. Separate `StagedPhoto` model with FK to Suggestion — more "correct" but doubles the number of DB rows for what is effectively a one-to-one relationship while in PENDING state.
+2. Private Supabase bucket with signed URLs for pending images — eliminates the URL-secrecy bet but adds a separate bucket, separate bucket-policy config, signed-URL generation in serializers, and signed-URL refresh in moderator UI.
+3. Keep BinaryField in Postgres for pending bytes only (drop on approve) — preserves the BinaryField cost we were trying to escape; just makes it transient.
+
+**Rationale:** PENDING is short-lived (moderator queue typically clears within a day at our scale). UUID paths (32 hex chars) on a public bucket give effective access control via URL secrecy — a leaked URL exposes one user's pending photo, not catastrophic. Operational simplicity (one bucket, no signed URLs) is worth the modest residual risk.
+
+**Trade-offs:** A leaked `pending_image_url` (e.g. via browser history of a moderator) gives anyone with the URL access to that one image until the suggestion is approved (file moves) or rejected (file deletes). For a community-photo platform this is acceptable; for sensitive content it would not be.
+
+**Revisit if:** PENDING-photo content sensitivity changes (e.g. people start uploading children's faces with identifying captions) or if Supabase introduces sub-bucket signed URLs at low complexity.
+
+## MODERATOR excluded from photo approval — Sprint 14, 2026-04-26
+
+**Decision:** `IsPhotoApprover` permission grants approve/reject rights ONLY to SUPERADMIN or the bound school admin (`admin_school_id == suggestion.school_id`). MODERATOR role is explicitly NOT a photo approver, even though MODERATOR can approve DATA_CORRECTION and NOTE suggestions.
+
+**Alternatives considered:**
+1. Allow MODERATOR for all suggestion types (status quo from Sprint 8.2) — uniform but conflates "platform-wide quality" (notes, data corrections) with "school-specific representation" (which photo represents this school).
+2. Add a separate PHOTO_MODERATOR role — more granularity but adds a fourth role with limited use case at our scale.
+3. Allow MODERATOR but require school-admin co-sign for photos — workflow complexity not justified by the volume.
+
+**Rationale:** Photos are school-scoped representational decisions; MODERATORs operate at the platform level and don't have local knowledge of "is this actually our school?" or "is this hero photo flattering enough?". School admins have that context; SUPERADMIN has it via override authority. Concentrating photo decisions on people who'll be held accountable for the result keeps the moderation queue intentional rather than rubber-stamped.
+
+**Trade-offs:** If a school has no admin yet (most schools at present), only SUPERADMIN can approve photos for them. This is a soft bottleneck — mitigated by the auto-claim mechanism (`@moe.edu.my` Google sign-in auto-binds `admin_school`) which is already in place.
+
+**Revisit if:** Volume of pending photos exceeds the SUPERADMIN's bandwidth before more schools have bound admins, OR if we ever want a "trust trail" feature where MODERATOR pre-screens then a school admin gives final approval.
+
+## 20-photo cap enforced at approve, not upload — Sprint 14, 2026-04-26
+
+**Decision:** Uploads are accepted regardless of how many APPROVED photos a school has; the `PHOTO_CAP_PER_SCHOOL = 20` check fires at approve time and returns 409 `slot_full`. Service layer also no-ops as defence in depth.
+
+**Alternatives considered:**
+1. Reject uploads at submit when school is at cap — upfront feedback to user, but penalises the user for moderator backlog.
+2. Auto-replace the lowest-ranked existing photo — too magical; users wouldn't know what got bumped.
+3. Cap PENDING+APPROVED combined — would block uploads when many are PENDING, again pushing user-visible failure for moderator inaction.
+
+**Rationale:** Cap is fundamentally about display quality (don't drown a school page in 50 photos), not about storage or queue management. Display-time enforcement is the right place. Moderator gets a clear `slot_full` banner and a link to the image manager to delete an existing photo first; user sees nothing scary.
+
+**Trade-offs:** Slightly more storage churn — uploads that ultimately can't be approved still consume Supabase egress + storage briefly. At our scale (community uploads are rare) this is negligible. A janitor command can clean up long-PENDING photos for schools at cap if it ever becomes a real cost.
+
+**Revisit if:** Storage cost becomes meaningful (we'd need ~10× more uploads-per-day before this matters), or if the moderator queue regularly fills with un-approvable photos at popular schools.

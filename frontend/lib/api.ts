@@ -556,16 +556,17 @@ export async function fetchMeetingReports(): Promise<MeetingReport[]> {
  * Fetch a single parliamentary meeting report by ID.
  */
 /**
- * Create a suggestion for a school (requires session).
+ * Create a non-photo suggestion (DATA_CORRECTION, NOTE).
+ *
+ * Photo uploads use uploadSchoolPhoto() — different endpoint, multipart form.
  */
 export async function createSuggestion(
   moeCode: string,
   data: {
-    type: string;
+    type: "DATA_CORRECTION" | "NOTE";
     field_name?: string;
     suggested_value?: string;
     note?: string;
-    image?: string;
   }
 ): Promise<Suggestion> {
   const res = await fetch(`${BASE}/schools/${moeCode}/suggestions/`, {
@@ -576,6 +577,61 @@ export async function createSuggestion(
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
+}
+
+/** Stable error codes the photo-upload backend returns. */
+export type PhotoUploadErrorCode =
+  | "missing_image"
+  | "too_large"
+  | "too_small"
+  | "unsupported_format"
+  | "invalid_image"
+  | "duplicate"
+  | "throttled"
+  | "unknown";
+
+export class PhotoUploadError extends Error {
+  code: PhotoUploadErrorCode;
+  status: number;
+  constructor(code: PhotoUploadErrorCode, status: number, message: string) {
+    super(message);
+    // tsconfig target is es5; `extends Error` loses the prototype chain
+    // without this fix-up, breaking `instanceof PhotoUploadError`.
+    Object.setPrototypeOf(this, PhotoUploadError.prototype);
+    this.name = "PhotoUploadError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
+/**
+ * Upload a photo to a school as a PENDING suggestion (Sprint 14).
+ * Multipart endpoint with server-side Pillow validation. Throws
+ * PhotoUploadError with a stable code on validation/throttle failures.
+ */
+export async function uploadSchoolPhoto(
+  moeCode: string,
+  file: File,
+  note: string = "",
+): Promise<Suggestion> {
+  const form = new FormData();
+  form.append("image", file);
+  if (note) form.append("note", note);
+  const res = await fetch(
+    `${BASE}/schools/${moeCode}/suggestions/photo/`,
+    { method: "POST", credentials: "include", body: form },
+  );
+  if (res.ok) return res.json();
+  let payload: { code?: string; detail?: string } = {};
+  try {
+    payload = await res.json();
+  } catch {
+    // ignore — body may be HTML or empty
+  }
+  const code = (payload.code as PhotoUploadErrorCode) ||
+    (res.status === 429 ? "throttled" : "unknown");
+  const detail = payload.detail || `HTTP ${res.status}`;
+  throw new PhotoUploadError(code, res.status, detail);
 }
 
 /**
@@ -680,4 +736,46 @@ export async function deleteSchoolImage(moeCode: string, imageId: number): Promi
     credentials: "include",
   });
   if (!res.ok) throw new Error("Failed to delete image");
+}
+
+/**
+ * Make this image the school's hero (is_primary=true).
+ * Permission: SUPERADMIN or this school's admin (Sprint 14).
+ */
+export async function pinSchoolImage(moeCode: string, imageId: number): Promise<void> {
+  const res = await fetch(
+    `${API_URL}/api/v1/schools/${moeCode}/images/${imageId}/pin/`,
+    { method: "POST", credentials: "include" },
+  );
+  if (!res.ok) throw new Error("Failed to set hero photo");
+}
+
+/**
+ * Approve a photo suggestion. Surfaces 409 (slot_full) as a typed error so
+ * the UI can show "Delete an existing photo first" instead of a generic
+ * failure message.
+ */
+export async function approvePhotoSuggestion(id: number): Promise<{
+  ok: boolean;
+  slot_full?: boolean;
+  detail?: string;
+  suggestion?: Suggestion;
+}> {
+  const res = await fetch(`${BASE}/suggestions/${id}/approve/`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (res.ok) {
+    return { ok: true, suggestion: await res.json() };
+  }
+  if (res.status === 409) {
+    let payload: { code?: string; detail?: string } = {};
+    try {
+      payload = await res.json();
+    } catch { /* empty */ }
+    if (payload.code === "slot_full") {
+      return { ok: false, slot_full: true, detail: payload.detail };
+    }
+  }
+  return { ok: false, detail: await res.text() };
 }

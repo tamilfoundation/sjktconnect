@@ -63,17 +63,23 @@ class ApprovalServiceTest(TestCase):
         self.assertEqual(self.profile.points, 1)
 
     def test_approve_photo_creates_school_image(self):
+        from django.core.files.base import ContentFile
+        from community.tests.fixtures import valid_png_bytes
+
         s = Suggestion.objects.create(
             school=self.school,
             user=self.profile,
             type="PHOTO_UPLOAD",
-            image=b"fake-png",
         )
+        s.pending_image.save("test.png", ContentFile(valid_png_bytes()), save=True)
         approve_suggestion(s, self.moderator)
         self.assertEqual(SchoolImage.objects.filter(school=self.school).count(), 1)
         img = SchoolImage.objects.get(school=self.school)
         self.assertEqual(img.source, "COMMUNITY")
         self.assertEqual(img.uploaded_by, self.profile)
+        self.assertTrue(img.image_file)
+        s.refresh_from_db()
+        self.assertFalse(s.pending_image)  # cleared after copy
 
     def test_reject_sets_reason(self):
         s = Suggestion.objects.create(
@@ -102,22 +108,29 @@ class ApprovalServiceTest(TestCase):
         self.assertEqual(self.profile.points, 0)
         self.assertEqual(s.points_awarded, 0)
 
-    def test_max_10_images_per_school(self):
-        for i in range(10):
+    def test_service_skips_create_when_at_cap(self):
+        """Defence in depth: service no-ops the create when 20 images exist.
+        Cap is normally enforced upstream by the API view; this test guards
+        the service-level fallback.
+        """
+        from django.core.files.base import ContentFile
+        from community.tests.fixtures import valid_png_bytes
+
+        for i in range(20):
             SchoolImage.objects.create(
                 school=self.school,
                 image_url=f"https://example.com/{i}.jpg",
                 source="PLACES",
+                position=i,
             )
         s = Suggestion.objects.create(
             school=self.school,
             user=self.profile,
             type="PHOTO_UPLOAD",
-            image=b"fake-png",
         )
+        s.pending_image.save("test.png", ContentFile(valid_png_bytes()), save=True)
         approve_suggestion(s, self.moderator)
-        # Should still be 10 — new image not created
-        self.assertEqual(SchoolImage.objects.filter(school=self.school).count(), 10)
+        self.assertEqual(SchoolImage.objects.filter(school=self.school).count(), 20)
 
 
 class ModerationAPITest(TestCase):
@@ -238,47 +251,7 @@ class ModerationAPITest(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(len(resp.data), 1)
 
-    def test_image_endpoint_returns_png_for_approved(self):
-        s = Suggestion.objects.create(
-            school=self.school,
-            user=self.profile,
-            type="PHOTO_UPLOAD",
-            image=b"fake-png-data",
-            status=Suggestion.Status.APPROVED,
-        )
-        resp = self.client.get(f"/api/v1/suggestions/{s.pk}/image/")
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp["Content-Type"], "image/png")
-        self.assertEqual(resp.content, b"fake-png-data")
-
-    def test_image_endpoint_blocks_anonymous_for_pending(self):
-        s = Suggestion.objects.create(
-            school=self.school,
-            user=self.profile,
-            type="PHOTO_UPLOAD",
-            image=b"fake-png-data",
-            status=Suggestion.Status.PENDING,
-        )
-        resp = self.client.get(f"/api/v1/suggestions/{s.pk}/image/")
-        self.assertEqual(resp.status_code, 401)
-
-    def test_image_endpoint_allows_uploader_for_pending(self):
-        s = Suggestion.objects.create(
-            school=self.school,
-            user=self.profile,
-            type="PHOTO_UPLOAD",
-            image=b"fake-png-data",
-            status=Suggestion.Status.PENDING,
-        )
-        session = self.client.session
-        session["user_profile_id"] = self.profile.id
-        session.save()
-        resp = self.client.get(f"/api/v1/suggestions/{s.pk}/image/")
-        self.assertEqual(resp.status_code, 200)
-
-    def test_image_endpoint_404_when_no_image(self):
-        s = Suggestion.objects.create(
-            school=self.school, user=self.profile, type="NOTE", note="test",
-        )
-        resp = self.client.get(f"/api/v1/suggestions/{s.pk}/image/")
-        self.assertEqual(resp.status_code, 404)
+    # Sprint 14: /api/v1/suggestions/<id>/image/ endpoint removed.
+    # Bytes now live in Suggestion.pending_image (Supabase Storage URL exposed
+    # via SuggestionListSerializer.pending_image_url to authorised viewers).
+    # Coverage for the new flow lives in test_photo_upload.py.

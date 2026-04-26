@@ -1,4 +1,4 @@
-from django.conf import settings
+from django.core.files.base import ContentFile
 from django.db import transaction
 
 from community.models import Suggestion
@@ -6,34 +6,47 @@ from outreach.models import SchoolImage
 
 
 def approve_suggestion(suggestion, reviewer):
-    """Approve a suggestion: apply changes, award points."""
+    """Approve a suggestion: apply changes, award points.
+
+    Caller is responsible for cap enforcement (the API view rejects PHOTO_UPLOAD
+    approvals with 409 when the school is at the 20-photo cap before reaching
+    here). This function will silently no-op if the cap is hit at the
+    transaction boundary as a defence in depth.
+    """
     with transaction.atomic():
         suggestion.status = Suggestion.Status.APPROVED
         suggestion.reviewed_by = reviewer
 
-        # Award points (not for own school)
         if suggestion.user.admin_school_id != suggestion.school_id:
             points = Suggestion.POINTS_MAP.get(suggestion.type, 0)
             suggestion.points_awarded = points
             suggestion.user.points += points
             suggestion.user.save(update_fields=["points"])
 
-        # Apply the change
         if suggestion.type == Suggestion.Type.DATA_CORRECTION:
             _apply_data_correction(suggestion)
         elif suggestion.type == Suggestion.Type.PHOTO_UPLOAD:
             _apply_photo_upload(suggestion)
-        # NOTE type: no auto-apply, moderator acts manually
 
         suggestion.save()
     return suggestion
 
 
 def reject_suggestion(suggestion, reviewer, reason=""):
-    suggestion.status = Suggestion.Status.REJECTED
-    suggestion.reviewed_by = reviewer
-    suggestion.review_note = reason
-    suggestion.save()
+    """Reject a suggestion. Photos: delete the staged file from Storage."""
+    with transaction.atomic():
+        suggestion.status = Suggestion.Status.REJECTED
+        suggestion.reviewed_by = reviewer
+        suggestion.review_note = reason
+        if suggestion.type == Suggestion.Type.PHOTO_UPLOAD and suggestion.pending_image:
+            # delete=False keeps the field clear without saving twice; we save
+            # the suggestion below.
+            try:
+                suggestion.pending_image.delete(save=False)
+            except Exception:  # noqa: BLE001
+                # Storage delete is best-effort; orphans get janitored later.
+                pass
+        suggestion.save()
     return suggestion
 
 
@@ -48,23 +61,50 @@ def _apply_data_correction(suggestion):
         school.save(update_fields=[field, "updated_at"])
 
 
+PHOTO_CAP_PER_SCHOOL = 20
+
+
 def _apply_photo_upload(suggestion):
-    """Create a SchoolImage from the suggestion's image bytes."""
-    if not suggestion.image:
+    """Move pending bytes into a SchoolImage row.
+
+    Reads the bytes from the staged Suggestion.pending_image and writes them
+    into a fresh SchoolImage.image_file (different storage path, lives under
+    schools/<moe>/). Then clears the pending file. If the school is at cap,
+    the suggestion is still marked APPROVED but no SchoolImage is created —
+    this matches the legacy behaviour. Cap should be enforced upstream by
+    the API view.
+    """
+    if not suggestion.pending_image:
         return
     existing_count = SchoolImage.objects.filter(school=suggestion.school).count()
-    if existing_count >= 10:
+    if existing_count >= PHOTO_CAP_PER_SCHOOL:
         return
+
     max_position = (
         SchoolImage.objects.filter(school=suggestion.school)
         .order_by("-position")
         .values_list("position", flat=True)
         .first()
     ) or 0
-    SchoolImage.objects.create(
+
+    src = suggestion.pending_image
+    src.open("rb")
+    try:
+        data = src.read()
+    finally:
+        src.close()
+
+    name = src.name.rsplit("/", 1)[-1]
+    image = SchoolImage(
         school=suggestion.school,
-        image_url=f"{settings.BACKEND_URL}/api/v1/suggestions/{suggestion.pk}/image/",
-        source="COMMUNITY",
+        source=SchoolImage.Source.COMMUNITY,
         position=max_position + 1,
         uploaded_by=suggestion.user,
     )
+    image.image_file.save(name, ContentFile(data), save=True)
+
+    try:
+        suggestion.pending_image.delete(save=False)
+    except Exception:  # noqa: BLE001
+        pass
+    suggestion.pending_image = None

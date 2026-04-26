@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { createSuggestion } from "@/lib/api";
+import {
+  PhotoUploadError,
+  createSuggestion,
+  uploadSchoolPhoto,
+} from "@/lib/api";
 
 const SUGGESTIBLE_FIELDS = [
   "phone",
@@ -34,6 +38,13 @@ const FIELD_LABELS: Record<string, string> = {
   bank_account_name: "Bank Account Name",
 };
 
+// Mirror of backend constraints (outreach/services/image_processor.py).
+// Surfaced client-side so the user gets instant feedback on bad uploads.
+const MAX_BYTES = 5 * 1024 * 1024;
+const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const MIN_WIDTH = 640;
+const MIN_HEIGHT = 400;
+
 interface SuggestFormProps {
   moeCode: string;
   onClose: () => void;
@@ -48,21 +59,75 @@ export default function SuggestForm({ moeCode, onClose }: SuggestFormProps) {
   const [fieldName, setFieldName] = useState("");
   const [suggestedValue, setSuggestedValue] = useState("");
   const [note, setNote] = useState("");
-  const [imageBase64, setImageBase64] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
+  // Revoke object URL when preview changes or component unmounts.
+  useEffect(() => {
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+    };
+  }, [imagePreview]);
+
+  const validateAndSetFile = (file: File): string => {
+    if (!ALLOWED_TYPES.has(file.type)) {
+      return "Only JPEG, PNG, or WebP images are accepted.";
+    }
+    if (file.size > MAX_BYTES) {
+      return `File is ${Math.round(file.size / 1024)} KB; maximum 5 MB.`;
+    }
+    // Dimensions are checked async via an Image element. Fire and forget —
+    // the server validates the same thing as a backstop.
+    const probe = new Image();
+    probe.onload = () => {
+      if (probe.naturalWidth < MIN_WIDTH || probe.naturalHeight < MIN_HEIGHT) {
+        setError(
+          `Image is ${probe.naturalWidth}×${probe.naturalHeight}; minimum ${MIN_WIDTH}×${MIN_HEIGHT}.`,
+        );
+        setImageFile(null);
+        setImagePreview("");
+      }
+    };
+    probe.src = URL.createObjectURL(file);
+    return "";
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setError("");
     const file = e.target.files?.[0];
     if (!file) return;
+    const errMsg = validateAndSetFile(file);
+    if (errMsg) {
+      setError(errMsg);
+      setImageFile(null);
+      setImagePreview("");
+      return;
+    }
+    setImageFile(file);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(URL.createObjectURL(file));
+  };
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      setImageBase64(result.split(",")[1] ?? "");
-    };
-    reader.readAsDataURL(file);
+  const photoErrorMessage = (err: PhotoUploadError): string => {
+    switch (err.code) {
+      case "too_large":
+        return "Image is too large. Maximum 5 MB.";
+      case "too_small":
+        return `Image is too small. Minimum ${MIN_WIDTH}×${MIN_HEIGHT}.`;
+      case "unsupported_format":
+        return "Only JPEG, PNG, or WebP images are accepted.";
+      case "invalid_image":
+        return "That file isn't a valid image.";
+      case "duplicate":
+        return "You have already uploaded this photo to this school.";
+      case "throttled":
+        return "Daily upload limit reached. Try again tomorrow.";
+      default:
+        return err.message || t("error");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,29 +136,34 @@ export default function SuggestForm({ moeCode, onClose }: SuggestFormProps) {
     setError("");
 
     try {
-      const data: {
-        type: string;
-        field_name?: string;
-        suggested_value?: string;
-        note?: string;
-        image?: string;
-      } = { type };
-
-      if (type === "DATA_CORRECTION") {
-        data.field_name = fieldName;
-        data.suggested_value = suggestedValue;
-      } else if (type === "NOTE") {
-        data.note = note;
-      } else if (type === "PHOTO_UPLOAD") {
-        data.image = imageBase64;
+      if (type === "PHOTO_UPLOAD") {
+        if (!imageFile) {
+          setError("Please choose a photo to upload.");
+          setSubmitting(false);
+          return;
+        }
+        await uploadSchoolPhoto(moeCode, imageFile, note);
+      } else if (type === "DATA_CORRECTION") {
+        await createSuggestion(moeCode, {
+          type: "DATA_CORRECTION",
+          field_name: fieldName,
+          suggested_value: suggestedValue,
+        });
+      } else {
+        await createSuggestion(moeCode, {
+          type: "NOTE",
+          note,
+        });
       }
-
-      await createSuggestion(moeCode, data);
       setSuccess(true);
     } catch (err) {
       console.error("Suggestion submit failed:", err);
-      const msg = err instanceof Error ? err.message : "";
-      setError(msg || t("error"));
+      if (err instanceof PhotoUploadError) {
+        setError(photoErrorMessage(err));
+      } else {
+        const msg = err instanceof Error ? err.message : "";
+        setError(msg || t("error"));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -222,26 +292,37 @@ export default function SuggestForm({ moeCode, onClose }: SuggestFormProps) {
 
             {/* PHOTO_UPLOAD field */}
             {type === "PHOTO_UPLOAD" && (
-              <div>
+              <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t("uploadPhoto")}
                 </label>
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   onChange={handleFileChange}
                   required
                   className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
                 />
-                {imageBase64 && (
+                <p className="text-xs text-gray-500">
+                  JPEG, PNG, or WebP &middot; max 5 MB &middot; min {MIN_WIDTH}&times;{MIN_HEIGHT}
+                </p>
+                {imagePreview && (
                   <div className="mt-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={`data:image/jpeg;base64,${imageBase64}`}
+                      src={imagePreview}
                       alt="Preview"
                       className="w-full max-h-48 object-cover rounded-lg"
                     />
                   </div>
                 )}
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  rows={2}
+                  placeholder="Optional caption / context for the moderator"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
               </div>
             )}
 

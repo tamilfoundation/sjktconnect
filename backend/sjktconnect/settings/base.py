@@ -196,6 +196,11 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
     ],
+    # Photo upload rate limits (Sprint 14). Scopes used by community views.
+    "DEFAULT_THROTTLE_RATES": {
+        "photo_upload_user": "5/day",
+        "photo_upload_school": "20/day",
+    },
 }
 
 # Models tracked by AuditLog middleware
