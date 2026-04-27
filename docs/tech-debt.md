@@ -36,23 +36,17 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 - **Status**: Almost certainly resolved by Sprint 13 (TD-05 fix). Hypothesised root cause was Next.js image-optimiser retrying on dead Google Places URLs — those URLs are now gone. Hero images now served from `kafuxsinrbqafvarckxu.storage.supabase.co` (Supabase Storage CDN), bypassing our backend entirely.
 - **Verification plan**: Monitor Supabase egress dashboard for 7 days post-2026-04-26; flip from "PROVISIONALLY RESOLVED" to ✅ definitively resolved after one full week shows <100 MB/day. Listed in CLAUDE.md "Small passive items" for Sprint 14 close.
 
-## 🟡 TD-07 — `Suggestion.image` stored in Postgres `BinaryField`
+## ✅ TD-07 — `Suggestion.image` BinaryField dropped (RESOLVED Sprint 14, header swept Sprint 18)
 
-- **What**: `backend/community/models.py:41` — community photo uploads stored as base64-decoded bytes inside a Postgres `BinaryField`, served back by Django. A 3 MB phone photo becomes a ~4 MB Postgres row. DRF's default `DATA_UPLOAD_MAX_MEMORY_SIZE` (2.5 MB) caps larger uploads with 413 errors.
-- **Why we accepted**: Sprint 8.2 prioritised shipping the moderation workflow quickly; storage architecture was deferred.
-- **What it blocks**: Upload size cap is absurdly low for modern phone photos (typically 5-15 MB). Ingest from real community users would regularly fail. Also makes backups + replication heavier than needed.
-- **Cost to fix**: Replaced by Supabase Storage in Sprint 9 (TD-05).
+- **Status**: Resolved. Migration `community/0002_drop_image_add_pending` (Sprint 14, 2026-04-26) removed the `Suggestion.image` BinaryField and replaced it with `Suggestion.pending_image: ImageField` backed by Supabase Storage. Verified at Sprint 18 close: `grep BinaryField backend/community/models.py` returns nothing. The body of this entry incorrectly cited a non-existent "Sprint 9" as the resolver — actual fix shipped in Sprint 14.
 
 ## ✅ TD-08 — No `DEFAULT_AUTHENTICATION_CLASSES` pinned (RESOLVED 2026-04-23)
 
 - **Status**: Resolved. `REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"]` in `backend/sjktconnect/settings/base.py` is now pinned to `["rest_framework.authentication.SessionAuthentication"]` with a prominent comment warning against adding `TokenAuthentication` without CSRF compensating controls. This locks in the hidden dependency that TD-04's security posture relies on.
 
-## 🟡 TD-09 — Hardcoded `content_type="image/png"` on suggestion image endpoint
+## ✅ TD-09 — Suggestion-image endpoint retired (RESOLVED Sprint 14, header swept Sprint 18)
 
-- **What**: `backend/community/api/views.py:130` serves arbitrary uploaded bytes with `content_type="image/png"` regardless of actual format. No magic-byte validation, no Pillow verification on upload.
-- **Why we accepted**: MVP shortcut in Sprint 8.2. Unlikely to be exploited at current 1-user scale.
-- **What it blocks**: Minor — browsers don't execute scripts inside `<img>` regardless of declared format, so stored XSS is not exploitable. But opens the door to content-type confusion if a future endpoint serves SVG or raw.
-- **Cost to fix**: Replaced entirely by Sprint 9 (TD-05) which validates format, strips EXIF, resizes, and stores in typed Supabase Storage.
+- **Status**: Resolved. Sprint 14 (2026-04-26) deleted the `suggestion_image_view` endpoint AND the `/api/v1/suggestions/<id>/image/` URL entirely. Bytes are now served via Supabase Storage with proper content-type metadata, plus Pillow validation (size, format, dimensions, EXIF strip, 1600px resize, pHash dedup) on upload via `outreach/services/image_processor.py`. Verified at Sprint 18 close: `grep -E "image/png|content_type=|suggestion_image_view|/image/" backend/community/api/{views,urls}.py` returns nothing. Body cited a non-existent "Sprint 9" — actual resolver was Sprint 14.
 
 ## ✅ TD-10 — Next.js upgrade (RESOLVED 2026-04-27, Sprint 16)
 
@@ -120,8 +114,8 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 | ✅ Sprint 12 — User Management UI | — | Done 2026-04-24 |
 | ✅ Sprint 13 — Image Storage Migration | TD-05 ✅, TD-06 (provisional) ✅, TD-13 ✅ | Done 2026-04-26 |
 | 🔴 TD-01 re-opened (Next 16 + Auth.js state cookie regression) | TD-01 | Investigation in Sprint 16 |
-| Sprint 14 — Community Photo Uploads | TD-07, TD-09, TD-16 (suggestions page only) | Next |
-| Sprint 15 — Image Display Polish | — | After Sprint 14 |
-| ✅ Sprint 14 — Community Photo Uploads | TD-07, TD-09, TD-16 (suggestions page only) | Done 2026-04-26 |
+| ✅ Sprint 14 — Community Photo Uploads | TD-07 ✅, TD-09 ✅, TD-16 (suggestions page only) ✅ | Done 2026-04-26 (TD-07 + TD-09 headers swept at Sprint 18 close 2026-04-27) |
 | ✅ Sprint 15 — Image Display Polish | — | Done 2026-04-26 |
 | ✅ Sprint 16 — Code-Quality Pass | TD-01 ✅, TD-10 ✅, TD-14 ✅, TD-15 ✅, TD-16 (users page) ✅, TD-17 ✅, TD-18 ✅. TD-11 + TD-12 deferred (test-coverage padding). | Done 2026-04-27 — final of 5-sprint roadmap |
+| ✅ Sprint 17 — Egress Hardening (hotfix) | (no TDs — emergent fix; new lessons captured in lessons.md) | Done 2026-04-27 evening |
+| ✅ Sprint 18 — Monthly Digest Coverage (hotfix) | (no TDs — emergent fix; aggregator structural gap, no prior tracking) | Done 2026-04-27 late evening |
