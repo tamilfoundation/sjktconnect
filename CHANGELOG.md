@@ -1,5 +1,38 @@
 # Changelog
 
+## Sprint 17 — Egress Hardening (2026-04-27)
+
+**Deployed**: backend `sjktconnect-api-00106-rxf` (IPBlockMiddleware), frontend `sjktconnect-web-00105-vhx` (ISR + sitemap + news pageSize fixes).
+
+Hotfix-style sprint triggered by user noticing 500 MB/day Supabase egress with the site not yet publicised. Investigation found four leaks; fixed all four. Also added per-route egress observability so the next anomaly is visible by route + user-agent before it hits the billing chart. Expected impact: 500 MB/day → ~100-150 MB/day within 24h.
+
+### Added
+- **`backend/core/middleware.py` — `IPBlockMiddleware`**: returns 403 immediately for IPs on a `BLOCKED_IPS` set. Reads real client IP from Cloudflare's `CF-Connecting-IP` header (priority), `X-Forwarded-For` first hop, or `REMOTE_ADDR` (fallback for direct Cloud Run service URL). Wired FIRST in the MIDDLEWARE chain so blocked requests never touch routing/DB/serializers — cheapest possible abort. Initial blocklist: `88.216.210.27` (the Chrome/91 fake-UA scraper that's been generating ~1,400 req/day).
+- **`backend/core/tests/test_ip_block.py`**: 6 unit tests covering CF-Connecting-IP priority, X-Forwarded-For first-hop parsing, multi-hop XFF, clean IPs, no-headers fallback, header precedence.
+- **`backend/scripts/egress_metric_config.yaml`** + **`egress_metric_web_config.yaml`**: Cloud Logging metric configs for per-route egress on `sjktconnect-api` and `sjktconnect-web`. Distribution metrics over `httpRequest.responseSize`, labelled by `route` + `user_agent` + `status`.
+- **`backend/scripts/egress_dashboard.json`**: Cloud Monitoring dashboard config — 4 charts (API + web egress by route, API + web egress by user_agent for bot detection). Applied as dashboard `f1722366-2df9-4446-9941-7cda5c019615` in `sjktconnect` GCP project.
+- **`frontend/app/sitemap.ts`** — `export const revalidate = 86400`. Sitemap now regenerates once per day instead of per-request (was being fetched ~6×/day by ClaudeBot et al, each fetch pulling all 528 schools + 222 constituencies fresh from the backend).
+
+### Changed
+- **10 frontend pages** flipped from `export const revalidate = false` to `export const revalidate = 86400` (24h ISR). The `false` value disables Next.js caching entirely — every request, including bot crawls, forces a fresh server-side render. Pages: `/`, `constituencies`, `constituency/[code]`, `dun/[id]`, `news`, `parliament-watch`, `parliament-watch/[id]`, `parliament-watch/sittings`, `parliament-watch/sittings/[id]`, `school/[moe_code]`. Verified each page has no cookies/headers/dynamic markers — all serve fully public data, safe to cache. Sprint 8.3 retrospective claimed "ISR with 24h revalidate" was set; reality was the opposite. **This is the single biggest egress fix.**
+- **`backend/sjktconnect/settings/base.py`** — `IPBlockMiddleware` added to `MIDDLEWARE` list as the first entry.
+- **`frontend/app/[locale]/news/page.tsx`** — `fetchNews({ pageSize: 50 })` (was `500`). NewsList already supports pagination via `totalCount`. Saves ~125 KB per news page render.
+
+### Tests
+- 6 new backend tests (`core/tests/test_ip_block.py`).
+- Final tally: **1161 backend** + 289 frontend tests.
+
+### Verified (no change needed)
+- `sjktconnect-web` Cloud Run service has `autoscaling.knative.dev/minScale: '1'` — Egress Fix sprint did land this; Next.js ISR cache stays warm 24/7. (CLAUDE.md memory was wrong about middleware — that didn't land — but right about minScale.)
+- `.defer("boundary_wkt")` on the 6 schools/constituency views from Egress Fix sprint is in place; saving ~2 GB/day vs without it.
+
+### Observability now available
+- Cloud Monitoring → Dashboards → "SJK(T) Connect — Egress by Route/UA": real-time per-route bytes-per-hour, broken down by route AND user-agent. The next "egress is too high" question can be answered by clicking instead of hypothesising.
+- Cloud Logging metrics `sjktconnect_api_egress_per_route` + `sjktconnect_web_egress_per_route` are queryable via Metrics Explorer for ad-hoc analysis.
+
+### Monitor
+- **2026-04-29 (48h post-deploy)**: check Supabase Reports → SJK(T) Connect → Egress chart. Target: <150 MB/day daily bars. If still ~500 MB/day, the new dashboard will show which route is leaking and we attack that next.
+
 ## Sprint 16 — Code-Quality Pass (2026-04-27)
 
 **Deployed**: backend `sjktconnect-api-00105-wwd` (TD-14 refactor), frontend `sjktconnect-web-00103-phl` (TD-01) → `00104-d4n` (TD-18). Both auth fixes user-verified on prod.

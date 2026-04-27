@@ -410,3 +410,34 @@
 **Trade-offs:** If the underlying code ever DOES break in an untested branch, the regression won't be caught by the suite. Acceptable: those branches are well-isolated (Google's verify_oauth2_token error paths; pdfplumber's encrypted-PDF path), and a real failure surfaces visibly on prod before silently corrupting data.
 
 **Revisit if:** Either module starts producing bugs in production, OR a refactor of either module is on the table (in which case adding tests around the change is the right move).
+
+## IPBlockMiddleware in app code, not Cloud Armor / Cloudflare WAF — Sprint 17, 2026-04-27
+
+**Decision:** Block known abusive scraper IPs via a Django middleware (`backend/core/middleware.py — IPBlockMiddleware`) wired FIRST in the `MIDDLEWARE` chain, instead of using Google Cloud Armor or Cloudflare WAF firewall rules.
+
+**Alternatives considered:**
+1. **Cloud Armor security policy** with a deny rule on the IP — rejects at the edge, no Cloud Run cold-start cost. Operational: another GCP resource to remember + version. State lives in GCP, not in the repo.
+2. **Cloudflare WAF rule** (we're behind Cloudflare proxy) — same edge-rejection benefit, lives in Cloudflare dashboard. Same drawback: state outside the repo.
+3. **App-level middleware (chosen)** — block lives in code, runs on every request that reaches our app. Each blocked request still wakes a Cloud Run instance; middleware short-circuits before routing/DB.
+4. **robots.txt update** — useless for scrapers that ignore robots.txt (which is exactly the population we're blocking).
+
+**Rationale:** The block lives in code, so it's testable (6 unit tests), reviewable (PR diff shows the IP being added), and travels with deploys. Anyone restoring from backup gets the block back automatically. Cloud Armor / WAF rules silently disappear from the repo's mental model — the next maintainer would have to know to check them. At our current scale (one IP, ~1,400 req/day) the cost of waking a Cloud Run instance to return 403 is negligible compared to the egress of NOT blocking. The middleware runs as the first entry in `MIDDLEWARE`, so the request never touches routing, the DB, serializers, or any other significant work.
+
+**Trade-offs:** Each blocked request still costs one Cloud Run request count + a few ms of cold-start CPU. If the blocklist grows past ~50 IPs OR if the volume per blocked IP exceeds ~100K/day, the math flips and Cloud Armor becomes the right answer. We're nowhere near either threshold.
+
+**Revisit if:** Blocklist grows >50 entries, total blocked traffic exceeds 1M req/day, or we discover we're paying meaningfully for the Cloud Run wake-up cost on blocked requests.
+
+## Distribution metric (not counter) for per-route egress — Sprint 17, 2026-04-27
+
+**Decision:** The two new Cloud Logging metrics (`sjktconnect_api_egress_per_route` + `sjktconnect_web_egress_per_route`) are DISTRIBUTION value-type metrics over `httpRequest.responseSize`, not COUNTER metrics summing total bytes.
+
+**Alternatives considered:**
+1. **Counter / GAUGE summing bytes per route** — simplest, just gives total bytes. Can't answer "is the median response growing?" or "is there a long-tail of huge responses?".
+2. **Distribution (chosen)** — records the size of each individual response in histogram buckets. Cloud Monitoring can then sum, average, percentile, or histogram any way we want.
+3. **Two metrics: counter for total + summary for size distribution** — twice the metric storage cost, less ergonomic to query. The distribution alone supports both "total bytes" (sum aggregator) and "median/p99 bytes" (percentile aggregator) from the same series.
+
+**Rationale:** Egress problems take two shapes — a steady increase in baseline traffic (catchable with sum-over-time) and a long-tail of one-off huge responses (catchable only with percentile/histogram view). A distribution gives us both from one metric. Same Cloud Logging cost as a counter. The bucket option `exponentialBuckets={numFiniteBuckets:20, growthFactor:4, scale:100}` covers from ~100 bytes (404s, redirects) up to ~10 GB (catastrophic) in 20 buckets — comfortable for a 4-9 KB typical-API-response codebase.
+
+**Trade-offs:** Distribution metrics with high-cardinality labels (route × user_agent here) consume slightly more query-time CPU in Metrics Explorer than counters. At our metric volume (a few thousand requests/day distributed across ~30 routes × ~20 user-agents) the cost is invisible. If routes or user-agents ever exploded to 1000s, we'd need to drop one of the labels.
+
+**Revisit if:** Metric query times in Metrics Explorer become noticeable, or if we cross into pricing-tier territory on Cloud Monitoring (currently well within the free quota).

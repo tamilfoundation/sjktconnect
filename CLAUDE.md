@@ -12,8 +12,9 @@
 ## Project Status
 
 - **Current Phase**: Phase 8 (Community Features) + 5-Sprint Image/Auth Roadmap.
-- **Last Sprint**: Sprint 16 — Code-Quality Pass (2026-04-27) — completes the 5-sprint roadmap
-- **Tests**: 1444 (1155 backend + 289 frontend)
+- **Last Sprint**: Sprint 17 — Egress Hardening (2026-04-27 evening, hotfix sprint after roadmap)
+- **Tests**: 1450 (1161 backend + 289 frontend)
+- **Plan/billing**: Supabase Pro plan (Tamil Foundation org) — was forced to upgrade for headroom; goal is to drive egress low enough to revisit free tier later. Per-route observability dashboard now lives at Cloud Monitoring → "SJK(T) Connect — Egress by Route/UA" (id `f1722366-2df9-4446-9941-7cda5c019615`).
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
 
@@ -250,6 +251,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 14 | Done | Community Photo Uploads: Drop `Suggestion.image` BinaryField; new multipart endpoint `POST /schools/<moe>/suggestions/photo/` with Pillow validation (≤5 MB / JPEG/PNG/WebP / ≥640×400 / EXIF strip / 1600px resize / pHash dedup). DRF throttling 5/user/day + 20/school/day via custom scoped throttles. New `IsPhotoApprover` permission (SUPERADMIN OR bound school admin only — MODERATOR excluded). 20-photo cap on approve returns 409 `slot_full`. Reject deletes the staged file. New `POST /schools/<moe>/images/<id>/pin/` makes a photo the hero. Frontend SuggestForm rewritten to multipart with file picker + client-side validation + typed error surfacing. ImageManager gets ⭐ Make hero button. ModerationQueue shows photo preview + clickable school link + slot-full banner. Resolves TD-07 + TD-09 + TD-16 (suggestions-page portion). 28 new backend + 5 new frontend tests; final tally 1145 backend + 286 frontend (1 LLM-flake in parliament/test_brief_generator → TD-17, 1 SubscribeForm flake → TD-15). Deployed `sjktconnect-api-00101-klw` + `sjktconnect-web-00094-gqx`. |
 | 15 | Done | Image Display Polish: `SchoolImage.caption` (CharField max 200) + migration `outreach/0005_add_caption`; `PATCH /schools/<moe>/images/<id>/caption/` (IsPhotoApprover); `POST /api/v1/auth/logout/` flushes Django session (fixes frontend/Django session divergence that left Edit button visible after sign-out). Frontend: `PhotoLightbox` wrapper around `yet-another-react-lightbox` (lazy-imported via next/dynamic), gallery click-to-zoom + "View all N photos" overlay, `ImageManager` inline caption editor. SchoolListSerializer image_url switched to `display_url` (fixes map InfoWindow placeholder for Sprint-13-migrated rows). EditSchoolLink + SuggestButton now reactive to NextAuth status; SuggestButton hides for SUPERADMIN + bound admin of the viewed school so Edit/Suggest CTAs are mutually exclusive per role. Public hero caption overlay removed (collided with thumbnail strip on 6+ photo schools); caption preserved in lightbox + admin editor. 10 new backend + 5 new frontend tests; final tally 1155 backend + 285 frontend. Deployed `sjktconnect-api-00104-qm7` + `sjktconnect-web-00102-v4f`. |
 | 16 | Done | Code-Quality Pass — final of 5-sprint roadmap. **TD-01 RESOLVED**: bumped next-auth beta.30→beta.31, overrode `@auth/core`'s default csrfToken cookie name to use `__Secure-` prefix instead of `__Host-` (Cloudflare proxy was modifying Set-Cookie in ways that violated `__Host-` semantics, silently dropping the cookie), restored `checks: ["pkce", "state"]`. **TD-18 RESOLVED**: separate root cause from TD-01. Race between UserMenu's syncGoogleAuth (writes Django session) and EditSchoolLink/SuggestButton's fetchMe; new `lib/auth-events.ts` module-scoped pub/sub emitter; UserMenu fires emitProfileReady() after syncGoogleAuth resolves; CTAs subscribe and re-fetch on signal. Both auth fixes user-verified on prod (tamiliam USER + admin SUPERADMIN both confirmed 2026-04-27). **TD-14 RESOLVED**: extracted `_can_moderate_or_owns_school` helper in `community/api/views.py`, replaces 4 inline duplications. **TD-16 RESOLVED**: `.catch(() => router.push("/"))` on `/dashboard/users` fetchMe gate. **TD-15 RESOLVED**: 4 fixed pre-existing test failures inherited from Sprint 15 (mock useSession in EditSchoolLink/SuggestButton tests; honeypot field in SubscribeForm test). **TD-17 RESOLVED**: `@patch.dict` pinning `GEMINI_API_KEY=""` at class level for `test_brief_generator`. **TD-10 RESOLVED**: brace-expansion + picomatch transitive bumps via `npm audit fix`. TD-11 + TD-12 (test-coverage padding) deferred to a future sprint. 1155 backend + 289 frontend tests. Deploys: `web-00102-v4f` → `web-00103-phl` (TD-01) → `web-00104-d4n` (TD-18); `api-00104-qm7` → `api-00105-wwd` (TD-14). |
+| 17 | Done | Egress Hardening (hotfix sprint, 2026-04-27 evening). Triggered by 500 MB/day Supabase egress with site not publicised. Found 4 leaks: (a) **ISR DISABLED** — 10 public pages had `revalidate = false` instead of an integer (Sprint 8.3 retro claimed 24h ISR; reality was opposite). Flipped all 10 to `revalidate = 86400`. **Single biggest fix.** (b) **Scraper IP not blocked** — `88.216.210.27` (Chrome/91 fake UA) generating ~1,400 req/day. Egress Fix retro claimed IP-block middleware; never actually landed. New `IPBlockMiddleware` in `core/middleware.py` reads CF-Connecting-IP / XFF / REMOTE_ADDR; returns 403; wired FIRST in middleware chain. 6 unit tests. (c) **Sitemap regenerates per-fetch** — added `revalidate = 86400` to `sitemap.ts`. (d) **News page fetches 500 articles** — reduced to 50. Plus observability: 2 new Cloud Logging metrics + dashboard "SJK(T) Connect — Egress by Route/UA" with route + user-agent breakdown. minScale=1 verified already in place on web service. 1161 backend + 289 frontend tests. Deploys: api-00105-wwd → api-00106-rxf; web-00104-d4n → web-00105-vhx. **Monitor 2026-04-29: confirm <150 MB/day on Supabase egress chart.** |
 
 ## Production Infrastructure (Sprint 1.9)
 
@@ -279,13 +281,14 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 15 | Image Display Polish | ✅ Done 2026-04-26 |
 | 16 | Code-Quality Pass | ✅ Done 2026-04-27 — resolved TD-01, TD-10, TD-14, TD-15, TD-16 (users page), TD-17, TD-18 |
 
-### Current codebase state (Sprint 16 close, 2026-04-27)
+### Current codebase state (Sprint 17 close, 2026-04-27 evening)
 
-- Prod: `sjktconnect-api-00105-wwd` + `sjktconnect-web-00104-d4n`.
-- 1155 backend tests + 289 frontend tests, all passing (no flakes).
-- OAuth fully secured: PKCE + state checks active, `__Secure-` csrfToken cookie compatible with Cloudflare proxy.
-- Sign-in CTA race resolved via `lib/auth-events.ts` pub/sub; Edit / Suggest buttons appear without manual refresh after sign-in.
-- 5-sprint roadmap closed. The community-features arc (12 → 16) is complete.
+- Prod: `sjktconnect-api-00106-rxf` + `sjktconnect-web-00105-vhx`.
+- 1161 backend tests + 289 frontend tests, all passing.
+- OAuth fully secured (Sprint 16): PKCE + state checks active, `__Secure-` csrfToken cookie.
+- Sign-in CTA race resolved (Sprint 16) via `lib/auth-events.ts`.
+- **Egress hardened (Sprint 17)**: 10 pages now ISR-cached for 24h (was disabled), one scraper IP blocked at the middleware layer, sitemap cached, news pageSize reduced. Per-route egress dashboard live in Cloud Monitoring.
+- 5-sprint roadmap (12 → 16) closed; Sprint 17 was an emergent hotfix after a Supabase egress concern.
 
 ### Open tech debt remaining
 
@@ -296,11 +299,14 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 TD-07/09 should be triaged at the next session — they're flagged as resolved-by-other-sprints in the body but never marked `✅` in the header. TD-11/12 can wait indefinitely.
 
-### Gotchas carried out of Sprint 16
+### Gotchas carried out of Sprint 16 + 17
 
 - **Half-applied tech-debt fixes**: Sprint 15's test-suite claim ("285 passing") was actually 282 pass + 3 fail. The Sprint 15 hotfix added a useSession dep to two components without updating their tests; nobody re-ran the full suite at sprint close. Lesson: the close workflow should run `npm test` (and pytest) and record the actual result, not the expected one.
+- **Retrospectives that claim work is done aren't proof**: Sprint 8.3 retro said "ISR with 24h revalidate"; reality was `revalidate = false` everywhere. Egress Fix retro said "middleware IP blocking"; no such middleware existed. **Sprint 17's first job was undoing both gaps.** Future sprint-close commits must include the literal config/code that proves the work landed (e.g. `git diff` snippet, not just claim).
 - **`__Host-` cookie prefix is incompatible with Cloudflare proxy** in our config. Any future cookie-related Auth.js change must override that prefix to `__Secure-`. The override now lives in `frontend/lib/auth.ts`; don't strip it.
 - **Auth-events pattern is now the canonical way** to coordinate "Django session is ready" between `UserMenu` and any auth-aware component. Future role-gated UI should subscribe to `onProfileReady` rather than re-deriving the race-mitigation logic.
+- **Per-route egress observability is now live**. Cloud Monitoring → Dashboards → "SJK(T) Connect — Egress by Route/UA" answers "which route is leaking" without further investigation. Use it before hypothesising the next egress bug.
+- **`revalidate = false` is the worst possible value in Next 16 — disables ISR entirely**. Always specify a number (or omit `revalidate` to use the default). If a page genuinely needs no caching, use `dynamic = "force-dynamic"` instead, which is more discoverable in code review.
 
 ### Small passive/manual items carried over (no engineering work)
 
