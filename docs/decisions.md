@@ -441,3 +441,34 @@
 **Trade-offs:** Distribution metrics with high-cardinality labels (route × user_agent here) consume slightly more query-time CPU in Metrics Explorer than counters. At our metric volume (a few thousand requests/day distributed across ~30 routes × ~20 user-agents) the cost is invisible. If routes or user-agents ever exploded to 1000s, we'd need to drop one of the labels.
 
 **Revisit if:** Metric query times in Metrics Explorer become noticeable, or if we cross into pricing-tier territory on Cloud Monitoring (currently well within the free quota).
+
+## `backfill_since` widens briefs + meeting_reports only — Sprint 18, 2026-04-27
+
+**Decision:** The new `--backfill-since` flag on `compose_monthly_blast` (Sprint 18) widens the lookback window for SittingBriefs and ParliamentaryMeeting reports, but NOT for HansardMentions, NewsArticles, or MPScorecards.
+
+**Alternatives considered:**
+1. **Apply backfill to all sources uniformly** — simpler API; the date param means the same thing for every query.
+2. **Apply backfill only to briefs + meeting reports** (chosen) — matches the user's mental model of "things I missed since X date" which only applies to long-running summary artifacts.
+3. **Per-source backfill flags** (`--backfill-briefs-since`, `--backfill-meetings-since`, etc.) — most flexible but cluttered for a one-time-fill scenario.
+
+**Rationale:** Mentions and news are point-in-time events tied to the month they happened in. Backfilling them would surface content that was either already in a prior digest (duplicate) or that should appear in its native month, not retroactively in a later month. Scorecards are intentionally lifetime-aggregated already — backfill doesn't apply to them. Briefs and meeting reports are the only artifacts where "I missed this content from a prior period" is the natural complaint, because they're synthesised post-hoc and may be published days or weeks after the underlying events. The flag name is generic enough to extend later if a source needs it; the docstring documents the current narrow semantics.
+
+**Trade-offs:** Operators who wanted "include all March news in the April digest" would expect this flag to do that. They'd be surprised. Mitigated by the docstring + the dry-run output explicitly listing which sources are widened. If the surprise becomes real, switching to per-source flags is a small refactor.
+
+**Revisit if:** A real use-case appears for backfilling mentions or news (e.g. a late-arriving Hansard PDF that gets analysed weeks after the sitting). At that point either widen this flag's semantics or add a sibling flag.
+
+## `scorecards_are_lifetime_fallback` as side-channel bool — Sprint 18, 2026-04-27
+
+**Decision:** When `aggregate_month()` falls back to lifetime top-3 MP scorecards (because no MP was active in the target month), it returns the queryset AS-IS plus a separate `scorecards_are_lifetime_fallback: True` boolean in the result dict. Templates and the analyst prompt read the bool to label the section accurately ("Lifetime top MPs" vs "Most active MPs this month").
+
+**Alternatives considered:**
+1. **Encode the fallback in the queryset itself** (annotate, custom manager method) — would require introspecting SQL or wrapping in a custom class to read it back out at the template layer. Excessive for one bool.
+2. **Empty the scorecards section when no MP is active** — cleanest semantically but leaves the section visually blank in quiet months, which looks like a bug.
+3. **Include lifetime data ALWAYS, mention "this month" or "lifetime" via labels** — simpler, but would lose the meaningful signal "this MP was active this month vs last quarter".
+4. **Side-channel bool (chosen)** — minimum information needed; template + analyst stay simple; the flag is exactly where you'd look for it (the result dict).
+
+**Rationale:** The fallback is editorially distinct from "real" current-month data; readers should know which they're seeing. The bool conveys exactly that fact in 4 bytes. No fancy abstraction needed.
+
+**Trade-offs:** The result dict now has 6 keys (was 3 in Sprint 2.7). Each new key adds a tiny cognitive load when reading aggregator output. Acceptable; the alternatives all add more.
+
+**Revisit if:** The result-dict shape grows to 10+ keys (at which point a typed dataclass would be ergonomic), or if the fallback semantics need to extend to per-source labels (e.g. "news is lifetime fallback").

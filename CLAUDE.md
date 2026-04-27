@@ -12,8 +12,8 @@
 ## Project Status
 
 - **Current Phase**: Phase 8 (Community Features) + 5-Sprint Image/Auth Roadmap.
-- **Last Sprint**: Sprint 17 — Egress Hardening (2026-04-27 evening, hotfix sprint after roadmap)
-- **Tests**: 1450 (1161 backend + 289 frontend)
+- **Last Sprint**: Sprint 18 — Monthly Digest Coverage (2026-04-27 evening)
+- **Tests**: ~1466 (~1177 backend + 289 frontend) — broadcasts: 174→179, full backend suite to be re-verified at next session
 - **Plan/billing**: Supabase Pro plan (Tamil Foundation org) — was forced to upgrade for headroom; goal is to drive egress low enough to revisit free tier later. Per-route observability dashboard now lives at Cloud Monitoring → "SJK(T) Connect — Egress by Route/UA" (id `f1722366-2df9-4446-9941-7cda5c019615`).
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
@@ -281,7 +281,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 15 | Image Display Polish | ✅ Done 2026-04-26 |
 | 16 | Code-Quality Pass | ✅ Done 2026-04-27 — resolved TD-01, TD-10, TD-14, TD-15, TD-16 (users page), TD-17, TD-18 |
 | 17 | Egress Hardening (hotfix) | ✅ Done 2026-04-27 evening |
-| 18 | **Monthly Digest Coverage** | **In Progress** — aggregator extension + APPROVED→exclude(REJECTED) + backfill flag for one-time fill in April digest |
+| 18 | Monthly Digest Coverage | ✅ Done 2026-04-27 evening — aggregator now queries SittingBrief + ParliamentaryMeeting + filters mentions exclude(REJECTED) (was APPROVED-only — silently dropped 3 PENDING mentions on 2 Mar 2026 from the 1 Apr digest); MPScorecard date-filtered with lifetime fallback; new `--backfill-since` flag on compose_monthly_blast for one-time fill scenarios. **Operational followup**: manual trigger of `sjktconnect-monthly-blast` job with `--backfill-since 2026-02-01` before 1 May 2026 to include the missing 1st Meeting 2026 report in the April digest. |
 
 ### Current codebase state (Sprint 17 close, 2026-04-27 evening)
 

@@ -1,5 +1,50 @@
 # Changelog
 
+## Sprint 18 — Monthly Digest Coverage (2026-04-27 evening)
+
+**Deployed**: backend `sjktconnect-api-00107-dxh` (aggregator extension + command flag). Frontend unchanged.
+
+User noticed the 1 April 2026 monthly digest reported "0 Parliament Mentions" for March even though three mentions were live on the public site under a published Sitting Brief, AND the 1st Meeting 2026 Report (covers 19 Jan → 03 Mar) had been generated on 4 Mar. Investigation found four gaps in the aggregator + two more during prod dry-run.
+
+### Added
+- **`backend/broadcasts/services/blast_aggregator.py`** — `aggregate_month()` now returns 5 keys (was 3): `parliament`, `news`, `briefs` (NEW — sitting briefs), `meeting_reports` (NEW — meeting-level reports), `scorecards`, plus `scorecards_are_lifetime_fallback` (NEW — bool). Added optional `backfill_since: date` parameter that widens the briefs + meeting_reports lookback for one-time fill scenarios.
+- **`compose_monthly_blast --backfill-since YYYY-MM-DD`** flag — date-validated. Forwards through to aggregator + analyst. Dry-run output now lists each picked-up meeting + brief by name so the operator can verify before sending.
+- **DATE-SEMANTICS POLICY** docstring at the top of `blast_aggregator.py` documenting per-source filter field + approval gate. Future contributors don't have to re-derive.
+- New "Parliament Meeting Reports" + "Sitting Summaries" sections in both v1 and v2 templates.
+
+### Changed
+- **HansardMention filter**: `review_status="APPROVED"` → `exclude(review_status="REJECTED")`. Mentions default to PENDING; the public site shows them; the digest now does too. **This was the root cause of the 1 April digest's "0 mentions" lie** — three mentions on 2 March were PENDING.
+- **MPScorecard filter**: now date-filtered by `last_mention_date` in target month. Falls back to lifetime top-3 only when no MP was active that month, with a `scorecards_are_lifetime_fallback` bool so the template can label the section appropriately. Stops the "same top-3 every month forever" pattern.
+- **`is_published` filter on briefs + meeting reports**: REMOVED (was added in a first pass, then removed when the dry-run revealed prod data routinely has `is_published=False` even on artifacts shown publicly). Aggregator now mirrors public-site visibility — see lessons.md entry.
+- **Backfill window for meetings**: switched from `published_at` to `end_date` because most prod rows have `published_at=None`. Captures natural intent ("any meeting that ended after backfill_since but before the target month").
+- **`monthly_analyst.py` ANALYST_PROMPT**: now includes sitting briefs + meeting reports in the input data, plus a `scorecard_qualifier` note when the lifetime fallback is in use so Gemini can avoid claiming "most active this month" when it isn't.
+
+### Tests
+- 22 new tests in `test_blast_aggregator.py` covering the new keys, APPROVED→exclude(REJECTED) regression-fix, brief + meeting filters, backfill semantics, lifetime-fallback scorecards.
+- 2 new tests in `test_compose_command.py` for `--backfill-since` (invalid date + happy-path dry-run).
+- `test_monthly_analyst.py` mocks updated for the new aggregator return shape.
+- Final tally: **179 broadcasts tests pass** (was 174).
+
+### Verified end-to-end (read-only against prod)
+```
+PYTHONIOENCODING=utf-8 python manage.py compose_monthly_blast \
+    --month 2026-04 --backfill-since 2026-02-01 --dry-run
+→ 0 parliament, 5 news, 1 sitting briefs, 1 meeting reports,
+  3 scorecard items (lifetime fallback)
+→ meeting: 1st Meeting 2026 (2026-01-19 → 2026-03-03)
+→ brief: 2026-03-02 — Parliament Addresses SJK(T) Special
+  Education Disparity, Mother Tongue Learning
+```
+
+Both pieces of missing content from the original investigation surface.
+
+### Operational follow-up (one-time fill)
+The Cloud Scheduler `sjktconnect-monthly-blast` job fires at 09:00 MYT on 1 May 2026 with the default args (no `--backfill-since`). To get the meeting report into the April digest, one of:
+- **Manual trigger** before 1 May: `gcloud run jobs execute sjktconnect-monthly-blast --args="--month=2026-04,--backfill-since=2026-02-01" --region asia-southeast1`. Then disable the scheduled fire OR let it run as a no-op duplicate.
+- **Edit Cloud Scheduler args** temporarily to add `--backfill-since 2026-02-01`. Revert after the 1 May fire so future months don't repeat the backfill.
+
+Recommended: manual trigger so the scheduler config stays clean.
+
 ## Sprint 17 — Egress Hardening (2026-04-27)
 
 **Deployed**: backend `sjktconnect-api-00106-rxf` (IPBlockMiddleware), frontend `sjktconnect-web-00105-vhx` (ISR + sitemap + news pageSize fixes).
