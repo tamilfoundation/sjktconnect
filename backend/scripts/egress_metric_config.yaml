@@ -1,0 +1,40 @@
+# Cloud Logging metric — per-route egress on sjktconnect-api.
+# Created by Sprint 17 (Egress Hardening). Distribution metric: each request's
+# httpRequest.responseSize is recorded with route + user_agent + status as
+# labels, so Cloud Monitoring can sum/group by any of those.
+#
+# Apply with:
+#   gcloud logging metrics create sjktconnect_api_egress_per_route \
+#     --config-from-file=backend/scripts/egress_metric_config.yaml \
+#     --account admin@tamilfoundation.org --project sjktconnect
+
+filter: |
+  resource.type="cloud_run_revision"
+  resource.labels.service_name="sjktconnect-api"
+  httpRequest.responseSize!=""
+description: "Sprint 17 — bytes per response on sjktconnect-api, grouped by route/UA/status. Used to identify which endpoints + which clients drive Supabase + Cloud Run egress."
+metricDescriptor:
+  metricKind: DELTA
+  valueType: DISTRIBUTION
+  unit: By
+  displayName: "sjktconnect-api response bytes"
+  labels:
+    - key: route
+      valueType: STRING
+      description: "Request URL"
+    - key: user_agent
+      valueType: STRING
+      description: "Client User-Agent header"
+    - key: status
+      valueType: STRING
+      description: "HTTP response status"
+valueExtractor: EXTRACT(httpRequest.responseSize)
+labelExtractors:
+  route: EXTRACT(httpRequest.requestUrl)
+  user_agent: EXTRACT(httpRequest.userAgent)
+  status: EXTRACT(httpRequest.status)
+bucketOptions:
+  exponentialBuckets:
+    numFiniteBuckets: 20
+    growthFactor: 4
+    scale: 100

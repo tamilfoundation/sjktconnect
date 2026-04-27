@@ -5,7 +5,7 @@ import { fetchBriefs, fetchAllMentions, fetchMeetingReports } from "@/lib/api";
 import MeetingReportsGrid from "@/components/MeetingReportsGrid";
 import { buildAlternates } from "@/lib/seo";
 
-export const revalidate = false;
+export const revalidate = 86400;
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("parliamentWatch");

@@ -1,0 +1,40 @@
+# Cloud Logging metric — per-route egress on sjktconnect-web (Next.js).
+# Sibling of egress_metric_config.yaml; identical structure but filters on
+# the web service, so we can compare backend API egress vs frontend ISR /
+# server component egress side-by-side. Sprint 17 (Egress Hardening).
+#
+# Apply with:
+#   gcloud logging metrics create sjktconnect_web_egress_per_route \
+#     --config-from-file=backend/scripts/egress_metric_web_config.yaml \
+#     --account admin@tamilfoundation.org --project sjktconnect
+
+filter: |
+  resource.type="cloud_run_revision"
+  resource.labels.service_name="sjktconnect-web"
+  httpRequest.responseSize!=""
+description: "Sprint 17 — bytes per response on sjktconnect-web (Next.js), grouped by route/UA/status. Pairs with sjktconnect_api_egress_per_route for full-stack egress attribution."
+metricDescriptor:
+  metricKind: DELTA
+  valueType: DISTRIBUTION
+  unit: By
+  displayName: "sjktconnect-web response bytes"
+  labels:
+    - key: route
+      valueType: STRING
+      description: "Request URL"
+    - key: user_agent
+      valueType: STRING
+      description: "Client User-Agent header"
+    - key: status
+      valueType: STRING
+      description: "HTTP response status"
+valueExtractor: EXTRACT(httpRequest.responseSize)
+labelExtractors:
+  route: EXTRACT(httpRequest.requestUrl)
+  user_agent: EXTRACT(httpRequest.userAgent)
+  status: EXTRACT(httpRequest.status)
+bucketOptions:
+  exponentialBuckets:
+    numFiniteBuckets: 20
+    growthFactor: 4
+    scale: 100

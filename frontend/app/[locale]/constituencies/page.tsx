@@ -4,7 +4,7 @@ import { fetchConstituencies } from "@/lib/api";
 import ConstituencyList from "@/components/ConstituencyList";
 import { buildAlternates } from "@/lib/seo";
 
-export const revalidate = false;
+export const revalidate = 86400;
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("constituency");

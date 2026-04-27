@@ -5,7 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { fetchBrief, fetchBriefs } from "@/lib/api";
 import { buildAlternates } from "@/lib/seo";
 
-export const revalidate = false;
+export const revalidate = 86400;
 
 interface Props {
   params: Promise<{ id: string }>;

@@ -38,6 +38,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # IP block runs FIRST so blocked scrapers never touch routing, DB, or
+    # serializers — cheapest possible way to stop egress drain. (Sprint 17)
+    "core.middleware.IPBlockMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",

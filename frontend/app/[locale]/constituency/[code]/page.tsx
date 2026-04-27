@@ -18,7 +18,7 @@ import ContactMPCard from "@/components/ContactMPCard";
 import { Link } from "@/i18n/navigation";
 import { buildAlternates } from "@/lib/seo";
 
-export const revalidate = false;
+export const revalidate = 86400;
 
 interface PageProps {
   params: Promise<{ code: string }>;

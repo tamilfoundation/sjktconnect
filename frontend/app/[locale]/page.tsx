@@ -3,7 +3,7 @@ import NationalStats from "@/components/NationalStats";
 import SchoolMap from "@/components/SchoolMap";
 import { fetchMapSchools, fetchNationalStats } from "@/lib/api";
 
-export const revalidate = false;
+export const revalidate = 86400;
 
 export default async function HomePage() {
   let stats = null;

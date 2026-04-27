@@ -3,6 +3,12 @@ import type { MetadataRoute } from "next";
 const BASE_URL = "https://tamilschool.org";
 const LOCALES = ["en", "ta", "ms"];
 
+// Cache the generated sitemap for 24h. Without this, every bot fetch
+// (ClaudeBot ~6x/day, plus Googlebot, plus the rest) regenerates the full
+// listing — fetching all 528 schools + 222 constituencies fresh from the
+// backend per request. With 86400s ISR, only one rebuild per day. (Sprint 17)
+export const revalidate = 86400;
+
 /**
  * Dynamic XML sitemap with hreflang alternates for all public pages.
  *

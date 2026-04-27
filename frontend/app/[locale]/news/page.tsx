@@ -4,7 +4,7 @@ import { fetchNews } from "@/lib/api";
 import NewsList from "@/components/NewsList";
 import { buildAlternates } from "@/lib/seo";
 
-export const revalidate = false;
+export const revalidate = 86400;
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("news");
@@ -23,7 +23,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function NewsPage() {
   const t = await getTranslations("news");
-  const data = await fetchNews({ pageSize: 500 });
+  // Sprint 17: was pageSize: 500 (~138 KB on every render). 50 is plenty
+  // for the initial paint; NewsList already shows totalCount and can paginate.
+  const data = await fetchNews({ pageSize: 50 });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
