@@ -13,7 +13,7 @@
 
 - **Current Phase**: Phase 8 (Community Features) + 5-Sprint Image/Auth Roadmap.
 - **Last Sprint**: Sprint 18 — Monthly Digest Coverage (2026-04-27 evening)
-- **Tests**: ~1466 (~1177 backend + 289 frontend) — broadcasts: 174→179, full backend suite to be re-verified at next session
+- **Tests**: 1473 (1184 backend + 289 frontend) — full backend suite verified at Sprint 18 close: `1184 passed, 30 warnings, 6 subtests passed in 173.07s`
 - **Plan/billing**: Supabase Pro plan (Tamil Foundation org) — was forced to upgrade for headroom; goal is to drive egress low enough to revisit free tier later. Per-route observability dashboard now lives at Cloud Monitoring → "SJK(T) Connect — Egress by Route/UA" (id `f1722366-2df9-4446-9941-7cda5c019615`).
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
