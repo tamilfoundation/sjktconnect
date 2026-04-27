@@ -396,7 +396,7 @@
 
 **Revisit if:** A third or fourth auth-aware component starts subscribing — at that point a `useCurrentProfile()` custom hook or full Context becomes more ergonomic.
 
-## TD-11 + TD-12 (test-coverage padding) deferred indefinitely — Sprint 16, 2026-04-27
+## TD-11 + TD-12 (test-coverage padding) deferred indefinitely — Sprint 16, 2026-04-27 (PARTIALLY REVERSED 2026-04-28)
 
 **Decision:** TD-11 (`accounts/services/google.py` 25% coverage) and TD-12 (`hansard/pipeline/extractor.py` 26% coverage) are marked deferred — no scheduled sprint. They'll be picked up if and when the underlying code changes or starts producing bugs.
 
@@ -410,6 +410,8 @@
 **Trade-offs:** If the underlying code ever DOES break in an untested branch, the regression won't be caught by the suite. Acceptable: those branches are well-isolated (Google's verify_oauth2_token error paths; pdfplumber's encrypted-PDF path), and a real failure surfaces visibly on prod before silently corrupting data.
 
 **Revisit if:** Either module starts producing bugs in production, OR a refactor of either module is on the table (in which case adding tests around the change is the right move).
+
+**Update 2026-04-28:** TD-11 reversed and resolved. After re-surveying both items at Sprint 18 close, TD-11 (Google auth) was a 30-min surgical fix because (a) the file was small (51 LOC) with an existing test file ready to extend, (b) the failure paths are security-critical (forged-issuer, audience mismatch) — insurance worth carrying, (c) the cost-benefit ratio actually favoured the fix at this size. Coverage now 82%; see TD-11 entry in tech-debt.md. **TD-12 stays deferred** — its cost ratio is genuinely poor (no test file, no PDF fixtures, ~2-3 hours to author both), and a hansard-format-change failure is loud not silent (the pipeline crashes, doesn't corrupt data). Explicit trigger for TD-12: "if `hansard/pipeline/extractor.py` is modified for any reason — Hansard format change, library bump, refactor — add the missing edge-case tests as part of that change rather than as standalone work."
 
 ## IPBlockMiddleware in app code, not Cloud Armor / Cloudflare WAF — Sprint 17, 2026-04-27
 

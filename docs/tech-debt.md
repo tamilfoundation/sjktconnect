@@ -54,12 +54,9 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 - **Status (2026-04-24)**: `next` 14.2.x → **16.2.4** in Sprint 11a Phase 4 (skipped 15 entirely; @latest is 16). The flagged Image Optimizer DoS CVE (GHSA-9g9p-9gw9-jx7f) is cleared. Migration covered: 5 app-router pages updated to async `params` API (`layout.tsx`, `school/[moe_code]`, `constituency/[code]`, `dun/[id]`, plus their `generateMetadata`). Added `frontend/global.d.ts` shim because Next 16's auto-generated `.next/types/validator.ts` references `React.ComponentType` unqualified but `jsx: "react-jsx"` doesn't expose React in global scope. Kept `ignoreBuildErrors: true` (with clearer comment) because pre-existing implicit-any issues in `BoundaryMap` etc. are out of scope for an upgrade sprint.
 - **Status (2026-04-27)**: Sprint 16 ran `npm audit fix` (no `--force`); brace-expansion + picomatch + handlebars all bumped at patch level (6 transitive deps moved). Residual cleared.
 
-## 🟢 TD-11 — `accounts/services/google.py` at 25% coverage
+## ✅ TD-11 — `accounts/services/google.py` failure branches covered (RESOLVED 2026-04-28)
 
-- **What**: Google ID token verification has 25% line coverage (most exceptions paths and failure branches unexercised).
-- **Why we accepted**: Painful to mock Google's `verify_oauth2_token`. The happy path is covered.
-- **What it blocks**: Confidence in edge cases — e.g. what happens if `aud` mismatches unexpectedly? Actual code looks correct, but without tests we'd miss a regression.
-- **Cost to fix**: 1 hour. Add tests that mock `id_token.verify_oauth2_token` returning bad issuer, bad audience, expired token, exception.
+- **Status**: Resolved. 7 new tests added in `accounts/tests/test_google_auth.py` (Sprint 18 close +1 day): happy path, alt issuer form, forged-token bad issuer, bad audience, expired/malformed token (`ValueError`), network error (`ConnectionError`), missing `GOOGLE_OAUTH_CLIENT_ID`. Coverage went from 25% → **82%** (only uncovered lines are env-var loading inside `_get_client_ids()`, intentionally mocked). The actual security-critical paths — issuer validation, audience validation, exception handling — are all locked in by tests now.
 
 ## 🟢 TD-12 — `hansard/pipeline/extractor.py` at 26% coverage
 
