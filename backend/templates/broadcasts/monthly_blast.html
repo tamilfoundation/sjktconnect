@@ -42,9 +42,40 @@
 <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
 {% endif %}
 
+{% if meeting_reports %}
+<h2 style="color: #2c3e50; font-size: 18px;">Parliament Meeting Reports</h2>
+<p style="color: #888; font-size: 13px;">Reports active during {{ month_label }}</p>
+{% for m in meeting_reports %}
+<div style="background: #f8f9fa; border-left: 3px solid #7c3aed; padding: 12px 15px; margin-bottom: 12px; border-radius: 0 4px 4px 0;">
+    <p style="margin: 0 0 4px 0; font-weight: bold; color: #2c3e50;">
+        <a href="https://tamilschool.org/en/parliament-watch/{{ m.pk }}" style="color: #2c3e50; text-decoration: none;">{{ m.short_name }}</a>
+    </p>
+    <p style="margin: 0 0 4px 0; font-size: 13px; color: #666;">
+        {{ m.start_date|date:"j M" }} &rarr; {{ m.end_date|date:"j M Y" }}
+    </p>
+    {% if m.executive_summary %}<p style="margin: 0; color: #333;">{{ m.executive_summary|truncatewords:50 }}</p>{% endif %}
+</div>
+{% endfor %}
+<hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
+{% endif %}
+
+{% if briefs %}
+<h2 style="color: #2c3e50; font-size: 18px;">Sitting Summaries</h2>
+<p style="color: #888; font-size: 13px;">Per-sitting summaries published this month</p>
+{% for b in briefs %}
+<div style="background: #f8f9fa; border-left: 3px solid #06b6d4; padding: 12px 15px; margin-bottom: 12px; border-radius: 0 4px 4px 0;">
+    <p style="margin: 0 0 4px 0; font-size: 12px; color: #888;">{{ b.sitting.sitting_date|date:"j M Y" }}</p>
+    <p style="margin: 0; font-weight: bold; color: #2c3e50;">
+        <a href="https://tamilschool.org/en/parliament-watch/sittings/{{ b.sitting.pk }}" style="color: #2c3e50; text-decoration: none;">{{ b.title }}</a>
+    </p>
+</div>
+{% endfor %}
+<hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
+{% endif %}
+
 {% if scorecards %}
 <h2 style="color: #2c3e50; font-size: 18px;">MP Scorecard Highlights</h2>
-<p style="color: #888; font-size: 13px;">Most active MPs on Tamil school issues</p>
+<p style="color: #888; font-size: 13px;">{% if scorecards_are_lifetime_fallback %}Lifetime top MPs (no MP active this month){% else %}Most active MPs on Tamil school issues this month{% endif %}</p>
 <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
     <tr style="background: #f1f1f1;">
         <th style="text-align: left; padding: 8px;">MP</th>
@@ -63,6 +94,6 @@
 </table>
 {% endif %}
 
-{% if not parliament and not news and not scorecards %}
+{% if not parliament and not news and not scorecards and not briefs and not meeting_reports %}
 <p style="color: #888; text-align: center; padding: 30px 0;">No intelligence data available for {{ month_label }}.</p>
 {% endif %}

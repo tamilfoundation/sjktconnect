@@ -13,7 +13,7 @@ Usage:
 
 import calendar
 import os
-from datetime import date
+from datetime import date, datetime
 
 from django.core.management.base import BaseCommand, CommandError
 from django.template.loader import render_to_string
@@ -46,29 +46,59 @@ class Command(BaseCommand):
             action="store_true",
             help="Automatically send the broadcast after composing (for cron jobs)",
         )
+        parser.add_argument(
+            "--backfill-since",
+            type=str,
+            default="",
+            help=(
+                "YYYY-MM-DD. When set, sitting briefs and meeting reports "
+                "ALSO include any item with sitting_date or published_at >= "
+                "this date that isn't already in the target-month set. Used "
+                "once to fill a gap when a prior digest missed content "
+                "(e.g. a meeting report published just before the month "
+                "boundary). Has no effect on mentions, news, or scorecards."
+            ),
+        )
 
     def handle(self, *args, **options):
         year, month = self._parse_month(options["month"])
         month_label = f"{calendar.month_name[month]} {year}"
         dry_run = options["dry_run"]
+        backfill_since = self._parse_backfill_since(options["backfill_since"])
 
-        data = aggregate_month(year, month)
+        data = aggregate_month(year, month, backfill_since=backfill_since)
 
         parliament_count = len(list(data["parliament"]))
         news_count = len(list(data["news"]))
+        brief_count = len(list(data["briefs"]))
+        meeting_count = len(list(data["meeting_reports"]))
         scorecard_count = len(list(data["scorecards"]))
+        scorecards_fallback = data["scorecards_are_lifetime_fallback"]
 
         if dry_run:
             self.stdout.write(f"DRY RUN \u2014 {month_label}")
+            if backfill_since:
+                self.stdout.write(f"  backfill window: items >= {backfill_since}")
             self.stdout.write(
                 f"  {parliament_count} parliament, "
                 f"{news_count} news, "
+                f"{brief_count} sitting briefs, "
+                f"{meeting_count} meeting reports, "
                 f"{scorecard_count} scorecard items"
+                f"{' (lifetime fallback)' if scorecards_fallback else ''}"
             )
+            for m in data["meeting_reports"]:
+                self.stdout.write(
+                    f"    meeting: {m.short_name} ({m.start_date} \u2192 {m.end_date})"
+                )
+            for b in data["briefs"]:
+                self.stdout.write(
+                    f"    brief: {b.sitting.sitting_date} \u2014 {b.title[:60]}"
+                )
             return
 
         # Try v2 analytical blast via Gemini
-        analysis = generate_monthly_analysis(year, month)
+        analysis = generate_monthly_analysis(year, month, backfill_since=backfill_since)
 
         hero_image_bytes = None
         if analysis:
@@ -90,12 +120,13 @@ class Command(BaseCommand):
                     "month_label": month_label,
                     "analysis": analysis,
                     "hero_image_url": None,
+                    "briefs": data["briefs"],
+                    "meeting_reports": data["meeting_reports"],
                 },
             )
             self.stdout.write("Using v2 analytical template (Gemini)")
         else:
             # Fallback to v1 template (no Gemini key or error)
-            data = aggregate_month(year, month)
             html_content = render_to_string(
                 "broadcasts/monthly_blast.html",
                 {
@@ -103,6 +134,11 @@ class Command(BaseCommand):
                     "parliament": data["parliament"],
                     "news": data["news"],
                     "scorecards": data["scorecards"],
+                    "scorecards_are_lifetime_fallback": data[
+                        "scorecards_are_lifetime_fallback"
+                    ],
+                    "briefs": data["briefs"],
+                    "meeting_reports": data["meeting_reports"],
                 },
             )
             self.stdout.write("Using v1 template (Gemini unavailable)")
@@ -132,6 +168,8 @@ class Command(BaseCommand):
                     "month_label": month_label,
                     "analysis": analysis,
                     "hero_image_url": hero_url,
+                    "briefs": data["briefs"],
+                    "meeting_reports": data["meeting_reports"],
                 },
             )
             broadcast.html_content = html_content
@@ -150,6 +188,17 @@ class Command(BaseCommand):
             send_broadcast(broadcast.pk)
             self.stdout.write(
                 self.style.SUCCESS(f"Broadcast {broadcast.pk} sent.")
+            )
+
+    def _parse_backfill_since(self, value: str) -> date | None:
+        """Parse the optional --backfill-since YYYY-MM-DD argument."""
+        if not value:
+            return None
+        try:
+            return datetime.strptime(value, "%Y-%m-%d").date()
+        except ValueError:
+            raise CommandError(
+                f"Invalid --backfill-since date '{value}'. Use YYYY-MM-DD."
             )
 
     def _parse_month(self, month_str: str) -> tuple[int, int]:

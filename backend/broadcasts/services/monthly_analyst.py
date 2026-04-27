@@ -12,6 +12,7 @@ import calendar
 import json
 import logging
 import os
+from datetime import date
 
 from google import genai
 from google.genai import types
@@ -33,10 +34,16 @@ Below is data from TWO months so you can identify trends and changes.
 Parliament mentions ({current_parliament_count}):
 {current_parliament_text}
 
+Sitting briefs ({current_brief_count}):
+{current_brief_text}
+
+Meeting reports ({current_meeting_count}):
+{current_meeting_text}
+
 News articles ({current_news_count}):
 {current_news_text}
 
-Top MP scorecards:
+Top MP scorecards{current_scorecard_qualifier}:
 {current_scorecard_text}
 
 --- PREVIOUS MONTH: {previous_month_label} ---
@@ -138,6 +145,34 @@ def _format_scorecards(queryset) -> str:
     return "\n".join(lines)
 
 
+def _format_briefs(queryset) -> str:
+    """Format sitting briefs into text blocks for the prompt."""
+    items = list(queryset)
+    if not items:
+        return "No sitting briefs published this period."
+    lines = []
+    for b in items:
+        sitting_date = b.sitting.sitting_date.strftime("%d %b %Y") if b.sitting else "Unknown"
+        lines.append(f"- [{sitting_date}] {b.title}")
+    return "\n".join(lines)
+
+
+def _format_meetings(queryset) -> str:
+    """Format meeting reports into text blocks for the prompt."""
+    items = list(queryset)
+    if not items:
+        return "No meeting reports active this period."
+    lines = []
+    for m in items:
+        period = (
+            f"{m.start_date.strftime('%d %b')} \u2192 "
+            f"{m.end_date.strftime('%d %b %Y')}"
+        )
+        summary = (m.executive_summary or "")[:200].replace("\n", " ").strip()
+        lines.append(f"- {m.short_name} ({period}): {summary}")
+    return "\n".join(lines)
+
+
 def _previous_month(year: int, month: int) -> tuple[int, int]:
     """Return (year, month) for the month before the given one."""
     if month == 1:
@@ -145,7 +180,11 @@ def _previous_month(year: int, month: int) -> tuple[int, int]:
     return year, month - 1
 
 
-def generate_monthly_analysis(year: int, month: int) -> dict | None:
+def generate_monthly_analysis(
+    year: int,
+    month: int,
+    backfill_since: date | None = None,
+) -> dict | None:
     """Generate analytical monthly content via Gemini.
 
     Aggregates data for the current and previous months, sends to Gemini
@@ -154,6 +193,9 @@ def generate_monthly_analysis(year: int, month: int) -> dict | None:
     Args:
         year: Target year.
         month: Target month (1-12).
+        backfill_since: Forwarded to aggregate_month — see its docstring.
+            Sprint 18 added so a one-time digest can pull older briefs +
+            meeting reports that prior digests missed.
 
     Returns:
         dict with executive_summary, trend_lines, emerging_signals,
@@ -166,19 +208,30 @@ def generate_monthly_analysis(year: int, month: int) -> dict | None:
         return None
 
     # Aggregate current and previous months
-    current_data = aggregate_month(year, month)
+    current_data = aggregate_month(year, month, backfill_since=backfill_since)
     prev_year, prev_month = _previous_month(year, month)
     previous_data = aggregate_month(prev_year, prev_month)
 
     current_month_label = f"{calendar.month_name[month]} {year}"
     previous_month_label = f"{calendar.month_name[prev_month]} {prev_year}"
 
+    scorecard_qualifier = (
+        " (lifetime fallback — no MP active this month)"
+        if current_data["scorecards_are_lifetime_fallback"]
+        else ""
+    )
+
     prompt = ANALYST_PROMPT.format(
         current_month_label=current_month_label,
         current_parliament_count=len(list(current_data["parliament"])),
         current_parliament_text=_format_parliament(current_data["parliament"]),
+        current_brief_count=len(list(current_data["briefs"])),
+        current_brief_text=_format_briefs(current_data["briefs"]),
+        current_meeting_count=len(list(current_data["meeting_reports"])),
+        current_meeting_text=_format_meetings(current_data["meeting_reports"]),
         current_news_count=len(list(current_data["news"])),
         current_news_text=_format_news(current_data["news"]),
+        current_scorecard_qualifier=scorecard_qualifier,
         current_scorecard_text=_format_scorecards(current_data["scorecards"]),
         previous_month_label=previous_month_label,
         previous_parliament_count=len(list(previous_data["parliament"])),

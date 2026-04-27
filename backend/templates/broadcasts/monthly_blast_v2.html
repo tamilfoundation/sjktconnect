@@ -115,6 +115,36 @@
   </div>
   {% endif %}
 
+  <!-- Parliament Reports (Sprint 18) -->
+  {% if meeting_reports %}
+  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Parliament Meeting Reports</div>
+  {% for m in meeting_reports %}
+  <div style="margin-bottom: 16px; padding: 16px; background: #f9fafb; border-radius: 6px;">
+    <div style="font-weight: bold; font-size: 15px; margin-bottom: 4px;">
+      <a href="https://tamilschool.org/en/parliament-watch/{{ m.pk }}" style="color: #1f2937; text-decoration: none;">{{ m.short_name }}</a>
+    </div>
+    <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">{{ m.start_date|date:"d M" }} &rarr; {{ m.end_date|date:"d M Y" }}</div>
+    {% if m.executive_summary %}<div style="font-size: 14px; color: #4b5563;">{{ m.executive_summary|truncatewords:50 }}</div>{% endif %}
+    <div style="margin-top: 10px;"><a href="https://tamilschool.org/en/parliament-watch/{{ m.pk }}" style="font-size: 13px; color: #7c3aed; text-decoration: none; font-weight: 600;">Read full report &rarr;</a></div>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <!-- Sitting Briefs (Sprint 18) -->
+  {% if briefs %}
+  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Sitting Summaries</div>
+  <table width="100%" cellpadding="0" cellspacing="0">
+    {% for b in briefs %}
+    <tr>
+      <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+        <div style="font-size: 12px; color: #9ca3af;">{{ b.sitting.sitting_date|date:"d M Y" }}</div>
+        <a href="https://tamilschool.org/en/parliament-watch/sittings/{{ b.sitting.pk }}" style="font-size: 14px; color: #1f2937; font-weight: 600; text-decoration: none;">{{ b.title }}</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
   <!-- Footer -->
   <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 13px; color: #9ca3af; text-align: center;">
     <p style="margin: 0 0 8px 0;">You received this because you subscribed to the Monthly Intelligence Blast on <a href="https://tamilschool.org" style="color: #6b7280;">tamilschool.org</a>.</p>
