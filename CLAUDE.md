@@ -269,9 +269,9 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**5-sprint roadmap is COMPLETE** as of Sprint 16 close (2026-04-27). No new sprint scheduled — pick up future work from the Future work list below or open the next priority from `docs/tech-debt.md`.
+**Sprint 18 — Monthly Digest Coverage** — In Progress (started 2026-04-27 evening). Triggered by user noticing the 1 April 2026 monthly digest reported "0 Parliament Mentions" for March, despite a public Sitting Brief titled "Parliament Addresses SJK(T) Special Education Disparity, Mother Tongue Learning" with 3 mentions on 2 March being live on the site, AND the 1st Meeting 2026 Report (covers 19 Jan → 03 Mar) being created on 4 March. Investigation found the aggregator (a) never queries SittingBrief or ParliamentaryMeeting reports, (b) filters mentions by `review_status="APPROVED"` while the public site uses `exclude(REJECTED)` — so PENDING mentions are silently dropped.
 
-### 5-Sprint Roadmap — final state
+### 5-Sprint Roadmap (12 → 16) — final state
 
 | # | Sprint | Status |
 |---|---|---|
@@ -280,6 +280,8 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 14 | Community Photo Uploads | ✅ Done 2026-04-26 — resolved TD-07, TD-09, TD-16 (suggestions portion) |
 | 15 | Image Display Polish | ✅ Done 2026-04-26 |
 | 16 | Code-Quality Pass | ✅ Done 2026-04-27 — resolved TD-01, TD-10, TD-14, TD-15, TD-16 (users page), TD-17, TD-18 |
+| 17 | Egress Hardening (hotfix) | ✅ Done 2026-04-27 evening |
+| 18 | **Monthly Digest Coverage** | **In Progress** — aggregator extension + APPROVED→exclude(REJECTED) + backfill flag for one-time fill in April digest |
 
 ### Current codebase state (Sprint 17 close, 2026-04-27 evening)
 
