@@ -48,11 +48,18 @@ class Command(BaseCommand):
             source="BULK_IMPORT", is_active=True
         )
 
-        # Exclude subscribers who already received a welcome broadcast
+        # Exclude subscribers who already received a welcome broadcast.
+        # Filter on SENT *or* DELIVERED: the Brevo webhook (Sprint 8.5)
+        # transitions BroadcastRecipient.status from SENT to DELIVERED
+        # within seconds of inbox confirmation, so a retry run hours
+        # later sees status=DELIVERED for the successful recipients —
+        # if we filtered on SENT alone, those people would be retried
+        # and receive the welcome twice. (Discovered 2026-04-28 when
+        # broadcasts 70+71 double-sent to 14 recipients.)
         sent_broadcasts = Broadcast.objects.filter(subject=subject, status="SENT")
         already_sent_ids = BroadcastRecipient.objects.filter(
             broadcast__in=sent_broadcasts,
-            status="SENT",
+            status__in=("SENT", "DELIVERED"),
         ).values_list("subscriber_id", flat=True)
 
         remaining = all_bulk.exclude(pk__in=already_sent_ids)
