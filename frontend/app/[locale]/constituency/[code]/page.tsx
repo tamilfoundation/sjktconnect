@@ -20,6 +20,11 @@ import { buildAlternates } from "@/lib/seo";
 
 export const revalidate = 86400;
 
+// Sprint 21: see school/[moe_code]/page.tsx for the rationale.
+export function generateStaticParams() {
+  return [];
+}
+
 interface PageProps {
   params: Promise<{ locale: string; code: string }>;
 }

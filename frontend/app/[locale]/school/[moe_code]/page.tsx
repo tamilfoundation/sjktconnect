@@ -24,6 +24,15 @@ import { Link } from "@/i18n/navigation";
 
 export const revalidate = 86400;
 
+// Sprint 21: opt this dynamic-segment route into ISR-on-demand. Without
+// generateStaticParams, Next 15+ treats `[moe_code]` as fully dynamic and
+// emits Cache-Control: no-cache,no-store. Empty array means we don't
+// pre-build any pages at build time, but each unique URL gets cached
+// on first hit for `revalidate` seconds.
+export function generateStaticParams() {
+  return [];
+}
+
 interface PageProps {
   params: Promise<{ locale: string; moe_code: string }>;
 }
