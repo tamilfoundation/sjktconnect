@@ -231,6 +231,15 @@ export interface SchoolLeaderData {
   name: string;
 }
 
+// Sprint 20: extended shape returned by the admin CRUD endpoints —
+// includes id + private fields (phone, email). Backwards-compatible:
+// the existing read-only consumers ignore extra keys.
+export interface SchoolLeaderAdminData extends SchoolLeaderData {
+  id: number;
+  phone: string;
+  email: string;
+}
+
 export interface SchoolEditData {
   moe_code: string;
   name: string;
@@ -261,7 +270,7 @@ export interface SchoolEditData {
   bank_account_name: string;
   bank_account_number: string;
   claimed_at: string | null;
-  leaders: SchoolLeaderData[];
+  leaders: SchoolLeaderAdminData[];
 }
 
 export interface SubscribeRequest {

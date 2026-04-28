@@ -106,6 +106,28 @@ class SchoolLeaderSerializer(serializers.ModelSerializer):
         fields = ["role", "role_display", "name"]
 
 
+class SchoolLeaderAdminSerializer(serializers.ModelSerializer):
+    """Sprint 20 — admin-only serializer for the leader CRUD endpoints.
+
+    Includes phone + email (private fields) which the public
+    SchoolLeaderSerializer omits. Role is required on create but
+    immutable on update — to change a leader's role, delete and
+    re-create.
+    """
+
+    role_display = serializers.CharField(source="get_role_display", read_only=True)
+
+    class Meta:
+        model = SchoolLeader
+        fields = ["id", "role", "role_display", "name", "phone", "email"]
+        read_only_fields = ["id", "role_display"]
+
+    def update(self, instance, validated_data):
+        # Role is set at creation and cannot be changed via PATCH.
+        validated_data.pop("role", None)
+        return super().update(instance, validated_data)
+
+
 class SchoolDetailSerializer(serializers.ModelSerializer):
     """Full school profile for detail views."""
 
@@ -224,11 +246,16 @@ class SchoolEditSerializer(serializers.ModelSerializer):
     leaders = serializers.SerializerMethodField()
 
     def get_leaders(self, obj):
+        # Sprint 20: edit-page consumers need the admin shape (id +
+        # phone + email) for inline CRUD. The endpoint is gated by
+        # IsProfileAuthenticated AND the view checks bound-school-admin /
+        # SUPERADMIN before returning anything, so private fields are
+        # safe to expose here.
         qs = obj.leaders.filter(is_active=True).order_by(
             # Match SchoolDetailSerializer ordering: Chairman → HM → PTA → Alumni
             "role"
         )
-        return SchoolLeaderSerializer(qs, many=True).data
+        return SchoolLeaderAdminSerializer(qs, many=True).data
 
     class Meta:
         model = School

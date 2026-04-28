@@ -162,7 +162,13 @@ export default function SchoolEditForm({ school, isSuperAdmin }: SchoolEditFormP
           {activeTab === "contact" && (
             <ContactTab data={formData} isSuperAdmin={isSuperAdmin} onChange={handleChange} />
           )}
-          {activeTab === "leaders" && <LeadersTab leaders={formData.leaders} />}
+          {activeTab === "leaders" && (
+            <LeadersTab
+              moeCode={formData.moe_code}
+              initialLeaders={formData.leaders}
+              onLeadersChange={(leaders) => setFormData((prev) => ({ ...prev, leaders }))}
+            />
+          )}
           {activeTab === "support" && <SupportTab data={formData} onChange={handleChange} />}
           {activeTab === "images" && <ImagesTab moeCode={formData.moe_code} />}
         </div>

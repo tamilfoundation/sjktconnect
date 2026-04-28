@@ -31,10 +31,11 @@ from schools.api.serializers import (
     DUNListSerializer,
     SchoolDetailSerializer,
     SchoolEditSerializer,
+    SchoolLeaderAdminSerializer,
     SchoolListSerializer,
     SchoolMapSerializer,
 )
-from schools.models import Constituency, DUN, School
+from schools.models import Constituency, DUN, School, SchoolLeader
 
 
 # --- School API ---
@@ -166,6 +167,109 @@ class SchoolEditView(APIView):
 # SchoolConfirmView removed Sprint 19 (2026-04-28). MOE data is the source
 # of truth — there's nothing for school admins to "confirm". Future
 # additions go through the Suggestion workflow (community/api/views.py).
+
+
+# --- School Leader CRUD (Sprint 20) ---
+
+
+def _can_edit_school_leaders(profile, school_pk: str) -> bool:
+    """Permission gate for the leader CRUD endpoints.
+
+    SUPERADMIN may edit any school's leaders. Other roles can edit
+    only their own bound school. MODERATOR has no special privilege
+    here — leadership is a school-internal concern, not platform
+    moderation. Same shape as community._is_photo_approver.
+    """
+    if not profile:
+        return False
+    if profile.role == "SUPERADMIN":
+        return True
+    return bool(profile.admin_school_id and profile.admin_school_id == school_pk)
+
+
+def _resolve_school_or_404(moe_code: str):
+    """Fetch a School by moe_code or raise 404. Active-only; leaders for
+    deactivated schools are out of scope."""
+    try:
+        return School.objects.get(moe_code=moe_code, is_active=True)
+    except School.DoesNotExist:
+        return None
+
+
+@api_view(["POST"])
+@permission_classes([IsProfileAuthenticated])
+def school_leader_create_view(request, moe_code):
+    """Create a new SchoolLeader for a school.
+
+    POST /api/v1/schools/<moe_code>/leaders/
+    Body: { "role": "headmaster", "name": "...", "phone": "...", "email": "..." }
+    """
+    school = _resolve_school_or_404(moe_code)
+    if school is None:
+        return Response({"detail": "School not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    if not _can_edit_school_leaders(request.user_profile, school.pk):
+        return Response(
+            {"detail": "Only SUPERADMIN or this school's bound admin can edit leaders."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    serializer = SchoolLeaderAdminSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    # Enforce one active leader per role per school. The DB constraint
+    # would catch this too, but a friendly 409 beats a generic 500.
+    role = serializer.validated_data.get("role")
+    if SchoolLeader.objects.filter(school=school, role=role, is_active=True).exists():
+        return Response(
+            {
+                "detail": f"This school already has an active {role}. "
+                          "Update or remove the existing record first.",
+                "code": "role_taken",
+            },
+            status=status.HTTP_409_CONFLICT,
+        )
+
+    leader = serializer.save(school=school)
+    return Response(
+        SchoolLeaderAdminSerializer(leader).data,
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(["PATCH", "DELETE"])
+@permission_classes([IsProfileAuthenticated])
+def school_leader_detail_view(request, moe_code, leader_id):
+    """Update or soft-delete a SchoolLeader.
+
+    PATCH /api/v1/schools/<moe_code>/leaders/<leader_id>/  — name/phone/email
+    DELETE /api/v1/schools/<moe_code>/leaders/<leader_id>/ — soft-delete (is_active=False)
+    """
+    school = _resolve_school_or_404(moe_code)
+    if school is None:
+        return Response({"detail": "School not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    if not _can_edit_school_leaders(request.user_profile, school.pk):
+        return Response(
+            {"detail": "Only SUPERADMIN or this school's bound admin can edit leaders."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    try:
+        leader = SchoolLeader.objects.get(pk=leader_id, school=school, is_active=True)
+    except SchoolLeader.DoesNotExist:
+        return Response({"detail": "Leader not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == "DELETE":
+        leader.is_active = False
+        leader.save(update_fields=["is_active", "updated_at"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    # PATCH
+    serializer = SchoolLeaderAdminSerializer(leader, data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    leader = serializer.save()
+    return Response(SchoolLeaderAdminSerializer(leader).data)
 
 
 # --- Constituency API ---

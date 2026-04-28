@@ -21,6 +21,8 @@ from schools.api.views import (
     SchoolMapView,
     SearchView,
     duitnow_qr,
+    school_leader_create_view,
+    school_leader_detail_view,
 )
 
 app_name = "schools-api"
@@ -30,6 +32,8 @@ urlpatterns = [
     path("schools/map/", SchoolMapView.as_view(), name="school-map"),
     path("schools/", SchoolListView.as_view(), name="school-list"),
     path("schools/<str:moe_code>/edit/", SchoolEditView.as_view(), name="school-edit"),
+    path("schools/<str:moe_code>/leaders/", school_leader_create_view, name="school-leader-create"),
+    path("schools/<str:moe_code>/leaders/<int:leader_id>/", school_leader_detail_view, name="school-leader-detail"),
     path("schools/<str:moe_code>/mentions/", SchoolMentionsView.as_view(), name="school-mentions"),
     path("schools/<str:moe_code>/news/", SchoolNewsView.as_view(), name="school-news"),
     path("schools/<str:moe_code>/duitnow-qr/", duitnow_qr, name="duitnow-qr"),

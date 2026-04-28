@@ -17,6 +17,7 @@ import {
   SchoolDetail,
   SchoolEditData,
   SchoolImageData,
+  SchoolLeaderAdminData,
   SchoolMention,
   SearchResults,
   SittingBrief,
@@ -790,4 +791,68 @@ export async function approvePhotoSuggestion(id: number): Promise<{
     }
   }
   return { ok: false, detail: await res.text() };
+}
+
+// ----- School leader CRUD (Sprint 20) -----
+
+export type LeaderRole =
+  | "board_chair"
+  | "headmaster"
+  | "pta_chair"
+  | "alumni_chair";
+
+export interface LeaderUpsertPayload {
+  name: string;
+  phone?: string;
+  email?: string;
+}
+
+export async function createSchoolLeader(
+  moeCode: string,
+  role: LeaderRole,
+  payload: LeaderUpsertPayload,
+): Promise<SchoolLeaderAdminData> {
+  const res = await fetch(`${BASE}/schools/${moeCode}/leaders/`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role, ...payload }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.detail || `API error: ${res.status}`);
+  }
+  return data;
+}
+
+export async function updateSchoolLeader(
+  moeCode: string,
+  leaderId: number,
+  payload: LeaderUpsertPayload,
+): Promise<SchoolLeaderAdminData> {
+  const res = await fetch(`${BASE}/schools/${moeCode}/leaders/${leaderId}/`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.detail || `API error: ${res.status}`);
+  }
+  return data;
+}
+
+export async function deleteSchoolLeader(
+  moeCode: string,
+  leaderId: number,
+): Promise<void> {
+  const res = await fetch(`${BASE}/schools/${moeCode}/leaders/${leaderId}/`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `API error: ${res.status}`);
+  }
 }

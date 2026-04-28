@@ -39,7 +39,7 @@ const mockSchool: SchoolEditData = {
   bank_account_number: "",
   claimed_at: null,
   leaders: [
-    { role: "headmaster", role_display: "Headmaster", name: "Pn. Test HM" },
+    { id: 1, role: "headmaster", role_display: "Headmaster", name: "Pn. Test HM", phone: "", email: "" },
   ],
 };
 
@@ -86,13 +86,26 @@ describe("SchoolEditForm — tabs (Sprint 19)", () => {
     expect(screen.getByLabelText(/Postcode/)).toHaveValue("85000");
   });
 
-  it("Leaders tab shows the read-only listing + 'coming soon' notice", () => {
+  it("Leaders tab shows existing leader as an editable row + a Save button", () => {
+    // Sprint 20 replaced the read-only listing with inline CRUD.
     render(<SchoolEditForm school={mockSchool} isSuperAdmin={false} />);
     fireEvent.click(screen.getByRole("tab", { name: "Leaders" }));
-    expect(screen.getByText(/coming soon/i)).toBeInTheDocument();
-    expect(screen.getByText("Pn. Test HM")).toBeInTheDocument();
-    // No Save button on Leaders tab
-    expect(screen.queryByRole("button", { name: /Save Changes/ })).not.toBeInTheDocument();
+    // Existing leader's name appears in the editable input
+    const nameInput = screen.getByLabelText("Name") as HTMLInputElement;
+    expect(nameInput.value).toBe("Pn. Test HM");
+    // Save button now lives inside the LeadersTab itself
+    expect(screen.getByRole("button", { name: /Save changes/i })).toBeInTheDocument();
+    // The "coming soon" notice is gone
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+  });
+
+  it("Leaders tab renders an + Add button for empty roles", () => {
+    render(<SchoolEditForm school={mockSchool} isSuperAdmin={false} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Leaders" }));
+    // mockSchool only has headmaster — board_chair, pta_chair, alumni_chair are empty
+    expect(screen.getByRole("button", { name: /Board Chairman/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /PTA Chairman/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Alumni/ })).toBeInTheDocument();
   });
 
   it("Images tab links to the image manager", () => {
