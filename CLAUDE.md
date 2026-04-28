@@ -282,6 +282,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 16 | Code-Quality Pass | ✅ Done 2026-04-27 — resolved TD-01, TD-10, TD-14, TD-15, TD-16 (users page), TD-17, TD-18 |
 | 17 | Egress Hardening (hotfix) | ✅ Done 2026-04-27 evening |
 | 18 | Monthly Digest Coverage | ✅ Done 2026-04-27 evening — aggregator now queries SittingBrief + ParliamentaryMeeting + filters mentions exclude(REJECTED) (was APPROVED-only — silently dropped 3 PENDING mentions on 2 Mar 2026 from the 1 Apr digest); MPScorecard date-filtered with lifetime fallback; new `--backfill-since` flag on compose_monthly_blast for one-time fill scenarios. **Operational followup**: manual trigger of `sjktconnect-monthly-blast` job with `--backfill-since 2026-02-01` before 1 May 2026 to include the missing 1st Meeting 2026 report in the April digest. |
+| 19 | **Edit Page Tabs** | **In Progress** (started 2026-04-28) — Redesign `/school/[moe_code]/edit` as 5-tab layout (Core / Contact / Leaders / Support / Images). Drop Confirm Data button + endpoint + `last_verified` + `verified_by` fields (MOE data is source of truth, nothing for school admins to confirm). GPS edit gated to SUPERADMIN. Sprint 1.7 verification dashboard goes away. Stitch prototype mandatory before code per CLAUDE.md rule. |
 
 ### Current codebase state (Sprint 17 close, 2026-04-27 evening)
 
