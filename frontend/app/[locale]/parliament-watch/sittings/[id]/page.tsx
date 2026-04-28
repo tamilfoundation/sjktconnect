@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { fetchBrief, fetchBriefs } from "@/lib/api";
 import { buildAlternates } from "@/lib/seo";
@@ -8,7 +8,7 @@ import { buildAlternates } from "@/lib/seo";
 export const revalidate = 86400;
 
 interface Props {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: string; id: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -33,7 +33,8 @@ function formatDate(dateStr: string): string {
 }
 
 export default async function BriefDetailPage({ params }: Props) {
-  const { id } = await params;
+  const { locale, id } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations("parliamentWatch");
 
   const brief = await fetchBrief(Number(id));

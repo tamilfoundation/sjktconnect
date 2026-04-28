@@ -1,3 +1,4 @@
+import { setRequestLocale } from "next-intl/server";
 import HeroSection from "@/components/HeroSection";
 import NationalStats from "@/components/NationalStats";
 import SchoolMap from "@/components/SchoolMap";
@@ -5,7 +6,13 @@ import { fetchMapSchools, fetchNationalStats } from "@/lib/api";
 
 export const revalidate = 86400;
 
-export default async function HomePage() {
+interface PageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export default async function HomePage({ params }: PageProps) {
+  const { locale } = await params;
+  setRequestLocale(locale);
   let stats = null;
   let schools: Awaited<ReturnType<typeof fetchMapSchools>> = [];
   try {

@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { fetchMeetingReport, fetchMeetingReports } from "@/lib/api";
 import ReportShareBar from "@/components/ReportShareBar";
@@ -9,7 +9,7 @@ import { buildAlternates } from "@/lib/seo";
 export const revalidate = 86400;
 
 interface Props {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: string; id: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -44,7 +44,8 @@ function extractHeadline(html: string): string | null {
 }
 
 export default async function MeetingReportPage({ params }: Props) {
-  const { id } = await params;
+  const { locale, id } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations("parliamentWatch");
 
   const [report, allReports] = await Promise.all([

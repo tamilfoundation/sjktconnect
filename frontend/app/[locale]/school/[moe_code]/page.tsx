@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import {
   fetchSchoolDetail,
   fetchSchoolsByConstituency,
@@ -25,7 +25,7 @@ import { Link } from "@/i18n/navigation";
 export const revalidate = 86400;
 
 interface PageProps {
-  params: Promise<{ moe_code: string }>;
+  params: Promise<{ locale: string; moe_code: string }>;
 }
 
 export async function generateMetadata({
@@ -71,6 +71,8 @@ export async function generateMetadata({
 }
 
 export default async function SchoolPage({ params }: PageProps) {
+  const { locale } = await params;
+  setRequestLocale(locale);
   const { moe_code } = await params;
   let school;
   try {
