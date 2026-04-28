@@ -474,3 +474,50 @@
 **Trade-offs:** The result dict now has 6 keys (was 3 in Sprint 2.7). Each new key adds a tiny cognitive load when reading aggregator output. Acceptable; the alternatives all add more.
 
 **Revisit if:** The result-dict shape grows to 10+ keys (at which point a typed dataclass would be ergonomic), or if the fallback semantics need to extend to per-source labels (e.g. "news is lifetime fallback").
+
+## 5-tab layout for the school edit page — Sprint 19, 2026-04-28
+
+**Decision:** `/school/[moe_code]/edit` is rebuilt as a 5-tab layout (Core, Contact, Leaders, Support, Images) rather than the prior single long form, collapsible sections, or a multi-step wizard. Active tab id persists in the URL hash (`#core`, `#contact`, …) so deep-links and browser back navigation work.
+
+**Alternatives considered:**
+1. **Long single form (status quo)** — kept everything visible at once but required heavy scrolling for 20+ fields and made it easy for school admins to miss sections (especially the Leaders + Support sections at the bottom).
+2. **Collapsible sections** — visible group headings, click to expand. Pros: still single-page, no tab-state mental model. Cons: accordion state is fiddly (open one, close another? remember across page loads?), URL deep-links are hard, screen-readers struggle.
+3. **Multi-step wizard (Next / Back)** — implies a sequential flow. School admins typically want to edit ONE thing (e.g. update enrolment after a new school year). A wizard makes one-thing edits N clicks instead of 1.
+4. **Tabs (chosen)** — direct random-access to any section, deep-links via hash, URL changes communicate position to screen readers via `aria-selected`, keyboard nav works.
+
+**Rationale:** School admins are not new users learning the app; they're return users updating one or two fields. Tabs match that mental model. Hash-persisted tab id means a "claim button" or future email could link directly to a specific tab (e.g. `/school/<moe>/edit#support` to prompt a school to add bank details for the donations card).
+
+**Trade-offs:** A user who edits across multiple tabs has to click Save on each. We accept the friction — it makes the per-tab change boundary explicit and keeps the audit log entries focused. If real users complain, we can hoist the Save button to a sticky footer that scopes to the current tab without losing in-progress changes when switching tabs.
+
+**Revisit if:** A common workflow emerges that crosses tabs (e.g. "update enrolment, then immediately update bank details") and users complain about per-tab saves. At that point a sticky footer with cross-tab change tracking is the right fix.
+
+## Single endpoint for both detail + edit pages — Sprint 19, 2026-04-28
+
+**Decision:** `SchoolEditSerializer` was extended with read-only MOE metadata (`ppd`, `grade`, `assistance_type`, `skm_eligible`, `location_type`, `gps_lat`, `gps_lng`, `gps_verified`, `claimed_at`) and a nested `leaders` array — so the tabbed edit page renders from a single `GET /api/v1/schools/<moe>/edit/` call instead of fetching `SchoolDetailSerializer` separately for the read-only context.
+
+**Alternatives considered:**
+1. **Two endpoints** — fetch `/edit/` for writable fields + `/detail/` for read-only context. Cons: two round trips, frontend has to coordinate two `useState` + loading states.
+2. **One endpoint with everything** (chosen) — extend `SchoolEditSerializer`. Cons: serializer is now ~80% of `SchoolDetailSerializer` (duplication risk).
+3. **Single shared serializer used by both views** — collapse `SchoolEditSerializer` into `SchoolDetailSerializer` with `read_only` markers per field. Cons: detail endpoint payload grows even for non-editing consumers (the public school page doesn't need the editable-field structure); also harder to audit "what can a school admin actually write?" when the writable surface is scattered across markers.
+
+**Rationale:** The edit page is admin-only and rare; one extra round trip is invisible to a single human user, but **two round trips means two race conditions to handle** (which loaded first, what if one fails). Single endpoint is simpler frontend code. Duplication risk is real but small — the two serializers are likely to diverge over time (detail will add public-only fields like `image_url`, edit will add admin-only metadata) and we can refactor when the divergence is concrete rather than hypothetical.
+
+**Trade-offs:** Field-level changes need to be made in both serializers if they need to appear in both. We accept this — the cost is bounded (max 9 fields shared today) and the alternative is worse (two-call coordination on every tab switch).
+
+**Revisit if:** The read-only field list in `SchoolEditSerializer` and the equivalent in `SchoolDetailSerializer` start to genuinely diverge in semantics, OR if a third consumer needs the same shape (at which point a shared base serializer becomes worth the refactor).
+
+## GPS edit gated to SUPERADMIN — Sprint 19, 2026-04-28
+
+**Decision:** GPS lat/lng fields on the school edit page are **read-only for school admins**, **editable for SUPERADMIN**. School admins see a "verified via Google Places" badge alongside the muted-background readout.
+
+**Alternatives considered:**
+1. **Editable for any school admin** — assume the school knows its own location best. Risk: a single typo silently breaks the map for that school's pin.
+2. **Editable for school admin if the pin is NOT yet verified** — a "verified→locked" workflow. Adds state-dependent UI logic; depends on `gps_verified` flag staying accurate.
+3. **SUPERADMIN-only edit (chosen)** — any GPS correction is a small infrastructure-grade change that goes through a human-reviewed channel.
+4. **No edit at all** — GPS is set entirely by the import scripts + Sprint 5.4 batch verification. Cons: doesn't cover the cases where Google Places had the wrong pin and a SUPERADMIN needs to correct it.
+
+**Rationale:** Sprint 5.4 batch-verified 519 school pins via Google Places after a manual review of each diff. The verification flag `gps_verified=True` means a human (well, semi-human — the Google Places API + the human check) signed off on those coordinates. A school admin overriding their own pin to a wrong value would silently break the map and we wouldn't notice until a public visitor noticed. The expected volume of "GPS needs correcting" is very low (≤1/month), so funneling it through a SUPERADMIN review is fine.
+
+**Trade-offs:** A school admin who genuinely needs to correct their pin has to email feedback@tamilschool.org. UX cost is real but low-volume. If volume rises, alternative #2 (verified-aware editability) becomes worth implementing.
+
+**Revisit if:** SUPERADMIN gets >2 GPS-correction requests/month, OR a credible mechanism for "school-admin edit logged but GPS-verified flag goes False until SUPERADMIN re-approves" can be designed.

@@ -1,5 +1,47 @@
 # Changelog
 
+## Sprint 19 — Edit Page Tabs (2026-04-28)
+
+**Deployed**: backend `sjktconnect-api-00110-r6l` (migration `0010_drop_last_verified_and_verified_by` applied on prod Supabase + serializer extension). Frontend `sjktconnect-web-00106+` (5-tab edit page).
+
+User decision (2026-04-28): the existing `/school/[moe_code]/edit` page was a long single-form layout with a prominent "Confirm Data" button + green card. The button was redundant — MOE data is the source of truth, nothing for school admins to confirm. The form was also hard to scan with 20+ fields in one column. Sprint 19 redesigns the page as a 5-tab layout (Core / Contact / Leaders / Support / Images) and removes the Confirm Data flow entirely.
+
+### Removed
+- **`Confirm Data` button + card** on the edit page.
+- **`POST /api/v1/schools/<moe_code>/confirm/`** endpoint (`SchoolConfirmView`).
+- **`School.last_verified` + `School.verified_by`** model fields (migration `schools/0010_drop_last_verified_and_verified_by.py`).
+- **`SchoolEditView.put()`** no longer sets a verification timestamp on save.
+- **Sprint 1.7 admin Verification Dashboard** at `/dashboard/verification/` (entire page + view + template + URL include + nav link). The metric it surfaced — "% of schools whose admins have explicitly confirmed their data" — is no longer meaningful.
+- **`confirmSchool()` API helper** + `SchoolConfirmResponse` type from frontend.
+- **6 SchoolConfirmViewTest cases** + 4 verification-dashboard tests + 1 verification-timestamp test on `SchoolEditView`.
+- 1 stale row in the tech-debt triage table.
+
+### Added
+- **5-tab edit page** at `/school/[moe_code]/edit`:
+  - **Core** — identity (read-only MOE) + editable details (Tamil name, enrolment counts, sessions). Read-only fields visually distinct: muted background, lock icon, smaller padding. Editable fields: clean white inputs, blue focus ring.
+  - **Contact** — address + phones + email. GPS coordinates **gated to SUPERADMIN** — school admins see them read-only with a "verified via Google Places" badge so they can't accidentally override the Sprint 5.4 batch verification.
+  - **Leaders** — read-only listing of the 4 SchoolLeader rows. "Editing leaders coming soon" notice. Inline CRUD on Leaders is a future-work item; needs new permission-scoped backend endpoints.
+  - **Support** — bank details that power the SupportSchoolCard + DuitNow QR.
+  - **Images** — launchpad linking to the existing `/dashboard/images` manager (Sprint 14).
+- **New shared frontend primitives** in `frontend/components/edit_tabs/`:
+  - `TabBar.tsx` — pill-button nav with `aria-selected` + URL-hash persistence (deep-link + browser back).
+  - `FieldRow.tsx` — `ReadOnlyField` + `EditableField` shared between all tabs.
+  - `CoreTab.tsx`, `ContactTab.tsx`, `LeadersTab.tsx`, `SupportTab.tsx`, `ImagesTab.tsx`.
+- **"Claimed by HM since {date}" badge** in the page header when `claimed_at` is set — surfaces the auto-claim trust signal Sprint 11a Phase 3 added but never displayed anywhere.
+- **`SchoolEditSerializer` extended** with read-only MOE metadata (`ppd`, `grade`, `assistance_type`, `skm_eligible`, `location_type`, `gps_lat`, `gps_lng`, `gps_verified`, `claimed_at`) and a nested `leaders` array. Single endpoint serves the entire tabbed page; no second API call.
+- **10 new frontend tests** in `__tests__/components/SchoolEditForm.test.tsx` covering tab navigation, default tab, no-Confirm regression, leaders/images launchpad, GPS gating both ways, save-payload filter excludes GPS for non-admins.
+
+### Translations
+- `en/ta/ms` updated with tab labels, section captions ("Identity (from MOE — read-only)", "Editable details"), GPS notice, "Claimed by HM since {date}" badge, "Editing leaders coming soon", and the field labels for the newly-surfaced read-only MOE fields.
+
+### Tests
+- Backend: **1174 passed** (was 1184 before this sprint; -10 = removed dashboard + confirm tests).
+- Frontend: **288 passed** (was 289; -1 = removed `confirmSchool` test block; SchoolEditForm test rewritten with 10 new tests replacing 11 old ones).
+
+### Process
+- **Stitch prototype mandatory** per CLAUDE.md "prototype UI in Stitch first" rule. Project `10588652759232271161`, screen `9d4cd7350e2648f9a0be8321f295df11`. User-approved before any code was written.
+- **Two deploys** for the sprint (backend + frontend, in parallel) — within budget.
+
 ## Sprint 18 — Monthly Digest Coverage (2026-04-27 evening)
 
 **Deployed**: backend `sjktconnect-api-00107-dxh` (aggregator extension + command flag). Frontend unchanged.
