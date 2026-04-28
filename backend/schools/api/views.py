@@ -143,12 +143,7 @@ class SchoolEditView(APIView):
         old_values = SchoolEditSerializer(school).data
         serializer = SchoolEditSerializer(school, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-
-        # Save with verification timestamp
-        school = serializer.save(
-            last_verified=timezone.now(),
-            verified_by=contact_email,
-        )
+        school = serializer.save()
 
         # Log to AuditLog
         new_values = SchoolEditSerializer(school).data
@@ -156,7 +151,6 @@ class SchoolEditView(APIView):
             k: {"old": old_values[k], "new": new_values[k]}
             for k in new_values
             if old_values.get(k) != new_values[k]
-            and k not in ("last_verified", "verified_by")
         }
         AuditLog.objects.create(
             action="update",
@@ -169,51 +163,9 @@ class SchoolEditView(APIView):
         return Response(SchoolEditSerializer(school).data)
 
 
-class SchoolConfirmView(APIView):
-    """POST /api/v1/schools/{moe_code}/confirm/
-
-    Quick 2-click confirmation: updates last_verified without editing fields.
-    Requires the profile to be school admin for this school or SUPERADMIN.
-    """
-
-    permission_classes = [IsProfileAuthenticated]
-
-    def post(self, request, moe_code):
-        try:
-            school = School.objects.get(moe_code=moe_code, is_active=True)
-        except School.DoesNotExist:
-            return Response(
-                {"error": "School not found."}, status=status.HTTP_404_NOT_FOUND
-            )
-
-        profile = request.user_profile
-        is_superadmin = profile.role == "SUPERADMIN"
-        is_school_admin = profile.admin_school_id == school.pk
-        if not (is_superadmin or is_school_admin):
-            return Response(
-                {"error": "You can only confirm your own school."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        contact_email = profile.user.email
-        now = timezone.now()
-        school.last_verified = now
-        school.verified_by = contact_email
-        school.save(update_fields=["last_verified", "verified_by", "updated_at"])
-
-        AuditLog.objects.create(
-            action="confirm",
-            target_type="School",
-            target_id=moe_code,
-            detail={"contact": contact_email},
-            ip_address=request.META.get("REMOTE_ADDR"),
-        )
-
-        return Response({
-            "message": "School data confirmed.",
-            "last_verified": now.isoformat(),
-            "verified_by": contact_email,
-        })
+# SchoolConfirmView removed Sprint 19 (2026-04-28). MOE data is the source
+# of truth — there's nothing for school admins to "confirm". Future
+# additions go through the Suggestion workflow (community/api/views.py).
 
 
 # --- Constituency API ---

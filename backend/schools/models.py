@@ -125,8 +125,6 @@ class School(models.Model):
     skm_eligible = models.BooleanField(default=False)
     location_type = models.CharField(max_length=50, blank=True, default="")
     is_active = models.BooleanField(default=True)
-    last_verified = models.DateTimeField(null=True, blank=True)
-    verified_by = models.CharField(max_length=100, blank=True, default="")
     claimed_at = models.DateTimeField(
         null=True, blank=True,
         help_text="When a school admin first claimed this page via @moe.edu.my sign-in",

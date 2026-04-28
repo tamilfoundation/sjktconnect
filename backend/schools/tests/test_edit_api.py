@@ -137,18 +137,6 @@ class SchoolEditViewTest(TestCase):
         self.assertEqual(self.school.phone, "07-9999999")
         self.assertEqual(self.school.enrolment, 150)
 
-    def test_put_sets_verification_timestamp(self):
-        before = timezone.now()
-        self.client.put(
-            "/api/v1/schools/JBD0050/edit/",
-            {"phone": "07-9999999"},
-            format="json",
-        )
-        self.school.refresh_from_db()
-        self.assertIsNotNone(self.school.last_verified)
-        self.assertGreaterEqual(self.school.last_verified, before)
-        self.assertEqual(self.school.verified_by, "jbd0050@moe.edu.my")
-
     def test_put_creates_audit_log(self):
         self.client.put(
             "/api/v1/schools/JBD0050/edit/",
@@ -188,68 +176,3 @@ class SchoolEditViewTest(TestCase):
         self.assertEqual(self.school.phone, "07-1234567")
 
 
-class SchoolConfirmViewTest(TestCase):
-    """POST /api/v1/schools/{moe_code}/confirm/"""
-
-    def setUp(self):
-        self.client = APIClient()
-        self.constituency = Constituency.objects.create(
-            code="P140", name="Segamat", state="Johor",
-        )
-        self.school = School.objects.create(
-            moe_code="JBD0050",
-            name="SJK(T) Ladang Bikam",
-            short_name="SJK(T) Ladang Bikam",
-            state="Johor",
-            constituency=self.constituency,
-            email="jbd0050@moe.edu.my",
-        )
-        self.user = User.objects.create_user("admin", "jbd0050@moe.edu.my")
-        self.profile = UserProfile.objects.create(
-            user=self.user, google_id="g-a", display_name="Admin",
-            admin_school=self.school,
-        )
-        session = self.client.session
-        session["user_profile_id"] = self.profile.id
-        session.save()
-
-    def test_confirm_updates_timestamp(self):
-        before = timezone.now()
-        response = self.client.post("/api/v1/schools/JBD0050/confirm/")
-        self.assertEqual(response.status_code, 200)
-        self.school.refresh_from_db()
-        self.assertIsNotNone(self.school.last_verified)
-        self.assertGreaterEqual(self.school.last_verified, before)
-        self.assertEqual(self.school.verified_by, "jbd0050@moe.edu.my")
-
-    def test_confirm_response_body(self):
-        response = self.client.post("/api/v1/schools/JBD0050/confirm/")
-        self.assertEqual(response.data["message"], "School data confirmed.")
-        self.assertIn("last_verified", response.data)
-        self.assertEqual(response.data["verified_by"], "jbd0050@moe.edu.my")
-
-    def test_confirm_creates_audit_log(self):
-        self.client.post("/api/v1/schools/JBD0050/confirm/")
-        log = AuditLog.objects.filter(action="confirm", target_id="JBD0050").first()
-        self.assertIsNotNone(log)
-        self.assertEqual(log.target_type, "School")
-
-    def test_unauthenticated_denied(self):
-        client = APIClient()
-        response = client.post("/api/v1/schools/JBD0050/confirm/")
-        self.assertEqual(response.status_code, 403)
-
-    def test_wrong_school_forbidden(self):
-        other = School.objects.create(
-            moe_code="JBD0099",
-            name="SJK(T) Other",
-            short_name="SJK(T) Other",
-            state="Johor",
-            constituency=self.constituency,
-        )
-        response = self.client.post(f"/api/v1/schools/{other.moe_code}/confirm/")
-        self.assertEqual(response.status_code, 403)
-
-    def test_nonexistent_school_404(self):
-        response = self.client.post("/api/v1/schools/ZZZZZZ/confirm/")
-        self.assertEqual(response.status_code, 404)

@@ -158,7 +158,6 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
             "skm_eligible",
             "location_type",
             "is_active",
-            "last_verified",
             "claimed_at",
             "is_claimed",
             "bank_name",
@@ -243,16 +242,12 @@ class SchoolEditSerializer(serializers.ModelSerializer):
             "bank_name",
             "bank_account_number",
             "bank_account_name",
-            "last_verified",
-            "verified_by",
         ]
         read_only_fields = [
             "moe_code",
             "name",
             "short_name",
             "state",
-            "last_verified",
-            "verified_by",
         ]
 
 

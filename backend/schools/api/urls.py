@@ -15,7 +15,6 @@ from schools.api.views import (
     DUNGeoJSONView,
     DUNListView,
     NationalStatsView,
-    SchoolConfirmView,
     SchoolDetailView,
     SchoolEditView,
     SchoolListView,
@@ -27,11 +26,10 @@ from schools.api.views import (
 app_name = "schools-api"
 
 urlpatterns = [
-    # Schools — edit/confirm before detail (sub-paths before bare <str:moe_code>)
+    # Schools — edit before detail (sub-paths before bare <str:moe_code>)
     path("schools/map/", SchoolMapView.as_view(), name="school-map"),
     path("schools/", SchoolListView.as_view(), name="school-list"),
     path("schools/<str:moe_code>/edit/", SchoolEditView.as_view(), name="school-edit"),
-    path("schools/<str:moe_code>/confirm/", SchoolConfirmView.as_view(), name="school-confirm"),
     path("schools/<str:moe_code>/mentions/", SchoolMentionsView.as_view(), name="school-mentions"),
     path("schools/<str:moe_code>/news/", SchoolNewsView.as_view(), name="school-news"),
     path("schools/<str:moe_code>/duitnow-qr/", duitnow_qr, name="duitnow-qr"),
