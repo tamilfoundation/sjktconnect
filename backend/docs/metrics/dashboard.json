@@ -1,0 +1,170 @@
+{
+  "displayName": "SJK(T) Connect — Egress by Route/UA",
+  "etag": "5be686a8a2178711406b16d64233f56c",
+  "mosaicLayout": {
+    "columns": 12,
+    "tiles": [
+      {
+        "height": 4,
+        "widget": {
+          "title": "API egress by route (top 10)",
+          "xyChart": {
+            "dataSets": [
+              {
+                "plotType": "STACKED_BAR",
+                "targetAxis": "Y1",
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "aggregation": {
+                      "alignmentPeriod": "3600s",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": ["metric.label.route"],
+                      "perSeriesAligner": "ALIGN_DELTA"
+                    },
+                    "secondaryAggregation": {
+                      "alignmentPeriod": "3600s",
+                      "perSeriesAligner": "ALIGN_SUM"
+                    },
+                    "pickTimeSeriesFilter": {
+                      "rankingMethod": "METHOD_SUM",
+                      "numTimeSeries": 10,
+                      "direction": "TOP"
+                    },
+                    "filter": "metric.type=\"logging.googleapis.com/user/sjktconnect_api_egress_per_route\" AND resource.type=\"cloud_run_revision\""
+                  }
+                }
+              }
+            ],
+            "yAxis": {
+              "label": "bytes/hr",
+              "scale": "LINEAR"
+            }
+          }
+        },
+        "width": 6
+      },
+      {
+        "height": 4,
+        "widget": {
+          "title": "Web egress by route (top 10)",
+          "xyChart": {
+            "dataSets": [
+              {
+                "plotType": "STACKED_BAR",
+                "targetAxis": "Y1",
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "aggregation": {
+                      "alignmentPeriod": "3600s",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": ["metric.label.route"],
+                      "perSeriesAligner": "ALIGN_DELTA"
+                    },
+                    "secondaryAggregation": {
+                      "alignmentPeriod": "3600s",
+                      "perSeriesAligner": "ALIGN_SUM"
+                    },
+                    "pickTimeSeriesFilter": {
+                      "rankingMethod": "METHOD_SUM",
+                      "numTimeSeries": 10,
+                      "direction": "TOP"
+                    },
+                    "filter": "metric.type=\"logging.googleapis.com/user/sjktconnect_web_egress_per_route\" AND resource.type=\"cloud_run_revision\""
+                  }
+                }
+              }
+            ],
+            "yAxis": {
+              "label": "bytes/hr",
+              "scale": "LINEAR"
+            }
+          }
+        },
+        "width": 6,
+        "xPos": 6
+      },
+      {
+        "height": 4,
+        "widget": {
+          "title": "API egress by User-Agent (bot detection, top 10)",
+          "xyChart": {
+            "dataSets": [
+              {
+                "plotType": "STACKED_BAR",
+                "targetAxis": "Y1",
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "aggregation": {
+                      "alignmentPeriod": "3600s",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": ["metric.label.user_agent"],
+                      "perSeriesAligner": "ALIGN_DELTA"
+                    },
+                    "secondaryAggregation": {
+                      "alignmentPeriod": "3600s",
+                      "perSeriesAligner": "ALIGN_SUM"
+                    },
+                    "pickTimeSeriesFilter": {
+                      "rankingMethod": "METHOD_SUM",
+                      "numTimeSeries": 10,
+                      "direction": "TOP"
+                    },
+                    "filter": "metric.type=\"logging.googleapis.com/user/sjktconnect_api_egress_per_route\" AND resource.type=\"cloud_run_revision\""
+                  }
+                }
+              }
+            ],
+            "yAxis": {
+              "label": "bytes/hr",
+              "scale": "LINEAR"
+            }
+          }
+        },
+        "width": 6,
+        "yPos": 4
+      },
+      {
+        "height": 4,
+        "widget": {
+          "title": "Web egress by User-Agent (bot detection, top 10)",
+          "xyChart": {
+            "dataSets": [
+              {
+                "plotType": "STACKED_BAR",
+                "targetAxis": "Y1",
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "aggregation": {
+                      "alignmentPeriod": "3600s",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": ["metric.label.user_agent"],
+                      "perSeriesAligner": "ALIGN_DELTA"
+                    },
+                    "secondaryAggregation": {
+                      "alignmentPeriod": "3600s",
+                      "perSeriesAligner": "ALIGN_SUM"
+                    },
+                    "pickTimeSeriesFilter": {
+                      "rankingMethod": "METHOD_SUM",
+                      "numTimeSeries": 10,
+                      "direction": "TOP"
+                    },
+                    "filter": "metric.type=\"logging.googleapis.com/user/sjktconnect_web_egress_per_route\" AND resource.type=\"cloud_run_revision\""
+                  }
+                }
+              }
+            ],
+            "yAxis": {
+              "label": "bytes/hr",
+              "scale": "LINEAR"
+            }
+          }
+        },
+        "width": 6,
+        "xPos": 6,
+        "yPos": 4
+      }
+    ]
+  },
+  "name": "projects/748286712183/dashboards/f1722366-2df9-4446-9941-7cda5c019615"
+}
