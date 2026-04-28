@@ -2,7 +2,7 @@
 
 ## Sprint 19 — Edit Page Tabs (2026-04-28)
 
-**Deployed**: backend `sjktconnect-api-00110-r6l` (migration `0010_drop_last_verified_and_verified_by` applied on prod Supabase + serializer extension). Frontend `sjktconnect-web-00106+` (5-tab edit page).
+**Deployed**: backend `sjktconnect-api-00110-r6l` (migration `0010_drop_last_verified_and_verified_by` applied on prod Supabase + serializer extension). Frontend `sjktconnect-web-00106-dd6` (5-tab edit page).
 
 User decision (2026-04-28): the existing `/school/[moe_code]/edit` page was a long single-form layout with a prominent "Confirm Data" button + green card. The button was redundant — MOE data is the source of truth, nothing for school admins to confirm. The form was also hard to scan with 20+ fields in one column. Sprint 19 redesigns the page as a 5-tab layout (Core / Contact / Leaders / Support / Images) and removes the Confirm Data flow entirely.
 

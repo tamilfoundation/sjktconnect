@@ -37,7 +37,7 @@
 
 ### Deployed
 - Backend: `sjktconnect-api-00109-hjm` → **`sjktconnect-api-00110-r6l`** (migration applied via container-start hook).
-- Frontend: in flight (deployed via Cloud Run `--source .`); revision will land as `sjktconnect-web-00106+`.
+- Frontend: `sjktconnect-web-00105-vhx` → **`sjktconnect-web-00106-dd6`**.
 
 ---
 
@@ -93,7 +93,7 @@ Three worth recording in `docs/decisions.md`:
 | Frontend tests (passing) | 289 | **288** | -1 net (removed confirmSchool block; SchoolEditForm test rewritten with 10 new tests replacing 11 old ones) |
 | Files touched | — | 25 | — |
 | New components | — | 7 (TabBar, FieldRow, 5 tabs) | — |
-| Production revisions (frontend) | web-00105-vhx | web-00106+ | +1 |
+| Production revisions (frontend) | web-00105-vhx | web-00106-dd6 | +1 |
 | Production revisions (backend) | api-00109-hjm | **api-00110-r6l** | +1 |
 | Open tech debt | 1 (TD-12) | 1 (TD-12, unchanged) | 0 |
 
