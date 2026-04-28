@@ -1,5 +1,35 @@
 # Changelog
 
+## Sprint 20 — Leader Inline CRUD (2026-04-28 evening)
+
+**Deployed**: backend `sjktconnect-api-00111-mrq` (3 new endpoints + serializer + permission helper). Frontend `sjktconnect-web-00107-wd9` (LeadersTab rewrite).
+
+User decision (2026-04-28 evening): the Sprint 19 LeadersTab shipped read-only with a "coming soon" notice. School admins know best who their headmaster / board chairman / PTA chairman / alumni chairman is — and these change yearly — so the data needs to be maintained by them, not by a contact-feedback workflow.
+
+### Added
+- **`POST /api/v1/schools/<moe_code>/leaders/`** — create. Body: `{role, name, phone?, email?}`. Returns 201 with the new leader's id + role_display. Returns **409 `slot_taken`** if the school already has an active leader for that role (delete the existing first).
+- **`PATCH /api/v1/schools/<moe_code>/leaders/<id>/`** — update. Accepts `name`, `phone`, `email`. **Role is immutable on PATCH** — to change a leader's role, delete and recreate.
+- **`DELETE /api/v1/schools/<moe_code>/leaders/<id>/`** — soft-delete (sets `is_active=False`). The model's unique constraint is conditional on `is_active=True`, so delete-then-recreate-same-role works correctly.
+- **`SchoolLeaderAdminSerializer`** — admin-shape serializer (id + role + role_display + name + phone + email). Used by the new CRUD endpoints AND now by `SchoolEditSerializer.get_leaders()` so the edit page receives the full shape in a single round-trip.
+- **`_can_edit_school_leaders` permission helper** — SUPERADMIN OR bound admin of THIS school. Mirrors `community._is_photo_approver`. **MODERATOR is NOT special-cased** — leadership is a school-internal concern, not platform moderation.
+- **`backend/schools/tests/test_leader_crud_api.py`** — 17 new tests: 6 permission matrix (anonymous, regular, MODERATOR, admin-of-different, admin-of-this, SUPERADMIN) + 11 behaviour (happy path, 409 slot_taken, 400 invalid role, 400 missing name, 404 unknown school, PATCH name/phone/email, role-immutable-on-PATCH, soft-delete, delete-then-recreate, 404 unknown leader, 404 leader-belongs-to-different-school).
+
+### Changed
+- **`frontend/components/edit_tabs/LeadersTab.tsx`** rewritten as inline CRUD. 4 fixed role slots (Board Chairman, Headmaster, PTA Chairman, Alumni Association Chairman). Existing leaders shown as editable rows (name + phone + email + Remove); empty roles shown as "+ Add {role}" buttons. Single "Save changes" button at tab footer (disabled when no pending changes). Sequential flush on save (delete → create → update) so the unique-active-role constraint doesn't trip on a delete-and-recreate-same-role flow. Blanking an existing leader's name = treated as delete (UX shortcut).
+- **`SchoolEditSerializer.get_leaders()`** — switched from public `SchoolLeaderSerializer` to admin `SchoolLeaderAdminSerializer`. The endpoint is gated by `IsProfileAuthenticated` AND the page-level role check, so private fields (phone, email) are safe to return here.
+- **`frontend/lib/types.ts`** — added `SchoolLeaderAdminData` (extends public `SchoolLeaderData` with id + phone + email). `SchoolEditData.leaders` retyped to use it.
+- **`frontend/lib/api.ts`** — `createSchoolLeader`, `updateSchoolLeader`, `deleteSchoolLeader` helpers + `LeaderRole` type + `LeaderUpsertPayload` interface.
+- **Translations en/ta/ms** — `leadersIntro` (replaces `leadersComingSoon`), `addLeader` (with `{role}` interpolation), `leaderName/Phone/Email/Remove/RemoveConfirm`, 4 role labels, `leadersSlotTaken`, `leadersSaving/Saved/FailedSave`. The `noLeadersYet` copy updated to point at the + Add buttons.
+
+### Tests
+- **8 new LeadersTab tests** in `__tests__/components/LeadersTab.test.tsx` (component-level): renders 4 slots correctly, Save button disabled at rest, edit-existing-name → updateSchoolLeader, click +Add then save → createSchoolLeader, click +Add without name → Save stays disabled, Remove + confirm → deleteSchoolLeader, backend `role_taken` → friendly slot-taken message, blank-name on existing → treated as delete.
+- **2 SchoolEditForm tests updated** for the new editable shape (replaces the 1 read-only "coming soon" assertion from Sprint 19).
+- Final tally: **1191 backend + 297 frontend tests** pass.
+
+### Deploys
+- Backend: `sjktconnect-api-00110-r6l` → **`sjktconnect-api-00111-mrq`**.
+- Frontend: `sjktconnect-web-00106-dd6` → **`sjktconnect-web-00107-wd9`**.
+
 ## Sprint 19 — Edit Page Tabs (2026-04-28)
 
 **Deployed**: backend `sjktconnect-api-00110-r6l` (migration `0010_drop_last_verified_and_verified_by` applied on prod Supabase + serializer extension). Frontend `sjktconnect-web-00106-dd6` (5-tab edit page).

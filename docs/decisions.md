@@ -521,3 +521,33 @@
 **Trade-offs:** A school admin who genuinely needs to correct their pin has to email feedback@tamilschool.org. UX cost is real but low-volume. If volume rises, alternative #2 (verified-aware editability) becomes worth implementing.
 
 **Revisit if:** SUPERADMIN gets >2 GPS-correction requests/month, OR a credible mechanism for "school-admin edit logged but GPS-verified flag goes False until SUPERADMIN re-approves" can be designed.
+
+## SchoolLeader role immutable on PATCH — Sprint 20, 2026-04-28
+
+**Decision:** `PATCH /api/v1/schools/<moe>/leaders/<id>/` accepts `name`, `phone`, `email` but NOT `role`. To change a leader's role, the operator deletes the old leader and creates a new one. The serializer's `update()` explicitly pops `role` from `validated_data` so a malicious PATCH including role is silently ignored.
+
+**Alternatives considered:**
+1. **Allow role to be updated via PATCH, validate uniqueness** — adds a PATCH-time uniqueness check, mutates the slot the leader occupies in the tabbed UI (confusing UX), and supports a workflow nobody asked for ("the same person now plays a different role").
+2. **Role immutable (chosen)** — to change a leader's role, delete + recreate. Two clicks instead of one for an edge case.
+3. **Don't expose `role` in the serializer at all on PATCH** — same effect as our `pop('role')` but harder to read at the call site. Ours is more explicit.
+
+**Rationale:** A leader change in the real world ("PTA chair retired, board chair stepped up to PTA") is rarely "the same row, different role" — it's two separate transitions (delete the old, create the new). Allowing PATCH to mutate role models a transition that doesn't reflect how schools actually replace their leaders. Plus: the tabbed UI's slot pattern depends on `role` being stable for the row; mutating it would cause the leader to "jump" to a different tab section visually.
+
+**Trade-offs:** A typo in the role at create time costs one delete + one create instead of one PATCH. Acceptable — typing a role wrong is rare (it's a constrained dropdown of 4 choices, not free text), and the recovery cost is two clicks.
+
+**Revisit if:** A real workflow emerges where the same individual genuinely transitions between roles WITHOUT phone/email churn AND the two-click recreate flow is a friction point.
+
+## Sequential save flush in LeadersTab, not parallel — Sprint 20, 2026-04-28
+
+**Decision:** When the LeadersTab saves N pending changes (mix of creates / updates / deletes), it awaits each one sequentially rather than firing `Promise.all`.
+
+**Alternatives considered:**
+1. **`Promise.all` parallel save** — fastest wall-time. Cons: a delete and a create on the same role would race against the unique-active-role constraint. The "delete must commit before create can succeed" ordering is fragile to implement with parallel promises (you'd need to bucket changes by role and serialise within each bucket).
+2. **Sequential save (chosen)** — N × per-call latency. With max 4 leaders per school and ~200ms per round trip, worst-case wall time is ~800ms — single-button-click perceptually.
+3. **Bucket by role + parallel across roles** — middle ground. Adds complexity that isn't justified at N ≤ 4.
+
+**Rationale:** The only constraint that matters is the unique-active-role constraint per school. A delete-and-recreate of the same role REQUIRES the delete to commit first. Sequential trivially satisfies this without bucketing logic. The performance cost is invisible to a single human user.
+
+**Trade-offs:** If we ever scale to many leaders per school (we won't — the model is fixed at 4 roles), sequential save would become noticeable. Today's max is 4 changes per save; ~800ms total is fine.
+
+**Revisit if:** The leader role list grows (new role choices added) AND users complain about save latency. At that point bucket-by-role-then-parallel is the right refactor.
