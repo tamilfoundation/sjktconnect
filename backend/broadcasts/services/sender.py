@@ -234,6 +234,13 @@ def _send_single_email(api_key, to_email, to_name, subject, html_content,
     Updates the BroadcastRecipient record with delivery status.
     Returns True if sent successfully, False otherwise.
     """
+    # Brevo returns 400 if "name" is present but empty, so omit it
+    # entirely when the subscriber has no display name (default for
+    # bulk-imported addresses without a paired name field).
+    to_entry: dict = {"email": to_email}
+    if to_name:
+        to_entry["name"] = to_name
+
     payload = {
         "sender": {
             "name": "SJK(T) Connect",
@@ -243,7 +250,7 @@ def _send_single_email(api_key, to_email, to_name, subject, html_content,
             "email": "feedback@tamilschool.org",
             "name": "SJK(T) Connect",
         },
-        "to": [{"email": to_email, "name": to_name}],
+        "to": [to_entry],
         "subject": subject,
         "htmlContent": html_content,
     }

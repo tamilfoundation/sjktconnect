@@ -157,6 +157,62 @@ class TestSendBroadcast:
         assert payload["replyTo"]["name"] == "SJK(T) Connect"
 
     @patch("broadcasts.services.sender.requests.post")
+    def test_to_payload_includes_name_when_subscriber_has_name(
+        self, mock_post, draft_broadcast, subscriber_a
+    ):
+        """When subscriber.name is set, Brevo `to` entry includes it."""
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"messageId": "msg-789"}
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        with patch.dict("os.environ", {"BREVO_API_KEY": "test-key"}):
+            with patch("broadcasts.services.sender.time.sleep"):
+                send_broadcast(draft_broadcast.pk)
+
+        payload = mock_post.call_args[1]["json"]
+        assert payload["to"] == [{"email": "alice@example.com", "name": "Alice"}]
+
+    @patch("broadcasts.services.sender.requests.post")
+    def test_to_payload_omits_name_when_subscriber_name_empty(
+        self, mock_post, draft_broadcast, db
+    ):
+        """Bulk-imported subscribers default to name='' — Brevo returns
+        400 if `to.name` is present but empty, so we omit the key
+        entirely. Regression test for the 259-failed welcome-email
+        send on 2026-04-28."""
+        from broadcasts.models import BroadcastRecipient
+        nameless = Subscriber.objects.create(
+            email="noname@example.com", name="", is_active=True
+        )
+        BroadcastRecipient.objects.create(
+            broadcast=draft_broadcast,
+            subscriber=nameless,
+            email=nameless.email,
+            status=BroadcastRecipient.DeliveryStatus.PENDING,
+        )
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"messageId": "msg-999"}
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        with patch.dict("os.environ", {"BREVO_API_KEY": "test-key"}):
+            with patch("broadcasts.services.sender.time.sleep"):
+                send_broadcast(draft_broadcast.pk)
+
+        # Find the call for the nameless recipient (may not be the only call)
+        calls = mock_post.call_args_list
+        nameless_calls = [
+            c for c in calls
+            if c[1]["json"]["to"][0]["email"] == "noname@example.com"
+        ]
+        assert len(nameless_calls) == 1
+        to_entry = nameless_calls[0][1]["json"]["to"][0]
+        assert to_entry == {"email": "noname@example.com"}
+        assert "name" not in to_entry
+
+    @patch("broadcasts.services.sender.requests.post")
     def test_production_mode_handles_api_failure(
         self, mock_post, draft_broadcast, subscriber_a
     ):
