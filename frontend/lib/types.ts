@@ -225,6 +225,12 @@ export interface ApiError {
   error: string;
 }
 
+export interface SchoolLeaderData {
+  role: string;
+  role_display: string;
+  name: string;
+}
+
 export interface SchoolEditData {
   moe_code: string;
   name: string;
@@ -234,28 +240,28 @@ export interface SchoolEditData {
   postcode: string;
   city: string;
   state: string;
+  ppd: string;
   email: string;
   phone: string;
   fax: string;
   gps_lat: number | null;
   gps_lng: number | null;
+  gps_verified: boolean;
   enrolment: number;
   preschool_enrolment: number;
   special_enrolment: number;
   teacher_count: number;
+  grade: string;
+  assistance_type: string;
+  skm_eligible: boolean;
+  location_type: string;
   session_count: number;
   session_type: string;
-  last_verified: string | null;
-  verified_by: string;
   bank_name: string;
   bank_account_name: string;
   bank_account_number: string;
-}
-
-export interface SchoolConfirmResponse {
-  message: string;
-  last_verified: string;
-  verified_by: string;
+  claimed_at: string | null;
+  leaders: SchoolLeaderData[];
 }
 
 export interface SubscribeRequest {

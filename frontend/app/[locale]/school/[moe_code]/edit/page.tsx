@@ -17,6 +17,7 @@ export default function SchoolEditPage() {
   const tc = useTranslations("common");
 
   const [school, setSchool] = useState<SchoolEditData | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -28,13 +29,14 @@ export default function SchoolEditPage() {
         router.push("/sign-in");
         return;
       }
-      const isSuperadmin = user.role === "SUPERADMIN";
+      const superadmin = user.role === "SUPERADMIN";
       const isSchoolAdmin = user.admin_school?.moe_code === moeCode;
-      if (!isSuperadmin && !isSchoolAdmin) {
+      if (!superadmin && !isSchoolAdmin) {
         setError(t("onlyYourSchool"));
         setLoading(false);
         return;
       }
+      setIsSuperAdmin(superadmin);
 
       try {
         const data = await fetchSchoolEdit(moeCode);
@@ -94,7 +96,7 @@ export default function SchoolEditPage() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <Breadcrumb items={breadcrumbItems} />
 
-      <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
             {t("editTitle")}
@@ -103,19 +105,23 @@ export default function SchoolEditPage() {
             {school.short_name || school.name} ({school.moe_code})
           </p>
         </div>
-        <Link
-          href={`/dashboard/images?school=${school.moe_code}`}
-          className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-800 text-sm font-medium rounded-lg shadow-sm whitespace-nowrap"
-          title="Pin hero, reorder, or delete photos for this school"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          Manage images
-        </Link>
+        {school.claimed_at && (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            {t("claimedBadge", {
+              date: new Date(school.claimed_at).toLocaleDateString(undefined, {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              }),
+            })}
+          </span>
+        )}
       </div>
 
-      <SchoolEditForm school={school} />
+      <SchoolEditForm school={school} isSuperAdmin={isSuperAdmin} />
     </div>
   );
 }

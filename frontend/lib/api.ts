@@ -14,7 +14,6 @@ import {
   PaginatedResponse,
   PreferenceUpdate,
   School,
-  SchoolConfirmResponse,
   SchoolDetail,
   SchoolEditData,
   SchoolImageData,
@@ -395,22 +394,9 @@ export async function updateSchool(
   return data;
 }
 
-/**
- * Confirm school data without editing (requires Magic Link session).
- */
-export async function confirmSchool(
-  moeCode: string
-): Promise<SchoolConfirmResponse> {
-  const res = await fetch(`${BASE}/schools/${moeCode}/confirm/`, {
-    method: "POST",
-    credentials: "include",
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || `API error: ${res.status}`);
-  }
-  return data;
-}
+// Sprint 19 (2026-04-28): confirmSchool() removed. The /schools/<moe>/confirm/
+// endpoint and its UI have been retired — MOE data is the source of truth,
+// nothing for school admins to confirm. See decisions.md Sprint 19 entry.
 
 /**
  * Subscribe to SJK(T) Connect communications.

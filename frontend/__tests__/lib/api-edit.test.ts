@@ -1,4 +1,4 @@
-import { fetchSchoolEdit, updateSchool, confirmSchool } from "@/lib/api";
+import { fetchSchoolEdit, updateSchool } from "@/lib/api";
 
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -72,36 +72,4 @@ describe("updateSchool", () => {
   });
 });
 
-describe("confirmSchool", () => {
-  it("sends POST with credentials", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        message: "School data confirmed.",
-        last_verified: "2026-02-27T12:00:00Z",
-        verified_by: "jbd0050@moe.edu.my",
-      }),
-    });
-
-    const result = await confirmSchool("JBD0050");
-    expect(result.message).toBe("School data confirmed.");
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/schools/JBD0050/confirm/"),
-      expect.objectContaining({
-        method: "POST",
-        credentials: "include",
-      })
-    );
-  });
-
-  it("throws on not authenticated", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      json: async () => ({
-        error: "You must be logged in via a magic link to perform this action.",
-      }),
-    });
-
-    await expect(confirmSchool("JBD0050")).rejects.toThrow(/magic link/);
-  });
-});
+// confirmSchool removed Sprint 19 — see decisions.md.

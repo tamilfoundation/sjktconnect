@@ -210,12 +210,25 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
 
 
 class SchoolEditSerializer(serializers.ModelSerializer):
-    """Writable serializer for school reps to confirm/edit their school data.
+    """Writable serializer for school reps to edit their school data.
 
     Only exposes fields that school representatives should be able to update.
-    Read-only fields (moe_code, name, short_name, state) are included for display
+    Read-only fields (moe_code, name, short_name, state, plus the MOE-source
+    metadata in the Sprint 19 extension below) are included for display
     but cannot be modified.
+
+    Sprint 19 (2026-04-28) added the read-only MOE metadata + leaders so the
+    tabbed edit page renders from a single endpoint call.
     """
+
+    leaders = serializers.SerializerMethodField()
+
+    def get_leaders(self, obj):
+        qs = obj.leaders.filter(is_active=True).order_by(
+            # Match SchoolDetailSerializer ordering: Chairman → HM → PTA → Alumni
+            "role"
+        )
+        return SchoolLeaderSerializer(qs, many=True).data
 
     class Meta:
         model = School
@@ -242,12 +255,35 @@ class SchoolEditSerializer(serializers.ModelSerializer):
             "bank_name",
             "bank_account_number",
             "bank_account_name",
+            # Sprint 19: extra read-only MOE fields surfaced on the
+            # tabbed edit page so the Core + Contact tabs can show
+            # full context without a second API call.
+            "ppd",
+            "grade",
+            "assistance_type",
+            "skm_eligible",
+            "location_type",
+            "gps_lat",
+            "gps_lng",
+            "gps_verified",
+            "claimed_at",
+            "leaders",
         ]
         read_only_fields = [
             "moe_code",
             "name",
             "short_name",
             "state",
+            "ppd",
+            "grade",
+            "assistance_type",
+            "skm_eligible",
+            "location_type",
+            "gps_lat",
+            "gps_lng",
+            "gps_verified",
+            "claimed_at",
+            "leaders",
         ]
 
 

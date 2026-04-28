@@ -1,80 +1,112 @@
 "use client";
 
-import { useState } from "react";
+/**
+ * School edit form — tabbed layout (Sprint 19, 2026-04-28).
+ *
+ * Five tabs: Core / Contact / Leaders / Support / Images. Tab id is
+ * persisted in the URL hash so deep-links work and browser back
+ * navigates between tabs.
+ *
+ * The Confirm Data flow was removed — MOE data is the source of
+ * truth, nothing for school admins to confirm. See decisions.md
+ * Sprint 19 entry.
+ */
+
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { SchoolEditData } from "@/lib/types";
-import { updateSchool, confirmSchool } from "@/lib/api";
+import { updateSchool } from "@/lib/api";
+import TabBar from "@/components/edit_tabs/TabBar";
+import CoreTab from "@/components/edit_tabs/CoreTab";
+import ContactTab from "@/components/edit_tabs/ContactTab";
+import LeadersTab from "@/components/edit_tabs/LeadersTab";
+import SupportTab from "@/components/edit_tabs/SupportTab";
+import ImagesTab from "@/components/edit_tabs/ImagesTab";
 
 interface SchoolEditFormProps {
   school: SchoolEditData;
+  isSuperAdmin: boolean;
 }
 
-interface FieldConfig {
-  key: keyof SchoolEditData;
-  labelKey: string;
-  type: "text" | "number" | "email" | "tel";
-  readOnly?: boolean;
-}
-
-const FIELDS: FieldConfig[] = [
-  { key: "name", labelKey: "officialName", type: "text", readOnly: true },
-  { key: "short_name", labelKey: "shortName", type: "text", readOnly: true },
-  { key: "state", labelKey: "state", type: "text", readOnly: true },
-  { key: "name_tamil", labelKey: "nameTamil", type: "text" },
-  { key: "address", labelKey: "address", type: "text" },
-  { key: "postcode", labelKey: "postcode", type: "text" },
-  { key: "city", labelKey: "city", type: "text" },
-  { key: "email", labelKey: "email", type: "email" },
-  { key: "phone", labelKey: "phone", type: "tel" },
-  { key: "fax", labelKey: "fax", type: "tel" },
-  { key: "enrolment", labelKey: "studentEnrolment", type: "number" },
-  { key: "preschool_enrolment", labelKey: "preschoolEnrolment", type: "number" },
-  { key: "special_enrolment", labelKey: "specialEnrolment", type: "number" },
-  { key: "teacher_count", labelKey: "teacherCount", type: "number" },
-  { key: "session_count", labelKey: "sessionsPerDay", type: "number" },
-  { key: "session_type", labelKey: "sessionType", type: "text" },
-  { key: "bank_name", labelKey: "bankName", type: "text" },
-  { key: "bank_account_name", labelKey: "bankAccountName", type: "text" },
-  { key: "bank_account_number", labelKey: "bankAccountNumber", type: "text" },
+// Fields that can be PATCH'd to /schools/<moe>/edit/. Anything not
+// in this set is read-only (MOE source) and excluded from the diff.
+const WRITABLE_FIELDS: (keyof SchoolEditData)[] = [
+  "name_tamil",
+  "address",
+  "postcode",
+  "city",
+  "email",
+  "phone",
+  "fax",
+  "enrolment",
+  "preschool_enrolment",
+  "special_enrolment",
+  "teacher_count",
+  "session_count",
+  "session_type",
+  "bank_name",
+  "bank_account_name",
+  "bank_account_number",
+  // GPS only writable when isSuperAdmin (filter applied at save time).
+  "gps_lat",
+  "gps_lng",
 ];
 
-export default function SchoolEditForm({ school }: SchoolEditFormProps) {
+const TAB_IDS = ["core", "contact", "leaders", "support", "images"] as const;
+type TabId = (typeof TAB_IDS)[number];
+
+export default function SchoolEditForm({ school, isSuperAdmin }: SchoolEditFormProps) {
   const t = useTranslations("schoolEdit");
   const tc = useTranslations("common");
+
   const [formData, setFormData] = useState<SchoolEditData>(school);
+  const [activeTab, setActiveTab] = useState<TabId>("core");
   const [saving, setSaving] = useState(false);
-  const [confirming, setConfirming] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
-  function handleChange(key: keyof SchoolEditData, value: string) {
-    setFormData((prev) => ({
-      ...prev,
-      [key]: FIELDS.find((f) => f.key === key)?.type === "number"
-        ? value === "" ? 0 : Number(value)
-        : value,
-    }));
-  }
+  // Sync tab to URL hash so deep-links + browser back work.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash.replace("#", "");
+    if ((TAB_IDS as readonly string[]).includes(hash)) {
+      setActiveTab(hash as TabId);
+    }
+    const onHashChange = () => {
+      const next = window.location.hash.replace("#", "");
+      if ((TAB_IDS as readonly string[]).includes(next)) {
+        setActiveTab(next as TabId);
+      }
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
-  async function handleConfirm() {
-    setConfirming(true);
-    setError("");
-    setSuccess("");
-    try {
-      const result = await confirmSchool(school.moe_code);
-      setSuccess(`Data confirmed at ${new Date(result.last_verified).toLocaleString()}`);
-      setFormData((prev) => ({
-        ...prev,
-        last_verified: result.last_verified,
-        verified_by: result.verified_by,
-      }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("failedConfirm"));
-    } finally {
-      setConfirming(false);
+  function selectTab(id: string) {
+    setActiveTab(id as TabId);
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", `#${id}`);
     }
   }
+
+  function handleChange(key: keyof SchoolEditData, value: string | number) {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+  }
+
+  const tabs = useMemo(
+    () => [
+      { id: "core", label: t("tabCore") },
+      { id: "contact", label: t("tabContact") },
+      { id: "leaders", label: t("tabLeaders") },
+      { id: "support", label: t("tabSupport") },
+      { id: "images", label: t("tabImages") },
+    ],
+    [t]
+  );
+
+  // Leaders + Images don't have a Save button; the rest do.
+  const tabHasSave = activeTab === "core" || activeTab === "contact" || activeTab === "support";
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -82,12 +114,12 @@ export default function SchoolEditForm({ school }: SchoolEditFormProps) {
     setError("");
     setSuccess("");
 
-    // Only send changed (writable) fields
     const updates: Record<string, unknown> = {};
-    for (const field of FIELDS) {
-      if (field.readOnly) continue;
-      if (formData[field.key] !== school[field.key]) {
-        updates[field.key] = formData[field.key];
+    for (const key of WRITABLE_FIELDS) {
+      // GPS is admin-gated even on the writable list.
+      if ((key === "gps_lat" || key === "gps_lng") && !isSuperAdmin) continue;
+      if (formData[key] !== school[key]) {
+        updates[key] = formData[key];
       }
     }
 
@@ -110,91 +142,48 @@ export default function SchoolEditForm({ school }: SchoolEditFormProps) {
 
   return (
     <div>
-      {/* Confirm Button — prominent, above form */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-green-800">
-              {t("isCorrect")}
-            </h3>
-            <p className="text-sm text-green-700 mt-1">
-              {t("confirmOrEdit")}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={confirming}
-            className="px-6 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 whitespace-nowrap"
-          >
-            {confirming ? t("confirming") : t("confirmData")}
-          </button>
-        </div>
-        {formData.last_verified && (
-          <p className="text-xs text-green-600 mt-2">
-            {t("lastVerified")} {new Date(formData.last_verified).toLocaleString()}
-            {formData.verified_by && ` ${t("by")} ${formData.verified_by}`}
-          </p>
-        )}
-      </div>
+      <TabBar tabs={tabs} active={activeTab} onChange={selectTab} />
 
-      {/* Status messages */}
-      {success && (
-        <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg p-3 mb-4 text-sm">
-          {success}
-        </div>
-      )}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 mb-4 text-sm">
-          {error}
+      {(success || error) && (
+        <div
+          className={
+            success
+              ? "bg-green-50 border border-green-200 text-green-800 rounded-lg p-3 mb-4 text-sm"
+              : "bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 mb-4 text-sm"
+          }
+        >
+          {success || error}
         </div>
       )}
 
-      {/* Edit Form */}
       <form onSubmit={handleSave}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {FIELDS.map((field) => (
-            <div key={field.key}>
-              <label
-                htmlFor={`field-${field.key}`}
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                {t(field.labelKey)}
-                {field.readOnly && (
-                  <span className="text-gray-400 ml-1">{t("readOnly")}</span>
-                )}
-              </label>
-              <input
-                id={`field-${field.key}`}
-                type={field.type}
-                value={formData[field.key] ?? ""}
-                onChange={(e) => handleChange(field.key, e.target.value)}
-                readOnly={field.readOnly}
-                className={`w-full px-3 py-2 border rounded-lg text-sm ${
-                  field.readOnly
-                    ? "bg-gray-50 text-gray-500 border-gray-200"
-                    : "bg-white text-gray-900 border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                }`}
-              />
-            </div>
-          ))}
+        <div role="tabpanel">
+          {activeTab === "core" && <CoreTab data={formData} onChange={handleChange} />}
+          {activeTab === "contact" && (
+            <ContactTab data={formData} isSuperAdmin={isSuperAdmin} onChange={handleChange} />
+          )}
+          {activeTab === "leaders" && <LeadersTab leaders={formData.leaders} />}
+          {activeTab === "support" && <SupportTab data={formData} onChange={handleChange} />}
+          {activeTab === "images" && <ImagesTab moeCode={formData.moe_code} />}
         </div>
 
-        <div className="mt-6 flex gap-3">
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            {saving ? t("saving") : t("saveChanges")}
-          </button>
-          <Link
-            href={`/school/${school.moe_code}`}
-            className="px-6 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200"
-          >
-            {tc("cancel")}
-          </Link>
-        </div>
+        {tabHasSave && (
+          <div className="mt-8 pt-6 border-t border-gray-200 flex items-center justify-end gap-3">
+            <Link
+              href={`/school/${school.moe_code}`}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              {tc("cancel")}
+            </Link>
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saving ? t("saving") : t("saveChanges")}
+            </button>
+          </div>
+        )}
       </form>
     </div>
   );
