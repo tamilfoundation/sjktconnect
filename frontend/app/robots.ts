@@ -24,6 +24,30 @@ export default function robots(): MetadataRoute.Robots {
         disallow: "/",
       },
       {
+        userAgent: "AwarioBot",
+        disallow: "/",
+      },
+      {
+        userAgent: "AwarioRssBot",
+        disallow: "/",
+      },
+      {
+        userAgent: "AwarioSmartBot",
+        disallow: "/",
+      },
+      {
+        userAgent: "SemrushBot",
+        disallow: "/",
+      },
+      {
+        userAgent: "DataForSeoBot",
+        disallow: "/",
+      },
+      {
+        userAgent: "MJ12bot",
+        disallow: "/",
+      },
+      {
         userAgent: "*",
         allow: "/",
         disallow: ["/api/", "/dashboard/"],
