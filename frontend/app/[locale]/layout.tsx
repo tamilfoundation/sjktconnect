@@ -16,7 +16,12 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
   return {
     title: "SJK(T) Connect — Tamil School Intelligence Platform",
     description:
@@ -28,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
       ],
       apple: "/apple-touch-icon.png",
     },
-    alternates: buildAlternates("/"),
+    alternates: buildAlternates("/", locale as "en" | "ta" | "ms"),
   };
 }
 

@@ -18,14 +18,14 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
+  const { locale, id } = await params;
   const t = await getTranslations("parliamentWatch");
   const report = await fetchMeetingReport(Number(id));
   if (!report) return { title: t("title") };
   return {
     title: t("reportTitle", { name: report.short_name }),
     description: report.executive_summary?.replace(/<[^>]*>/g, "").slice(0, 160) || "",
-    alternates: buildAlternates(`/parliament-watch/${id}`),
+    alternates: buildAlternates(`/parliament-watch/${id}`, locale as "en" | "ta" | "ms"),
   };
 }
 

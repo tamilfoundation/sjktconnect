@@ -4,12 +4,17 @@ import SubscribeForm from "@/components/SubscribeForm";
 import Breadcrumb from "@/components/Breadcrumb";
 import { buildAlternates } from "@/lib/seo";
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
   const t = await getTranslations("subscribe");
   return {
     title: `${t("title")} | SJK(T) Connect`,
     description: t("intro"),
-    alternates: buildAlternates("/subscribe"),
+    alternates: buildAlternates("/subscribe", locale as "en" | "ta" | "ms"),
   };
 }
 

@@ -40,7 +40,7 @@ interface PageProps {
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const { moe_code } = await params;
+  const { locale, moe_code } = await params;
   try {
     const school = await fetchSchoolDetail(moe_code);
     const name = school.short_name || school.name;
@@ -70,7 +70,7 @@ export async function generateMetadata({
         type: "website",
         siteName: "SJK(T) Connect",
       },
-      alternates: buildAlternates(`/school/${moe_code}`),
+      alternates: buildAlternates(`/school/${moe_code}`, locale as "en" | "ta" | "ms"),
     };
   } catch {
     return {

@@ -32,7 +32,7 @@ interface PageProps {
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const { code } = await params;
+  const { locale, code } = await params;
   try {
     const c = await fetchConstituencyDetail(code);
     const schoolCount = c.schools.length;
@@ -45,7 +45,7 @@ export async function generateMetadata({
       title,
       description,
       openGraph: { title, description, type: "website", siteName: "SJK(T) Connect" },
-      alternates: buildAlternates(`/constituency/${code}`),
+      alternates: buildAlternates(`/constituency/${code}`, locale as "en" | "ta" | "ms"),
     };
   } catch {
     const t = await getTranslations("constituency");

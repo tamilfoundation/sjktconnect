@@ -24,7 +24,7 @@ interface PageProps {
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const { id } = await params;
+  const { locale, id } = await params;
   try {
     const dun = await fetchDUNDetail(parseInt(id, 10));
     const title = `${dun.code} ${dun.name} — SJK(T) Connect`;
@@ -33,7 +33,7 @@ export async function generateMetadata({
       title,
       description,
       openGraph: { title, description, type: "website", siteName: "SJK(T) Connect" },
-      alternates: buildAlternates(`/dun/${id}`),
+      alternates: buildAlternates(`/dun/${id}`, locale as "en" | "ta" | "ms"),
     };
   } catch {
     const t = await getTranslations("constituency");
