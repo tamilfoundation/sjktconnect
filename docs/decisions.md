@@ -551,3 +551,48 @@
 **Trade-offs:** If we ever scale to many leaders per school (we won't — the model is fixed at 4 roles), sequential save would become noticeable. Today's max is 4 changes per save; ~800ms total is fine.
 
 **Revisit if:** The leader role list grows (new role choices added) AND users complain about save latency. At that point bucket-by-role-then-parallel is the right refactor.
+
+## Default `fetchJSON` to ISR-cached fetch — Sprint 21, 2026-04-29
+
+**Decision:** `fetchJSON()` in `frontend/lib/api.ts` always sets `next: { revalidate: 86400 }`. Server-rendered public pages inherit this automatically; auth endpoints bypass the helper and use direct `fetch()` with `credentials: "include"`.
+
+**Alternatives considered:**
+1. Force every caller to pass `next: { revalidate: ... }` — easy to forget; Sprint 17 demonstrated this exact failure mode at the page-`revalidate` level.
+2. Two helpers: `fetchJSONCached()` + `fetchJSONFresh()` — adds API surface for a binary that's already implicit (auth = direct fetch; public = fetchJSON).
+3. Accept an options parameter on fetchJSON — premature; only one knob would matter (cache window) and the default suffices.
+
+**Rationale:** The vast majority of fetchJSON callers are server components on ISR-cached pages. Defaulting to cached makes the contract automatic and the override site obvious (auth endpoints with `credentials: "include"` are visually distinct in the file).
+
+**Trade-offs:** A future endpoint that needs sub-24h freshness AND goes through fetchJSON would silently get cached. Mitigated by the auth split being clear at the call site.
+
+**Revisit if:** A public endpoint needs sub-24h freshness (e.g. live counter) — at that point grow `fetchJSON` an `options` parameter.
+
+## MQL over GUI aggregation for Cloud Monitoring distribution metrics — Sprint 21, 2026-04-29
+
+**Decision:** All 4 widgets in the egress dashboard use Monitoring Query Language (MQL) instead of the GUI-style aggregation pipeline. Pattern: `fetch <resource>::<metric> | align delta(1h) | every 1h | group_by [metric.<label>], sum(value) | top N`.
+
+**Alternatives considered:**
+1. GUI aggregation with `perSeriesAligner: ALIGN_DELTA + crossSeriesReducer: REDUCE_SUM + secondaryAggregation.perSeriesAligner: ALIGN_SUM + pickTimeSeriesFilter` — what was deployed first, but the secondary aggregation didn't reliably fold distribution → scalar in API responses, leaving `pickTimeSeriesFilter` to error with "input cannot be a distribution" (the original Sprint 17 dashboard error).
+2. Recreate metrics as INT64 instead of DISTRIBUTION — GCP rejects INT64 + valueExtractor (`A value extractor can only be specified for a DISTRIBUTION value type`).
+3. Counter metric (INT64, value=1 per log line) for request counts + separate distribution for bytes — splits the data; harder to chart "bytes per route per UA".
+
+**Rationale:** MQL `top N` produces scalar `doubleValue` per series deterministically. Verified live via `timeSeries:query` API. Source-of-truth dashboard JSON committed in `backend/docs/metrics/dashboard.json` so future sprints don't lose the working query.
+
+**Trade-offs:** MQL queries are harder to edit in the GCP web GUI's chart builder. Future dashboard tweaks need YAML-style edits to the committed JSON or careful UI use.
+
+**Revisit if:** GCP fixes the secondary-aggregation distribution-folding behaviour, or we move to a different observability stack.
+
+## Empty `generateStaticParams()` over pre-building all 528 schools — Sprint 21, 2026-04-29
+
+**Decision:** Each dynamic-segment public page exports `generateStaticParams() { return []; }`. Empty array opts the route into ISR-on-demand caching: nothing pre-built at deploy time; each unique URL caches on first hit for `revalidate` seconds.
+
+**Alternatives considered:**
+1. Pre-build all 528 schools × 3 locales = 1584 pages at deploy time — adds ~5 minutes to build, forces Cloud Build to reach the API for every URL, mostly wasted for low-traffic URLs.
+2. Pre-build a curated top-N (e.g. 50 most-trafficked schools) — needs traffic data we don't have, plus extra logic to maintain the list.
+3. Omit generateStaticParams entirely — Next 15+ treats this as "fully dynamic" and returns `Cache-Control: no-cache` (the actual Sprint 21 bug).
+
+**Rationale:** Site traffic is low and uneven. Most school URLs may never be hit; pre-building them is wasted work. First-hit ~300ms latency is acceptable for the ones that do get hit.
+
+**Trade-offs:** First hit on a given URL is uncached. Mitigated by Cloudflare absorbing repeat hits via `s-maxage=86400`.
+
+**Revisit if:** Traffic increases such that first-hit latency becomes user-visible, or if Cloudflare cache hit rate drops because edges aren't seeing repeat traffic on the same URLs.

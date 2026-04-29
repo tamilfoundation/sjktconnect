@@ -1,5 +1,47 @@
 # Changelog
 
+## Sprint 21 — Egress Hardening Round 2 (2026-04-29)
+
+**Deployed**: backend `sjktconnect-api-00112-k7t` (UA block middleware). Frontend `sjktconnect-web-00110-vph` (3 iterative deploys: ISR setup, fetchJSON cache, generateStaticParams). Cloud Monitoring dashboard `f1722366-2df9-4446-9941-7cda5c019615` rewritten with MQL.
+
+User trigger (2026-04-29): the Sprint 17 ISR fix didn't hold — Supabase still showed ~500 MB/day egress with the site barely publicised. Investigation confirmed Sprint 17's `revalidate = 86400` exports were inert because `next-intl/server.getMessages()` reads cookies/headers, which marks every page as dynamic and overrides the page-level revalidate. Real Cache-Control upstream was `no-cache, no-store`. Combined with one bot (AwarioBot) generating ~31 MB/day of backend egress, this sprint hardens both fronts.
+
+### Added
+- **`UserAgentBlockMiddleware`** in `core/middleware.py` — case-insensitive substring match against AwarioBot, AwarioRssBot, AwarioSmartBot, SemrushBot, DataForSeoBot, MJ12bot. Wired second in `MIDDLEWARE` (right after `IPBlockMiddleware`) so blocked traffic never reaches routing or DB.
+- **`backend/core/tests/test_user_agent_block.py`** — 7 new tests: 6 blocked-UA variants (AwarioBot/SemrushBot/DataForSeoBot + case-insensitive + missing UA + real browser + Googlebot pass-through).
+- **`generateStaticParams()` returning `[]`** on 5 dynamic-segment pages (`school/[moe_code]`, `constituency/[code]`, `dun/[id]`, `parliament-watch/[id]`, `parliament-watch/sittings/[id]`). Empty array opts the route into ISR-on-demand caching — nothing is pre-built at deploy time, but each unique URL gets cached on first hit for `revalidate` seconds. Without this, Next 15+ treats undefined `generateStaticParams` as fully-dynamic regardless of `revalidate`.
+- **`generateStaticParams()` on `app/[locale]/layout.tsx`** — pre-renders the 3 locale shells (en/ta/ms).
+- **`app/[locale]/dashboard/layout.tsx`** — new file with `export const dynamic = "force-dynamic"` so the entire dashboard segment opts out of static prerendering (one file vs editing 4 pages).
+- **`backend/docs/metrics/{api-egress,web-egress,dashboard}.{yaml,json}`** — source-of-truth for the Cloud Logging metrics + Cloud Monitoring dashboard. The metrics keep `valueType: DISTRIBUTION` (GCP rejects INT64 + valueExtractor); the dashboard widgets use MQL queries that fold distribution → scalar before rendering top-N.
+- **6 explicit Disallow entries in `frontend/app/robots.ts`** — AwarioBot, AwarioRssBot, AwarioSmartBot, SemrushBot, DataForSeoBot, MJ12bot. Polite bots self-throttle before the 403; rude bots get the middleware backstop.
+
+### Changed
+- **`app/[locale]/layout.tsx`** — added `setRequestLocale(locale)` call after locale validation. Without it, `getMessages()` reads requestLocale via cookies/headers and marks the layout as dynamic, cascading to every page.
+- **10 public pages** (`/[locale]/page.tsx`, `/constituencies/page.tsx`, `/news/page.tsx`, `/parliament-watch/page.tsx`, `/parliament-watch/sittings/page.tsx`, `/constituency/[code]`, `/dun/[id]`, `/parliament-watch/[id]`, `/parliament-watch/sittings/[id]`, `/school/[moe_code]`) — each now imports `setRequestLocale` from `next-intl/server`, accepts `locale` as a Promise param, and calls `setRequestLocale(locale)` at the top of the page component.
+- **`lib/api.ts` `fetchJSON()`** — now sets `next: { revalidate: 86400 }`. Next 15+ defaults `fetch()` to uncached, which marked every server-rendered public page as dynamic regardless of the page-level `revalidate` export. Authenticated endpoints use direct `fetch()` with `credentials: "include"` and bypass this helper, so they're unaffected.
+- **`MIDDLEWARE` in `sjktconnect/settings/base.py`** — `UserAgentBlockMiddleware` wired second after `IPBlockMiddleware`.
+- **Cloud Logging metrics** — `sjktconnect_api_egress_per_route` and `sjktconnect_web_egress_per_route` recreated from YAML configs (kept as DISTRIBUTION; INT64 + valueExtractor combo rejected by GCP).
+- **Cloud Monitoring dashboard** — all 4 widgets rewritten as MQL queries (`fetch <resource>::<metric> | align delta(1h) | every 1h | group_by [metric.<label>], sum(value) | top 10`). Replaces the previous GUI-style aggregation that emitted "input cannot be a distribution" on `pickTimeSeriesFilter`.
+
+### Verified live
+- `curl -sI https://tamilschool.org/en` → `Cache-Control: s-maxage=86400, stale-while-revalidate=31449600` + `x-nextjs-cache: HIT`. Same for `/news`, `/constituencies`, `/parliament-watch`, `/parliament-watch/sittings`.
+- `curl -sI https://tamilschool.org/en/school/BBA8101` → same, `x-nextjs-cache: HIT` on second request. Same for `/constituency/P078`, `/dun/1`, `/parliament-watch/sittings/1`.
+- `curl -H "User-Agent: AwarioBot/1.0" https://api.tamilschool.org/api/v1/schools/...` → 403; real browser UA → 200/404 (route works).
+- All 4 dashboard MQL queries return `doubleValue` per series with valid top-N — verified via `timeSeries:query` API.
+
+### Deferred to Sprint 22
+- **Task #43 (Supabase Storage hot-link protection)** — user-approved deferral. Two viable paths (image-proxy-on-backend vs signed-URL approach) both need a ~2-4h design call. The recommended approach is the image proxy: new `/api/v1/img/<key>` endpoint that streams Supabase bytes after a Referer check, with `Cache-Control: s-maxage=31536000, immutable` so Cloudflare absorbs most repeat hits. Moves egress from Supabase Pro ($0.09/GB) to Cloud Run free tier.
+
+### Tests
+- 7 new backend tests in `core/tests/test_user_agent_block.py`. Final tally: **1198 backend (+7) + 297 frontend** pass.
+
+### Operational followup
+- **2026-04-30**: Confirm Supabase egress chart shows <150 MB/day. If still elevated, the next-most-likely culprit is Supabase Storage (school-images bucket) being hit directly by image-loading bots — that's Sprint 22 scope.
+
+### Deploys
+- Backend: `sjktconnect-api-00111-mrq` → **`sjktconnect-api-00112-k7t`**.
+- Frontend: `sjktconnect-web-00107-wd9` → `sjktconnect-web-00108-c56` → `sjktconnect-web-00109-6r4` → **`sjktconnect-web-00110-vph`** (3 iterative deploys to pin down the dynamic-route caching gap; lesson captured in retrospective-sprint21.md).
+
 ## Sprint 20 — Leader Inline CRUD (2026-04-28 evening)
 
 **Deployed**: backend `sjktconnect-api-00111-mrq` (3 new endpoints + serializer + permission helper). Frontend `sjktconnect-web-00107-wd9` (LeadersTab rewrite).
