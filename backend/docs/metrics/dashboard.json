@@ -1,6 +1,6 @@
 {
   "displayName": "SJK(T) Connect — Egress by Route/UA",
-  "etag": "5be686a8a2178711406b16d64233f56c",
+  "etag": "49f2f577bfea91bed5ad4e4b98da5893",
   "mosaicLayout": {
     "columns": 12,
     "tiles": [
@@ -14,31 +14,11 @@
                 "plotType": "STACKED_BAR",
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
-                  "timeSeriesFilter": {
-                    "aggregation": {
-                      "alignmentPeriod": "3600s",
-                      "crossSeriesReducer": "REDUCE_SUM",
-                      "groupByFields": ["metric.label.route"],
-                      "perSeriesAligner": "ALIGN_DELTA"
-                    },
-                    "secondaryAggregation": {
-                      "alignmentPeriod": "3600s",
-                      "perSeriesAligner": "ALIGN_SUM"
-                    },
-                    "pickTimeSeriesFilter": {
-                      "rankingMethod": "METHOD_SUM",
-                      "numTimeSeries": 10,
-                      "direction": "TOP"
-                    },
-                    "filter": "metric.type=\"logging.googleapis.com/user/sjktconnect_api_egress_per_route\" AND resource.type=\"cloud_run_revision\""
-                  }
+                  "timeSeriesQueryLanguage": "fetch cloud_run_revision::logging.googleapis.com/user/sjktconnect_api_egress_per_route\n| align delta(1h)\n| every 1h\n| group_by [metric.route], sum(value)\n| top 10"
                 }
               }
             ],
-            "yAxis": {
-              "label": "bytes/hr",
-              "scale": "LINEAR"
-            }
+            "yAxis": {"label": "bytes/hr", "scale": "LINEAR"}
           }
         },
         "width": 6
@@ -53,31 +33,11 @@
                 "plotType": "STACKED_BAR",
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
-                  "timeSeriesFilter": {
-                    "aggregation": {
-                      "alignmentPeriod": "3600s",
-                      "crossSeriesReducer": "REDUCE_SUM",
-                      "groupByFields": ["metric.label.route"],
-                      "perSeriesAligner": "ALIGN_DELTA"
-                    },
-                    "secondaryAggregation": {
-                      "alignmentPeriod": "3600s",
-                      "perSeriesAligner": "ALIGN_SUM"
-                    },
-                    "pickTimeSeriesFilter": {
-                      "rankingMethod": "METHOD_SUM",
-                      "numTimeSeries": 10,
-                      "direction": "TOP"
-                    },
-                    "filter": "metric.type=\"logging.googleapis.com/user/sjktconnect_web_egress_per_route\" AND resource.type=\"cloud_run_revision\""
-                  }
+                  "timeSeriesQueryLanguage": "fetch cloud_run_revision::logging.googleapis.com/user/sjktconnect_web_egress_per_route\n| align delta(1h)\n| every 1h\n| group_by [metric.route], sum(value)\n| top 10"
                 }
               }
             ],
-            "yAxis": {
-              "label": "bytes/hr",
-              "scale": "LINEAR"
-            }
+            "yAxis": {"label": "bytes/hr", "scale": "LINEAR"}
           }
         },
         "width": 6,
@@ -93,31 +53,11 @@
                 "plotType": "STACKED_BAR",
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
-                  "timeSeriesFilter": {
-                    "aggregation": {
-                      "alignmentPeriod": "3600s",
-                      "crossSeriesReducer": "REDUCE_SUM",
-                      "groupByFields": ["metric.label.user_agent"],
-                      "perSeriesAligner": "ALIGN_DELTA"
-                    },
-                    "secondaryAggregation": {
-                      "alignmentPeriod": "3600s",
-                      "perSeriesAligner": "ALIGN_SUM"
-                    },
-                    "pickTimeSeriesFilter": {
-                      "rankingMethod": "METHOD_SUM",
-                      "numTimeSeries": 10,
-                      "direction": "TOP"
-                    },
-                    "filter": "metric.type=\"logging.googleapis.com/user/sjktconnect_api_egress_per_route\" AND resource.type=\"cloud_run_revision\""
-                  }
+                  "timeSeriesQueryLanguage": "fetch cloud_run_revision::logging.googleapis.com/user/sjktconnect_api_egress_per_route\n| align delta(1h)\n| every 1h\n| group_by [metric.user_agent], sum(value)\n| top 10"
                 }
               }
             ],
-            "yAxis": {
-              "label": "bytes/hr",
-              "scale": "LINEAR"
-            }
+            "yAxis": {"label": "bytes/hr", "scale": "LINEAR"}
           }
         },
         "width": 6,
@@ -133,31 +73,11 @@
                 "plotType": "STACKED_BAR",
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
-                  "timeSeriesFilter": {
-                    "aggregation": {
-                      "alignmentPeriod": "3600s",
-                      "crossSeriesReducer": "REDUCE_SUM",
-                      "groupByFields": ["metric.label.user_agent"],
-                      "perSeriesAligner": "ALIGN_DELTA"
-                    },
-                    "secondaryAggregation": {
-                      "alignmentPeriod": "3600s",
-                      "perSeriesAligner": "ALIGN_SUM"
-                    },
-                    "pickTimeSeriesFilter": {
-                      "rankingMethod": "METHOD_SUM",
-                      "numTimeSeries": 10,
-                      "direction": "TOP"
-                    },
-                    "filter": "metric.type=\"logging.googleapis.com/user/sjktconnect_web_egress_per_route\" AND resource.type=\"cloud_run_revision\""
-                  }
+                  "timeSeriesQueryLanguage": "fetch cloud_run_revision::logging.googleapis.com/user/sjktconnect_web_egress_per_route\n| align delta(1h)\n| every 1h\n| group_by [metric.user_agent], sum(value)\n| top 10"
                 }
               }
             ],
-            "yAxis": {
-              "label": "bytes/hr",
-              "scale": "LINEAR"
-            }
+            "yAxis": {"label": "bytes/hr", "scale": "LINEAR"}
           }
         },
         "width": 6,
