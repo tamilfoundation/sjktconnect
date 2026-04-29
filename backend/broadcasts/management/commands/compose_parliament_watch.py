@@ -12,6 +12,7 @@ Usage:
 """
 
 import os
+from datetime import date
 
 from django.core.management.base import BaseCommand
 from django.template.loader import render_to_string
@@ -21,6 +22,15 @@ from broadcasts.models import Broadcast
 from broadcasts.services.image_generator import generate_hero_image
 from broadcasts.services.parliament_digest import generate_parliament_digest
 from parliament.models import ParliamentaryMeeting
+
+
+# --auto only picks up meetings that ended on or after this date.
+# Set to 2026-04-30 (the day this digest launched) so the existing 11
+# historical published meetings (going back to 2023) are NOT auto-
+# backfilled. The first Parliament Watch digest will be sent for the
+# next meeting that ends after this date — expected ~June/July 2026.
+# To digest an older meeting, run with explicit --meeting-id N.
+AUTO_COMPOSE_START_DATE = date(2026, 4, 30)
 
 
 class Command(BaseCommand):
@@ -101,7 +111,8 @@ class Command(BaseCommand):
             .values_list("coverage_start_date", "coverage_end_date")
         )
         candidates = (
-            ParliamentaryMeeting.objects.filter(is_published=True)
+            ParliamentaryMeeting.objects
+            .filter(is_published=True, end_date__gte=AUTO_COMPOSE_START_DATE)
             .exclude(report_html="")
             .order_by("start_date")
         )

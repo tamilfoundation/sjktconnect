@@ -111,6 +111,11 @@ class ComposeParliamentWatchTest(TestCase):
     @patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
     @patch("broadcasts.services.parliament_digest.genai")
     def test_auto_composes_for_each_unsent_published_meeting(self, mock_genai):
+        # Bump the seed meeting forward so it falls into the auto window.
+        # The setUp meeting ends 2026-03-20 which is before the
+        # AUTO_COMPOSE_START_DATE cutoff and would otherwise be skipped.
+        self.meeting.end_date = "2026-05-15"
+        self.meeting.save(update_fields=["end_date"])
         # Add a second published meeting
         meeting2 = ParliamentaryMeeting.objects.create(
             name="Second Meeting of the Fourth Term 2026",
@@ -159,8 +164,32 @@ class ComposeParliamentWatchTest(TestCase):
 
     @patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
     @patch("broadcasts.services.parliament_digest.genai")
+    def test_auto_skips_meetings_ending_before_cutoff(self, mock_genai):
+        """The seed meeting in setUp ends 2026-03-20, which is before the
+        AUTO_COMPOSE_START_DATE cutoff (2026-04-30). --auto must skip it
+        so the launch run doesn't backfill 11 historical meetings."""
+        mock_response = Mock()
+        mock_response.text = (
+            '{"headlines": "x", "developments": [], '
+            '"scorecard_summary": "x", "one_thing": "x"}'
+        )
+        mock_genai.Client.return_value.models.generate_content.return_value = (
+            mock_response
+        )
+
+        out = StringIO()
+        call_command("compose_parliament_watch", "--auto", stdout=out)
+
+        self.assertEqual(Broadcast.objects.count(), 0)
+        self.assertIn("nothing to do", out.getvalue())
+
+    @patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
+    @patch("broadcasts.services.parliament_digest.genai")
     def test_auto_is_idempotent(self, mock_genai):
         """Re-running --auto for a meeting that already has a draft must skip it."""
+        # Move the seed meeting into the auto window first.
+        self.meeting.end_date = "2026-05-15"
+        self.meeting.save(update_fields=["end_date"])
         mock_response = Mock()
         mock_response.text = (
             '{"headlines": "Test.", "developments": [], '
