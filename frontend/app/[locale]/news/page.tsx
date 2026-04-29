@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { fetchNews } from "@/lib/api";
 import NewsList from "@/components/NewsList";
 import { buildAlternates } from "@/lib/seo";
@@ -21,7 +21,13 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function NewsPage() {
+interface PageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export default async function NewsPage({ params }: PageProps) {
+  const { locale } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations("news");
   // Sprint 17: was pageSize: 500 (~138 KB on every render). 50 is plenty
   // for the initial paint; NewsList already shows totalCount and can paginate.

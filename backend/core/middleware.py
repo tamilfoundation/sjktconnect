@@ -4,6 +4,9 @@ Cross-cutting Django middleware:
   * IPBlockMiddleware — short-circuits known scraper IPs with 403 to stop
     egress drain. Sprint 17 (Egress Hardening) discovered the Egress-Fix
     sprint had claimed this work but never actually landed it.
+  * UserAgentBlockMiddleware — Sprint 21 backstop for greedy crawlers
+    that ignore robots.txt (AwarioBot was generating ~31 MB/day of
+    backend egress despite the disallow directive).
 """
 
 from django.http import HttpResponseForbidden
@@ -22,6 +25,20 @@ BLOCKED_IPS = frozenset({
     # docs/egress-investigation-report.md.
     "88.216.210.27",
 })
+
+
+# Substrings matched case-insensitively against the User-Agent header.
+# These bots either ignore robots.txt outright or treat the disallow
+# directive as advisory. Verified in Cloud Run access logs as the
+# largest non-search-engine traffic sources at the time of Sprint 21.
+BLOCKED_USER_AGENT_SUBSTRINGS = (
+    "awariobot",
+    "awariorssbot",
+    "awariosmartbot",
+    "semrushbot",
+    "dataforseobot",
+    "mj12bot",
+)
 
 
 def _get_client_ip(request) -> str | None:
@@ -53,6 +70,25 @@ class IPBlockMiddleware:
     def __call__(self, request):
         client_ip = _get_client_ip(request)
         if client_ip in BLOCKED_IPS:
+            return HttpResponseForbidden(b"")
+        return self.get_response(request)
+
+
+class UserAgentBlockMiddleware:
+    """Return 403 immediately for requests with a blocked User-Agent.
+
+    Wired alongside IPBlockMiddleware at the top of the middleware chain so
+    these requests never reach URL routing or DB. The match is a case-
+    insensitive substring check, which catches version-suffixed variants
+    (e.g. ``AwarioBot/1.0``) without needing exact equality.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        ua = request.META.get("HTTP_USER_AGENT", "").lower()
+        if ua and any(sub in ua for sub in BLOCKED_USER_AGENT_SUBSTRINGS):
             return HttpResponseForbidden(b"")
         return self.get_response(request)
 

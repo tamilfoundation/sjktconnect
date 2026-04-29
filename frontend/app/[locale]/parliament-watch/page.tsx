@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { fetchBriefs, fetchAllMentions, fetchMeetingReports } from "@/lib/api";
 import MeetingReportsGrid from "@/components/MeetingReportsGrid";
@@ -16,7 +16,13 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function ParliamentWatchPage() {
+interface PageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export default async function ParliamentWatchPage({ params }: PageProps) {
+  const { locale } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations("parliamentWatch");
   const [meetingReports, briefs, mentions] = await Promise.all([
     fetchMeetingReports(),

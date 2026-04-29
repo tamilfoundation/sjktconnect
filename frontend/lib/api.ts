@@ -32,8 +32,14 @@ const API_URL =
 
 const BASE = `${API_URL}/api/v1`;
 
+// Sprint 21: Next 15+ defaults fetch() to uncached, which marks every
+// server-rendered page as dynamic and breaks the page-level
+// `revalidate = 86400` contract. Opt back into ISR caching so the
+// pages set up in Sprint 17 actually get cached at the data layer.
+// All authenticated endpoints below use direct fetch() with
+// credentials:"include" and bypass this helper, so they're unaffected.
 async function fetchJSON<T>(url: string): Promise<T> {
-  const res = await fetch(url);
+  const res = await fetch(url, { next: { revalidate: 86400 } });
   if (!res.ok) {
     throw new Error(`API error: ${res.status} ${res.statusText}`);
   }

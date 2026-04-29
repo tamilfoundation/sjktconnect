@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { fetchConstituencies } from "@/lib/api";
 import ConstituencyList from "@/components/ConstituencyList";
 import { buildAlternates } from "@/lib/seo";
@@ -21,7 +21,13 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function ConstituenciesPage() {
+interface PageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export default async function ConstituenciesPage({ params }: PageProps) {
+  const { locale } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations("constituency");
   const constituencies = await fetchConstituencies();
 

@@ -1,0 +1,31 @@
+filter: |
+  resource.type="cloud_run_revision"
+  resource.labels.service_name="sjktconnect-web"
+  httpRequest.responseSize!=""
+description: |
+  Sprint 21 — bytes per response on sjktconnect-web, grouped by route /
+  user_agent / status. DISTRIBUTION value type is the only one GCP allows
+  with a valueExtractor; dashboard charts must apply REDUCE_SUM before
+  pickTimeSeriesFilter (which cannot operate on a raw distribution).
+metricDescriptor:
+  metricKind: DELTA
+  valueType: DISTRIBUTION
+  unit: By
+  displayName: sjktconnect-web response bytes
+  labels:
+    - key: route
+      description: Request URL
+    - key: user_agent
+      description: Client User-Agent header
+    - key: status
+      description: HTTP response status
+bucketOptions:
+  exponentialBuckets:
+    growthFactor: 4.0
+    numFiniteBuckets: 20
+    scale: 100.0
+labelExtractors:
+  route: EXTRACT(httpRequest.requestUrl)
+  user_agent: EXTRACT(httpRequest.userAgent)
+  status: EXTRACT(httpRequest.status)
+valueExtractor: EXTRACT(httpRequest.responseSize)

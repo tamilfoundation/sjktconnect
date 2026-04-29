@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { fetchDUNDetail, fetchDUNGeoJSON } from "@/lib/api";
 import Breadcrumb from "@/components/Breadcrumb";
 import StatCard from "@/components/StatCard";
@@ -12,8 +12,13 @@ import { buildAlternates } from "@/lib/seo";
 
 export const revalidate = 86400;
 
+// Sprint 21: see school/[moe_code]/page.tsx for the rationale.
+export function generateStaticParams() {
+  return [];
+}
+
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: string; id: string }>;
 }
 
 export async function generateMetadata({
@@ -37,7 +42,8 @@ export async function generateMetadata({
 }
 
 export default async function DUNPage({ params }: PageProps) {
-  const { id } = await params;
+  const { locale, id } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations("constituency");
   const tc = await getTranslations("common");
   const dunId = parseInt(id, 10);
