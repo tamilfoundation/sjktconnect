@@ -128,6 +128,7 @@ class Command(BaseCommand):
         steps.append(("Update scorecards", self._step_update_scorecards))
         steps.append(("Generate briefs", self._step_generate_briefs))
         steps.append(("Generate meeting reports", self._step_generate_reports))
+        steps.append(("Compose Parliament Watch drafts", self._step_compose_parliament_watch))
 
         return steps
 
@@ -152,6 +153,13 @@ class Command(BaseCommand):
 
     def _step_generate_reports(self):
         call_command("generate_meeting_reports")
+        return "done"
+
+    def _step_compose_parliament_watch(self):
+        # Idempotent — only composes drafts for published meetings that
+        # don't already have a PARLIAMENT_WATCH broadcast (dedupe by
+        # coverage start+end dates). Skip silently if nothing new.
+        call_command("compose_parliament_watch", auto=True)
         return "done"
 
     def _dry_run(self, skip_calendar, skip_analysis):
@@ -188,5 +196,6 @@ class Command(BaseCommand):
         self.stdout.write("5. Update scorecards — recalculate all MP scorecards")
         self.stdout.write("6. Generate briefs — create briefs for sittings without one")
         self.stdout.write("7. Generate meeting reports — create reports for meetings without one")
+        self.stdout.write("8. Compose Parliament Watch drafts — auto-create DRAFT broadcasts for any new published reports (idempotent)")
 
         self.stdout.write(self.style.WARNING("\n=== DRY RUN COMPLETE ==="))
