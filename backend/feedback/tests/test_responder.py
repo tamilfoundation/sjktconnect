@@ -10,7 +10,7 @@ class ResponderTest(TestCase):
     def setUp(self):
         self.email = InboundEmail.objects.create(
             gmail_message_id="msg_001",
-            from_email="reader@example.com",
+            from_email="reader@gmail.com",
             from_name="A Reader",
             subject="Re: Parliament Watch",
             body_text="You got the school name wrong.",
@@ -81,3 +81,20 @@ class ResponderTest(TestCase):
         payload = mock_post.call_args[1]["json"]
         self.assertEqual(payload["sender"]["email"], "feedback@tamilschool.org")
         self.assertIn("Re:", payload["subject"])
+
+    def test_resolves_blocklisted_sender_without_responding(self):
+        """Sprint 22: bot-spam — emails from blocklisted domains
+        (example.com, test.com, disposable email providers) get
+        marked RESOLVED without sending an outbound auto-response.
+        Brevo would block the outbound anyway and these are 100%
+        bot-injected via the contact form forwarder."""
+        self.email.from_email = "spam@example.com"
+        self.email.classification = "TIP"  # not IRRELEVANT — would be skipped earlier
+        self.email.save()
+
+        auto_respond(self.email)
+        self.email.refresh_from_db()
+
+        self.assertEqual(self.email.response_status, "RESOLVED")
+        self.assertEqual(self.email.auto_response_text, "")
+        self.assertIsNotNone(self.email.responded_at)

@@ -13,6 +13,8 @@ import os
 import requests
 from django.utils import timezone
 
+from core.email_blocklist import is_blocked_email
+
 logger = logging.getLogger(__name__)
 
 BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
@@ -86,6 +88,21 @@ def auto_respond(email):
         email.responded_at = timezone.now()
         email.save(update_fields=["response_status", "responded_at"])
         logger.info("Resolved irrelevant email %s", email.gmail_message_id)
+        return
+
+    # Sprint 22: skip auto-response when the sender is on the email
+    # blocklist (disposable/example domain). These are bot-injected via
+    # forms that forward to feedback@; replying generates "Re: Re:"
+    # outbound spam that Brevo blocks anyway.
+    if is_blocked_email(email.from_email):
+        email.response_status = "RESOLVED"
+        email.responded_at = timezone.now()
+        email.save(update_fields=["response_status", "responded_at"])
+        logger.info(
+            "Resolved blocklisted-sender email %s (from=%s)",
+            email.gmail_message_id,
+            email.from_email,
+        )
         return
 
     # Skip unclassified emails — nothing meaningful to say yet
