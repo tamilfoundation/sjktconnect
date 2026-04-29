@@ -1,5 +1,6 @@
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 
 from subscribers.services.subscriber_service import (
@@ -16,6 +17,14 @@ from .serializers import (
 )
 
 
+class SubscribeThrottle(AnonRateThrottle):
+    """Sprint 22: cap subscribe at 5/hour per IP. Bot floods with fake
+    emails were generating dozens of attempts per hour; legit signups
+    are way below this rate."""
+
+    rate = "5/hour"
+
+
 class SubscribeView(APIView):
     """
     POST /api/v1/subscribers/subscribe/
@@ -27,6 +36,7 @@ class SubscribeView(APIView):
 
     authentication_classes = []
     permission_classes = []
+    throttle_classes = [SubscribeThrottle]
 
     def post(self, request):
         # Honeypot: bots fill hidden fields, humans don't

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from core.email_blocklist import is_blocked_email
 from subscribers.models import Subscriber, SubscriptionPreference
 
 
@@ -9,6 +10,13 @@ class SubscribeSerializer(serializers.Serializer):
     email = serializers.EmailField()
     name = serializers.CharField(max_length=200, required=False, default="", allow_blank=True)
     organisation = serializers.CharField(max_length=300, required=False, default="", allow_blank=True)
+
+    def validate_email(self, value):
+        if is_blocked_email(value):
+            raise serializers.ValidationError(
+                "Please use a real email address — disposable and example domains are not accepted."
+            )
+        return value
 
 
 class SubscriberSerializer(serializers.ModelSerializer):

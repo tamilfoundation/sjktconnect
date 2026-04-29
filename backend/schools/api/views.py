@@ -22,6 +22,7 @@ from rest_framework.views import APIView
 logger = logging.getLogger(__name__)
 
 from accounts.permissions import IsProfileAuthenticated
+from core.email_blocklist import is_blocked_email
 from core.models import AuditLog
 from schools.api.geojson import to_feature, to_feature_collection
 from schools.api.serializers import (
@@ -587,6 +588,12 @@ class ContactFormView(APIView):
                 {"error": "All fields are required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # Sprint 22: bot-spam — silently swallow blocked-domain submissions
+        # so the bot doesn't learn what we filter on. Same shape as honeypot.
+        if is_blocked_email(email):
+            logger.info("Contact form blocked: disposable/example domain %s", email)
+            return Response({"status": "sent"})
 
         api_key = os.environ.get("BREVO_API_KEY")
         if not api_key:
