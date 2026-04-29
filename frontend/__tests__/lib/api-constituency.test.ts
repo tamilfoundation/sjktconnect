@@ -47,9 +47,7 @@ describe("fetchConstituencies", () => {
     });
 
     await fetchConstituencies("Johor");
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("state=Johor")
-    );
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("state=Johor"), expect.objectContaining({ next: { revalidate: 86400 } }));
   });
 
   it("paginates through multiple pages", async () => {
@@ -104,9 +102,7 @@ describe("fetchConstituencyDetail", () => {
     const result = await fetchConstituencyDetail("P140");
     expect(result.code).toBe("P140");
     expect(result.indian_population).toBe(5000);
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/constituencies/P140/")
-    );
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("/constituencies/P140/"), expect.objectContaining({ next: { revalidate: 86400 } }));
   });
 });
 
@@ -154,9 +150,7 @@ describe("fetchDUNs", () => {
 
     const result = await fetchDUNs({ constituency: "P140" });
     expect(result).toHaveLength(1);
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("constituency=P140")
-    );
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("constituency=P140"), expect.objectContaining({ next: { revalidate: 86400 } }));
   });
 });
 
@@ -182,9 +176,7 @@ describe("fetchDUNDetail", () => {
 
     const result = await fetchDUNDetail(1);
     expect(result.code).toBe("N01");
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/duns/1/")
-    );
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("/duns/1/"), expect.objectContaining({ next: { revalidate: 86400 } }));
   });
 });
 

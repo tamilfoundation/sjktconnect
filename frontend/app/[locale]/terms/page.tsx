@@ -3,11 +3,16 @@ import { getTranslations } from "next-intl/server";
 import Breadcrumb from "@/components/Breadcrumb";
 import { buildAlternates } from "@/lib/seo";
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
   const t = await getTranslations("legal");
   return {
     title: `${t("termsTitle")} | SJK(T) Connect`,
-    alternates: buildAlternates("/terms"),
+    alternates: buildAlternates("/terms", locale as "en" | "ta" | "ms"),
   };
 }
 

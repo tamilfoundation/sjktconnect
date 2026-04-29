@@ -4,12 +4,17 @@ import { Link } from "@/i18n/navigation";
 import DonationForm from "@/components/DonationForm";
 import { buildAlternates } from "@/lib/seo";
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
   const t = await getTranslations("donate");
   return {
     title: `${t("pageTitle")} | SJK(T) Connect`,
     description: t("pageDescription"),
-    alternates: buildAlternates("/donate"),
+    alternates: buildAlternates("/donate", locale as "en" | "ta" | "ms"),
   };
 }
 

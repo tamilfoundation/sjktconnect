@@ -7,12 +7,17 @@ import { buildAlternates } from "@/lib/seo";
 
 export const revalidate = 86400;
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
   const t = await getTranslations("parliamentWatch");
   return {
     title: t("title"),
     description: t("intro"),
-    alternates: buildAlternates("/parliament-watch"),
+    alternates: buildAlternates("/parliament-watch", locale as "en" | "ta" | "ms"),
   };
 }
 

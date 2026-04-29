@@ -75,9 +75,7 @@ describe("fetchSchoolDetail", () => {
     const result = await fetchSchoolDetail("JBD0050");
     expect(result.moe_code).toBe("JBD0050");
     expect(result.grade).toBe("A");
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/schools/JBD0050/")
-    );
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("/schools/JBD0050/"), expect.objectContaining({ next: { revalidate: 86400 } }));
   });
 
   it("throws on 404", async () => {
@@ -108,9 +106,7 @@ describe("fetchSchoolsByConstituency", () => {
 
     const result = await fetchSchoolsByConstituency("P140");
     expect(result).toHaveLength(1);
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("constituency=P140")
-    );
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("constituency=P140"), expect.objectContaining({ next: { revalidate: 86400 } }));
   });
 });
 

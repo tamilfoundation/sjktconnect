@@ -87,9 +87,7 @@ describe("fetchAllSchools", () => {
     });
 
     await fetchAllSchools("Johor");
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("state=Johor")
-    );
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("state=Johor"), expect.objectContaining({ next: { revalidate: 86400 } }));
   });
 
   it("throws on API error", async () => {
@@ -121,9 +119,7 @@ describe("searchEntities", () => {
 
     const result = await searchEntities("bikam");
     expect(result.schools).toHaveLength(1);
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("search/?q=bikam")
-    );
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("search/?q=bikam"), expect.objectContaining({ next: { revalidate: 86400 } }));
   });
 });
 
