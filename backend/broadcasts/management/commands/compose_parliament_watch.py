@@ -7,6 +7,8 @@ renders it into an HTML email, and creates a DRAFT Broadcast for admin review.
 Usage:
     python manage.py compose_parliament_watch --meeting-id 1
     python manage.py compose_parliament_watch --meeting-id 1 --dry-run
+    python manage.py compose_parliament_watch --auto         # all unsent published meetings
+    python manage.py compose_parliament_watch --auto --dry-run
 """
 
 import os
@@ -28,8 +30,16 @@ class Command(BaseCommand):
         parser.add_argument(
             "--meeting-id",
             type=int,
-            required=True,
-            help="Primary key of the ParliamentaryMeeting to digest",
+            help="Primary key of the ParliamentaryMeeting to digest. Mutually exclusive with --auto.",
+        )
+        parser.add_argument(
+            "--auto",
+            action="store_true",
+            help=(
+                "Scan for all published ParliamentaryMeeting reports that don't "
+                "yet have a PARLIAMENT_WATCH Broadcast. Compose one DRAFT per "
+                "meeting. Idempotent — safe to re-run from cron / pipeline."
+            ),
         )
         parser.add_argument(
             "--dry-run",
@@ -38,8 +48,33 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        meeting_id = options["meeting_id"]
+        meeting_id = options.get("meeting_id")
+        auto = options["auto"]
         dry_run = options["dry_run"]
+
+        if not meeting_id and not auto:
+            self.stderr.write(
+                self.style.ERROR("Pass either --meeting-id <N> or --auto.")
+            )
+            return
+        if meeting_id and auto:
+            self.stderr.write(
+                self.style.ERROR("--meeting-id and --auto are mutually exclusive.")
+            )
+            return
+
+        if auto:
+            meetings = self._discover_unsent_meetings()
+            if not meetings:
+                self.stdout.write("No unsent published meetings — nothing to do.")
+                return
+            self.stdout.write(
+                f"Found {len(meetings)} unsent meeting(s): "
+                f"{', '.join(m.short_name for m in meetings)}"
+            )
+            for meeting in meetings:
+                self._compose_for_meeting(meeting, dry_run=dry_run)
+            return
 
         try:
             meeting = ParliamentaryMeeting.objects.get(pk=meeting_id)
@@ -50,12 +85,38 @@ class Command(BaseCommand):
                 )
             )
             return
+        self._compose_for_meeting(meeting, dry_run=dry_run)
 
+    def _discover_unsent_meetings(self):
+        """Return published meetings without an existing PARLIAMENT_WATCH broadcast.
+
+        Dedupe key: matching coverage_start_date + coverage_end_date on the
+        Broadcast row. compose_parliament_watch sets these from the meeting's
+        own start/end dates, so the check is exact and self-healing — if the
+        DRAFT was deleted, the next run recomposes it.
+        """
+        sent_pairs = set(
+            Broadcast.objects.filter(kind=Broadcast.Kind.PARLIAMENT_WATCH)
+            .exclude(coverage_start_date__isnull=True)
+            .values_list("coverage_start_date", "coverage_end_date")
+        )
+        candidates = (
+            ParliamentaryMeeting.objects.filter(is_published=True)
+            .exclude(report_html="")
+            .order_by("start_date")
+        )
+        return [
+            m for m in candidates
+            if (m.start_date, m.end_date) not in sent_pairs
+        ]
+
+    def _compose_for_meeting(self, meeting, *, dry_run: bool) -> None:
         digest = generate_parliament_digest(meeting)
         if digest is None:
             self.stderr.write(
                 self.style.ERROR(
-                    "Digest generation failed — check report_html and GEMINI_API_KEY."
+                    f"[{meeting.short_name}] Digest generation failed — "
+                    "check report_html and GEMINI_API_KEY."
                 )
             )
             return
@@ -70,13 +131,12 @@ class Command(BaseCommand):
             )
             return
 
-        # Generate optional hero image
         hero_image_bytes = generate_hero_image(
             content_summary=digest["headlines"],
             style="parliament",
         )
         if hero_image_bytes:
-            self.stdout.write("Hero image generated")
+            self.stdout.write(f"[{meeting.short_name}] Hero image generated")
 
         template_context = {
             "meeting_name": meeting.name,
@@ -99,11 +159,12 @@ class Command(BaseCommand):
             text_content=text_content,
             audience_filter={"category": "PARLIAMENT_WATCH"},
             kind=Broadcast.Kind.PARLIAMENT_WATCH,
+            coverage_start_date=meeting.start_date,
+            coverage_end_date=meeting.end_date,
             status=Broadcast.Status.DRAFT,
             hero_image=hero_image_bytes or b"",
         )
 
-        # Re-render with hero image URL now that we have the broadcast PK
         if hero_image_bytes:
             backend_url = os.environ.get(
                 "BACKEND_URL",
@@ -120,7 +181,6 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Draft broadcast created (ID: {broadcast.pk}) for "
-                f"{meeting.short_name}"
+                f"[{meeting.short_name}] Draft broadcast created (ID: {broadcast.pk})"
             )
         )
