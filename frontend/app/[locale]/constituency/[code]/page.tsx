@@ -16,7 +16,7 @@ import BoundaryMap from "@/components/BoundaryMap";
 import MentionsList from "@/components/MentionsList";
 import ContactMPCard from "@/components/ContactMPCard";
 import { Link } from "@/i18n/navigation";
-import { buildAlternates } from "@/lib/seo";
+import { buildConstituencyMetadata } from "@/lib/seo";
 
 export const revalidate = 86400;
 
@@ -35,18 +35,7 @@ export async function generateMetadata({
   const { locale, code } = await params;
   try {
     const c = await fetchConstituencyDetail(code);
-    const schoolCount = c.schools.length;
-    const title = `${c.name} (${c.code}) | ${schoolCount} Tamil School${schoolCount !== 1 ? "s" : ""} | ${c.state}`;
-    const scorecardNote = c.scorecard?.total_mentions
-      ? ` ${c.scorecard.total_mentions} parliamentary mentions tracked.`
-      : "";
-    const description = `MP ${c.mp_name} (${c.mp_party}) represents ${c.name} in ${c.state}. ${schoolCount} Tamil school${schoolCount !== 1 ? "s" : ""}.${scorecardNote} View MP scorecard, school data and news.`;
-    return {
-      title,
-      description,
-      openGraph: { title, description, type: "website", siteName: "SJK(T) Connect" },
-      alternates: buildAlternates(`/constituency/${code}`, locale as "en" | "ta" | "ms"),
-    };
+    return buildConstituencyMetadata(c, locale);
   } catch {
     const t = await getTranslations("constituency");
     return { title: t("notFoundTitle") };

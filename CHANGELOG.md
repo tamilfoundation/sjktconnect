@@ -1,5 +1,40 @@
 # Changelog
 
+## Sprint 22 — SEO Snippet & Canonical Hostname Fix (2026-05-01)
+
+**Trigger**: GSC export `tamilschool.org-Performance-on-Search-2026-05-01` (3-month window 28/02 → ~28/04). Avg position flatlined at 7.4 despite 30× impressions growth from 0 → 33.1k. Top queries are "sjkt {school}" intent searches; SERP shows our top schools winning rich snippets ("Alamat: ..." for `/ms/`) but small schools like Trolak losing to generic English prose ("SJK(T) Trolak is a Tamil primary school..."). Pandai outranks us on text-only listings; AnyFlip and CommChest beat us with image thumbnails. www-root duplicate listings split ranking signal.
+
+### Added
+- **`buildSchoolMetadata(school, locale)` in `frontend/lib/seo.ts`** — locale-aware Metadata builder. Title includes town name when town ≠ school name (e.g. "SJK(T) Trolak | 17 Students, Grade C | Pekan Trolak, Perak"). Description renders labelled key/value pairs (Address/Alamat/முகவரி + Email + Phone + Location + Assistance) so Google's snippet picker has consistent structured data on every locale, not just `/ms/`.
+- **`buildConstituencyMetadata(c, locale)`** — title format "{Name} — MP, Tamil Schools | {code}, {state}" (e.g. "Indera Mahkota — MP, Tamil Schools | P140, Pahang"). Captures GSC's natural-form queries like "indera mahkota mp" (pos 16) and "yb paya besar" (pos 20).
+- **`buildDUNMetadata(dun, locale)`** — title format "{Name} ADUN — Tamil Schools, MP | {code}, {state}".
+- **`buildSchoolJsonLd(school)`** — emits `EducationalOrganization` JSON-LD with PostalAddress, GeoCoordinates, telephone, email, image, numberOfStudents. Wrapped in `<script type="application/ld+json">` on every school page; `<` chars escaped to `\u003c` to defang any breakout from school DB fields.
+- **`SCHOOL_PLACEHOLDER_URL`** — branded SVG fallback at `/public/school-placeholder.svg` (1200×630 indigo-gradient with "SJK(T) · Tamil Primary School · tamilschool.org"). Used in og:image + ImageObject schema + the SchoolPhotoGallery empty state. Schools without uploaded photos previously rendered text-only "No photo" — now they emit a real `<img>` so Google's SERP thumbnail picker has something to use.
+- **Sprint 22 hub-page extension at `/[locale]/about-tamil-schools`** — replaces the "Coming Soon" placeholder with three Q&A blocks ("How many?", "How distributed?", "What is an SJK(T)?") plus a live state-breakdown table sorted by school count. Pulls `fetchNationalStats()` + `fetchAllSchools()` server-side; falls back to last-known stats if API is unavailable during ISR rebuild. Targets long-tail queries "how many tamil school in malaysia" (currently pos 9-23, low volume).
+- **`frontend/__tests__/lib/seo.test.ts`** — 23 tests covering buildAlternates, buildSchoolMetadata (locale-aware labels in en/ms/ta, town-distinct logic, og:image fallback), buildConstituencyMetadata (English MP/PH-PKR/mention count + Malay 'mewakili' + locale-correct canonical), buildDUNMetadata, buildSchoolJsonLd (PostalAddress + GeoCoordinates + GPS-missing fallback + image fallback).
+- **1 new SchoolImage test** — confirms branded placeholder `<img>` renders with correct src + descriptive alt for SEO.
+
+### Changed
+- **`frontend/app/[locale]/school/[moe_code]/page.tsx`** — `generateMetadata` delegates to `buildSchoolMetadata`; page body emits a `<script type="application/ld+json">` JSON-LD payload via the new helper.
+- **`frontend/app/[locale]/constituency/[code]/page.tsx`** — delegates to `buildConstituencyMetadata`. Old prose ("MP X represents Y in Z. N Tamil schools.") replaced by data-rich form.
+- **`frontend/app/[locale]/dun/[id]/page.tsx`** — delegates to `buildDUNMetadata`.
+- **`frontend/components/SchoolImage.tsx`** — empty-state branch renders branded placeholder `<img src="/school-placeholder.svg">` with `alt="{schoolName} — Tamil primary school (SJK(T))"`. The "No photo" text is preserved as an overlay caption.
+- **`frontend/messages/{en,ta,ms}.json`** — `aboutTamilSchools` namespace expanded from 5 keys (Coming Soon stub) to 14 keys (full FAQ + state-breakdown table headers + CTA). Page title rewritten to capture "how many tamil schools" intent; intro leads with the 528 number for snippet candidacy.
+
+### Verified pre-deploy
+- 320 frontend tests pass (was 297 + 23 new = 320). New: 23 in `__tests__/lib/seo.test.ts`, 1 in `__tests__/components/SchoolImage.test.tsx` (branded placeholder).
+- `npx next build` route table: school/constituency/dun pages still show ● (SSG/ISR) markers. `revalidate=86400` preserved; about-tamil-schools added with `revalidate=86400`. Build completes successfully against prod API.
+- Pre-rendered `.next/server/app/{en,ta,ms}/about-tamil-schools.html` inspected: titles correct ("Tamil Schools in Malaysia — How Many, Where, Statistics | SJK(T) Connect" / Tamil-script equivalent), state breakdown table populated with live counts (Selangor, Perak, Johor, …).
+
+### Pending post-deploy verification (this sprint)
+- Curl `https://tamilschool.org/school/JBD1026` and confirm: new `<title>` with town, data-rich `<meta name="description">`, JSON-LD script tag with EducationalOrganization payload.
+- Curl `https://tamilschool.org/ta/school/JBD1026` and confirm Tamil-script title + Tamil-label description (முகவரி / மின்னஞ்சல் / தொலைபேசி).
+- Curl `https://tamilschool.org/about-tamil-schools` and confirm state-breakdown table renders.
+- Re-pull GSC Pages report 2-3 weeks after deploy; expect "Alternate page with proper canonical tag" count to drop from 2.36k toward zero (Sprint 21 canonical fix landed 29 Apr — 1 day before this GSC export, so it wasn't reflected; Sprint 22 changes should compound).
+
+### Operational followup (manual, user action)
+- Configure Cloudflare Page Rule: `www.tamilschool.org/*` → 301 → `https://tamilschool.org/$1`. The Pages report shows the same school listed twice in a single SERP because both hostnames resolve. One canonical hostname consolidates ranking signal. Cloudflare Page Rule (vs Cloud Run domain mapping) is reversible and doesn't require DNS-only flip.
+
 ## Sprint 21 — Egress Hardening Round 2 (2026-04-29)
 
 **Deployed**: backend `sjktconnect-api-00112-k7t` (UA block middleware). Frontend `sjktconnect-web-00110-vph` (3 iterative deploys: ISR setup, fetchJSON cache, generateStaticParams). Cloud Monitoring dashboard `f1722366-2df9-4446-9941-7cda5c019615` rewritten with MQL.

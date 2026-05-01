@@ -596,3 +596,49 @@
 **Trade-offs:** First hit on a given URL is uncached. Mitigated by Cloudflare absorbing repeat hits via `s-maxage=86400`.
 
 **Revisit if:** Traffic increases such that first-hit latency becomes user-visible, or if Cloudflare cache hit rate drops because edges aren't seeing repeat traffic on the same URLs.
+
+## SEO label island in `lib/seo.ts` — Sprint 22, 2026-05-01
+
+**Decision:** Locale-aware labels used inside `generateMetadata` (Address/Alamat/முகவரி + Email + Phone + Location + Assistance + area-page terminology) are inlined in `frontend/lib/seo.ts` as plain TypeScript constants — not loaded via `next-intl/server.getTranslations`.
+
+**Alternatives considered:**
+1. Call `await getTranslations("schoolProfile")` inside `generateMetadata` so labels share the same i18n source as the page UI.
+2. Move every label into `messages/{locale}.json` and load via a different mechanism (e.g. read JSON at build time).
+3. Inline as done — duplicate the 10-15 labels needed for SEO into `lib/seo.ts`.
+
+**Rationale:** Option 1 forces every dynamic-segment page to await translations during ISR generation, adding async surface to metadata that is already async (waiting on the API call). Option 2 adds machinery for marginal benefit. Option 3 keeps `generateMetadata` synchronous after the data fetch, and the label set is small (≈10 keys per locale × 3 locales = 30 strings) so drift risk is bounded.
+
+**Trade-offs:** SEO labels can drift from UI labels. Mitigation: a comment in `lib/seo.ts` points at the `schoolProfile` namespace, and the unit tests for `buildSchoolMetadata` assert the exact label strings — so drift surfaces as a test failure, not a production bug.
+
+**Revisit if:** the SEO label set grows beyond ~30 strings, or the project adopts a fourth locale (each locale forces another duplication).
+
+## SEO snippet structure as labelled key/value pairs — Sprint 22, 2026-05-01
+
+**Decision:** Meta descriptions for school / constituency / DUN pages are formatted as `Label: value · Label: value · ...` (using middot separator) rather than natural-language prose.
+
+**Alternatives considered:**
+1. Natural-language prose (the pre-Sprint-22 form): "SJK(T) Trolak is a Tamil primary school in Trolak, Perak. 17 students and 9 teachers..."
+2. JSON-LD only — let Google extract structured data from `EducationalOrganization` schema and ignore the meta description.
+3. Labelled k/v pairs (chosen): "Address: ... · Email: ... · Phone: ... · Location: ... · Assistance: ..."
+
+**Rationale:** GSC observation of the Sprint 21 export showed Google's SERP snippet picker pulling rich-data snippets from `/ms/school/...` pages because the Bahasa Malaysia UI labels (Alamat/E-mel/Telefon) gave Google clear field cues. English/Tamil pages got generic prose snippets because their meta descriptions were prose. JSON-LD alone is a weaker signal than meta description for snippet selection. The k/v form is a single, consistent, locale-aware contract that travels everywhere Google parses (description tag, Twitter card, og:description). Loses some natural-language warmth; gains structured snippet candidacy on every locale.
+
+**Trade-offs:** Meta description reads more like a data card than ad copy. For social-share previews (Slack, WhatsApp, Twitter) this is slightly less inviting than prose. The og:description carries the same labelled form, so social previews show the data block; this is acceptable for an info-oriented site (people copying a school link want the address, not a sales pitch).
+
+**Revisit if:** GSC starts penalising "data-style" descriptions, or if engagement metrics (CTR / time-on-page) suggest social shares are being suppressed by the format.
+
+## Branded SVG placeholder over Maps Static API for hero fallback — Sprint 22, 2026-05-01
+
+**Decision:** When a school has no SchoolImage records, the hero gallery renders `/public/school-placeholder.svg` (1200×630, brand-coloured, contains "SJK(T)" + "Tamil Primary School" + "tamilschool.org"). Same URL is used as og:image and JSON-LD image fallback.
+
+**Alternatives considered:**
+1. Compute a Google Maps Static API URL using school GPS — gives a real satellite photo but bakes an API key into the rendered HTML for every page.
+2. Compute a Google Street View Static URL — same key issue, plus Street View coverage is patchy in rural areas where many SJK(T) schools sit.
+3. Generate a per-state PNG with state crest server-side — needs a backend job + storage of 11 images.
+4. Ship one branded SVG (chosen) — single asset, no API key, deterministic.
+
+**Rationale:** Sprint 13 lessons #24 says "Never bake API keys into stored URLs." Maps Static URLs are computed at render not stored, so the rule strictly doesn't apply, but the spirit (don't expose keys to bots crawling pages) does — Static Maps URLs are visible in `<img src>` and would be hit by every crawl. State crests are nicer but cost effort that doesn't directly drive SEO. The branded SVG is identical for all 528 schools — Google may treat that as duplicate-image signal, but the page-level uniqueness (title, description, address, schema) is the primary ranking signal; the image is for thumbnail extraction only. Worth it for the consistency.
+
+**Trade-offs:** All schools share the same fallback image. SERPs may show identical thumbnails for schools without harvested photos. Mitigation: this is a *fallback* — Sprint 13 already harvests for most schools, Sprint 14 adds community uploads, so the fallback applies only to the long tail. As coverage improves, the fallback's prevalence decreases.
+
+**Revisit if:** Google starts treating the shared placeholder as duplicate-content signal that hurts rankings, or if a backend job to generate per-state crest images becomes cheap (e.g. via Gemini image API).

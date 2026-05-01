@@ -66,6 +66,13 @@ describe("SchoolImage", () => {
     expect(screen.getByText(/no photo available/i)).toBeInTheDocument();
   });
 
+  it("renders branded placeholder <img> for SEO when no images provided (Sprint 22)", () => {
+    render(<SchoolImage schoolName="SJK(T) Trolak" />);
+    const img = screen.getByRole("img");
+    expect(img).toHaveAttribute("src", "/school-placeholder.svg");
+    expect(img).toHaveAttribute("alt", "SJK(T) Trolak — Tamil primary school (SJK(T))");
+  });
+
   it("renders thumbnails for multiple images", () => {
     const images = [
       baseImage({ id: 1, is_primary: true }),

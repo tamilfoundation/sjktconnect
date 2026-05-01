@@ -8,7 +8,7 @@ import DemographicsCard from "@/components/DemographicsCard";
 import SchoolTable from "@/components/SchoolTable";
 import BoundaryMap from "@/components/BoundaryMap";
 import { Link } from "@/i18n/navigation";
-import { buildAlternates } from "@/lib/seo";
+import { buildDUNMetadata } from "@/lib/seo";
 
 export const revalidate = 86400;
 
@@ -27,14 +27,7 @@ export async function generateMetadata({
   const { locale, id } = await params;
   try {
     const dun = await fetchDUNDetail(parseInt(id, 10));
-    const title = `${dun.code} ${dun.name} — SJK(T) Connect`;
-    const description = `${dun.name} (${dun.code}) state constituency in ${dun.state}. ${dun.schools.length} Tamil school${dun.schools.length !== 1 ? "s" : ""}.${dun.adun_name ? ` ADUN: ${dun.adun_name}` : ""}`;
-    return {
-      title,
-      description,
-      openGraph: { title, description, type: "website", siteName: "SJK(T) Connect" },
-      alternates: buildAlternates(`/dun/${id}`, locale as "en" | "ta" | "ms"),
-    };
+    return buildDUNMetadata(dun, locale);
   } catch {
     const t = await getTranslations("constituency");
     return { title: t("dunNotFoundTitle") };

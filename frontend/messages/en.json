@@ -607,11 +607,22 @@
     "backToHome": "Back to Home"
   },
   "aboutTamilSchools": {
-    "title": "About Tamil Schools — SJK(T) Connect",
-    "heading": "About Tamil Schools in Malaysia",
-    "intro": "Understanding the history, challenges, and significance of Malaysia's 528 Tamil primary schools.",
-    "comingSoon": "Coming Soon",
-    "comingSoonBody": "A comprehensive guide to the history and current state of Tamil schools in Malaysia is being prepared."
+    "title": "Tamil Schools in Malaysia — How Many, Where, Statistics | SJK(T) Connect",
+    "heading": "Tamil Schools in Malaysia",
+    "intro": "Malaysia has 528 Tamil primary schools (SJK(T)) educating over 69,000 students across 11 states. This page answers the most common questions about Tamil-medium primary education in Malaysia.",
+    "howManyHeading": "How many Tamil schools are there in Malaysia?",
+    "howManyBody": "There are {totalSchools} Tamil primary schools (Sekolah Jenis Kebangsaan Tamil, abbreviated SJK(T)) operating in Malaysia. They serve {totalStudents} students with {totalTeachers} teachers across {states} states. {totalPreschool} children attend SJK(T) preschool programmes; {totalSpecialNeeds} are enrolled in special education. {schoolsUnder30} schools have fewer than 30 students.",
+    "byStateHeading": "How are Tamil schools distributed across states?",
+    "byStateIntro": "Tamil schools follow the historical settlement pattern of the Indian Malaysian community, concentrated in Selangor, Perak, Johor, and Negeri Sembilan.",
+    "byStateColState": "State",
+    "byStateColSchools": "Schools",
+    "byStateColStudents": "Students",
+    "whatIsHeading": "What is an SJK(T)?",
+    "whatIsBody": "SJK(T) — Sekolah Jenis Kebangsaan (Tamil) — is a Malaysian government-funded national-type primary school where Tamil is the medium of instruction for most subjects, alongside Bahasa Malaysia and English. Students complete six years of primary education (Standard 1 to Standard 6) before transitioning to secondary school in Bahasa Malaysia. SJK(T)s are part of Malaysia's national education system and follow the national curriculum (KSSR).",
+    "ctaHeading": "Explore the full directory",
+    "ctaBody": "Search for any specific Tamil school by name, state, or constituency on the SJK(T) Connect homepage. View enrolment data, leadership, parliamentary mentions, news, and ways to support each school.",
+    "ctaButton": "Browse all 528 schools →",
+    "loadError": "Unable to load live statistics. Please refresh."
   },
   "issuesPage": {
     "title": "Issues — SJK(T) Connect",

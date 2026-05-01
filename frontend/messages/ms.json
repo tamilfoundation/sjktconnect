@@ -607,11 +607,22 @@
     "backToHome": "Kembali ke Laman Utama"
   },
   "aboutTamilSchools": {
-    "title": "Mengenai Sekolah Tamil — SJK(T) Connect",
-    "heading": "Mengenai Sekolah Tamil di Malaysia",
-    "intro": "Memahami sejarah, cabaran, dan kepentingan 528 sekolah rendah Tamil Malaysia.",
-    "comingSoon": "Akan Datang",
-    "comingSoonBody": "Panduan komprehensif mengenai sejarah dan keadaan semasa sekolah Tamil di Malaysia sedang disediakan."
+    "title": "Sekolah Tamil di Malaysia — Berapa Banyak, Di Mana, Statistik | SJK(T) Connect",
+    "heading": "Sekolah Tamil di Malaysia",
+    "intro": "Malaysia mempunyai 528 sekolah rendah Tamil (SJK(T)) yang mendidik lebih 69,000 murid di 11 negeri. Halaman ini menjawab soalan paling lazim tentang pendidikan rendah Tamil di Malaysia.",
+    "howManyHeading": "Berapa banyak sekolah Tamil di Malaysia?",
+    "howManyBody": "Terdapat {totalSchools} sekolah rendah Tamil (Sekolah Jenis Kebangsaan Tamil, atau SJK(T)) yang beroperasi di Malaysia. Sekolah-sekolah ini melayani {totalStudents} murid dengan {totalTeachers} guru di {states} negeri. {totalPreschool} kanak-kanak mengikuti program prasekolah SJK(T); {totalSpecialNeeds} berdaftar dalam pendidikan khas. {schoolsUnder30} sekolah mempunyai kurang daripada 30 murid.",
+    "byStateHeading": "Bagaimana sekolah Tamil tertabur di seluruh negeri?",
+    "byStateIntro": "Sekolah Tamil mengikut corak penempatan sejarah masyarakat India Malaysia, tertumpu di Selangor, Perak, Johor, dan Negeri Sembilan.",
+    "byStateColState": "Negeri",
+    "byStateColSchools": "Sekolah",
+    "byStateColStudents": "Murid",
+    "whatIsHeading": "Apakah SJK(T)?",
+    "whatIsBody": "SJK(T) — Sekolah Jenis Kebangsaan (Tamil) — adalah sekolah rendah jenis kebangsaan yang dibiayai kerajaan Malaysia, di mana bahasa Tamil adalah bahasa pengantar untuk kebanyakan mata pelajaran, bersama Bahasa Malaysia dan Bahasa Inggeris. Murid menamatkan enam tahun pendidikan rendah (Tahun 1 hingga Tahun 6) sebelum beralih ke sekolah menengah dalam Bahasa Malaysia. SJK(T) adalah sebahagian daripada sistem pendidikan kebangsaan Malaysia dan mengikut kurikulum kebangsaan (KSSR).",
+    "ctaHeading": "Terokai direktori penuh",
+    "ctaBody": "Cari mana-mana sekolah Tamil tertentu mengikut nama, negeri, atau kawasan parlimen di laman utama SJK(T) Connect. Lihat data enrolmen, kepimpinan, sebutan parlimen, berita, dan cara untuk menyokong setiap sekolah.",
+    "ctaButton": "Lihat semua 528 sekolah →",
+    "loadError": "Tidak dapat memuatkan statistik. Sila muat semula."
   },
   "issuesPage": {
     "title": "Isu — SJK(T) Connect",

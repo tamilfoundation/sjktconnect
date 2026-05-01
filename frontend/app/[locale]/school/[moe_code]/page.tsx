@@ -7,7 +7,7 @@ import {
   fetchSchoolMentions,
   fetchSchoolNews,
 } from "@/lib/api";
-import { buildAlternates } from "@/lib/seo";
+import { buildSchoolMetadata, buildSchoolJsonLd } from "@/lib/seo";
 import Breadcrumb from "@/components/Breadcrumb";
 import EditSchoolLink from "@/components/EditSchoolLink";
 import SuggestButton from "@/components/SuggestButton";
@@ -43,35 +43,7 @@ export async function generateMetadata({
   const { locale, moe_code } = await params;
   try {
     const school = await fetchSchoolDetail(moe_code);
-    const name = school.short_name || school.name;
-
-    // Compact stats for title: "SJK(T) Damansara | 450 Students, Grade A | Selangor"
-    const stats: string[] = [];
-    if (school.enrolment) stats.push(`${school.enrolment.toLocaleString()} Students`);
-    if (school.grade) stats.push(`Grade ${school.grade}`);
-    const title = stats.length
-      ? `${name} | ${stats.join(", ")} | ${school.state}`
-      : `${name} | ${school.state} — SJK(T) Connect`;
-
-    // Rich description with location + programmes
-    const parts: string[] = [`${name} is a Tamil primary school in ${school.city || school.ppd}, ${school.state}.`];
-    if (school.enrolment) parts.push(`${school.enrolment.toLocaleString()} students and ${school.teacher_count?.toLocaleString() ?? "N/A"} teachers.`);
-    if (school.preschool_enrolment) parts.push(`Preschool: ${school.preschool_enrolment} students.`);
-    if (school.special_enrolment) parts.push(`Special education: ${school.special_enrolment} students.`);
-    parts.push("View enrolment data, parliamentary mentions, news and more.");
-    const description = parts.join(" ");
-
-    return {
-      title,
-      description,
-      openGraph: {
-        title,
-        description,
-        type: "website",
-        siteName: "SJK(T) Connect",
-      },
-      alternates: buildAlternates(`/school/${moe_code}`, locale as "en" | "ta" | "ms"),
-    };
+    return buildSchoolMetadata(school, locale);
   } catch {
     return {
       title: "School Not Found — SJK(T) Connect",
@@ -109,8 +81,20 @@ export default async function SchoolPage({ params }: PageProps) {
     { label: displayName },
   ];
 
+  // JSON-LD script: school DB fields could in theory contain "</script>"
+  // (e.g. an admin paste). Escape all `<` to defang any breakout attempt
+  // before injecting via dangerouslySetInnerHTML.
+  const jsonLdSafe = JSON.stringify(buildSchoolJsonLd(school)).replace(
+    /</g,
+    "\\u003c",
+  );
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdSafe }}
+      />
       <Breadcrumb items={breadcrumbItems} />
 
       {/* Hero: Side-by-side on desktop, stacked on mobile */}

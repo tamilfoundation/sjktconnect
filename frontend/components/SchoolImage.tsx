@@ -51,11 +51,24 @@ export default function SchoolPhotoGallery({
   };
 
   if (photoList.length === 0) {
+    // (Sprint 22) Render the branded placeholder as a real <img> instead
+    // of just "No photo" text so Google's SERP thumbnail picker has
+    // something to use. Schools without uploaded images previously
+    // showed up text-only in search and lost clicks to competitors.
     return (
-      <div className="bg-gray-100 rounded-xl h-64 sm:h-80 lg:h-[400px] flex items-center justify-center">
-        <p className="text-gray-400 text-sm">
-          {t("noPhoto")}
-        </p>
+      <div className="relative w-full h-64 sm:h-80 lg:h-[400px] rounded-xl overflow-hidden bg-indigo-900">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/school-placeholder.svg"
+          alt={`${schoolName} — Tamil primary school (SJK(T))`}
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+        <div className="absolute inset-0 flex items-end justify-center pb-6">
+          <p className="text-indigo-100 text-xs font-medium tracking-wide">
+            {t("noPhoto")}
+          </p>
+        </div>
       </div>
     );
   }
