@@ -37,8 +37,12 @@
 - `/school-placeholder.svg`: HTTP 200.
 - Re-pull GSC Pages + Queries report 2-3 weeks post-deploy (mid-late May 2026). Expect "Alternate page with proper canonical tag" count to drop from 2.36k toward zero, indexed pages to climb (Sprint 21 canonical fix landed 29 Apr, 1 day before this GSC export — wasn't reflected; Sprint 22 metadata + image fallback should compound).
 
-### Operational followup (manual, user action)
-- Configure Cloudflare Page Rule: `www.tamilschool.org/*` → 301 → `https://tamilschool.org/$1`. The Pages report shows the same school listed twice in a single SERP because both hostnames resolve. One canonical hostname consolidates ranking signal. Cloudflare Page Rule (vs Cloud Run domain mapping) is reversible and doesn't require DNS-only flip.
+### Operational followup
+- ✅ **Cloudflare www→root 301** — applied 2026-05-02 via Cloudflare API as a Single Redirect ruleset (phase `http_request_dynamic_redirect`, ruleset id `1af056d066e44a5885c933227a413981`) on zone `tamilschool.org`. Match `http.host eq "www.tamilschool.org"` → 301 → `concat("https://tamilschool.org", http.request.uri.path)` with `preserve_query_string=true`. Curl-verified on `/en/about` and `/ms/school/ABC1234?ref=test` (path AND query preserved). Zone-scoped API token (`CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ZONE_ID`) saved in `.env`; rollback is a single DELETE call against the ruleset id.
+
+### Carryover items reclassified (not Sprint 22 scope)
+- **Egress <150 MB/day confirmation** — was Sprint 21 task #45, a calendar-bound monitoring observation. Re-routed to a dated checkpoint (CLAUDE.md → Future work) rather than carried as an indefinite open item.
+- **Task #43 — Supabase Storage hot-link protection** — was deferred from Sprint 21 to Sprint 22, but Sprint 22's actual scope (driven by the 2026-05-01 GSC export) was SEO snippet quality + canonical hostname; Task #43 was never in Sprint 22's task list. Re-routed to CLAUDE.md → Future work with the recommended image-proxy approach + estimated cost.
 
 ## Sprint 21 — Egress Hardening Round 2 (2026-04-29)
 

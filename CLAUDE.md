@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 8 (Community Features) + 5-Sprint Image/Auth Roadmap.
-- **Last Sprint**: Sprint 20 — Leader Inline CRUD (2026-04-28 evening)
-- **Tests**: 1488 (1191 backend + 297 frontend) — Sprint 20 added 17 backend (leader CRUD) + 8 frontend (LeadersTab) + 1 SchoolEditForm tweak.
+- **Current Phase**: Post-roadmap maintenance + ad-hoc improvement sprints.
+- **Last Sprint**: Sprint 22 — SEO Snippet & Canonical Hostname Fix (2026-05-01; Cloudflare follow-up 2026-05-02)
+- **Tests**: 1518 (1198 backend + 320 frontend) — Sprint 22 added 23 frontend (`__tests__/lib/seo.test.ts`) + 1 frontend (SchoolImage placeholder).
 - **Plan/billing**: Supabase Pro plan (Tamil Foundation org) — was forced to upgrade for headroom; goal is to drive egress low enough to revisit free tier later. Per-route observability dashboard now lives at Cloud Monitoring → "SJK(T) Connect — Egress by Route/UA" (id `f1722366-2df9-4446-9941-7cda5c019615`).
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
@@ -269,9 +269,26 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 22 — SEO Snippet & Canonical Hostname Fix** — ✅ Done 2026-05-01 (operational close 2026-05-02). Triggered by GSC export showing avg position flatlined at 7.4 with 30× impressions growth (0 → 33.1k over 3 months). Investigation found three layered issues: (a) English/Tamil locale meta descriptions were generic prose so Google's snippet picker pulled junk; (b) schools without uploaded photos rendered text-only "No photo" placeholder, giving Google nothing to thumbnail; (c) www and root hostnames both serve 200, splitting ranking signal. Sprint 22 ships fixes (a), (b) and (c) — (c) applied 2026-05-02 via Cloudflare API as a Single Redirect ruleset (`http_request_dynamic_redirect`); curl-verified.
+**Sprint 22 closed 2026-05-01 (Cloudflare follow-up 2026-05-02). No sprint currently in progress.**
 
-**Next Sprint candidate**: Backlink + content-depth campaign (manual outreach, not engineering) OR Sprint 23 image-asset polish (per-state SJK(T) crests as fallback heroes, replacing the single SVG).
+Candidates queued for the next sprint (decide at start):
+
+1. **Sprint 23 — Monthly Digest Quality Pass** — plan exists at `.claude/plans/sprint-23-monthly-digest-quality.md`. Triggered by April 2026 digest post-mortem: aggregator caps news at 5 for display but `by_the_numbers` is LLM-imputed from that 5-row sample (April had 46 approved, email said 5; "Schools Affected: 29" is fabricated). Scope: separate counts from samples in `blast_aggregator.py`, strip `by_the_numbers` from LLM schema, add topic clustering + recess detection + dynamic subject line + template overhaul. ~10-13 files. **A small piece is already in working tree** — recess-detection edit to `blast_aggregator.py` filtering `HansardSitting` to `status=COMPLETED` (uncommitted, attached to this work).
+2. **Task #43 — Supabase Storage hot-link protection** (see Future work). Engineering-sized but separate scope; pull into its own micro-sprint if egress climbs.
+3. **Backlink + content-depth campaign** — manual outreach, not engineering work.
+
+### Current codebase state (Sprint 22 close, 2026-05-02)
+
+- Prod: `sjktconnect-api-00112-k7t` (unchanged since Sprint 21) + `sjktconnect-web-00112-p8q` (Sprint 22 deploy).
+- 1198 backend + 320 frontend tests passing.
+- **SEO baseline reset (Sprint 22)**: locale-aware metadata builders + JSON-LD on every school page + branded SVG fallback so every school renders a real `<img>` for SERP thumbnails. `/about-tamil-schools` extended from stub to live FAQ + state breakdown.
+- **Canonical hostname consolidated (Sprint 22, Cloudflare 2026-05-02)**: `www.tamilschool.org/*` → 301 → root, applied via Cloudflare API as a Single Redirect ruleset (id `1af056d066e44a5885c933227a413981`). Path + query preserved end-to-end.
+- **Cloudflare API access available**: zone-scoped token (`CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ZONE_ID`) in `.env`, perms = DNS / Zone Settings / Config Rules / Single Redirect (all Edit). Future canonical/redirect/DNS work can be applied via API rather than dashboard.
+- **Egress hardened (Sprint 21)**: `next-intl` ISR engaged, AwarioBot UA-blocked, MQL dashboard fixed. ISR `Cache-Control: s-maxage=86400` + `x-nextjs-cache: HIT` verified live.
+
+### Sprint history (post-roadmap)
+
+The 5-sprint roadmap table below covers everything from Sprint 12 onward. The earlier sprint history table (lines ~196-254) only goes up to Sprint 17 — that's intentional, no need to duplicate.
 
 ### 5-Sprint Roadmap (12 → 16) — final state
 
@@ -288,15 +305,6 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 | 21 | **Egress Round 2** | ✅ Done 2026-04-29 (Task #43 deferred to Sprint 22). **Three landed fixes:** (1) **next-intl ISR engaged** — `setRequestLocale(locale)` in `app/[locale]/layout.tsx` + 10 page files; new `app/[locale]/dashboard/layout.tsx` opts the dashboard segment out via `dynamic="force-dynamic"`; new `frontend/app/[locale]/dashboard/layout.tsx` for the dashboard pages; empty `generateStaticParams()` added to all 5 dynamic-segment routes (school/[moe_code], constituency/[code], dun/[id], parliament-watch/[id], parliament-watch/sittings/[id]) to opt them into ISR-on-demand caching; `lib/api.ts` `fetchJSON()` now sets `next:{revalidate:86400}` (Next 15+ defaults fetch to uncached, which was the root reason dynamic-route pages stayed dynamic). All 10 ISR pages verified live: `Cache-Control: s-maxage=86400, stale-while-revalidate=31449600` + `x-nextjs-cache: HIT`. (2) **AwarioBot UA block** — new `UserAgentBlockMiddleware` in `core/middleware.py` (case-insensitive substring match against AwarioBot, AwarioRssBot, AwarioSmartBot, SemrushBot, DataForSeoBot, MJ12bot); wired second in `MIDDLEWARE` after IPBlockMiddleware. `app/robots.ts` adds explicit Disallow for the same 6 UAs. 7 new backend tests. Verified live: AwarioBot/1.0 → 403; real browsers pass. (3) **Egress dashboard fixed** — recreated both log-based metrics (`sjktconnect_api_egress_per_route`, `sjktconnect_web_egress_per_route`) from YAML configs in `backend/docs/metrics/` (they kept DISTRIBUTION since GCP rejects INT64+valueExtractor combo). Dashboard `f1722366-2df9-4446-9941-7cda5c019615` query rewritten with secondary `ALIGN_SUM` aggregation so `pickTimeSeriesFilter` sees a scalar and the top-10 charts render. **Task #43 (Supabase Storage hot-link protection) deferred** — image proxy on backend or signed-URL approach both need ~2-4h of design work; user approved deferral. **Operational followup**: monitor Supabase egress chart 2026-04-30 to confirm <150 MB/day. Deploys: api-00111-mrq → api-00112-k7t (UA block); web-00107-wd9 → web-00108-c56 → web-00109-6r4 → web-00110-vph (3 iterative deploys to pin down the dynamic-route caching gap). 1198 backend (+7) + 297 frontend tests. |
 | 20 | Leader Inline CRUD | ✅ Done 2026-04-28 evening — Replaces Sprint 19's read-only LeadersTab. New backend POST/PATCH/DELETE endpoints on /api/v1/schools/<moe>/leaders/ with school-admin permission (mirrors community._is_photo_approver: SUPERADMIN OR bound admin only; MODERATOR not special-cased). 409 slot_taken on duplicate active role; soft-delete via is_active=False; delete-then-recreate-same-role works because unique constraint is conditional. SchoolEditSerializer.get_leaders switched to admin serializer (id+phone+email) so single round-trip serves the page. Frontend LeadersTab rewrite: 4 fixed role slots, existing rows editable (name + phone + email + Remove), empty roles show "+ Add {role}". Single Save Changes button (disabled when no pending changes). Sequential flush (delete → create → update) keeps unique-constraint happy on swap-same-role. Blanking name = treated as delete. 17 new backend + 8 new frontend tests. 1191 backend + 297 frontend total. Deploys: api-00110-r6l → api-00111-mrq; web-00106-dd6 → web-00107-wd9. |
 | 22 | **SEO Snippet & Canonical Hostname Fix** | ✅ Done 2026-05-01 (Cloudflare redirect 2026-05-02). Sprint 22 ships frontend metadata builders (`buildSchoolMetadata`, `buildConstituencyMetadata`, `buildDUNMetadata`) in `frontend/lib/seo.ts` — locale-aware Metadata with town-aware titles + labelled-k/v descriptions (Address/Alamat/முகவரி + Email + Phone + Location + Assistance). `buildSchoolJsonLd` emits EducationalOrganization JSON-LD on every school page. `frontend/public/school-placeholder.svg` (1200×630 branded) wired as og:image + ImageObject + SchoolPhotoGallery empty-state fallback so every school renders a real `<img>` for SERP thumbnail extraction. `/about-tamil-schools` extended from "Coming Soon" stub to live FAQ + state-breakdown table targeting "how many tamil schools" long-tail queries. **Cloudflare Single Redirect** (zone `tamilschool.org`, ruleset `1af056d066e44a5885c933227a413981`) applied via API 2026-05-02 — `www.*` → `https://tamilschool.org/$path?$query` 301; verified live. 1198 backend + 320 frontend tests (+23). |
-
-### Current codebase state (Sprint 17 close, 2026-04-27 evening)
-
-- Prod: `sjktconnect-api-00106-rxf` + `sjktconnect-web-00105-vhx`.
-- 1161 backend tests + 289 frontend tests, all passing.
-- OAuth fully secured (Sprint 16): PKCE + state checks active, `__Secure-` csrfToken cookie.
-- Sign-in CTA race resolved (Sprint 16) via `lib/auth-events.ts`.
-- **Egress hardened (Sprint 17)**: 10 pages now ISR-cached for 24h (was disabled), one scraper IP blocked at the middleware layer, sitemap cached, news pageSize reduced. Per-route egress dashboard live in Cloud Monitoring.
-- 5-sprint roadmap (12 → 16) closed; Sprint 17 was an emergent hotfix after a Supabase egress concern.
 
 ### Open tech debt remaining
 
@@ -327,6 +335,8 @@ TD-07/09 should be triaged at the next session — they're flagged as resolved-b
 **Ongoing**: Triage `docs/tech-debt.md` at every sprint close.
 
 **Future work**:
+- **Task #43 — Supabase Storage hot-link protection** (carried over from Sprint 21, never landed in Sprint 22). Recommended approach (per Sprint 21 retro): image proxy at `api.tamilschool.org/img/<key>` that streams Supabase bytes after a Referer check, with `Cache-Control: s-maxage=31536000, immutable` so Cloudflare absorbs most repeat hits. ~2-4 hours. Trade-off: shifts egress from Supabase Pro ($0.09/GB) to Cloud Run (1 GB/day free, then $0.12/GB) with most absorbed by Cloudflare cache. **Pull into a micro-sprint if Supabase egress climbs above 250 MB/day for 3+ days; otherwise park.**
+- **Egress checkpoint — 2026-05-08**: confirm Supabase egress chart shows <150 MB/day for the preceding 7 days. If yes, mark TD-06 from PROVISIONALLY RESOLVED → RESOLVED. If still elevated, the Sprint 21 fixes haven't fully landed and Task #43 becomes urgent. Single observation, not an open-ended monitoring item.
 - **Email engagement dashboard** — query open/click rates per broadcast, identify disengaged subscribers
 - **Close the learner feedback loop** — auto-inject learner flags into prompts, store successful corrections as pattern memory
 - Urgent Response System (design approved, see `docs/plans/2026-03-04-urgent-response-system-design.md`)

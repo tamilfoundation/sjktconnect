@@ -31,10 +31,10 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 
 - **Status**: Resolved in Sprint 13. `SchoolImage.image_file` (ImageField → Supabase Storage `school-images` bucket via S3-compat `django-storages`) added. `display_url` property prefers `image_file.url`, falls back to legacy `image_url`. Harvester rewritten to download bytes server-side and persist via `image_file.save()`. Production migration: 1009 PLACES + 528 SATELLITE re-harvested + 1 COMMUNITY migrated; **1534/1534 (100%) on Supabase Storage**. Broken-images sitewide issue is gone — verified on tamilschool.org school pages and map InfoWindow.
 
-## ✅ TD-06 — Supabase egress regression (PROVISIONALLY RESOLVED 2026-04-26 — monitor for 1 week)
+## ✅ TD-06 — Supabase egress regression (PROVISIONALLY RESOLVED — checkpoint 2026-05-08)
 
-- **Status**: Almost certainly resolved by Sprint 13 (TD-05 fix). Hypothesised root cause was Next.js image-optimiser retrying on dead Google Places URLs — those URLs are now gone. Hero images now served from `kafuxsinrbqafvarckxu.storage.supabase.co` (Supabase Storage CDN), bypassing our backend entirely.
-- **Verification plan**: Monitor Supabase egress dashboard for 7 days post-2026-04-26; flip from "PROVISIONALLY RESOLVED" to ✅ definitively resolved after one full week shows <100 MB/day. Listed in CLAUDE.md "Small passive items" for Sprint 14 close.
+- **Status**: Sprint 13 (TD-05 fix) was the primary fix; Sprint 17 (ISR re-engagement) and Sprint 21 (next-intl ISR + AwarioBot UA block) hardened it further. Hero images now served from Supabase Storage CDN, bypassing backend. The remaining question is purely operational: are post-Sprint-21 daily egress numbers actually <150 MB/day in steady state?
+- **Verification plan**: single dated checkpoint on **2026-05-08** — review the preceding 7 days on Cloud Monitoring dashboard `f1722366-2df9-4446-9941-7cda5c019615` (or Supabase dashboard). If <150 MB/day for 7 consecutive days, flip to ✅ RESOLVED. If still elevated, pull Task #43 (Supabase Storage hot-link protection) into a micro-sprint. **Replaces the Sprint-21-and-22-era "still pending" wording, which was an indefinite open item.**
 
 ## ✅ TD-07 — `Suggestion.image` BinaryField dropped (RESOLVED Sprint 14, header swept Sprint 18)
 
@@ -116,3 +116,9 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 | ✅ Sprint 16 — Code-Quality Pass | TD-01 ✅, TD-10 ✅, TD-14 ✅, TD-15 ✅, TD-16 (users page) ✅, TD-17 ✅, TD-18 ✅. TD-11 + TD-12 deferred (test-coverage padding). | Done 2026-04-27 — final of 5-sprint roadmap |
 | ✅ Sprint 17 — Egress Hardening (hotfix) | (no TDs — emergent fix; new lessons captured in lessons.md) | Done 2026-04-27 evening |
 | ✅ Sprint 18 — Monthly Digest Coverage (hotfix) | (no TDs — emergent fix; aggregator structural gap, no prior tracking) | Done 2026-04-27 late evening |
+| ✅ Sprint 19 — Edit Page Tabs | — (no TDs touched) | Done 2026-04-28 |
+| ✅ Sprint 20 — Leader Inline CRUD | — (no TDs touched) | Done 2026-04-28 evening |
+| ✅ Sprint 21 — Egress Round 2 | — (no TDs closed; Task #43 deferred) | Done 2026-04-29 |
+| ✅ Sprint 22 — SEO Snippet & Canonical Hostname Fix | — (no TDs touched; Cloudflare 301 applied via API 2026-05-02) | Done 2026-05-01 |
+| ⏳ Egress checkpoint | TD-06 confirmation | 2026-05-08 |
+| 🟡 Task #43 — Supabase Storage hot-link protection | — (carryover from Sprint 21; recommended approach: image proxy at api.tamilschool.org/img/<key>) | Future work — pull in if egress climbs |

@@ -642,3 +642,34 @@
 **Trade-offs:** All schools share the same fallback image. SERPs may show identical thumbnails for schools without harvested photos. Mitigation: this is a *fallback* — Sprint 13 already harvests for most schools, Sprint 14 adds community uploads, so the fallback applies only to the long tail. As coverage improves, the fallback's prevalence decreases.
 
 **Revisit if:** Google starts treating the shared placeholder as duplicate-content signal that hurts rankings, or if a backend job to generate per-state crest images becomes cheap (e.g. via Gemini image API).
+
+## Cloudflare API automation over manual dashboard for canonical/redirect/DNS work — Sprint 22, 2026-05-02
+
+**Decision:** Apply the www→root 301 redirect via the Cloudflare REST API (POST `/zones/{zone_id}/rulesets`, phase `http_request_dynamic_redirect`, Single Redirect rule) using a zone-scoped API token saved in `Development/SJKTConnect/.env`. Token permissions: DNS / Zone Settings / Config Rules / Single Redirect (all Edit). Future canonical/redirect/DNS work on the `tamilschool.org` zone defaults to API automation.
+
+**Alternatives considered:**
+1. Manual user action through the Cloudflare dashboard — clicked through Single Redirects UI on each operation.
+2. Terraform / `cloudflare-go` / `pulumi-cloudflare` IaC — declarative, reviewable, but requires committing state files and learning a tool that owns one zone.
+3. CLI tools (`cloudflare-cli`, `flarectl`) — same shape as direct REST calls but adds an intermediary tool to maintain.
+4. Cloudflare API direct via Python `requests` (chosen) — minimal dependency, scriptable inline, leaves no state file, every change is auditable as a one-shot script.
+
+**Rationale:** The Cloudflare zone in scope is small (one zone, ~5-10 settings touched in 18 months of operation). An IaC tool would add more setup and ongoing maintenance than it saves on a zone that changes ~quarterly. Direct API calls via `requests` give the same auditability (the call is in the commit message; the rollback is one DELETE) without binding the project to an IaC tool. The token lives in `.env` (gitignored) so the secret stays out of git. Token rolling is one click on the dashboard if it ever leaks. Permissions are zone-scoped, so a leaked token cannot affect other tamilfoundation.org zones. Sprint 22's www→root 301 took ~5 minutes from token creation to verified live, vs. an estimated 20-30 minutes of dashboard clicking with no checked-in artifact.
+
+**Trade-offs:** No declarative state of "what should be on this zone" — the source of truth is whatever the Cloudflare zone actually has. If a setting is changed on the dashboard out of band, the next API run won't notice. Mitigation: keep change descriptions in CHANGELOG + retro + ruleset id in the memory file, so an audit can compare expected vs. actual. For a zone changing this slowly, that's adequate.
+
+**Revisit if:** the zone gains ≥5 redirect rules, custom WAF rules, or worker bindings — at that point, declarative IaC saves more than it costs.
+
+## Carryover items reclassified as Future work, not Sprint-N+1 deferral — Sprint 22, 2026-05-02
+
+**Decision:** Sprint 22's two carryover items (Egress <150 MB/day confirmation; Task #43 Supabase Storage hot-link protection) are re-routed to (a) a single dated checkpoint on 2026-05-08 for the egress observation, and (b) the CLAUDE.md "Future work" bucket with a measurable pull-in trigger for Task #43 — *not* deferred to "Sprint 23".
+
+**Alternatives considered:**
+1. Defer both to Sprint 23 (mirror the Sprint 21 → Sprint 22 pattern that caused the drift).
+2. Pull both into Sprint 23's plan (forces Sprint 23 to expand beyond its stated Monthly Digest Quality scope).
+3. Reclassify Egress as monitoring (single dated checkpoint) and Task #43 as Future work with a pull-in trigger (chosen).
+
+**Rationale:** Sprint 21 close said "Task #43 deferred to Sprint 22"; Sprint 22's actual scope was set by an unrelated GSC export that landed *after* Sprint 21 closed, so Task #43 was never engineered and silently slipped a second time. The pattern that broke: deferring by sprint index assumes the next sprint's scope is fungible. It isn't. The fix is to defer to "Future work with a measurable trigger" — that decouples the deferral from the sprint cadence and forces an explicit pull-in decision when the trigger fires. Egress monitoring is operational, not engineering — it doesn't belong on a sprint plan at all; it belongs on a calendar with a dashboard URL and a threshold.
+
+**Trade-offs:** "Future work" can become a dumping ground if not pruned. Mitigation: each Future work item must include a pull-in trigger (egress >250 MB/day for 3+ days, in Task #43's case) and an estimate, so the bar to revisit is concrete. Items without triggers should be removed.
+
+**Revisit if:** Future work accumulates >10 items without any being pulled in over 2-3 sprints — that's a signal the triggers are mis-calibrated or the items are stale.
