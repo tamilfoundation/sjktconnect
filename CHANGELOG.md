@@ -2,6 +2,8 @@
 
 ## Sprint 22 — SEO Snippet & Canonical Hostname Fix (2026-05-01)
 
+**Deployed**: frontend `sjktconnect-web-00112-p8q` (commit `38e6a66`). Backend unchanged.
+
 **Trigger**: GSC export `tamilschool.org-Performance-on-Search-2026-05-01` (3-month window 28/02 → ~28/04). Avg position flatlined at 7.4 despite 30× impressions growth from 0 → 33.1k. Top queries are "sjkt {school}" intent searches; SERP shows our top schools winning rich snippets ("Alamat: ..." for `/ms/`) but small schools like Trolak losing to generic English prose ("SJK(T) Trolak is a Tamil primary school..."). Pandai outranks us on text-only listings; AnyFlip and CommChest beat us with image thumbnails. www-root duplicate listings split ranking signal.
 
 ### Added
@@ -26,11 +28,14 @@
 - `npx next build` route table: school/constituency/dun pages still show ● (SSG/ISR) markers. `revalidate=86400` preserved; about-tamil-schools added with `revalidate=86400`. Build completes successfully against prod API.
 - Pre-rendered `.next/server/app/{en,ta,ms}/about-tamil-schools.html` inspected: titles correct ("Tamil Schools in Malaysia — How Many, Where, Statistics | SJK(T) Connect" / Tamil-script equivalent), state breakdown table populated with live counts (Selangor, Perak, Johor, …).
 
-### Pending post-deploy verification (this sprint)
-- Curl `https://tamilschool.org/school/JBD1026` and confirm: new `<title>` with town, data-rich `<meta name="description">`, JSON-LD script tag with EducationalOrganization payload.
-- Curl `https://tamilschool.org/ta/school/JBD1026` and confirm Tamil-script title + Tamil-label description (முகவரி / மின்னஞ்சல் / தொலைபேசி).
-- Curl `https://tamilschool.org/about-tamil-schools` and confirm state-breakdown table renders.
-- Re-pull GSC Pages report 2-3 weeks after deploy; expect "Alternate page with proper canonical tag" count to drop from 2.36k toward zero (Sprint 21 canonical fix landed 29 Apr — 1 day before this GSC export, so it wasn't reflected; Sprint 22 changes should compound).
+### Verified post-deploy (curl evidence, 2026-05-01)
+- `/en/school/JBD1026` (Taman Tun Aminah, 1,524 students, Grade A, town: Skudai): title and description rendered with town + data-rich form. JSON-LD payload contains `EducationalOrganization` + `PostalAddress` + `GeoCoordinates`.
+- `/ta/school/JBD1026`: title `SJK(T) Taman Tun Aminah | 1,524 மாணவர்கள், கிரேடு A | Skudai, Johor`. Description uses Tamil labels (முகவரி / மின்னஞ்சல் / தொலைபேசி / நகர்ப்புறம் / அரசு உதவி).
+- `/en/about-tamil-schools`: title "Tamil Schools in Malaysia — How Many, Where, Statistics | SJK(T) Connect"; "528" appears across stats + CTA.
+- `/en/constituency/P140`: title `Segamat — MP, Tamil schools | P140, JOHOR`; description "Yuneswaran Ramaraj (PH(PKR)) represents Segamat (P140) in JOHOR. 6 Tamil schools. 3 parliamentary mentions tracked."
+- ISR cache: `Cache-Control: s-maxage=86400, stale-while-revalidate=31449600` + `x-nextjs-cache: HIT` on second hit.
+- `/school-placeholder.svg`: HTTP 200.
+- Re-pull GSC Pages + Queries report 2-3 weeks post-deploy (mid-late May 2026). Expect "Alternate page with proper canonical tag" count to drop from 2.36k toward zero, indexed pages to climb (Sprint 21 canonical fix landed 29 Apr, 1 day before this GSC export — wasn't reflected; Sprint 22 metadata + image fallback should compound).
 
 ### Operational followup (manual, user action)
 - Configure Cloudflare Page Rule: `www.tamilschool.org/*` → 301 → `https://tamilschool.org/$1`. The Pages report shows the same school listed twice in a single SERP because both hostnames resolve. One canonical hostname consolidates ranking signal. Cloudflare Page Rule (vs Cloud Run domain mapping) is reversible and doesn't require DNS-only flip.

@@ -21,7 +21,10 @@ from broadcasts.services.blast_aggregator import aggregate_month
 
 logger = logging.getLogger(__name__)
 
-REQUIRED_KEYS = {"executive_summary", "trend_lines", "by_the_numbers"}
+# Sprint 23: by_the_numbers is no longer in REQUIRED_KEYS — it's
+# composed in Python from real DB counts (see _compose_by_the_numbers
+# below) and merged into the analysis dict before returning.
+REQUIRED_KEYS = {"executive_summary", "trend_lines"}
 
 ANALYST_PROMPT = """\
 You are an intelligence analyst writing a monthly brief about Tamil schools \
@@ -30,8 +33,17 @@ and community leaders.
 
 Below is data from TWO months so you can identify trends and changes.
 
+IMPORTANT: The lists below are SAMPLES (top items by relevance/significance) \
+from a larger pool. The TRUE TOTALS for the current month are:
+  - Parliament was {current_parliament_session_state} ({current_parliament_sitting_count} sittings)
+  - {current_parliament_total} parliamentary mentions of SJK(T)s
+  - {current_news_total} approved news articles ({current_sentiment_pos} positive, \
+{current_sentiment_neg} negative, {current_sentiment_neu} neutral)
+  - {current_schools_total} unique schools mentioned across news + parliament
+Use these totals when discussing scale or volume. Do NOT invent counts.
+
 --- CURRENT MONTH: {current_month_label} ---
-Parliament mentions ({current_parliament_count}):
+Parliament mentions (showing top {current_parliament_count} of {current_parliament_total}):
 {current_parliament_text}
 
 Sitting briefs ({current_brief_count}):
@@ -40,17 +52,17 @@ Sitting briefs ({current_brief_count}):
 Meeting reports ({current_meeting_count}):
 {current_meeting_text}
 
-News articles ({current_news_count}):
+News articles (showing top {current_news_count} of {current_news_total}):
 {current_news_text}
 
 Top MP scorecards{current_scorecard_qualifier}:
 {current_scorecard_text}
 
 --- PREVIOUS MONTH: {previous_month_label} ---
-Parliament mentions ({previous_parliament_count}):
+Parliament mentions (showing top {previous_parliament_count} of {previous_parliament_total}):
 {previous_parliament_text}
 
-News articles ({previous_news_count}):
+News articles (showing top {previous_news_count} of {previous_news_total}):
 {previous_news_text}
 --- END DATA ---
 
@@ -58,7 +70,8 @@ Analyse the data and return a JSON object with these keys:
 
 1. "executive_summary" (string): 3-4 sentences summarising the month. Compare \
 with previous month. Highlight the single most important development. Written \
-for a busy parent — clear, direct, no jargon.
+for a busy parent — clear, direct, no jargon. If Parliament was not in session, \
+say so explicitly rather than treating zero mentions as a signal.
 
 2. "trend_lines" (array of objects): Each trend has:
    - "trend" (string): Short label (e.g. "Parliamentary attention")
@@ -82,19 +95,20 @@ month, include:
    - "reason" (string): 1-2 sentences on why it stood out.
    Set to null if no school was particularly notable.
 
-7. "by_the_numbers" (object): Key statistics:
-   - "parliament_mentions" (int): Total mentions this month
-   - "news_articles" (int): Total news articles this month
-   - "schools_affected" (int): Approximate unique schools mentioned
-   - "sentiment_positive" (int): Count of positive sentiment items
-   - "sentiment_negative" (int): Count of negative sentiment items
+7. "headline" (string): A short, punchy single-line headline (max 80 chars) \
+capturing the most important news of the month, suitable for an email subject \
+line. Lead with the most newsworthy specific item (a policy announcement, a \
+funding figure, a major project milestone). Avoid generic phrasing like \
+"Monthly update". Examples of good style: "Special ed coming to Tamil schools \
+in 2027" or "RM15.7M committed to SJK(T) infrastructure". If the month is \
+genuinely quiet, return a calm honest line rather than fabricating drama.
 
 Rules:
 - Be specific: use names, amounts, dates, constituency names from the data.
 - Compare current vs previous month wherever possible.
 - Write in British English.
 - Do not pad or use filler phrases.
-- If data is sparse, say so honestly — do not fabricate trends.
+- If data is sparse, say so honestly — do not fabricate trends or counts.
 - Return ONLY valid JSON, no markdown fences, no extra text.
 """
 
@@ -180,6 +194,23 @@ def _previous_month(year: int, month: int) -> tuple[int, int]:
     return year, month - 1
 
 
+def _compose_by_the_numbers(current_data: dict) -> dict:
+    """Sprint 23: build by_the_numbers from real DB counts.
+
+    Replaces the previous LLM-imputed version which counted from a
+    5-row text sample and routinely fabricated schools_affected and
+    sentiment counts.
+    """
+    sentiment = current_data.get("news_sentiment_breakdown") or {}
+    return {
+        "parliament_mentions": current_data.get("parliament_total", 0),
+        "news_articles": current_data.get("news_total", 0),
+        "schools_affected": current_data.get("schools_mentioned_total", 0),
+        "sentiment_positive": sentiment.get("positive", 0),
+        "sentiment_negative": sentiment.get("negative", 0),
+    }
+
+
 def generate_monthly_analysis(
     year: int,
     month: int,
@@ -221,22 +252,36 @@ def generate_monthly_analysis(
         else ""
     )
 
+    sentiment = current_data.get("news_sentiment_breakdown") or {}
     prompt = ANALYST_PROMPT.format(
         current_month_label=current_month_label,
         current_parliament_count=len(list(current_data["parliament"])),
+        current_parliament_total=current_data.get("parliament_total", 0),
         current_parliament_text=_format_parliament(current_data["parliament"]),
+        current_parliament_session_state=(
+            "in session" if current_data.get("parliament_was_in_session")
+            else "not in session"
+        ),
+        current_parliament_sitting_count=current_data.get("parliament_sitting_count", 0),
         current_brief_count=len(list(current_data["briefs"])),
         current_brief_text=_format_briefs(current_data["briefs"]),
         current_meeting_count=len(list(current_data["meeting_reports"])),
         current_meeting_text=_format_meetings(current_data["meeting_reports"]),
         current_news_count=len(list(current_data["news"])),
+        current_news_total=current_data.get("news_total", 0),
         current_news_text=_format_news(current_data["news"]),
+        current_sentiment_pos=sentiment.get("positive", 0),
+        current_sentiment_neg=sentiment.get("negative", 0),
+        current_sentiment_neu=sentiment.get("neutral", 0),
+        current_schools_total=current_data.get("schools_mentioned_total", 0),
         current_scorecard_qualifier=scorecard_qualifier,
         current_scorecard_text=_format_scorecards(current_data["scorecards"]),
         previous_month_label=previous_month_label,
         previous_parliament_count=len(list(previous_data["parliament"])),
+        previous_parliament_total=previous_data.get("parliament_total", 0),
         previous_parliament_text=_format_parliament(previous_data["parliament"]),
         previous_news_count=len(list(previous_data["news"])),
+        previous_news_total=previous_data.get("news_total", 0),
         previous_news_text=_format_news(previous_data["news"]),
     )
 
@@ -269,5 +314,12 @@ def generate_monthly_analysis(
         missing = REQUIRED_KEYS - data.keys()
         logger.error("Monthly analysis missing required keys: %s", missing)
         return None
+
+    # Sprint 23: overlay deterministic by_the_numbers onto the LLM
+    # output. If the LLM returned its own by_the_numbers (the prompt no
+    # longer asks for it, but tolerate extras), we replace it. The
+    # downstream template references analysis.by_the_numbers.* so the
+    # key must exist with the right shape.
+    data["by_the_numbers"] = _compose_by_the_numbers(current_data)
 
     return data

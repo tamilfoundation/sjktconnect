@@ -79,10 +79,28 @@ class Command(BaseCommand):
             self.stdout.write(f"DRY RUN \u2014 {month_label}")
             if backfill_since:
                 self.stdout.write(f"  backfill window: items >= {backfill_since}")
+            session_state = (
+                f"in session ({data['parliament_sitting_count']} sittings)"
+                if data.get("parliament_was_in_session")
+                else "NOT in session"
+            )
             self.stdout.write(
-                f"  {parliament_count} parliament, "
-                f"{news_count} news, "
-                f"{brief_count} sitting briefs, "
+                f"  Parliament: {session_state}; "
+                f"{data.get('parliament_total', 0)} mentions total "
+                f"(showing top {parliament_count})"
+            )
+            sb = data.get("news_sentiment_breakdown") or {}
+            self.stdout.write(
+                f"  News: {data.get('news_total', 0)} approved "
+                f"({sb.get('positive', 0)} pos, {sb.get('negative', 0)} neg, "
+                f"{sb.get('neutral', 0)} neu) — showing top {news_count}"
+            )
+            self.stdout.write(
+                f"  Schools mentioned (news + Hansard): "
+                f"{data.get('schools_mentioned_total', 0)}"
+            )
+            self.stdout.write(
+                f"  {brief_count} sitting briefs, "
                 f"{meeting_count} meeting reports, "
                 f"{scorecard_count} scorecard items"
                 f"{' (lifetime fallback)' if scorecards_fallback else ''}"
@@ -99,6 +117,23 @@ class Command(BaseCommand):
 
         # Try v2 analytical blast via Gemini
         analysis = generate_monthly_analysis(year, month, backfill_since=backfill_since)
+
+        # Sprint 23: extra context shared by every render (Gemini path
+        # AND v1 fallback). Surfaces the deterministic counts, the full
+        # news list, the schools-mentioned set, and the recess flag.
+        v2_context_extras = {
+            "news_all": list(data.get("news_all", [])),
+            "schools_mentioned": data.get("schools_mentioned", []),
+            "schools_mentioned_total": data.get("schools_mentioned_total", 0),
+            "news_total": data.get("news_total", 0),
+            "parliament_total": data.get("parliament_total", 0),
+            "news_sentiment_breakdown": data.get("news_sentiment_breakdown", {}),
+            "parliament_was_in_session": data.get("parliament_was_in_session", False),
+            "parliament_sitting_count": data.get("parliament_sitting_count", 0),
+            "donate_url": "https://tamilschool.org/donate",
+            "share_url": "https://tamilschool.org/",
+            "mp_activity_url": "https://tamilschool.org/parliament-watch",
+        }
 
         hero_image_bytes = None
         if analysis:
@@ -122,6 +157,7 @@ class Command(BaseCommand):
                     "hero_image_url": None,
                     "briefs": data["briefs"],
                     "meeting_reports": data["meeting_reports"],
+                    **v2_context_extras,
                 },
             )
             self.stdout.write("Using v2 analytical template (Gemini)")
@@ -139,14 +175,19 @@ class Command(BaseCommand):
                     ],
                     "briefs": data["briefs"],
                     "meeting_reports": data["meeting_reports"],
+                    **v2_context_extras,
                 },
             )
             self.stdout.write("Using v1 template (Gemini unavailable)")
 
         text_content = strip_tags(html_content)
 
+        # Sprint 23: dynamic subject line from the LLM-generated
+        # headline, falling back to the generic month label.
+        subject = self._build_subject(month_label, analysis)
+
         broadcast = Broadcast.objects.create(
-            subject=f"Monthly Intelligence Blast \u2014 {month_label}",
+            subject=subject,
             html_content=html_content,
             text_content=text_content,
             audience_filter={"category": "MONTHLY_BLAST"},
@@ -170,6 +211,7 @@ class Command(BaseCommand):
                     "hero_image_url": hero_url,
                     "briefs": data["briefs"],
                     "meeting_reports": data["meeting_reports"],
+                    **v2_context_extras,
                 },
             )
             broadcast.html_content = html_content
@@ -189,6 +231,26 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.SUCCESS(f"Broadcast {broadcast.pk} sent.")
             )
+
+    def _build_subject(self, month_label: str, analysis: dict | None) -> str:
+        """Sprint 23: build a punchy subject from the LLM headline.
+
+        Falls back to the generic month label when the LLM output is
+        absent or the headline field is missing/empty. The headline
+        prefix `{month_label}: ` keeps the cadence visible in inboxes.
+        """
+        generic = f"Monthly Intelligence Blast \u2014 {month_label}"
+        if not analysis:
+            return generic
+        headline = (analysis.get("headline") or "").strip()
+        if not headline:
+            return generic
+        # Cap length to avoid Gmail truncation in list view.
+        max_len = 90
+        candidate = f"{month_label}: {headline}"
+        if len(candidate) > max_len:
+            candidate = candidate[: max_len - 1].rstrip() + "\u2026"
+        return candidate
 
     def _parse_backfill_since(self, value: str) -> date | None:
         """Parse the optional --backfill-since YYYY-MM-DD argument."""

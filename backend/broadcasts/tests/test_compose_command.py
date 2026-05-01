@@ -182,3 +182,45 @@ class TestComposeMonthlyBlast:
         call_command("compose_monthly_blast", month="2026-02", stdout=out)
         broadcast = Broadcast.objects.first()
         assert str(broadcast.pk) in out.getvalue()
+
+
+class TestSprint23DynamicSubject:
+    """Sprint 23: subject line uses LLM-generated headline when available."""
+
+    def test_falls_back_to_generic_when_no_analysis(self):
+        from broadcasts.management.commands.compose_monthly_blast import Command
+        cmd = Command()
+        result = cmd._build_subject("April 2026", None)
+        assert result == "Monthly Intelligence Blast \u2014 April 2026"
+
+    def test_falls_back_when_headline_missing(self):
+        from broadcasts.management.commands.compose_monthly_blast import Command
+        cmd = Command()
+        result = cmd._build_subject(
+            "April 2026",
+            {"executive_summary": "x", "trend_lines": []},
+        )
+        assert result == "Monthly Intelligence Blast \u2014 April 2026"
+
+    def test_falls_back_when_headline_empty_string(self):
+        from broadcasts.management.commands.compose_monthly_blast import Command
+        cmd = Command()
+        result = cmd._build_subject("April 2026", {"headline": "   "})
+        assert result == "Monthly Intelligence Blast \u2014 April 2026"
+
+    def test_uses_llm_headline_when_present(self):
+        from broadcasts.management.commands.compose_monthly_blast import Command
+        cmd = Command()
+        result = cmd._build_subject(
+            "April 2026",
+            {"headline": "Special ed coming to Tamil schools in 2027"},
+        )
+        assert result == "April 2026: Special ed coming to Tamil schools in 2027"
+
+    def test_truncates_overlong_headline(self):
+        from broadcasts.management.commands.compose_monthly_blast import Command
+        cmd = Command()
+        very_long = "x" * 200
+        result = cmd._build_subject("April 2026", {"headline": very_long})
+        assert len(result) <= 90
+        assert result.endswith("\u2026")  # ellipsis

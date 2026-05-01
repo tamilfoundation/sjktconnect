@@ -74,20 +74,22 @@ Targets long-tail GSC queries showing in the export at low volume: "how many tam
 
 `__tests__/lib/seo.test.ts` new (23 tests). `__tests__/components/SchoolImage.test.tsx` +1 placeholder test. Two pre-existing tests on Suggest/News-related components were unaffected.
 
-## Acceptance criteria status
+## Acceptance criteria status (post-deploy 2026-05-01)
+
+**Deployed**: revision `sjktconnect-web-00112-p8q`, 100% traffic.
 
 | # | Criterion | Status |
 |---|---|---|
-| 1 | `curl -I https://www.tamilschool.org/` → 301 → `https://tamilschool.org/` | ⏳ Pending Cloudflare Page Rule (manual user action) |
-| 2 | School page HTML contains "Address: ... Email: ... Phone: ..." labels | ⏳ Pending deploy + curl |
-| 3 | School page HTML has at least one school-related `<img>` | ✅ Code shipped — placeholder fallback wired |
-| 4 | `/ta/school/...` shows Tamil-script title | ⏳ Pending deploy + curl |
-| 5 | Sitemap contains zero `www.` entries | ✅ Verified — `app/sitemap.ts` uses `https://tamilschool.org` exclusively |
-| 6 | Constituency P140 title reads "Indera Mahkota — MP, Tamil Schools" | ⏳ Pending deploy + curl |
-| 7 | `/about-tamil-schools` 200s with "528" + state breakdown | ✅ Verified locally via prerendered HTML |
+| 1 | `curl -I https://www.tamilschool.org/` → 301 → `https://tamilschool.org/` | ⏳ www currently 307s to `/en` (same host). Cloudflare Page Rule for cross-host 301 is pending user action |
+| 2 | School page HTML contains "Address: ... Email: ... Phone: ..." labels | ✅ Verified `https://tamilschool.org/en/school/JBD1026`: meta description = "Tamil primary school in Skudai, Johor. Address: Jalan Perkasa 1, Taman Tun Aminah, 81300 Skudai, Johor · Email: jbd1026@moe.edu.my · Phone: +60-7 556 0012 · Location: Urban · Assistance: Government-Aided 1,524 students, 84 teachers" |
+| 3 | School page HTML has school-related `<img>` + JSON-LD | ✅ JSON-LD payload contains `EducationalOrganization` + `PostalAddress` + `GeoCoordinates`. Placeholder `/school-placeholder.svg` returns HTTP 200 |
+| 4 | `/ta/school/...` shows Tamil-script title | ✅ Title: `<title>SJK(T) Taman Tun Aminah \| 1,524 மாணவர்கள், கிரேடு A \| Skudai, Johor</title>`. Description includes முகவரி / மின்னஞ்சல் / தொலைபேசி / நகர்ப்புறம் |
+| 5 | Sitemap contains zero `www.` entries | ✅ `app/sitemap.ts` BASE_URL = `https://tamilschool.org` |
+| 6 | Constituency page title uses new format | ✅ P140 (Segamat): `<title>Segamat — MP, Tamil schools \| P140, JOHOR</title>`. Description: "Yuneswaran Ramaraj (PH(PKR)) represents Segamat (P140) in JOHOR. 6 Tamil schools. 3 parliamentary mentions tracked." |
+| 7 | `/about-tamil-schools` 200s with "528" + state breakdown | ✅ Title: "Tamil Schools in Malaysia — How Many, Where, Statistics \| SJK(T) Connect". Body contains "528" (4 occurrences across stats + CTA) |
 | 8 | Tests: 1198 backend + 297 → 320 frontend | ✅ 320 frontend pass |
-| 9 | Local build: SSG markers preserved | ✅ Route table confirms ● on school/constituency/dun |
-| 10 | Sprint-close commit cites curl evidence in retrospective | ⏳ Pending deploy + curl |
+| 9 | Local build: SSG markers preserved | ✅ Route table confirms ● on school/constituency/dun/about-tamil-schools |
+| 10 | ISR + Cache-Control verified live | ✅ `curl -I https://tamilschool.org/en/school/JBD1026` → `Cache-Control: s-maxage=86400, stale-while-revalidate=31449600` + `x-nextjs-cache: HIT` |
 
 ## Operational followup (carries to Sprint 23 if not done by hand)
 

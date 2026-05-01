@@ -362,17 +362,27 @@ class TestAggregateMonthScorecards:
 
 @pytest.mark.django_db
 class TestAggregateMonthShape:
-    """Result dict structure (Sprint 18 expanded keys)."""
+    """Result dict structure (Sprint 18 expanded keys, Sprint 23 added counts)."""
 
     def test_returns_dict_with_expected_keys(self):
         result = aggregate_month(2026, 2)
         assert set(result.keys()) == {
+            # Sprint 18 keys (display-capped samples)
             "parliament",
             "news",
             "briefs",
             "meeting_reports",
             "scorecards",
             "scorecards_are_lifetime_fallback",
+            # Sprint 23 keys (deterministic counts + visibility lists)
+            "parliament_total",
+            "news_total",
+            "news_all",
+            "news_sentiment_breakdown",
+            "schools_mentioned",
+            "schools_mentioned_total",
+            "parliament_was_in_session",
+            "parliament_sitting_count",
         }
 
     def test_empty_month_returns_expected_collection_types(self):
@@ -389,3 +399,100 @@ class TestAggregateMonthShape:
         # meeting_reports may be non-empty due to seeded data — just
         # verify the field exists and is iterable.
         assert hasattr(result["meeting_reports"], "__iter__")
+        # Sprint 23 deterministic counts default to 0 for an empty month
+        assert result["parliament_total"] == 0
+        assert result["news_total"] == 0
+        assert result["news_sentiment_breakdown"] == {
+            "positive": 0, "negative": 0, "neutral": 0,
+        }
+        assert result["schools_mentioned"] == []
+        assert result["schools_mentioned_total"] == 0
+        assert result["parliament_was_in_session"] is False
+        assert result["parliament_sitting_count"] == 0
+
+
+class TestSprint23DeterministicCounts:
+    """Sprint 23: headline numbers must come from real DB counts, not
+    the length of a display-capped sample."""
+
+    def test_news_total_is_full_count_not_capped_sample(self, db):
+        """Aggregator caps `news` at 5 for narrative; `news_total` must
+        report the FULL approved count regardless of the cap."""
+        from newswatch.models import NewsArticle
+        from datetime import date as _date
+        for i in range(8):
+            NewsArticle.objects.create(
+                url=f"https://example.com/a{i}",
+                title=f"Article {i}",
+                published_date=_date(2026, 2, 15),
+                status=NewsArticle.ANALYSED,
+                review_status=NewsArticle.APPROVED,
+                relevance_score=3 + (i % 3),
+                sentiment="POSITIVE" if i % 2 == 0 else "NEGATIVE",
+            )
+        result = aggregate_month(2026, 2)
+        assert len(list(result["news"])) == 5  # display cap
+        assert result["news_total"] == 8       # real count
+
+    def test_news_sentiment_breakdown_counts_full_set(self, db):
+        from newswatch.models import NewsArticle
+        from datetime import date as _date
+        for sentiment, count in [("POSITIVE", 4), ("NEGATIVE", 2), ("NEUTRAL", 6)]:
+            for i in range(count):
+                NewsArticle.objects.create(
+                    url=f"https://example.com/{sentiment}-{i}",
+                    title=f"{sentiment} {i}",
+                    published_date=_date(2026, 2, 10),
+                    status=NewsArticle.ANALYSED,
+                    review_status=NewsArticle.APPROVED,
+                    sentiment=sentiment,
+                    relevance_score=3,
+                )
+        result = aggregate_month(2026, 2)
+        assert result["news_sentiment_breakdown"] == {
+            "positive": 4, "negative": 2, "neutral": 6,
+        }
+
+    def test_parliament_was_in_session_true_when_sittings_exist(self, sitting_feb):
+        result = aggregate_month(2026, 2)
+        assert result["parliament_was_in_session"] is True
+        assert result["parliament_sitting_count"] >= 1
+
+    def test_parliament_was_in_session_false_when_no_sittings(self):
+        # April 2026 — recess, no sittings created in fixtures
+        result = aggregate_month(2026, 4)
+        assert result["parliament_was_in_session"] is False
+        assert result["parliament_sitting_count"] == 0
+
+    def test_schools_mentioned_unions_news_and_hansard(self, db):
+        """Schools mentioned in news (via JSON moe_code) AND Hansard
+        (via MentionedSchool FK) should both appear, deduplicated."""
+        from newswatch.models import NewsArticle
+        from schools.models import School, Constituency, DUN
+        from datetime import date as _date
+        c = Constituency.objects.create(code="P999", name="Test", state="TestState")
+        d = DUN.objects.create(code="N999", name="TestDUN", constituency=c, state="TestState")
+        s1 = School.objects.create(
+            moe_code="ZZZ0001", name="SJK(T) Alpha", short_name="Alpha",
+            state="TestState", ppd="TestPPD", constituency=c, dun=d,
+        )
+        s2 = School.objects.create(
+            moe_code="ZZZ0002", name="SJK(T) Beta", short_name="Beta",
+            state="TestState", ppd="TestPPD", constituency=c, dun=d,
+        )
+        NewsArticle.objects.create(
+            url="https://example.com/x",
+            title="X",
+            published_date=_date(2026, 2, 5),
+            status=NewsArticle.ANALYSED,
+            review_status=NewsArticle.APPROVED,
+            mentioned_schools=[
+                {"name": "SJK(T) Alpha", "moe_code": "ZZZ0001"},
+                {"name": "SJK(T) Beta", "moe_code": "ZZZ0002"},
+            ],
+        )
+        result = aggregate_month(2026, 2)
+        moe_codes = {s.moe_code for s in result["schools_mentioned"]}
+        assert "ZZZ0001" in moe_codes
+        assert "ZZZ0002" in moe_codes
+        assert result["schools_mentioned_total"] == len(result["schools_mentioned"])

@@ -31,11 +31,30 @@ DATE-SEMANTICS POLICY (Sprint 18, see docs/lessons.md):
   This catches a meeting that started in Jan and ran into early March,
   for both Jan, Feb, and March digests — which matches user mental
   model (the meeting is "active" in those months).
+
+COUNT-vs-SAMPLE POLICY (Sprint 23):
+  Headline numbers ("46 news articles this month") MUST be real DB
+  counts, not the length of a display-capped sample. The aggregator
+  returns BOTH:
+    - `news_total`, `parliament_total`, `schools_mentioned_total`,
+      `news_sentiment_breakdown`, `parliament_sitting_count`
+      — deterministic counts for headline stats and prompt context.
+    - `news`, `parliament`, `briefs`, `meeting_reports`, `scorecards`
+      — display-capped samples for narrative rendering.
+
+  Sprint 18's monthly-analyst LLM was previously asked to compute
+  `by_the_numbers` from the text-formatted top-5 sample, leading to
+  invented schools_affected counts and a "5 News Articles" stat in
+  the April 2026 digest when 46 were actually approved. Sprint 23
+  removed `by_the_numbers` from the LLM schema; it is now composed
+  in Python from the deterministic counts here.
 """
 
 from datetime import date
 
-from hansard.models import HansardMention
+from django.db.models import Q
+
+from hansard.models import HansardMention, HansardSitting, MentionedSchool
 from newswatch.models import NewsArticle
 from parliament.models import MPScorecard, ParliamentaryMeeting, SittingBrief
 
@@ -66,9 +85,12 @@ def aggregate_month(
 
     Returns:
         dict with keys:
+
+        DISPLAY-CAPPED SAMPLES (for narrative rendering):
         - parliament: up to 5 HansardMentions (excluding REJECTED), by
           significance desc.
         - news: up to 5 approved NewsArticles, by relevance_score desc.
+          Sprint 23: also returned in full as `news_all` for visibility.
         - briefs: SittingBriefs whose sitting_date falls in the month
           (or backfill window). Up to 5, newest first.
         - meeting_reports: ParliamentaryMeetings whose period overlaps
@@ -77,6 +99,22 @@ def aggregate_month(
         - scorecards: up to 3 MPScorecards filtered by activity in the
           month. If none, falls back to top-3 lifetime so the section
           isn't blank in quiet months — flagged via 'lifetime' key.
+
+        DETERMINISTIC COUNTS (Sprint 23, for headline stats):
+        - parliament_total (int): count of all non-REJECTED HansardMentions
+          in the month.
+        - news_total (int): count of all APPROVED NewsArticles in the month.
+        - news_sentiment_breakdown (dict): {positive, negative, neutral}
+          counts from the full APPROVED-news set.
+        - schools_mentioned (list[School]): unique School objects mentioned
+          in either news OR Hansard in the month, sorted by name.
+        - schools_mentioned_total (int): len(schools_mentioned).
+        - news_all (queryset): full APPROVED news for the month, ordered
+          by relevance_score desc — for the visibility section in the
+          email.
+        - parliament_was_in_session (bool): True if any HansardSitting
+          exists in the month — drives the recess copy in the template.
+        - parliament_sitting_count (int): number of sittings in the month.
     """
     month_start, month_end = _month_bounds(year, month)
 
@@ -84,7 +122,7 @@ def aggregate_month(
     # require APPROVED). The default value is PENDING; the prior
     # require-APPROVED filter silently dropped any mention nobody had
     # explicitly triaged.
-    parliament = (
+    parliament_qs = (
         HansardMention.objects.filter(
             sitting__sitting_date__year=year,
             sitting__sitting_date__month=month,
@@ -92,18 +130,64 @@ def aggregate_month(
         .exclude(review_status="REJECTED")
         .exclude(mp_name="")
         .select_related("sitting")
-        .order_by("-significance")[:5]
     )
+    parliament_total = parliament_qs.count()
+    parliament = parliament_qs.order_by("-significance")[:5]
 
-    news = (
+    news_all = (
         NewsArticle.objects.filter(
             published_date__year=year,
             published_date__month=month,
             status=NewsArticle.ANALYSED,
             review_status=NewsArticle.APPROVED,
         )
-        .order_by("-relevance_score")[:5]
+        .order_by("-relevance_score")
     )
+    news_total = news_all.count()
+    news = news_all[:5]
+    news_sentiment_breakdown = {
+        "positive": news_all.filter(sentiment="POSITIVE").count(),
+        "negative": news_all.filter(sentiment="NEGATIVE").count(),
+        "neutral": news_all.filter(sentiment="NEUTRAL").count(),
+    }
+
+    # Schools mentioned this month — union across news + Hansard. Used
+    # for the "Schools in the news" visibility section AND the headline
+    # "schools_affected" stat. Pre-Sprint-23 the headline number was
+    # LLM-imputed from a 5-article sample (typically 20-30, often
+    # fabricated); now it's a real DB count.
+    #
+    # NewsArticle.mentioned_schools is a JSONField shaped as
+    # [{"name": "SJK(T) Foo", "moe_code": "ABD1234"}, ...] — produced
+    # by the AI pipeline. We look up by moe_code (most reliable);
+    # entries without a moe_code are skipped (rare, name-only matches
+    # would need fuzzy logic).
+    moe_codes_in_news = set()
+    for article in news_all:
+        for entry in (article.mentioned_schools or []):
+            if isinstance(entry, dict) and entry.get("moe_code"):
+                moe_codes_in_news.add(entry["moe_code"])
+    school_ids_from_hansard = set(
+        MentionedSchool.objects.filter(
+            mention__sitting__sitting_date__year=year,
+            mention__sitting__sitting_date__month=month,
+        )
+        .exclude(mention__review_status="REJECTED")
+        .values_list("school_id", flat=True)
+    )
+    from schools.models import School  # local to avoid circular import on app load
+    schools_mentioned = list(
+        School.objects.filter(
+            Q(pk__in=school_ids_from_hansard) | Q(moe_code__in=moe_codes_in_news)
+        ).order_by("name")
+    )
+    schools_mentioned_total = len(schools_mentioned)
+
+    # Recess detection (Sprint 23) — was Parliament even sitting?
+    sitting_count = HansardSitting.objects.filter(
+        sitting_date__year=year, sitting_date__month=month
+    ).count()
+    parliament_was_in_session = sitting_count > 0
 
     # SittingBriefs whose sitting_date falls in the month (or backfill
     # window). NOTE on is_published: the public parliament_watch
@@ -174,10 +258,20 @@ def aggregate_month(
         used_lifetime_fallback = True
 
     return {
+        # Display-capped samples (existing keys, unchanged shape)
         "parliament": parliament,
         "news": news,
         "briefs": briefs,
         "meeting_reports": meeting_reports,
         "scorecards": scorecards,
         "scorecards_are_lifetime_fallback": used_lifetime_fallback,
+        # Sprint 23: deterministic counts + full lists for visibility
+        "parliament_total": parliament_total,
+        "news_total": news_total,
+        "news_all": news_all,
+        "news_sentiment_breakdown": news_sentiment_breakdown,
+        "schools_mentioned": schools_mentioned,
+        "schools_mentioned_total": schools_mentioned_total,
+        "parliament_was_in_session": parliament_was_in_session,
+        "parliament_sitting_count": sitting_count,
     }
