@@ -80,7 +80,7 @@ Targets long-tail GSC queries showing in the export at low volume: "how many tam
 
 | # | Criterion | Status |
 |---|---|---|
-| 1 | `curl -I https://www.tamilschool.org/` → 301 → `https://tamilschool.org/` | ⏳ www currently 307s to `/en` (same host). Cloudflare Page Rule for cross-host 301 is pending user action |
+| 1 | `curl -I https://www.tamilschool.org/` → 301 → `https://tamilschool.org/` | ✅ Applied 2026-05-02 via Cloudflare API (Single Redirect ruleset, phase `http_request_dynamic_redirect`, ruleset id `1af056d066e44a5885c933227a413981`). Verified: `www.tamilschool.org/en/about` → 301 → `tamilschool.org/en/about`; `www.tamilschool.org/ms/school/ABC1234?ref=test` → 301 with path AND query preserved |
 | 2 | School page HTML contains "Address: ... Email: ... Phone: ..." labels | ✅ Verified `https://tamilschool.org/en/school/JBD1026`: meta description = "Tamil primary school in Skudai, Johor. Address: Jalan Perkasa 1, Taman Tun Aminah, 81300 Skudai, Johor · Email: jbd1026@moe.edu.my · Phone: +60-7 556 0012 · Location: Urban · Assistance: Government-Aided 1,524 students, 84 teachers" |
 | 3 | School page HTML has school-related `<img>` + JSON-LD | ✅ JSON-LD payload contains `EducationalOrganization` + `PostalAddress` + `GeoCoordinates`. Placeholder `/school-placeholder.svg` returns HTTP 200 |
 | 4 | `/ta/school/...` shows Tamil-script title | ✅ Title: `<title>SJK(T) Taman Tun Aminah \| 1,524 மாணவர்கள், கிரேடு A \| Skudai, Johor</title>`. Description includes முகவரி / மின்னஞ்சல் / தொலைபேசி / நகர்ப்புறம் |
@@ -91,7 +91,7 @@ Targets long-tail GSC queries showing in the export at low volume: "how many tam
 | 9 | Local build: SSG markers preserved | ✅ Route table confirms ● on school/constituency/dun/about-tamil-schools |
 | 10 | ISR + Cache-Control verified live | ✅ `curl -I https://tamilschool.org/en/school/JBD1026` → `Cache-Control: s-maxage=86400, stale-while-revalidate=31449600` + `x-nextjs-cache: HIT` |
 
-## Operational followup (carries to Sprint 23 if not done by hand)
+## Operational followup
 
-- **Cloudflare Page Rule** for www→root 301. User action — admin@tamilfoundation.org has Cloudflare access for `tamilschool.org`.
-- **Re-pull GSC Pages + Queries report** in 2-3 weeks (mid-late May 2026). Expect: indexed pages count to climb (Sprint 21 canonical fix releasing ~2.36k Tamil/Malay variants from "Alternate page with proper canonical" + Sprint 22 metadata + image fallback compounding); average position to drop from 7.4 toward 5; CTR to lift from 1.2% baseline.
+- ~~**Cloudflare Page Rule** for www→root 301.~~ ✅ Done 2026-05-02 via Cloudflare API. Single Redirect rule on zone `tamilschool.org`, phase `http_request_dynamic_redirect`, ruleset id `1af056d066e44a5885c933227a413981`. Match `http.host eq "www.tamilschool.org"` → 301 redirect to `concat("https://tamilschool.org", http.request.uri.path)` with `preserve_query_string=true`. API token (`CLOUDFLARE_API_TOKEN`) and zone id (`CLOUDFLARE_ZONE_ID`) saved in `.env`; rollback via `DELETE /zones/<zone_id>/rulesets/1af056d066e44a5885c933227a413981`.
+- **Re-pull GSC Pages + Queries report** in 2-3 weeks (mid-late May 2026). Expect: indexed pages count to climb (Sprint 21 canonical fix releasing ~2.36k Tamil/Malay variants from "Alternate page with proper canonical" + Sprint 22 metadata + image fallback compounding); average position to drop from 7.4 toward 5; CTR to lift from 1.2% baseline. The www→root 301 should also fold any www-side duplicate listings into the root domain in GSC over the same window.
