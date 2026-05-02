@@ -1,6 +1,6 @@
 # Sprint 23 — Monthly Digest Quality Pass
 
-**Status**: Plan accepted by user 2026-05-02; implementation paused until test-email arrival is verified (Brevo daily-quota delay).
+**Status**: Plan accepted by user 2026-05-02. Implementation now paused for a STRONGER reason: a duplicate April-blast incident on 2026-05-02 forced both monthly-blast and resume-sending schedulers to be paused. Sprint 23 must land tasks #4a (Brevo quota check) AND #4b (duplicate-broadcast guard) BEFORE the schedulers can be safely re-enabled. See "Incident: duplicate April blast" section below.
 **Last updated**: 2026-05-02
 **Triggered by**: April 2026 digest post-mortem (2026-05-01)
 **Prior plan**: `~/.claude/projects/C--Users-tamil-Python/memory/sjktconnect_sprint23_plan.md` (user-confirmed scope)
@@ -52,6 +52,22 @@ Insert a new step before any real-send code path runs:
 - Cheap (one extra API call before a send), prevents the tail-end 400s the April blast hit at 514/519.
 - Document Brevo's 300/day free-tier limit in the helper docstring AND in the project memory file.
 
+### C. New task #4b — duplicate-broadcast guard (added 2026-05-02 after duplicate-blast incident)
+
+Insert a guard in `compose_monthly_blast` (and `compose_news_digest`/`compose_parliament_watch`/`compose_urgent_alert` — all `compose_*` commands) that refuses to create a new Broadcast row if a row already exists with the same `(kind, coverage_start_date, coverage_end_date)` and status SENT or SENDING in the last 7 days.
+
+- New helper `broadcasts/services/duplicate_guard.py` with `check_duplicate(kind, start, end, window_days=7) -> Broadcast | None`.
+- Each compose command calls the guard before `Broadcast.objects.create(...)` and aborts with a clear message ("a SENT broadcast for {kind} {coverage} already exists; pass --force-duplicate to override") if a match is found.
+- New flag `--force-duplicate` allows override for legitimate cases (e.g., re-send after spam-flag, recipient list correction). Logged at WARNING level.
+- New simple admin column on `Broadcast` listing `coverage` derived from start/end so duplicates are visible at a glance.
+- Triggered by the 2026-05-02 incident where 4 Broadcast rows for the same April digest were created in a 40-minute window because `compose_monthly_blast` (and possibly `resume_sending`?) had no idempotency check. See "Incident: duplicate April blast" section below for the full forensic.
+
+### D. Investigate `resume_sending` interaction (added 2026-05-02 after duplicate-blast incident)
+
+`resume_sending` is supposed to pick up existing SENDING broadcasts and continue them. Yesterday's logs show 4 manual `sjktconnect-resume-sending` job triggers in a 70-minute window (00:52, 00:56, 01:24, 02:00 UTC) and a corresponding 4 Broadcast rows created in roughly the same window (00:31, 00:41, 01:01, 01:11 UTC for IDs 72-75). The timing doesn't perfectly align (broadcasts were created BEFORE the resume runs that match), so resume_sending isn't directly creating broadcasts — but the pattern needs to be traced. Read `backend/broadcasts/management/commands/resume_sending.py` and the prod execution logs in detail; map the actual control flow that produced 4 duplicate rows.
+
+Likely root cause hypothesis: someone (the previous Claude session?) was running `compose_monthly_blast` from a local CLI multiple times to test the `--backfill-since` flag, each call creating a fresh Broadcast row. The `compose_*` commands have no idempotency check (task #4b above is the fix).
+
 ## Deliverable
 
 A monthly digest that surfaces (a) what's actually in the data behind the headline numbers, (b) advocacy CTAs that turn intelligence into action, (c) honest copy when Parliament is in recess, and (d) a subject line that earns the open. Tested against the May 2026 dry-run before the 1 June scheduled send.
@@ -83,6 +99,9 @@ This is a bigger change than the original plan suggested but it's the right fix;
 | 3 | **Topic clustering for news articles** | `broadcasts/services/topic_clusterer.py` (new), tests | One Gemini call per digest: "group these N articles by which underlying story they cover; return canonical headline + cluster IDs". Falls back to no-clustering if Gemini fails (fail-open per Quality Engine pattern). **Not started.** |
 | 4 | **Recess detection** | `broadcasts/services/blast_aggregator.py` (working-tree change pending commit) | `HansardSitting` filtered to `status=COMPLETED` for the digest month → if zero, copy = "Parliament was not in session"; if >0 but no SJK(T) mentions, copy = "Parliament sat but did not discuss SJK(T) issues". Closes the failing `test_parliament_was_in_session_false_when_no_sittings` test. **In working tree, uncommitted.** |
 | 4a | **NEW — Brevo quota check before send** | `broadcasts/services/brevo_quota.py` (new), `broadcasts/services/sender.py`, `broadcasts/management/commands/compose_monthly_blast.py`, tests | Pre-flight check on Brevo `/v3/account`. Refuses send if `len(recipients) > remaining`. See plan adjustment B. **Not started.** |
+| 4b | **NEW — Duplicate-broadcast guard** | `broadcasts/services/duplicate_guard.py` (new), all `compose_*.py` commands, tests | Refuses to create a new Broadcast row if a SENT/SENDING row exists for the same `(kind, coverage_start_date, coverage_end_date)` within the last 7 days. New `--force-duplicate` flag allows override. See plan adjustment C. **Not started — added 2026-05-02 after duplicate April blast incident.** |
+| 4c | **NEW — Trace `resume_sending` interaction with `compose_*`** | `broadcasts/management/commands/resume_sending.py` (read-only investigation) | Map the actual code paths that allowed 4 Broadcast rows to be created for the same April digest in a 40-minute window on 2026-05-01. See plan adjustment D. Output: a written explanation in the sprint-23 retrospective. **Not started.** |
+| **REQUIRED BEFORE RE-ENABLING `sjktconnect-resume-sending` AND `sjktconnect-monthly-blast` SCHEDULERS** — both currently PAUSED as of 2026-05-02 02:11 UTC after the duplicate blast incident. Do NOT resume schedulers until tasks #4a + #4b ship and the #4c investigation has a written explanation. | | | |
 | 5 | **Dynamic subject line** | `broadcasts/management/commands/compose_monthly_blast.py`, tests | Pick the highest-impact trend from aggregator output (highest funding figure OR most novel policy item) → subject. Fallback to generic if no trend-worthy item. Closes the failing `test_dry_run_shows_counts` test. **Partially done in `4fa3873`** — task #0 confirms remainder. |
 | 6 | **Template overhaul (v2.html)** | `backend/templates/broadcasts/monthly_blast_v2.html` | Major rework: news clusters section, schools-mentioned-by-state list, recess copy, inline brief excerpts (use `lead_paragraph` field if present), stat captions defining what each number means, click-throughs on stat numbers, three new CTA cards (Donate / Share / Check your MP). HTML entities for any em-dash/curly quotes (lesson 21). **Not started.** |
 | 7 | **Stat semantics doc + captions** | `broadcasts/services/blast_aggregator.py` docstring + template captions | Lock down: "Schools mentioned" = ?, "News articles" = cluster count, "Positive sentiment" = ?, "Parliament mentions" = ?. Tiny tooltip-style caption in email. **Not started.** |
@@ -143,15 +162,62 @@ This is a bigger change than the original plan suggested but it's the right fix;
 - After task 9a: `--test-recipients tamiliam@gmail.com` sends exactly one email AFTER quota check passes; second invocation within 24h refuses with a clear message; idempotency log row exists.
 - Before task 11: full pytest run, copy literal output line.
 
+## Incident: duplicate April blast (2026-05-02)
+
+**Discovered**: 2026-05-02 ~17:00 MYT, when the user reported receiving the April digest a second time.
+
+**Scope**:
+- 4 Broadcast rows created in a 40-minute window on 2026-05-01 (UTC), all for "Monthly Intelligence Blast — April 2026":
+
+  | ID | Status | Created (UTC) | sent_at (UTC) | Total | Sent (DB) | Failed (DB) |
+  |---|---|---|---|---|---|---|
+  | 72 | SENT | 00:31 | 00:53 | 519 | 0 | 15 |
+  | 73 | SENT | 00:41 | 01:25 | 519 | 423 | 0 |
+  | 74 | SENT | 01:01 | 01:25 | 519 | 509 | 10 |
+  | 75 | SENT | 01:11 | 01:20 | 519 | 519 | 0 |
+  | 76 | DRAFT→CANCELLED | 05:43 | — | 0 | 0 | 0 |
+
+- Each row's `BroadcastRecipient.status='SENT'` reflects "201 received from Brevo's `sendTransacEmail`" (Brevo accepted into queue), NOT "delivered to inbox".
+- Brevo's actual aggregated delivery: 2026-05-01 = 300 requests / 285 delivered; 2026-05-02 = 300 requests / 288 delivered. Total 600 sends to ~519 unique subscribers ⇒ ~80-300 subscribers received the April digest twice.
+- Brevo queue may continue trickle-delivery from the backlog; worst-case bound is each subscriber receiving the digest 4 times.
+
+**Forensic evidence**:
+- `gcloud run jobs executions list` for `sjktconnect-monthly-blast`: 5 runs on 2026-05-01 between 05:08 and 06:32 UTC. None at 00:31, 00:41, 01:01, or 01:11 UTC where the duplicate Broadcast rows were created. Conclusion: duplicates were NOT created by the scheduled Cloud Run job.
+- `gcloud run jobs executions list` for `sjktconnect-resume-sending`: 4 runs on 2026-05-01 (00:52, 00:56, 01:24, 02:00 UTC). The 02:00 UTC was scheduled; the other three were manual re-triggers.
+- Today's `sjktconnect-resume-sending` (2026-05-02 02:00 UTC, scheduled) logged "No broadcasts in SENDING status" — it correctly found nothing to resume. So today's 300 emails are NOT from a fresh trigger; they're Brevo draining its accepted-but-rate-limited queue from yesterday's bursts.
+- Verified specific addresses received TWO delivered events (yesterday + today, ~24h apart):
+  - `tamiliam@gmail.com`: delivered 2026-05-01T08:31:45 + 2026-05-02T08:15:02
+  - `amutasubramaniam@gmail.com`: delivered 2026-05-01T08:31:51 + 2026-05-02T08:15:03
+
+**Most likely root cause**: a local CLI execution of `compose_monthly_blast` (presumably the previous Claude session attempting `--backfill-since` testing) was repeated 4 times in a 40-minute window. Each execution created a fresh Broadcast row with no idempotency check, queued 519 sends to Brevo, Brevo accepted all of them into queue, then rate-limited delivery at ~300/day. Resume-sending runs around the same time were a coincidence (they correctly look for SENDING-status rows; the duplicates were created in DRAFT then transitioned to SENT directly by the compose+send pipeline).
+
+**Containment actions taken 2026-05-02 ~02:11 UTC**:
+1. ✅ `sjktconnect-resume-sending` scheduler PAUSED.
+2. ✅ `sjktconnect-monthly-blast` scheduler PAUSED.
+3. ✅ Broadcast 76 (DRAFT) status set to `CANCELLED` (sentinel value not in `Broadcast.Status` TextChoices; effectively orphans the row from all send paths since `resume_sending` only picks SENDING and `sender.send_broadcast` only picks DRAFT/SENDING).
+4. Brevo queue cannot be halted from our side; will continue draining over 1-3 days. Filing a Brevo support ticket is low ETA and unlikely to halt mid-queue.
+
+**System changes required before re-enabling schedulers** (encoded as tasks #4a, #4b, #4c above):
+- #4a — Brevo quota check (already in plan from earlier — would have prevented Brevo accepting beyond daily quota and at least surfaced the over-send earlier).
+- #4b — Duplicate-broadcast guard (added in response to this incident — prevents same-month rows being created within 7 days).
+- #4c — Trace `resume_sending` ↔ `compose_*` interaction in detail; write findings into the sprint-23 retrospective. The hypothesis above is plausible but not verified.
+
+**Lesson candidates for `docs/lessons.md` at sprint close**:
+- Compose commands MUST have idempotency checks. "Don't create a new Broadcast row if one already exists for the same coverage period" is the cheapest possible guard and would have prevented this entire incident with one extra DB query before `Broadcast.objects.create(...)`.
+- "201 received from Brevo" ≠ "delivered to inbox". `BroadcastRecipient.status='SENT'` should arguably be renamed `QUEUED_WITH_PROVIDER` or supplemented with a separate `delivered_at` field that the Brevo webhook updates. Prevents future "we sent N" claims that reflect API acceptance, not actual delivery.
+- Production schedulers that create irreversible side effects (real emails to real subscribers) must default-pause when their compose path lacks idempotency. The cost of a paused scheduler is missed cadence; the cost of a stuck-on scheduler is subscriber annoyance + Brevo quota burn + reputation. Default to paused.
+
 ## Resume checklist (when work picks up)
 
-When the test email arrives and inspection confirms the previous attempt is recoverable:
+When work resumes (no longer waiting for the test email — Brevo state is now understood):
 
-1. Confirm the test email's rendered output matches expectations — note any rendering issues to address before task #6 begins.
-2. Run task #0 (reconciliation) and append the result to this plan.
+1. Inspect a sample of the duplicate emails subscribers received yesterday + today. Confirm rendered output matches what the new aggregator was supposed to produce. Note any rendering issues for task #6.
+2. Run task #0 (reconciliation) — verify the smuggled `4fa3873` work matches the plan's intent for #2/#2a/#5.
 3. Mark Sprint 23 "In Progress" in CLAUDE.md Sprint Status table.
-4. Commit the working-tree `blast_aggregator.py` recess-detection change (task #4) as the first explicit Sprint 23 commit, with message `feat(sprint 23): recess detection — filter sittings to COMPLETED`. This also gives a clean baseline for the failing test to flip green.
-5. Continue sequentially through tasks #3, #4a, #5 remainder, #6, #7, #8, #9, #9a, #10, #11, #12.
+4. Commit the working-tree `blast_aggregator.py` recess-detection change (task #4) as the first explicit Sprint 23 commit, with message `feat(sprint 23): recess detection — filter sittings to COMPLETED`.
+5. Land task #4a (Brevo quota check) AND #4b (duplicate-broadcast guard) AND complete #4c investigation **before** any further compose/send work.
+6. Continue sequentially through tasks #3, #5 remainder, #6, #7, #8, #9, #9a, #10, #11, #12.
+7. **Before sprint close**: re-enable the two paused schedulers (`gcloud scheduler jobs resume sjktconnect-monthly-blast` + `gcloud scheduler jobs resume sjktconnect-resume-sending`) ONLY after #4a + #4b are verified live in prod. The retrospective must explicitly note "schedulers re-enabled at <timestamp> after verification of <commit_sha>".
 
 ## Pre-flight (at original plan creation, 2026-05-01)
 
