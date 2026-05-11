@@ -15,10 +15,15 @@ from django.utils import timezone
 
 from broadcasts.models import Broadcast, BroadcastRecipient
 from broadcasts.services.audience import get_filtered_subscribers
+from broadcasts.services.brevo_quota import BrevoQuotaError, get_quota
 
 logger = logging.getLogger(__name__)
 
 BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
+
+
+class QuotaExceededError(Exception):
+    """Raised when a planned send exceeds today's Brevo quota."""
 
 
 def send_broadcast(broadcast_id, batch_size=0):
@@ -75,6 +80,8 @@ def send_broadcast(broadcast_id, batch_size=0):
         logger.info(
             "Broadcast %s: %d recipients created", broadcast_id, len(recipients)
         )
+
+        _enforce_quota(broadcast, recipients, batch_size)
 
         sent_count, failed_count = _send_pending_recipients(
             broadcast, api_key, frontend_url, batch_size
@@ -140,6 +147,13 @@ def resume_broadcast(broadcast_id, batch_size=250):
     frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
     try:
+        pending_recipients = list(
+            broadcast.recipients.filter(
+                status=BroadcastRecipient.DeliveryStatus.PENDING
+            )
+        )
+        _enforce_quota(broadcast, pending_recipients, batch_size)
+
         sent_count, failed_count = _send_pending_recipients(
             broadcast, api_key, frontend_url, batch_size
         )
@@ -166,6 +180,46 @@ def resume_broadcast(broadcast_id, batch_size=250):
         broadcast_id, broadcast.status, sent_count, failed_count,
     )
     return broadcast
+
+
+def _enforce_quota(broadcast, recipients, batch_size):
+    """Pre-flight Brevo quota check; raise if planned send exceeds remaining.
+
+    The April 2026 blast hit Brevo's 300/day cap at 514/519 and the
+    tail-end 400s were swallowed silently. With this gate, the send
+    aborts with the three numbers visible in the log instead.
+
+    ``batch_size`` of 0 means "send everything"; bounds the planned
+    count to ``len(recipients)``. A positive ``batch_size`` caps the
+    planned count to that batch.
+    """
+    try:
+        quota = get_quota()
+    except BrevoQuotaError as exc:
+        # Quota probe failed (network, auth) — refuse to send blind.
+        logger.error("Broadcast %s: quota probe failed: %s", broadcast.pk, exc)
+        raise
+
+    if quota["dev_mode"]:
+        return
+
+    planned = len(recipients)
+    if batch_size > 0:
+        planned = min(planned, batch_size)
+
+    if planned > quota["remaining"]:
+        raise QuotaExceededError(
+            "Broadcast %d planned %d sends but Brevo has %d remaining today "
+            "(quota=%d, used=%d). Wait until tomorrow or pass batch_size <= %d."
+            % (
+                broadcast.pk,
+                planned,
+                quota["remaining"],
+                quota["daily_quota"],
+                quota["used_today"],
+                quota["remaining"],
+            )
+        )
 
 
 def _send_pending_recipients(broadcast, api_key, frontend_url, batch_size=0):

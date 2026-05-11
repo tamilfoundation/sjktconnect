@@ -116,9 +116,10 @@ class TestComposeMonthlyBlast:
         out = StringIO()
         call_command("compose_monthly_blast", month="2026-02", dry_run=True, stdout=out)
         output = out.getvalue()
-        assert "1 parliament" in output
-        assert "1 news" in output
-        assert "1 scorecard" in output
+        # Sprint 23 dry-run output uses the long-form counts.
+        assert "1 mentions total" in output
+        assert "1 approved" in output
+        assert "1 scorecard items" in output
 
     def test_defaults_to_previous_month(self, db):
         out = StringIO()

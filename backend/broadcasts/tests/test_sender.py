@@ -45,6 +45,24 @@ def draft_broadcast(db):
     )
 
 
+@pytest.fixture
+def mock_brevo_quota():
+    """Permissive Brevo quota for production-mode tests.
+
+    The pre-flight quota check (added 2026-05-11 after the duplicate-
+    blast incident) calls Brevo /v3/account. These tests don't want to
+    hit the network, so we short-circuit get_quota with plenty of room.
+    """
+    permissive = {
+        "daily_quota": 1000,
+        "used_today": 0,
+        "remaining": 1000,
+        "dev_mode": False,
+    }
+    with patch("broadcasts.services.sender.get_quota", return_value=permissive):
+        yield permissive
+
+
 @pytest.mark.django_db
 class TestSendBroadcast:
     """Test send_broadcast service function."""
@@ -118,7 +136,7 @@ class TestSendBroadcast:
 
     @patch("broadcasts.services.sender.requests.post")
     def test_production_mode_calls_brevo(
-        self, mock_post, draft_broadcast, subscriber_a
+        self, mock_post, draft_broadcast, subscriber_a, mock_brevo_quota
     ):
         """With BREVO_API_KEY, calls Brevo API for each recipient."""
         mock_response = MagicMock()
@@ -139,7 +157,7 @@ class TestSendBroadcast:
 
     @patch("broadcasts.services.sender.requests.post")
     def test_reply_to_header_included_in_brevo_payload(
-        self, mock_post, draft_broadcast, subscriber_a
+        self, mock_post, draft_broadcast, subscriber_a, mock_brevo_quota
     ):
         """Brevo API payload includes replyTo with feedback address."""
         mock_response = MagicMock()
@@ -158,7 +176,7 @@ class TestSendBroadcast:
 
     @patch("broadcasts.services.sender.requests.post")
     def test_to_payload_includes_name_when_subscriber_has_name(
-        self, mock_post, draft_broadcast, subscriber_a
+        self, mock_post, draft_broadcast, subscriber_a, mock_brevo_quota
     ):
         """When subscriber.name is set, Brevo `to` entry includes it."""
         mock_response = MagicMock()
@@ -175,7 +193,7 @@ class TestSendBroadcast:
 
     @patch("broadcasts.services.sender.requests.post")
     def test_to_payload_omits_name_when_subscriber_name_empty(
-        self, mock_post, draft_broadcast, db
+        self, mock_post, draft_broadcast, db, mock_brevo_quota
     ):
         """Bulk-imported subscribers default to name='' — Brevo returns
         400 if `to.name` is present but empty, so we omit the key
@@ -214,7 +232,7 @@ class TestSendBroadcast:
 
     @patch("broadcasts.services.sender.requests.post")
     def test_production_mode_handles_api_failure(
-        self, mock_post, draft_broadcast, subscriber_a
+        self, mock_post, draft_broadcast, subscriber_a, mock_brevo_quota
     ):
         """API failure marks recipient as FAILED but broadcast still completes."""
         import requests as req

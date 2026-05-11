@@ -21,6 +21,10 @@ from django.utils.html import strip_tags
 
 from broadcasts.models import Broadcast
 from broadcasts.services.blast_aggregator import aggregate_month
+from broadcasts.services.duplicate_guard import (
+    check_duplicate,
+    format_block_message,
+)
 from broadcasts.services.image_generator import generate_hero_image
 from broadcasts.services.monthly_analyst import generate_monthly_analysis
 from broadcasts.services.sender import send_broadcast
@@ -59,12 +63,33 @@ class Command(BaseCommand):
                 "boundary). Has no effect on mentions, news, or scorecards."
             ),
         )
+        parser.add_argument(
+            "--force-duplicate",
+            action="store_true",
+            help=(
+                "Bypass the duplicate-broadcast guard. Only use when "
+                "intentionally re-sending after a recipient-list correction "
+                "or spam-flag fix."
+            ),
+        )
 
     def handle(self, *args, **options):
         year, month = self._parse_month(options["month"])
         month_label = f"{calendar.month_name[month]} {year}"
         dry_run = options["dry_run"]
         backfill_since = self._parse_backfill_since(options["backfill_since"])
+
+        coverage_start = date(year, month, 1)
+        coverage_end = date(year, month, calendar.monthrange(year, month)[1])
+
+        if not dry_run and not options["force_duplicate"]:
+            existing = check_duplicate(
+                kind=Broadcast.Kind.MONTHLY_BLAST,
+                coverage_start=coverage_start,
+                coverage_end=coverage_end,
+            )
+            if existing is not None:
+                raise CommandError(format_block_message(existing))
 
         data = aggregate_month(year, month, backfill_since=backfill_since)
 
@@ -192,6 +217,8 @@ class Command(BaseCommand):
             text_content=text_content,
             audience_filter={"category": "MONTHLY_BLAST"},
             kind=Broadcast.Kind.MONTHLY_BLAST,
+            coverage_start_date=coverage_start,
+            coverage_end_date=coverage_end,
             status=Broadcast.Status.DRAFT,
             hero_image=hero_image_bytes or b"",
         )

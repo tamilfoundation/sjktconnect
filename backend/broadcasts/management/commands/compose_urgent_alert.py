@@ -15,6 +15,10 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 
 from broadcasts.models import Broadcast
+from broadcasts.services.duplicate_guard import (
+    check_duplicate,
+    format_block_message,
+)
 from broadcasts.services.urgent_alert import generate_urgent_alert
 from newswatch.models import NewsArticle
 
@@ -33,6 +37,14 @@ class Command(BaseCommand):
             "--dry-run",
             action="store_true",
             help="Print what would be generated without creating a broadcast",
+        )
+        parser.add_argument(
+            "--force-duplicate",
+            action="store_true",
+            help=(
+                "Bypass the duplicate-broadcast guard. Only use when "
+                "intentionally re-sending after a content correction."
+            ),
         )
 
     def handle(self, *args, **options):
@@ -90,9 +102,19 @@ class Command(BaseCommand):
         )
 
         text_content = strip_tags(html_content)
+        subject = f"URGENT: {article.title}"
+
+        if not options["force_duplicate"]:
+            existing = check_duplicate(
+                kind=Broadcast.Kind.URGENT_ALERT,
+                subject=subject,
+            )
+            if existing is not None:
+                self.stderr.write(self.style.ERROR(format_block_message(existing)))
+                return
 
         broadcast = Broadcast.objects.create(
-            subject=f"URGENT: {article.title}",
+            subject=subject,
             html_content=html_content,
             text_content=text_content,
             audience_filter={"category": "NEWS_WATCH"},

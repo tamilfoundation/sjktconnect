@@ -19,6 +19,10 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 
 from broadcasts.models import Broadcast
+from broadcasts.services.duplicate_guard import (
+    check_duplicate,
+    format_block_message,
+)
 from broadcasts.services.image_generator import generate_hero_image
 from broadcasts.services.parliament_digest import generate_parliament_digest
 from parliament.models import ParliamentaryMeeting
@@ -56,11 +60,20 @@ class Command(BaseCommand):
             action="store_true",
             help="Print what would be generated without creating a broadcast",
         )
+        parser.add_argument(
+            "--force-duplicate",
+            action="store_true",
+            help=(
+                "Bypass the duplicate-broadcast guard. Only use when "
+                "intentionally re-sending after a content correction."
+            ),
+        )
 
     def handle(self, *args, **options):
         meeting_id = options.get("meeting_id")
         auto = options["auto"]
         dry_run = options["dry_run"]
+        force_duplicate = options["force_duplicate"]
 
         if not meeting_id and not auto:
             self.stderr.write(
@@ -83,7 +96,9 @@ class Command(BaseCommand):
                 f"{', '.join(m.short_name for m in meetings)}"
             )
             for meeting in meetings:
-                self._compose_for_meeting(meeting, dry_run=dry_run)
+                self._compose_for_meeting(
+                    meeting, dry_run=dry_run, force_duplicate=force_duplicate
+                )
             return
 
         try:
@@ -95,7 +110,9 @@ class Command(BaseCommand):
                 )
             )
             return
-        self._compose_for_meeting(meeting, dry_run=dry_run)
+        self._compose_for_meeting(
+            meeting, dry_run=dry_run, force_duplicate=force_duplicate
+        )
 
     def _discover_unsent_meetings(self):
         """Return published meetings without an existing PARLIAMENT_WATCH broadcast.
@@ -121,7 +138,23 @@ class Command(BaseCommand):
             if (m.start_date, m.end_date) not in sent_pairs
         ]
 
-    def _compose_for_meeting(self, meeting, *, dry_run: bool) -> None:
+    def _compose_for_meeting(
+        self, meeting, *, dry_run: bool, force_duplicate: bool = False
+    ) -> None:
+        if not dry_run and not force_duplicate:
+            existing = check_duplicate(
+                kind=Broadcast.Kind.PARLIAMENT_WATCH,
+                coverage_start=meeting.start_date,
+                coverage_end=meeting.end_date,
+            )
+            if existing is not None:
+                self.stderr.write(
+                    self.style.ERROR(
+                        f"[{meeting.short_name}] {format_block_message(existing)}"
+                    )
+                )
+                return
+
         digest = generate_parliament_digest(meeting)
         if digest is None:
             self.stderr.write(

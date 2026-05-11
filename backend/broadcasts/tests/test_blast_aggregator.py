@@ -458,8 +458,29 @@ class TestSprint23DeterministicCounts:
         assert result["parliament_was_in_session"] is True
         assert result["parliament_sitting_count"] >= 1
 
-    def test_parliament_was_in_session_false_when_no_sittings(self):
+    def test_parliament_was_in_session_false_when_no_sittings(self, db):
         # April 2026 — recess, no sittings created in fixtures
+        result = aggregate_month(2026, 4)
+        assert result["parliament_was_in_session"] is False
+        assert result["parliament_sitting_count"] == 0
+
+    def test_parliament_was_in_session_false_when_only_failed_sittings(self, db):
+        # Scraper probes every calendar date; non-sitting days (recess,
+        # weekend, public holiday) land as FAILED rows. The recess
+        # detection must ignore those — only COMPLETED rows count as
+        # evidence Parliament actually sat.
+        HansardSitting.objects.create(
+            sitting_date=date(2026, 4, 5),
+            pdf_url="https://example.com/apr-5.pdf",
+            pdf_filename="apr-5.pdf",
+            status=HansardSitting.Status.FAILED,
+        )
+        HansardSitting.objects.create(
+            sitting_date=date(2026, 4, 12),
+            pdf_url="https://example.com/apr-12.pdf",
+            pdf_filename="apr-12.pdf",
+            status=HansardSitting.Status.FAILED,
+        )
         result = aggregate_month(2026, 4)
         assert result["parliament_was_in_session"] is False
         assert result["parliament_sitting_count"] == 0

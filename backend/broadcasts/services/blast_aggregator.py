@@ -184,8 +184,15 @@ def aggregate_month(
     schools_mentioned_total = len(schools_mentioned)
 
     # Recess detection (Sprint 23) — was Parliament even sitting?
+    # The scraper creates a HansardSitting row per CALENDAR DATE it
+    # probes; if no PDF exists for that date (recess, weekend, public
+    # holiday) the row is marked FAILED. So "Parliament sat" must
+    # filter for COMPLETED rows — FAILED rows are evidence of the
+    # opposite.
     sitting_count = HansardSitting.objects.filter(
-        sitting_date__year=year, sitting_date__month=month
+        sitting_date__year=year,
+        sitting_date__month=month,
+        status=HansardSitting.Status.COMPLETED,
     ).count()
     parliament_was_in_session = sitting_count > 0
 

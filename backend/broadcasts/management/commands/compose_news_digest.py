@@ -22,6 +22,10 @@ from django.utils import timezone
 from django.utils.html import strip_tags
 
 from broadcasts.models import Broadcast
+from broadcasts.services.duplicate_guard import (
+    check_duplicate,
+    format_block_message,
+)
 from broadcasts.services.image_generator import generate_hero_image
 from broadcasts.services.news_digest import generate_news_digest
 from broadcasts.services.sender import send_broadcast
@@ -46,6 +50,14 @@ class Command(BaseCommand):
             type=int,
             default=0,
             help="Max emails per batch (0 = send all). Use resume_sending to continue.",
+        )
+        parser.add_argument(
+            "--force-duplicate",
+            action="store_true",
+            help=(
+                "Bypass the duplicate-broadcast guard. Only use when "
+                "intentionally re-sending after a recipient-list correction."
+            ),
         )
 
     def _get_since_date(self):
@@ -156,6 +168,16 @@ class Command(BaseCommand):
             "broadcasts/news_watch_digest.html", template_context
         )
         text_content = strip_tags(html_content)
+
+        if not options["force_duplicate"]:
+            existing = check_duplicate(
+                kind=Broadcast.Kind.NEWS_DIGEST,
+                coverage_start=start_date,
+                coverage_end=end_date,
+            )
+            if existing is not None:
+                self.stderr.write(self.style.ERROR(format_block_message(existing)))
+                return
 
         broadcast = Broadcast.objects.create(
             subject=f"News Watch \u2014 {period_label}",
