@@ -137,3 +137,54 @@ class MonthlyAnalystTest(TestCase):
         generate_monthly_analysis(2026, 2)
         # Should be called for Feb 2026 AND Jan 2026
         self.assertEqual(mock_agg.call_count, 2)
+
+    @patch("broadcasts.services.monthly_analyst.aggregate_month")
+    @patch("broadcasts.services.monthly_analyst.genai")
+    def test_recess_clauses_present_in_all_sections(self, mock_genai, mock_agg):
+        """Sprint 24 #1: recess instruction must appear in every section
+        that produced false signals in the April 2026 render audit
+        (trend_lines, emerging_signals, fading_from_view, opportunity_watch),
+        not only in executive_summary.
+        """
+        mock_agg.return_value = _aggregate_stub(parliament_was_in_session=False)
+        mock_response = Mock()
+        mock_response.text = _VALID_RESPONSE
+        mock_genai.Client.return_value.models.generate_content.return_value = mock_response
+
+        generate_monthly_analysis(2026, 4)
+
+        call_kwargs = mock_genai.Client.return_value.models.generate_content.call_args.kwargs
+        prompt = call_kwargs["contents"]
+
+        # Session state must be wired through accurately.
+        self.assertIn("Parliament was not in session", prompt)
+
+        # Each of the four sections must carry its own RECESS clause.
+        # The string appears once per section (4 total) plus the
+        # pre-existing executive_summary clause uses a different phrasing
+        # ("If Parliament was not in session, say so explicitly").
+        recess_clause_count = prompt.count("RECESS:")
+        self.assertEqual(
+            recess_clause_count, 4,
+            f"Expected 4 RECESS clauses (trend_lines, emerging_signals, "
+            f"fading_from_view, opportunity_watch); got {recess_clause_count}"
+        )
+
+        # Per-section anchor phrases — proves each section got its
+        # tailored guidance, not just a generic copy-paste.
+        self.assertIn(
+            'do NOT emit a trend with direction="up" or "down" for parliamentary attention',
+            prompt,
+        )
+        self.assertIn(
+            "do NOT cite parliamentary patterns as emerging signals",
+            prompt,
+        )
+        self.assertIn(
+            'do NOT list parliamentary discourse as "fading"',
+            prompt,
+        )
+        self.assertIn(
+            "MP outreach IS a valid opportunity",
+            prompt,
+        )

@@ -91,6 +91,7 @@ class AnalyseNewsArticlesCommandTest(TestCase):
             "analysed": 3,
             "failed": 0,
             "skipped": 1,
+            "blocklisted": 0,
         }
 
         out = StringIO()
@@ -107,6 +108,7 @@ class AnalyseNewsArticlesCommandTest(TestCase):
             "analysed": 5,
             "failed": 0,
             "skipped": 0,
+            "blocklisted": 0,
         }
 
         out = StringIO()
@@ -131,6 +133,7 @@ class AnalyseNewsArticlesCommandTest(TestCase):
             "analysed": 1,
             "failed": 0,
             "skipped": 0,
+            "blocklisted": 0,
         }
 
         out = StringIO()

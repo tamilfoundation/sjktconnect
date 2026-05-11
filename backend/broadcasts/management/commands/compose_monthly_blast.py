@@ -28,6 +28,7 @@ from broadcasts.services.duplicate_guard import (
 from broadcasts.services.image_generator import generate_hero_image
 from broadcasts.services.monthly_analyst import generate_monthly_analysis
 from broadcasts.services.sender import send_broadcast
+from broadcasts.services.topic_clusterer import cluster_news_articles
 
 
 class Command(BaseCommand):
@@ -140,14 +141,36 @@ class Command(BaseCommand):
                 )
             return
 
-        # Try v2 analytical blast via Gemini
+        # Try v2 analytical blast via Gemini.
+        # Sprint 24 #6 (LOCKED 2026-05-11): there is no v1 fallback. If
+        # Gemini fails, the compose aborts with a CommandError so the
+        # admin sees a clear failure instead of a half-quality digest.
         analysis = generate_monthly_analysis(year, month, backfill_since=backfill_since)
+        if analysis is None:
+            raise CommandError(
+                "Monthly blast compose aborted: monthly_analyst returned None "
+                "(GEMINI_API_KEY missing, API failure, or invalid response). "
+                "Fix the underlying issue and rerun — Sprint 24 removed the "
+                "v1 fallback because a half-quality digest is worse than a "
+                "clean error."
+            )
 
-        # Sprint 23: extra context shared by every render (Gemini path
-        # AND v1 fallback). Surfaces the deterministic counts, the full
-        # news list, the schools-mentioned set, and the recess flag.
+        # Sprint 24 task #2: cluster the approved news articles into
+        # topic groups so a 46-article month reads as a small set of
+        # named stories rather than a flat list. Fail-open inside the
+        # service — never raises.
+        news_clusters = cluster_news_articles(list(data.get("news_all", [])))
+        self.stdout.write(
+            f"News clustered into {len(news_clusters)} group(s) "
+            f"from {data.get('news_total', 0)} approved articles"
+        )
+
+        # Sprint 23 + 24: extra context for v2 render. Surfaces the
+        # deterministic counts, the full news list, the schools-mentioned
+        # set, the recess flag, and (Sprint 24 #2) the news clusters.
         v2_context_extras = {
             "news_all": list(data.get("news_all", [])),
+            "news_clusters": news_clusters,
             "schools_mentioned": data.get("schools_mentioned", []),
             "schools_mentioned_total": data.get("schools_mentioned_total", 0),
             "news_total": data.get("news_total", 0),
@@ -156,54 +179,36 @@ class Command(BaseCommand):
             "parliament_was_in_session": data.get("parliament_was_in_session", False),
             "parliament_sitting_count": data.get("parliament_sitting_count", 0),
             "donate_url": "https://tamilschool.org/donate",
-            "share_url": "https://tamilschool.org/",
+            "share_url": (
+                "mailto:?subject=Tamil%20Schools%20Intelligence%20Blast"
+                "&body=Have%20a%20look%20at%20this%20month%27s%20digest"
+                "%20from%20tamilschool.org"
+            ),
             "mp_activity_url": "https://tamilschool.org/parliament-watch",
         }
 
-        hero_image_bytes = None
-        if analysis:
-            # Generate optional hero image for v2 analytical blast
-            hero_image_bytes = generate_hero_image(
-                content_summary=analysis.get(
-                    "executive_summary", ""
-                )[:200],
-                style="monthly",
-            )
-            if hero_image_bytes:
-                self.stdout.write("Hero image generated")
+        # Generate optional hero image for the analytical blast.
+        hero_image_bytes = generate_hero_image(
+            content_summary=analysis.get("executive_summary", "")[:200],
+            style="monthly",
+        )
+        if hero_image_bytes:
+            self.stdout.write("Hero image generated")
 
-            # Render template without hero_image_url — it will be
-            # patched in after the broadcast is saved (needs the PK)
-            html_content = render_to_string(
-                "broadcasts/monthly_blast_v2.html",
-                {
-                    "month_label": month_label,
-                    "analysis": analysis,
-                    "hero_image_url": None,
-                    "briefs": data["briefs"],
-                    "meeting_reports": data["meeting_reports"],
-                    **v2_context_extras,
-                },
-            )
-            self.stdout.write("Using v2 analytical template (Gemini)")
-        else:
-            # Fallback to v1 template (no Gemini key or error)
-            html_content = render_to_string(
-                "broadcasts/monthly_blast.html",
-                {
-                    "month_label": month_label,
-                    "parliament": data["parliament"],
-                    "news": data["news"],
-                    "scorecards": data["scorecards"],
-                    "scorecards_are_lifetime_fallback": data[
-                        "scorecards_are_lifetime_fallback"
-                    ],
-                    "briefs": data["briefs"],
-                    "meeting_reports": data["meeting_reports"],
-                    **v2_context_extras,
-                },
-            )
-            self.stdout.write("Using v1 template (Gemini unavailable)")
+        # Render template without hero_image_url — it will be patched in
+        # after the broadcast is saved (needs the PK).
+        html_content = render_to_string(
+            "broadcasts/monthly_blast_v2.html",
+            {
+                "month_label": month_label,
+                "analysis": analysis,
+                "hero_image_url": None,
+                "briefs": data["briefs"],
+                "meeting_reports": data["meeting_reports"],
+                **v2_context_extras,
+            },
+        )
+        self.stdout.write("Using v2 analytical template (Gemini)")
 
         text_content = strip_tags(html_content)
 

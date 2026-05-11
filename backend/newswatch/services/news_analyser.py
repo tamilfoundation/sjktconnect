@@ -19,17 +19,49 @@ logger = logging.getLogger(__name__)
 # Valid enum values for validation
 SENTIMENTS = {"POSITIVE", "NEGATIVE", "NEUTRAL", "MIXED"}
 
+# Sprint 24 task #1a — classifieds/real-estate domains whose articles
+# surface SJK(T) only as amenity bullets, location names, or directory
+# entries. Filter before Gemini so we don't spend tokens classifying
+# property listings, and so genuinely off-topic articles cannot reach
+# subscribers via the auto-approve-at-relevance-≥3 path.
+# Added after the 2026-05-03 render audit found that 4 of 5 April-digest
+# news cards were real-estate listings from edgeprop.my.
+DOMAIN_BLOCKLIST = frozenset({
+    "edgeprop.my",
+    "propertyguru.com.my",
+    "iproperty.com.my",
+    "mudah.my",
+})
+
 ANALYSIS_PROMPT = """\
 You are analysing a news article that may be about Malaysian Tamil schools (SJK(T)).
 
 Analyse the article and return a JSON object with these fields:
 
 - relevance_score: Integer 1-5
-  - 1: No mention of Tamil schools, unrelated
-  - 2: Passing mention, not the focus
-  - 3: Mentions Tamil schools as part of a broader topic
-  - 4: Primarily about Tamil schools
-  - 5: Entirely focused on Tamil schools, major news
+  Score the article on whether Tamil schools are the SUBJECT MATTER, not
+  on whether the words "SJK(T)" or "Tamil school" merely appear in the
+  text. A real-estate listing that mentions "SJK(T) school nearby" as an
+  amenity scores 1, not 3 — the article is about a property, not about a
+  school. A restaurant review that gives directions past a Tamil school
+  scores 1, not 2.
+  - 1: Tamil schools not mentioned, OR mentioned only as a location
+       landmark / amenity bullet / address fragment / directory entry.
+       The article's subject is unrelated (property listing, restaurant
+       review, traffic news, etc.).
+  - 2: Tamil schools mentioned in passing in an article whose primary
+       subject is something else (general education policy, an Indian-
+       community story, political coverage). Reader learns nothing
+       specific about SJK(T).
+  - 3: Tamil schools are a meaningful part of a broader story; the
+       article includes substantive content about SJK(T) issues even if
+       it also covers other topics.
+  - 4: Primarily about Tamil schools — most paragraphs discuss SJK(T)
+       people, institutions, or issues.
+  - 5: Entirely focused on Tamil schools (e.g. one named school's
+       redevelopment, a SJK(T)-only policy, a sector-wide story).
+  Articles scoring ≥3 are auto-published to subscribers; ≤2 are
+  auto-rejected. Err toward the lower score when uncertain.
 
 - sentiment: One of POSITIVE, NEGATIVE, NEUTRAL, MIXED
   - POSITIVE: Good news for Tamil schools (funding, improvements, recognition)
@@ -158,6 +190,24 @@ def _get_client():
             "Get one from https://aistudio.google.com/apikey"
         )
     return genai.Client(api_key=api_key)
+
+
+def is_blocklisted_url(url: str) -> bool:
+    """Return True if the URL's host is in DOMAIN_BLOCKLIST.
+
+    Strips a leading "www." and lowercases the host for comparison.
+    Returns False for empty or unparseable URLs.
+    """
+    from urllib.parse import urlparse
+    if not url:
+        return False
+    try:
+        host = (urlparse(url).hostname or "").lower()
+    except Exception:
+        return False
+    if host.startswith("www."):
+        host = host[4:]
+    return host in DOMAIN_BLOCKLIST
 
 
 def _build_body(article):
@@ -641,22 +691,64 @@ def apply_analysis(article, analysis):
     ])
 
 
+def reject_blocklisted(article):
+    """Mark an article from a blocklisted domain as REJECTED without
+    calling Gemini.
+
+    Sprint 24 task #1a. Sets a sentinel `ai_raw_response["blocklisted_domain"]
+    = True` so the reclassify_existing_articles command can identify
+    blocklist-rejected rows distinct from low-relevance rejects.
+    """
+    from newswatch.models import NewsArticle as NA
+
+    article.relevance_score = 1
+    article.sentiment = "NEUTRAL"
+    article.ai_summary = (
+        "Auto-rejected: source domain is on the news-triage blocklist "
+        "(classifieds / real-estate / property listings)."
+    )
+    article.mentioned_schools = []
+    article.is_urgent = False
+    article.urgent_reason = ""
+    article.ai_raw_response = {"blocklisted_domain": True}
+    article.status = NA.ANALYSED
+    article.review_status = NA.REJECTED
+    article.save(update_fields=[
+        "relevance_score", "sentiment", "ai_summary", "mentioned_schools",
+        "is_urgent", "urgent_reason", "ai_raw_response", "status",
+        "review_status", "updated_at",
+    ])
+
+
 def analyse_pending_articles(batch_size=10):
     """Analyse all EXTRACTED articles that haven't been analysed yet.
+
+    Sprint 24 task #1a: articles from DOMAIN_BLOCKLIST are short-circuited
+    to REJECTED without a Gemini call.
 
     Args:
         batch_size: Maximum number of articles to process in one run.
 
     Returns:
-        dict with counts: {"analysed": int, "failed": int, "skipped": int}
+        dict with counts: {"analysed": int, "failed": int, "skipped": int,
+        "blocklisted": int}
     """
     from newswatch.models import NewsArticle as NA
 
     articles = NA.objects.filter(status=NA.EXTRACTED).order_by("created_at")[:batch_size]
 
-    counts = {"analysed": 0, "failed": 0, "skipped": 0}
+    counts = {"analysed": 0, "failed": 0, "skipped": 0, "blocklisted": 0}
 
     for article in articles:
+        if is_blocklisted_url(article.url):
+            reject_blocklisted(article)
+            counts["blocklisted"] += 1
+            logger.info(
+                "Article %s auto-rejected: blocklisted domain (%s)",
+                article.pk, article.url,
+            )
+            continue
+
         if not article.body_text.strip():
             counts["skipped"] += 1
             continue

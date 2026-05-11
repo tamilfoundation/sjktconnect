@@ -79,15 +79,31 @@ say so explicitly rather than treating zero mentions as a signal.
    - "detail" (string): 1-2 sentences explaining the trend with specific \
 numbers or comparisons.
    Include 2-4 trends.
+   RECESS: If Parliament was NOT in session this month, do NOT emit a \
+trend with direction="up" or "down" for parliamentary attention — zero \
+mentions during recess is structural, not a signal of declining focus. \
+Either omit the parliamentary trend entirely OR include it with \
+direction="stable" and detail noting the recess explicitly (e.g. \
+"Parliament in recess; next sitting expected MONTH YYYY.").
 
 3. "emerging_signals" (array of strings): 1-3 new patterns or developments \
-that appeared this month and deserve attention. Each 1-2 sentences.
+that appeared this month and deserve attention. Each 1-2 sentences. \
+RECESS: If Parliament was NOT in session, do NOT cite parliamentary \
+patterns as emerging signals — focus on news, NGO, private sector, or \
+community signals.
 
 4. "fading_from_view" (array of strings): 1-2 issues that were active before \
-but received less attention this month. Each 1-2 sentences. Can be empty.
+but received less attention this month. Each 1-2 sentences. Can be empty. \
+RECESS: If Parliament was NOT in session, do NOT list parliamentary \
+discourse as "fading" — recess is structural, not a fade. A topic only \
+counts as fading if it was active in both months and dropped off; do not \
+compare a recess month against a sitting month for parliamentary topics.
 
 5. "opportunity_watch" (array of strings): 1-3 actionable opportunities \
-stakeholders should act on. Be specific — name people, deadlines, or events.
+stakeholders should act on. Be specific — name people, deadlines, or events. \
+RECESS: If Parliament is in recess, MP outreach IS a valid opportunity — \
+MPs are most reachable in their constituencies during recess. Suggest \
+specific MPs (from the scorecard data) and what to raise with them.
 
 6. "school_spotlight" (object or null): If a specific school stood out this \
 month, include:
