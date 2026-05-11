@@ -48,6 +48,60 @@ COUNT-vs-SAMPLE POLICY (Sprint 23):
   the April 2026 digest when 46 were actually approved. Sprint 23
   removed `by_the_numbers` from the LLM schema; it is now composed
   in Python from the deterministic counts here.
+
+STAT SEMANTICS — locked Sprint 24 task #3:
+  Every headline number in the v2 template has a single, locked
+  definition. Future contributors who change ANY of these MUST update
+  both the template caption AND this docstring. Subscribers screenshot
+  the digest; the captions are a contract.
+
+  parliament_total
+    Number of HansardMention rows whose `sitting.sitting_date` falls
+    within the target month AND review_status != REJECTED AND mp_name
+    is non-empty. One row = one mention by one MP in one sitting; a
+    single MP raising SJK(T) three times in one debate counts as one.
+    Recess months → zero (no sittings = no mentions).
+
+  news_total
+    Number of NewsArticle rows whose `published_date` falls within
+    the target month AND status=ANALYSED AND review_status=APPROVED.
+    The "approved" gate is auto-applied at relevance_score>=3 by the
+    news_analyser pipeline (Sprint 24 #1a tightened the relevance
+    prompt + added a domain blocklist). This is the raw article
+    count, NOT the topic-cluster count produced by
+    services.topic_clusterer — clusters group articles, they don't
+    replace the headline.
+
+  schools_mentioned_total
+    Number of distinct School rows mentioned in either news OR
+    Hansard during the month. Schools mentioned only by name (no
+    matched moe_code) are NOT counted — we count rows we could
+    confidently link, not LLM-reported names. The same school
+    mentioned 5 times in news + 2 times in Hansard counts as one.
+
+  news_sentiment_breakdown.positive / .negative / .neutral
+    Counts taken from news_all filtered by NewsArticle.sentiment.
+    Headline "positive stories" = positive count. MIXED-sentiment
+    articles are NOT in any of the three buckets; if MIXED becomes
+    common, surface a separate "mixed" key here.
+
+  schools_by_state (Sprint 24 #3)
+    dict[str, list[School]] mapping state name (e.g. "Melaka",
+    "Pulau Pinang") to the schools_mentioned subset in that state.
+    Insertion order is by count descending, then alphabetical — so
+    the v2 template can iterate in display order without re-sorting.
+    Schools with empty/null state land in the catch-all key
+    "Other" so the row count always matches schools_mentioned_total.
+
+  parliament_was_in_session
+    True iff at least one HansardSitting row with status=COMPLETED
+    exists in the month. FAILED rows (probe-day with no PDF) don't
+    count — they are evidence of recess, not sitting. This boolean
+    drives every RECESS clause in monthly_analyst.ANALYST_PROMPT.
+
+  parliament_sitting_count
+    Count of HansardSitting rows with status=COMPLETED in the month.
+    Caption text "in N sittings" beside parliament_total reads this.
 """
 
 from datetime import date
@@ -109,6 +163,9 @@ def aggregate_month(
         - schools_mentioned (list[School]): unique School objects mentioned
           in either news OR Hansard in the month, sorted by name.
         - schools_mentioned_total (int): len(schools_mentioned).
+        - schools_by_state (dict[str, list[School]]): same schools grouped
+          by School.state, ordered by count desc then state name asc.
+          Schools with missing state land in "Other".
         - news_all (queryset): full APPROVED news for the month, ordered
           by relevance_score desc — for the visibility section in the
           email.
@@ -182,6 +239,22 @@ def aggregate_month(
         ).order_by("name")
     )
     schools_mentioned_total = len(schools_mentioned)
+
+    # Sprint 24 task #3: schools_by_state — group the mentioned schools
+    # by state for the v2 template's per-state section. Sorted by count
+    # descending then state name ascending so the template can iterate
+    # without re-sorting. Schools with missing/empty state land in
+    # "Other" so the row count matches schools_mentioned_total.
+    state_buckets: dict[str, list] = {}
+    for school in schools_mentioned:
+        key = (school.state or "").strip() or "Other"
+        state_buckets.setdefault(key, []).append(school)
+    schools_by_state = dict(
+        sorted(
+            state_buckets.items(),
+            key=lambda kv: (-len(kv[1]), kv[0]),
+        )
+    )
 
     # Recess detection (Sprint 23) — was Parliament even sitting?
     # The scraper creates a HansardSitting row per CALENDAR DATE it
@@ -279,6 +352,7 @@ def aggregate_month(
         "news_sentiment_breakdown": news_sentiment_breakdown,
         "schools_mentioned": schools_mentioned,
         "schools_mentioned_total": schools_mentioned_total,
+        "schools_by_state": schools_by_state,
         "parliament_was_in_session": parliament_was_in_session,
         "parliament_sitting_count": sitting_count,
     }

@@ -205,6 +205,11 @@ class Command(BaseCommand):
                 "hero_image_url": None,
                 "briefs": data["briefs"],
                 "meeting_reports": data["meeting_reports"],
+                "scorecards": data["scorecards"],
+                "scorecards_are_lifetime_fallback": data[
+                    "scorecards_are_lifetime_fallback"
+                ],
+                "schools_by_state": data.get("schools_by_state", {}),
                 **v2_context_extras,
             },
         )
@@ -243,6 +248,11 @@ class Command(BaseCommand):
                     "hero_image_url": hero_url,
                     "briefs": data["briefs"],
                     "meeting_reports": data["meeting_reports"],
+                    "scorecards": data["scorecards"],
+                    "scorecards_are_lifetime_fallback": data[
+                        "scorecards_are_lifetime_fallback"
+                    ],
+                    "schools_by_state": data.get("schools_by_state", {}),
                     **v2_context_extras,
                 },
             )

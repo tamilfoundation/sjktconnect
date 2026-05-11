@@ -339,12 +339,38 @@ def _send_single_email(api_key, to_email, to_name, subject, html_content,
         return False
 
 
-def _wrap_broadcast_html(html_content, unsubscribe_url, preferences_url):
+# Sprint 24 task #7 — every broadcast (monthly blast, news digest, urgent
+# alert, parliament watch) gets these in the footer. Forward = mailto:
+# with a prefilled subject so a one-tap share works in any mail client.
+DEFAULT_DONATE_URL = "https://tamilschool.org/donate"
+DEFAULT_FORWARD_URL = (
+    "mailto:?subject=Tamil%20Schools%20Intelligence%20Blast"
+    "&body=Have%20a%20look%20at%20this%20month%27s%20digest"
+    "%20from%20tamilschool.org"
+)
+
+
+def _wrap_broadcast_html(
+    html_content,
+    unsubscribe_url,
+    preferences_url,
+    donate_url=DEFAULT_DONATE_URL,
+    forward_url=DEFAULT_FORWARD_URL,
+):
     """
     Wrap broadcast HTML content in a standard email layout.
 
-    Adds unsubscribe and preferences links in the footer.
-    Uses HTML entities for special characters (not Unicode).
+    Footer layout (Sprint 24 task #7):
+      Row 1: Donate &middot; Forward to a friend  (calls to action)
+      Row 2: Manage Preferences &middot; Unsubscribe  (compliance)
+      Row 3: An initiative of ...
+
+    Pulling Donate + Forward up into the global wrap means news digests,
+    urgent alerts, and Parliament Watch broadcasts ALL get the same two
+    CTAs without each template having to embed them. Body-level CTAs in
+    the monthly blast (Take Action section) are independent and stay.
+
+    Uses HTML entities for special characters (not Unicode) per lesson 21.
     """
     # M2 fix: use .format() instead of % to avoid breakage on literal % in content
     return """<!DOCTYPE html>
@@ -360,6 +386,11 @@ def _wrap_broadcast_html(html_content, unsubscribe_url, preferences_url):
         </div>
         <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
             <p>SJK(T) Connect &mdash; Tamil School Intelligence &amp; Advocacy Platform</p>
+            <p style="margin: 12px 0;">
+                <a href="{donate}" style="color: #7c3aed; text-decoration: none; font-weight: 600;">Donate to Tamil Foundation</a>
+                &nbsp;&middot;&nbsp;
+                <a href="{forward}" style="color: #7c3aed; text-decoration: none; font-weight: 600;">Forward to a friend</a>
+            </p>
             <p>
                 <a href="{prefs}" style="color: #666; text-decoration: underline;">Manage Preferences</a>
                 &nbsp;&middot;&nbsp;
@@ -369,4 +400,10 @@ def _wrap_broadcast_html(html_content, unsubscribe_url, preferences_url):
         </div>
     </div>
 </body>
-</html>""".format(content=html_content, prefs=preferences_url, unsub=unsubscribe_url)
+</html>""".format(
+        content=html_content,
+        prefs=preferences_url,
+        unsub=unsubscribe_url,
+        donate=donate_url,
+        forward=forward_url,
+    )

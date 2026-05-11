@@ -383,6 +383,8 @@ class TestAggregateMonthShape:
             "schools_mentioned_total",
             "parliament_was_in_session",
             "parliament_sitting_count",
+            # Sprint 24 task #3
+            "schools_by_state",
         }
 
     def test_empty_month_returns_expected_collection_types(self):
@@ -407,6 +409,7 @@ class TestAggregateMonthShape:
         }
         assert result["schools_mentioned"] == []
         assert result["schools_mentioned_total"] == 0
+        assert result["schools_by_state"] == {}
         assert result["parliament_was_in_session"] is False
         assert result["parliament_sitting_count"] == 0
 
@@ -517,3 +520,99 @@ class TestSprint23DeterministicCounts:
         assert "ZZZ0001" in moe_codes
         assert "ZZZ0002" in moe_codes
         assert result["schools_mentioned_total"] == len(result["schools_mentioned"])
+
+
+@pytest.mark.django_db
+class TestSprint24SchoolsByState:
+    """Sprint 24 task #3: schools_mentioned grouped by state for the
+    v2 template's per-state section. Order is count desc, then state
+    name asc."""
+
+    def _make_school(self, moe_code, state):
+        from schools.models import School, Constituency, DUN
+        c, _ = Constituency.objects.get_or_create(
+            code=f"P-{state[:3]}",
+            defaults={"name": f"Const-{state}", "state": state},
+        )
+        d, _ = DUN.objects.get_or_create(
+            code=f"N-{state[:3]}",
+            constituency=c,
+            defaults={"name": f"DUN-{state}", "state": state},
+        )
+        return School.objects.create(
+            moe_code=moe_code, name=f"SJK(T) {moe_code}",
+            short_name=moe_code, state=state, ppd="PPD",
+            constituency=c, dun=d,
+        )
+
+    def _mention_schools(self, moe_codes):
+        from newswatch.models import NewsArticle
+        from datetime import date as _date
+        NewsArticle.objects.create(
+            url="https://example.com/sbs",
+            title="sbs",
+            published_date=_date(2026, 2, 5),
+            status=NewsArticle.ANALYSED,
+            review_status=NewsArticle.APPROVED,
+            mentioned_schools=[
+                {"name": code, "moe_code": code} for code in moe_codes
+            ],
+        )
+
+    def test_empty_when_no_mentions(self, db):
+        result = aggregate_month(2026, 2)
+        assert result["schools_by_state"] == {}
+
+    def test_groups_by_state(self, db):
+        for code, state in [
+            ("M0001", "Melaka"), ("M0002", "Melaka"), ("M0003", "Melaka"),
+            ("P0001", "Perak"), ("P0002", "Perak"),
+            ("S0001", "Selangor"),
+        ]:
+            self._make_school(code, state)
+        self._mention_schools(["M0001", "M0002", "M0003", "P0001", "P0002", "S0001"])
+        result = aggregate_month(2026, 2)
+        sbs = result["schools_by_state"]
+        assert list(sbs.keys()) == ["Melaka", "Perak", "Selangor"]
+        assert len(sbs["Melaka"]) == 3
+        assert len(sbs["Perak"]) == 2
+        assert len(sbs["Selangor"]) == 1
+
+    def test_ties_break_alphabetically(self, db):
+        for code, state in [
+            ("J0001", "Johor"), ("J0002", "Johor"),
+            ("K0001", "Kedah"), ("K0002", "Kedah"),
+            ("Z0001", "Zedonia"), ("Z0002", "Zedonia"),
+        ]:
+            self._make_school(code, state)
+        self._mention_schools(["J0001", "J0002", "K0001", "K0002", "Z0001", "Z0002"])
+        result = aggregate_month(2026, 2)
+        # All three have count=2, so order is alphabetical.
+        assert list(result["schools_by_state"].keys()) == ["Johor", "Kedah", "Zedonia"]
+
+    def test_missing_state_buckets_to_other(self, db):
+        from schools.models import School, Constituency, DUN
+        c = Constituency.objects.create(code="P-OTH", name="X", state="")
+        d = DUN.objects.create(code="N-OTH", name="X", constituency=c, state="")
+        School.objects.create(
+            moe_code="X0001", name="SJK(T) Unknown", short_name="X",
+            state="", ppd="X", constituency=c, dun=d,
+        )
+        self._mention_schools(["X0001"])
+        result = aggregate_month(2026, 2)
+        assert "Other" in result["schools_by_state"]
+        assert len(result["schools_by_state"]["Other"]) == 1
+
+    def test_total_equals_sum_of_buckets(self, db):
+        for code, state in [
+            ("A0001", "StateA"), ("A0002", "StateA"),
+            ("B0001", "StateB"),
+        ]:
+            self._make_school(code, state)
+        self._mention_schools(["A0001", "A0002", "B0001"])
+        result = aggregate_month(2026, 2)
+        total_from_buckets = sum(
+            len(v) for v in result["schools_by_state"].values()
+        )
+        assert total_from_buckets == result["schools_mentioned_total"]
+

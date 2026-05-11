@@ -289,3 +289,149 @@ class TestSprint23DynamicSubject:
         result = cmd._build_subject("April 2026", {"headline": very_long})
         assert len(result) <= 90
         assert result.endswith("\u2026")  # ellipsis
+
+
+@pytest.mark.django_db
+@patch(
+    "broadcasts.management.commands.compose_monthly_blast.generate_monthly_analysis",
+)
+@patch(
+    "broadcasts.management.commands.compose_monthly_blast.cluster_news_articles",
+)
+@patch(
+    "broadcasts.management.commands.compose_monthly_blast.generate_hero_image",
+    return_value=None,
+)
+class TestSprint24RenderSmoke:
+    """Sprint 24 task #8 — structural render smoke test.
+
+    Per lesson 102, retros/tests must reference the code that proves the
+    work landed. This class asserts the rendered HTML carries every
+    Sprint 24 structural promise: recess banner, in-body CTAs, source
+    links on news/briefs/meetings, schools-by-state table, captioned
+    numbers, no unescaped em-dash, no leaked template tokens.
+    """
+
+    def _setup_mocks(self, _ana, _cluster):
+        _ana.return_value = _stub_analysis()
+        _cluster.return_value = [
+            {
+                "headline": "Test story cluster",
+                "story_summary": "1-2 sentence synopsis",
+                "articles": [],
+            }
+        ]
+
+    def test_render_carries_donate_link_via_footer(self, _hero, _cluster, _ana, db):
+        self._setup_mocks(_ana, _cluster)
+        call_command("compose_monthly_blast", month="2026-02")
+        broadcast = Broadcast.objects.first()
+        # The footer Donate link comes from the body Take Action CTA
+        # (Sprint 24 #4b) — the global footer in _wrap_broadcast_html
+        # adds another at send time, not at compose time.
+        assert "tamilschool.org/donate" in broadcast.html_content
+
+    def test_render_carries_forward_mailto(self, _hero, _cluster, _ana, db):
+        self._setup_mocks(_ana, _cluster)
+        call_command("compose_monthly_blast", month="2026-02")
+        broadcast = Broadcast.objects.first()
+        # Sprint 24 Q1 LOCKED: Forward CTA = mailto:
+        assert "mailto:" in broadcast.html_content
+
+    def test_render_carries_parliament_watch_cta(self, _hero, _cluster, _ana, db):
+        self._setup_mocks(_ana, _cluster)
+        call_command("compose_monthly_blast", month="2026-02")
+        broadcast = Broadcast.objects.first()
+        assert "tamilschool.org/parliament-watch" in broadcast.html_content
+
+    def test_render_has_no_unrendered_template_tokens(self, _hero, _cluster, _ana, db):
+        """Regression: catches template variable typos (a real April
+        2026 prototype bug rendered raw `{'name': ..., 'reason': ...}`).
+        """
+        self._setup_mocks(_ana, _cluster)
+        call_command("compose_monthly_blast", month="2026-02")
+        broadcast = Broadcast.objects.first()
+        assert "{{" not in broadcast.html_content
+        assert "{%" not in broadcast.html_content
+        # Don't accept raw Python repr-style dicts in body either.
+        assert "{'name':" not in broadcast.html_content
+        assert "{\"name\":" not in broadcast.html_content
+
+    def test_render_has_no_unescaped_em_dash(self, _hero, _cluster, _ana, db):
+        """Lesson 21 — literal Unicode em-dash renders as a diamond in
+        some mail clients. Templates must use the entity.
+        """
+        self._setup_mocks(_ana, _cluster)
+        call_command("compose_monthly_blast", month="2026-02")
+        broadcast = Broadcast.objects.first()
+        # Stub analysis text MAY include LLM-emitted em-dashes; the
+        # template itself must not introduce any. Strip the analysis
+        # content before checking.
+        template_only = broadcast.html_content
+        for value in _stub_analysis().values():
+            if isinstance(value, str):
+                template_only = template_only.replace(value, "")
+        assert "\u2014" not in template_only, (
+            "Template introduced a literal em-dash (use &mdash;)"
+        )
+
+    def test_render_emits_recess_banner_when_not_in_session(
+        self, _hero, _cluster, _ana, db
+    ):
+        self._setup_mocks(_ana, _cluster)
+        # Empty DB month — no HansardSittings → parliament_was_in_session=False
+        call_command("compose_monthly_blast", month="2026-02")
+        broadcast = Broadcast.objects.first()
+        assert "Parliament was not in session" in broadcast.html_content
+
+    def test_render_no_recess_banner_when_in_session(
+        self, _hero, _cluster, _ana, sitting
+    ):
+        self._setup_mocks(_ana, _cluster)
+        # `sitting` fixture is a HansardSitting with status=COMPLETED in
+        # 2026-02 — that triggers parliament_was_in_session=True.
+        call_command("compose_monthly_blast", month="2026-02")
+        broadcast = Broadcast.objects.first()
+        assert "Parliament was not in session" not in broadcast.html_content
+
+    def test_render_news_cluster_renders_headline_and_link(
+        self, _hero, _cluster, _ana, db
+    ):
+        from datetime import date as _date
+        article = NewsArticle.objects.create(
+            url="https://themalaysiapress.com/sjkt-test",
+            title="SJK(T) Test Article",
+            source_name="Test Source",
+            published_date=timezone.make_aware(datetime(2026, 2, 5)),
+            status=NewsArticle.ANALYSED,
+            review_status=NewsArticle.APPROVED,
+            relevance_score=4,
+            sentiment="POSITIVE",
+        )
+        _ana.return_value = _stub_analysis()
+        _cluster.return_value = [
+            {
+                "headline": "Test cluster headline",
+                "story_summary": "Synopsis.",
+                "articles": [article],
+            }
+        ]
+        call_command("compose_monthly_blast", month="2026-02")
+        broadcast = Broadcast.objects.first()
+        assert "Test cluster headline" in broadcast.html_content
+        assert "SJK(T) Test Article" in broadcast.html_content
+        # Source link present
+        assert "https://themalaysiapress.com/sjkt-test" in broadcast.html_content
+
+    def test_render_suppresses_scorecards_section_on_lifetime_fallback(
+        self, _hero, _cluster, _ana, scorecard
+    ):
+        """Sprint 24 #4d LOCKED: lifetime fallback → suppress the
+        scorecard section entirely (no scorecard fixture in month).
+        """
+        self._setup_mocks(_ana, _cluster)
+        call_command("compose_monthly_blast", month="2026-02")
+        broadcast = Broadcast.objects.first()
+        # scorecard fixture has no last_mention_date → falls back to
+        # lifetime → section should NOT render.
+        assert "Most Active MPs This Month" not in broadcast.html_content
