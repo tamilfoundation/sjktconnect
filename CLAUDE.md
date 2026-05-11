@@ -269,22 +269,42 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 22 closed 2026-05-01 (Cloudflare follow-up 2026-05-02). No sprint currently in progress.**
+**Sprint 23 ✅ deployed 2026-05-11 — recovery cut after the 2026-05-02 duplicate-blast incident. Sprint 24 next, plan written, awaiting kickoff.**
 
-Candidates queued for the next sprint (decide at start):
+### Sprint 24 — Monthly Digest Template Rework + Scheduling Resume
 
-1. **Sprint 23 — Monthly Digest Quality Pass** — plan exists at `.claude/plans/sprint-23-monthly-digest-quality.md`. Triggered by April 2026 digest post-mortem: aggregator caps news at 5 for display but `by_the_numbers` is LLM-imputed from that 5-row sample (April had 46 approved, email said 5; "Schools Affected: 29" is fabricated). Scope: separate counts from samples in `blast_aggregator.py`, strip `by_the_numbers` from LLM schema, add topic clustering + recess detection + dynamic subject line + template overhaul. ~10-13 files. **A small piece is already in working tree** — recess-detection edit to `blast_aggregator.py` filtering `HansardSitting` to `status=COMPLETED` (uncommitted, attached to this work).
-2. **Task #43 — Supabase Storage hot-link protection** (see Future work). Engineering-sized but separate scope; pull into its own micro-sprint if egress climbs.
-3. **Backlink + content-depth campaign** — manual outreach, not engineering work.
+- **Plan**: `.claude/plans/sprint-24-monthly-digest-rework.md` (16 sequential tasks, ~19 files, single-agent execution).
+- **Goal**: fix the monthly digest template + content quality so the paused `sjktconnect-monthly-blast` scheduler can be safely re-enabled. Bundles in the global footer-CTA change (item 7 from 2026-05-11 roadmap conversation) so news digest, urgent alerts, and Parliament Watch broadcasts all benefit from one footer edit.
+- **Key scope**: (1) recess prompt propagated to all monthly_analyst sections (Recovery Cut only fixed `executive_summary`); (2) Gemini topic clustering with fail-open; (3) schools-by-state breakdown + stat-semantics docstring; (4) major `monthly_blast_v2.html` overhaul — recess banner, three in-body CTA cards, `<a href>` source links on every news/brief/meeting, captioned headline numbers, suppress stale lifetime scorecards; (5) top-N news article cards inline; (6) v1 template — recommend remove (Gemini-unavailable becomes a clean abort); (7) Donate + Forward links in `_wrap_broadcast_html` footer (all 4 broadcast types); (8) render smoke test; (11–13) deploy + verify + resume both paused schedulers; (14) sprint close docs; (15) tag v2.0.
+- **3 open questions to resolve at kickoff**: Forward CTA target (mailto vs share link), v1 monthly template (remove vs sync), schools-by-state layout (table vs accordion).
+- **Housekeeping at S24 start**: `git mv .claude/plans/sprint-24-personalised-digest.md .claude/plans/sprint-29-personalised-digest.md` — that file covers per-subscriber MP personalisation, now resequenced as Sprint 29 per the 2026-05-11 roadmap.
 
-### Current codebase state (Sprint 22 close, 2026-05-02)
+### Sprint 24–29 roadmap (locked 2026-05-11)
 
-- Prod: `sjktconnect-api-00112-k7t` (unchanged since Sprint 21) + `sjktconnect-web-00112-p8q` (Sprint 22 deploy).
-- 1198 backend + 320 frontend tests passing.
-- **SEO baseline reset (Sprint 22)**: locale-aware metadata builders + JSON-LD on every school page + branded SVG fallback so every school renders a real `<img>` for SERP thumbnails. `/about-tamil-schools` extended from stub to live FAQ + state breakdown.
-- **Canonical hostname consolidated (Sprint 22, Cloudflare 2026-05-02)**: `www.tamilschool.org/*` → 301 → root, applied via Cloudflare API as a Single Redirect ruleset (id `1af056d066e44a5885c933227a413981`). Path + query preserved end-to-end.
-- **Cloudflare API access available**: zone-scoped token (`CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ZONE_ID`) in `.env`, perms = DNS / Zone Settings / Config Rules / Single Redirect (all Edit). Future canonical/redirect/DNS work can be applied via API rather than dashboard.
-- **Egress hardened (Sprint 21)**: `next-intl` ISR engaged, AwarioBot UA-blocked, MQL dashboard fixed. ISR `Cache-Control: s-maxage=86400` + `x-nextjs-cache: HIT` verified live.
+| # | Sprint | Goal |
+|---|--------|------|
+| 24 | Monthly Digest Rework + Scheduling Resume | Fix the template + un-pause `monthly-blast` scheduler. Closes with v2.0 release tag. |
+| 25 | Urgent Alerts + Parliament Watch UI | Stop random urgent sends; let Parliament Watch be admin-previewed + scheduled like the monthly. Includes Sprint 23 leftovers (dry-run hardening, `--test-recipients` flag). |
+| 26 | School Page UX Pass | School page edit issues + school search issues. Enumerate exact symptoms at sprint start. |
+| 27 | Auth / Profile Cleanup | Sign-in / sign-out / profile issues. Suspect remnants of TD-01 / TD-18 race conditions. |
+| 28 | Egress Round 3 (conditional) | Only if 2026-05-08 egress checkpoint shows drift. Task #43 image-proxy if needed. |
+| 29 | Personalised Digest | Per-subscriber MP personalisation (`Subscriber.home_constituency` FK + per-recipient template injection). The original "Sprint 24" work, resequenced after quality + reliability fixes. |
+
+**Release + folder-move sequencing**: at S24 close, run `release` workflow + tag `v2.0` + write `docs/release-notes-v2.0.md` (covers Recovery Cut + Quality Overhaul as one v2.0 narrative). After S29 close, run `project-complete` workflow + move `Development/SJKTConnect/` → `Production/SJKTConnect/`.
+
+### Current codebase state (Sprint 23 deployed, 2026-05-11)
+
+- **Prod API**: `sjktconnect-api-00118-5w4` (Sprint 23 recovery cut at 100% traffic since 2026-05-11). Frontend unchanged: `sjktconnect-web-00112-p8q`.
+- **Tests**: 1225 backend + 320 frontend (Sprint 22 close baseline; Sprint 23 recovery cut tests folded in — re-verify at S24 close per lesson 96).
+- **Sprint 23 shipped**: (#4a) Brevo daily-quota pre-flight check in `broadcasts/services/brevo_quota.py`, (#4b) duplicate-Broadcast guard at compose time, recess detection at aggregator, admin coverage column.
+- **Scheduler state**: `sjktconnect-resume-sending` ENABLED (un-paused 2026-05-11, drains Broadcast 77's 256 stragglers over 12–14 May). `sjktconnect-monthly-blast` PAUSED until Sprint 24 ships.
+- **Open follow-up before S24 deploy phase**: 4 Cloud Run send-jobs (`monthly-blast`, `news-digest`, `urgent-alerts`, `resume-sending`) still run pre-65f9720 images — fold image rebuilds into the S24 deploy so dup-guard + quota check protect scheduled sends, not just CLI/API.
+- **Watch 2026-05-12 ~02:00–02:30 UTC**: confirm `sjktconnect-resume-sending` execution log shows Broadcast 77 progress (~250 sent of 256).
+- **Traffic-pin gotcha discovered 2026-05-11**: prod was pinned to `00115-fdf` since 29 Apr; 3 deploys had landed at 0% traffic. `gcloud run revisions list` ACTIVE column is not the source of truth — always also check `services describe --format='value(status.traffic)'`.
+- **SEO baseline (Sprint 22)**: locale-aware metadata builders + JSON-LD on every school page + branded SVG fallback. `/about-tamil-schools` is live FAQ + state breakdown.
+- **Canonical hostname (Sprint 22, Cloudflare 2026-05-02)**: `www.tamilschool.org/*` → 301 → root via Cloudflare Single Redirect ruleset id `1af056d066e44a5885c933227a413981`.
+- **Cloudflare API access**: zone-scoped token in `.env`, perms = DNS / Zone Settings / Config Rules / Single Redirect (Edit).
+- **Egress hardened (Sprint 21)**: `next-intl` ISR engaged, AwarioBot UA-blocked, MQL dashboard fixed. `Cache-Control: s-maxage=86400` + `x-nextjs-cache: HIT` verified live.
 
 ### Sprint history (post-roadmap)
 
