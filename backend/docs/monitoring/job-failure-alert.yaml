@@ -1,0 +1,43 @@
+displayName: SJK(T) Connect — Cloud Run Job Failures
+documentation:
+  content: |
+    A Cloud Run job in the sjktconnect project has failed 2+ times in 24h.
+
+    Most common causes:
+      1. Job image is stale relative to the DB schema (e.g. Sprint 19 dropped
+         columns; old job image still SELECTs them → ProgrammingError).
+         Fix: run scripts/update_jobs.sh to bump all jobs to the live API image.
+      2. Env var (GEMINI_API_KEY, BREVO_API_KEY) was dropped on redeploy.
+         Fix: re-set via gcloud run jobs update --update-env-vars=...
+      3. Gemini quota exhausted or Brevo daily-quota cap hit.
+
+    Triage:
+      - gcloud run jobs executions list --job=<JOB_NAME> --filter="status.failedCount>0"
+      - gcloud logging read 'resource.type=cloud_run_job AND resource.labels.job_name=<JOB_NAME> AND severity=ERROR' --limit=5
+
+    See Sprint 24 retro for the original silent-rot incident (2026-05-20).
+  mimeType: text/markdown
+combiner: OR
+conditions:
+  - displayName: Job execution failures
+    conditionThreshold:
+      filter: |
+        resource.type = "cloud_run_job"
+        AND metric.type = "run.googleapis.com/job/completed_execution_count"
+        AND metric.labels.result = "failed"
+      aggregations:
+        - alignmentPeriod: 3600s
+          perSeriesAligner: ALIGN_SUM
+          crossSeriesReducer: REDUCE_SUM
+          groupByFields:
+            - resource.label.job_name
+      comparison: COMPARISON_GT
+      thresholdValue: 1
+      duration: 0s
+      trigger:
+        count: 1
+alertStrategy:
+  autoClose: 86400s
+notificationChannels:
+  - projects/sjktconnect/notificationChannels/5279094837891825431
+enabled: true

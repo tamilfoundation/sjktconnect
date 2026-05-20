@@ -134,8 +134,13 @@ python manage.py compose_monthly_blast --dry-run             # Preview without c
 cd backend && gcloud run deploy sjktconnect-api --account admin@tamilfoundation.org --project sjktconnect --source . --region asia-southeast1 --allow-unauthenticated
 # Frontend
 cd frontend && gcloud run deploy sjktconnect-web --account admin@tamilfoundation.org --project sjktconnect --source . --region asia-southeast1 --allow-unauthenticated
-# After backend deploy, update the job image:
-gcloud run jobs update sjktconnect-check-hansards --image <new-image> --region asia-southeast1
+# After backend deploy, sync ALL Cloud Run jobs to the new api image:
+./backend/scripts/update_jobs.sh
+# This is MANDATORY — jobs carry their own pinned image and won't auto-update.
+# Skipping this step caused the 2026-05-20 silent-news-rot incident (21 days
+# of news-pipeline crashes after Sprint 19's migration). A Cloud Monitoring
+# alert (admin@tamilfoundation.org) now fires on 2+ job failures in 24h.
+# See backend/docs/monitoring/job-failure-alert.yaml + backend/scripts/update_jobs.sh.
 
 # Cloud Run Job (manual trigger)
 gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
