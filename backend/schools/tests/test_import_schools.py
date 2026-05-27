@@ -130,6 +130,74 @@ class ImportSchoolsTest(TestCase):
         assert School.objects.count() == 0
         Path(path).unlink()
 
+    def test_skip_fields_preserves_existing_values(self):
+        """--skip-fields leaves named fields untouched on re-import while other
+        fields still refresh. Guards the April-2026 regression where the MOE
+        file types postcode/phone/fax as floats (losing the leading zero)."""
+        rows_v1 = [[
+            "JOHOR", "PPD SEGAMAT", "P140 SEGAMAT", "N01 BULOH KASAP", "SEKOLAH RENDAH",
+            "SJK(T)", "JBD0050", "SEKOLAH JENIS KEBANGSAAN (TAMIL) LADANG BIKAM",
+            "Jalan Bikam", "85000", "Segamat", "07-1234567", "07-7654321", "JBD0050@moe.edu.my",
+            "Luar Bandar", "A", "BANTUAN PENUH", 1, "PAGI", 0, 120, 0, 8,
+            0, 0, 102.81, 2.51, "",
+        ]]
+        path1 = self._create_test_file(rows_v1)
+        call_command("import_schools", path1, "--gps-file", "nonexistent.csv")
+
+        school = School.objects.get(moe_code="JBD0050")
+        assert school.postcode == "85000"
+        assert school.phone == "+60-7 123 4567"
+        assert school.fax == "+60-7 765 4321"
+        assert school.enrolment == 120
+        assert float(school.gps_lat) == 2.51
+        assert float(school.gps_lng) == 102.81
+
+        # v2 mimics the April file: contact columns are floats (mangled), and
+        # enrolment/teacher figures genuinely refreshed.
+        rows_v2 = [[
+            "JOHOR", "PPD SEGAMAT", "P140 SEGAMAT", "N01 BULOH KASAP", "SEKOLAH RENDAH",
+            "SJK(T)", "JBD0050", "SEKOLAH JENIS KEBANGSAAN (TAMIL) LADANG BIKAM",
+            "Jalan Bikam", 35000.0, "Segamat", 71234567.0, 77654321.0, "JBD0050@moe.edu.my",
+            "Luar Bandar", "A", "BANTUAN PENUH", 1, "PAGI", 0, 200, 0, 10,
+            0, 0, 99.99, 9.99, "",
+        ]]
+        path2 = self._create_test_file(rows_v2)
+        call_command(
+            "import_schools", path2, "--gps-file", "nonexistent.csv",
+            "--skip-fields", "postcode,phone,fax,gps_lat,gps_lng,gps_verified",
+        )
+
+        school.refresh_from_db()
+        # Skipped fields keep their known-good January values
+        assert school.postcode == "85000"
+        assert school.phone == "+60-7 123 4567"
+        assert school.fax == "+60-7 765 4321"
+        assert float(school.gps_lat) == 2.51
+        assert float(school.gps_lng) == 102.81
+        # Non-skipped fields are refreshed from the new file
+        assert school.enrolment == 200
+        assert school.teacher_count == 10
+
+        Path(path1).unlink()
+        Path(path2).unlink()
+
+    def test_skip_fields_rejects_unknown_field(self):
+        """An invalid --skip-fields name aborts the import (typo protection)."""
+        rows = [[
+            "JOHOR", "PPD SEGAMAT", "P140 SEGAMAT", "N01 BULOH KASAP", "SEKOLAH RENDAH",
+            "SJK(T)", "JBD0050", "SEKOLAH JENIS KEBANGSAAN (TAMIL) LADANG BIKAM",
+            "Jalan Bikam", "85000", "Segamat", "", "", "",
+            "Luar Bandar", "A", "", 1, "PAGI", 0, 120, 0, 8,
+            0, 0, 102.81, 2.51, "",
+        ]]
+        path = self._create_test_file(rows)
+        call_command(
+            "import_schools", path, "--gps-file", "nonexistent.csv",
+            "--skip-fields", "phone,not_a_real_field",
+        )
+        assert School.objects.count() == 0
+        Path(path).unlink()
+
     def test_updates_constituency_state(self):
         """Importing schools should fill in constituency state from MOE data."""
         rows = [

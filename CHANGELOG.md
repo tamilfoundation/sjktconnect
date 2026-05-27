@@ -1,5 +1,21 @@
 # Changelog
 
+## Tooling — `import_schools --skip-fields` for safe partial refresh (2026-05-28)
+
+**Trigger**: Compared the new MOE master list `SenaraiSekolahWeb_April2026.xlsx` (10,254 schools, all types) against the project's January source (528 SJK(T)). Roster is identical — **no Tamil schools added or closed**. April carries genuine refreshes (enrolment net +109, preschool +327, special +41, teachers −57; 31 address fixes; 2 mis-linked emails; 2 SKM flags) **but** types `POSKODSURAT`/`NOTELEFON`/`NOFAX` as **floats** (e.g. `35000.0`, `54014510.0`), dropping the Malaysian leading zero. A straight re-import would overwrite the clean January contact data (`"+60-7 433 4480"` → `"54014510.0"`) for all 528 schools — a regression, not a refresh.
+
+### Added
+- **`import_schools --skip-fields`** — comma-separated model field names left UNTOUCHED when updating an existing school. New schools are still created with all fields. Validated against `School._meta.fields` (unknown name aborts the run). The update path switched from `update_or_create` to `get_or_create` + selective `setattr` so skipped fields retain their current DB value; default behaviour (no flag) is unchanged — every field still updates. Recommended invocation for the April file: `--skip-fields postcode,phone,fax,gps_lat,gps_lng,gps_verified` (GPS skipped because 476/528 pins are already Google-verified via the override CSV).
+
+### Tests
+- `schools/tests/test_import_schools.py` — 2 new: `test_skip_fields_preserves_existing_values` (float-typed v2 re-import leaves postcode/phone/fax/GPS intact while enrolment + teacher_count refresh) and `test_skip_fields_rejects_unknown_field` (typo aborts import). 121 passed across `schools/` (no regressions).
+
+### Applied to production (2026-05-28)
+- Ran against prod via the **direct (5432) connection** — `db.kafuxsinrbqafvarckxu.supabase.co` — because the bulk-write rule forbids the pooler for 528 sequential saves and `.env` only carries the pooler (6543) DSN. Command: `import_schools SenaraiSekolahWeb_April2026.xlsx --skip-fields postcode,phone,fax,gps_lat,gps_lng,gps_verified` with `SJKTCONNECT_ALLOW_PROD_DB=1`. Result: 528 updated, 0 created, 0 errors.
+- Verified post-write: enrolment 70,009 / preschool 7,868 / special 616 / teachers 8,674 — all match the file exactly (→ no dropped writes); spot-checked schools retain clean January postcode/phone (skip confirmed). The April `.xlsx` lives in `~/Downloads`, not the repo `data/` folder.
+- Public-site note: school pages + national-stats are ISR-cached 24h, so the refreshed figures surface within 24h with no redeploy.
+- Open follow-up: the float-typed contact columns are a recurring MOE export quirk — a future importer hardening could coerce numeric postcodes/phones back to zero-padded strings so they become safe to import rather than skipped.
+
 ## Sprint 22 — SEO Snippet & Canonical Hostname Fix (2026-05-01)
 
 **Deployed**: frontend `sjktconnect-web-00112-p8q` (commit `38e6a66`). Backend unchanged.

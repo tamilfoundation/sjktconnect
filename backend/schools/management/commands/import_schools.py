@@ -112,6 +112,21 @@ class Command(BaseCommand):
             default=str(DEFAULT_GPS),
             help=f"Path to GPS verification CSV (default: {DEFAULT_GPS})",
         )
+        parser.add_argument(
+            "--skip-fields",
+            type=str,
+            default="",
+            help=(
+                "Comma-separated model field names to leave UNTOUCHED when "
+                "updating an existing school. New schools are still created with "
+                "all fields. Use this for a partial refresh that must not "
+                "overwrite known-good data — e.g. the April-2026 MOE file types "
+                "postcode/phone/fax as numbers (losing the leading zero), so a "
+                "full re-import would corrupt them. Recommended for that file: "
+                "--skip-fields postcode,phone,fax,gps_lat,gps_lng,gps_verified. "
+                "Default: update every field."
+            ),
+        )
 
     def handle(self, *args, **options):
         file_path = Path(options["file"])
@@ -121,6 +136,22 @@ class Command(BaseCommand):
         if not file_path.exists():
             self.stderr.write(self.style.ERROR(f"File not found: {file_path}"))
             return
+
+        # Parse + validate --skip-fields against the model's real field names
+        skip_fields = {f.strip() for f in options["skip_fields"].split(",") if f.strip()}
+        valid_fields = {f.name for f in School._meta.fields}
+        unknown = skip_fields - valid_fields
+        if unknown:
+            self.stderr.write(self.style.ERROR(
+                f"Unknown --skip-fields: {', '.join(sorted(unknown))}. "
+                f"Valid School fields: {', '.join(sorted(valid_fields))}"
+            ))
+            return
+        if skip_fields:
+            self.stdout.write(self.style.WARNING(
+                "Partial refresh - these fields will NOT be overwritten on "
+                f"existing schools: {', '.join(sorted(skip_fields))}"
+            ))
 
         if dry_run:
             self.stdout.write(self.style.WARNING("DRY RUN — no records will be created.\n"))
@@ -268,10 +299,18 @@ class Command(BaseCommand):
                 }
 
                 if not dry_run:
-                    _, created = School.objects.update_or_create(
+                    obj, created = School.objects.get_or_create(
                         moe_code=moe_code,
                         defaults=school_data,
                     )
+                    if not created:
+                        # Update existing record, leaving skip_fields untouched.
+                        # obj was loaded from the DB, so unset fields keep their
+                        # current value; a full save() also refreshes updated_at.
+                        for field, value in school_data.items():
+                            if field not in skip_fields:
+                                setattr(obj, field, value)
+                        obj.save()
                 else:
                     created = not School.objects.filter(moe_code=moe_code).exists()
 
@@ -294,6 +333,8 @@ class Command(BaseCommand):
         self.stdout.write(f"Constituency linked:        {stats['constituency_linked']}")
         self.stdout.write(f"DUN linked:                 {stats['dun_linked']}")
         self.stdout.write(f"Errors:                     {stats['errors']}")
+        if skip_fields:
+            self.stdout.write(f"Fields left untouched:      {', '.join(sorted(skip_fields))}")
 
         if dry_run:
             self.stdout.write(self.style.WARNING("\nDRY RUN complete — nothing was saved."))
