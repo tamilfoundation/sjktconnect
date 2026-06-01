@@ -50,7 +50,7 @@
   },
   "footer": {
     "copyright": "© {year} SJK(T) Connect. Hak cipta terpelihara. Data daripada KPM & Parlimen Malaysia.",
-    "dataLastUpdated": "Data terakhir dikemaskini: Januari 2026",
+    "dataLastUpdated": "Data terakhir dikemaskini: April 2026",
     "platformTitle": "Platform",
     "schoolMap": "Peta Sekolah",
     "constituencies": "Kawasan Parlimen",
@@ -109,7 +109,7 @@
     "notFoundTitle": "Sekolah Tidak Ditemui — SJK(T) Connect",
     "notFoundDescription": "Sekolah yang anda cari tidak wujud atau mungkin telah dialih keluar.",
     "backToMap": "Kembali ke Peta Sekolah",
-    "dataSource": "Sumber data: Kementerian Pendidikan Malaysia, Januari 2026",
+    "dataSource": "Sumber data: Kementerian Pendidikan Malaysia, April 2026",
     "headmaster": "Guru Besar",
     "ptaChairman": "Pengerusi PIBG",
     "boardChairman": "Pengerusi LPS",
@@ -419,7 +419,7 @@
     "aboutTFBody": "Tamil Foundation Malaysia ialah organisasi bukan untung yang didedikasikan untuk memelihara dan memajukan bahasa, pendidikan, dan budaya Tamil di Malaysia.",
     "contactEmail": "info@tamilfoundation.org",
     "dataSourceTitle": "Sumber Data",
-    "dataSourceBody": "Data sekolah daripada Kementerian Pendidikan Malaysia (Januari 2026). Data parlimen daripada Parlimen Malaysia. Data kawasan daripada Suruhanjaya Pilihan Raya Malaysia."
+    "dataSourceBody": "Data sekolah daripada Kementerian Pendidikan Malaysia (April 2026). Data parlimen daripada Parlimen Malaysia. Data kawasan daripada Suruhanjaya Pilihan Raya Malaysia."
   },
   "parliamentWatch": {
     "title": "Pemantauan Parlimen — SJK(T) Connect",

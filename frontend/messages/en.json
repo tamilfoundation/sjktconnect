@@ -50,7 +50,7 @@
   },
   "footer": {
     "copyright": "© {year} SJK(T) Connect. All rights reserved. Data from MOE & Parliament of Malaysia.",
-    "dataLastUpdated": "Data last updated: January 2026",
+    "dataLastUpdated": "Data last updated: April 2026",
     "platformTitle": "Platform",
     "schoolMap": "School Map",
     "constituencies": "Constituencies",
@@ -109,7 +109,7 @@
     "notFoundTitle": "School Not Found — SJK(T) Connect",
     "notFoundDescription": "The school you're looking for doesn't exist or may have been removed.",
     "backToMap": "Back to School Map",
-    "dataSource": "Data source: Ministry of Education, January 2026",
+    "dataSource": "Data source: Ministry of Education, April 2026",
     "headmaster": "Headmaster",
     "ptaChairman": "PTA Chairman",
     "boardChairman": "LPS Chairman",
@@ -419,7 +419,7 @@
     "aboutTFBody": "Tamil Foundation Malaysia is a non-profit organisation dedicated to preserving and advancing Tamil language, education, and culture in Malaysia. SJK(T) Connect is one of our flagship digital initiatives.",
     "contactEmail": "info@tamilfoundation.org",
     "dataSourceTitle": "Data Sources",
-    "dataSourceBody": "School data from the Ministry of Education (January 2026). Parliamentary data from the Parliament of Malaysia. Constituency data from the Election Commission of Malaysia."
+    "dataSourceBody": "School data from the Ministry of Education (April 2026). Parliamentary data from the Parliament of Malaysia. Constituency data from the Election Commission of Malaysia."
   },
   "parliamentWatch": {
     "title": "Parliament Watch — SJK(T) Connect",
