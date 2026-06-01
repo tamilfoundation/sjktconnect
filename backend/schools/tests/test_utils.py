@@ -101,6 +101,13 @@ class TestToProperCase:
             == "SJK(T) Convent Seremban (Kompleks Wawasan)"
         )
 
+    def test_pjs_section_code_stays_uppercase(self):
+        # PJS (Petaling Jaya Selatan) must not title-case to "Pjs"
+        assert to_proper_case("SJK(T) PJS 1") == "SJK(T) PJS 1"
+
+    def test_pjs_higher_section_number(self):
+        assert to_proper_case("SJK(T) PJS 7") == "SJK(T) PJS 7"
+
 
 class TestFormatPhone:
     """Test format_phone() for Malaysian phone numbers."""

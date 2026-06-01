@@ -16,6 +16,23 @@
 - Public-site note: school pages + national-stats are ISR-cached 24h, so the refreshed figures surface within 24h with no redeploy.
 - Open follow-up: the float-typed contact columns are a recurring MOE export quirk — a future importer hardening could coerce numeric postcodes/phones back to zero-padded strings so they become safe to import rather than skipped.
 
+## Fix — PJS school-name casing + newswatch spacing match (2026-05-21)
+
+**Trigger**: News card showed "SJK(T) Pjs 1" instead of "SJK(T) PJS 1" (India Gate smartboard donation, 18 May 2026).
+
+### Fixed
+- **`schools/utils.py`** — added `"PJS"` to `_UPPER_ABBREVS` so `to_proper_case` keeps the Petaling Jaya Selatan section code uppercase ("PJS 1", not "Pjs 1"). Affects every PJS-section school on next import. Root cause: PJS was title-cased like an ordinary word.
+- **`newswatch/services/news_analyser.py`** — `_generate_name_variants` now bridges letter↔digit boundaries ("PJS1" ⇄ "PJS 1", general — also "Boh1" ⇄ "Boh 1"). The old trailing-number regex required a space before the digit, so a joined form like "PJS1" generated no variant and never matched. Because `short_name` matching is case-insensitive, this also lets "PJS1" articles match the *current* mis-cased "Pjs 1" record before the data is corrected.
+
+### Tests
+- `schools/tests/test_utils.py` — 2 new (PJS 1, PJS 7 stay uppercase).
+- `newswatch/tests/test_school_matching.py` — new file, 6 tests (variant generation both directions + end-to-end resolution incl. legacy mis-cased record).
+- 280 passed across `schools/` + `newswatch/` (no regressions).
+
+### Not yet applied to production (deferred to next backend deploy)
+- The live `School` row still reads "SJK(T) Pjs 1" — needs a one-off correction (direct DB update or re-import). The code fix only changes future imports/matches.
+- After the data fix, run `manage.py rematch_schools` so existing articles re-resolve.
+
 ## Sprint 22 — SEO Snippet & Canonical Hostname Fix (2026-05-01)
 
 **Deployed**: frontend `sjktconnect-web-00112-p8q` (commit `38e6a66`). Backend unchanged.

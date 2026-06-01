@@ -469,6 +469,16 @@ def _generate_name_variants(distinctive):
     if normalised != distinctive:
         variants.append(normalised)
 
+    # Bridge letter↔digit boundaries: "PJS1" ⇄ "PJS 1", "Boh1" ⇄ "Boh 1".
+    # Article text and MOE names disagree on whether a section/lot number is
+    # spaced or joined, so try both spellings against the database.
+    spaced = re.sub(r"([A-Za-z])(\d)", r"\1 \2", distinctive)
+    if spaced not in variants:
+        variants.append(spaced)
+    joined = re.sub(r"([A-Za-z])\s+(\d)", r"\1\2", distinctive)
+    if joined not in variants:
+        variants.append(joined)
+
     # Add parenthesised number variant: "Boh 1" → "Boh (1)"
     num_match = re.search(r"\s(\d+)$", distinctive)
     if num_match:
