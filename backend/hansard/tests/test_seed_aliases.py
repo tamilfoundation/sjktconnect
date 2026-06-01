@@ -202,3 +202,87 @@ class SeedAliasesCommandTests(TestCase):
         )
         # Other aliases should be re-created
         self.assertGreater(SchoolAlias.objects.count(), 1)
+
+
+class JenderataAliasesMigrationTest(TestCase):
+    """Sprint 24 #10d — verify the 0008 data migration logic creates the
+    expected 'Jenderata' (with-e) aliases for the 4 'Jendarata' schools.
+
+    Calls the migration's add_jenderata_aliases() helper directly with
+    the test's apps registry — same shape Django uses when running the
+    RunPython operation.
+    """
+
+    def setUp(self):
+        self.constituency = Constituency.objects.create(
+            code="P078", name="Tanjung Karang", state="Selangor",
+        )
+        for moe_code, suffix in [
+            ("ABDB002", "Jendarata 1"),
+            ("ABDB003", "Jendarata Bhg 2"),
+            ("ABDB004", "Jendarata Bhg 3"),
+            ("ABDB006", "Jendarata Bahagian Alpha Bernam"),
+        ]:
+            School.objects.create(
+                moe_code=moe_code,
+                name=f"Sekolah Jenis Kebangsaan (Tamil) Ladang {suffix}",
+                short_name=f"SJK(T) Ladang {suffix}",
+                state="Selangor",
+                constituency=self.constituency,
+            )
+
+    def _load_migration(self):
+        # Module name starts with a digit so direct import doesn't work;
+        # importlib resolves it.
+        import importlib
+        return importlib.import_module(
+            "hansard.migrations.0008_add_jenderata_spelling_aliases"
+        )
+
+    def test_adds_jenderata_aliases_for_each_school(self):
+        from django.apps import apps as _apps
+        self._load_migration().add_jenderata_aliases(_apps, None)
+        for moe_code in ("ABDB002", "ABDB003", "ABDB004", "ABDB006"):
+            school = School.objects.get(moe_code=moe_code)
+            aliases = SchoolAlias.objects.filter(
+                school=school,
+                alias_type=SchoolAlias.AliasType.HANSARD,
+                alias_normalized__contains="jenderata",
+            )
+            self.assertGreater(
+                aliases.count(), 0,
+                f"No Jenderata alias created for {moe_code}",
+            )
+
+    def test_migration_is_idempotent(self):
+        from django.apps import apps as _apps
+        mod = self._load_migration()
+        mod.add_jenderata_aliases(_apps, None)
+        count1 = SchoolAlias.objects.filter(
+            alias_type=SchoolAlias.AliasType.HANSARD,
+            alias_normalized__contains="jenderata",
+        ).count()
+        mod.add_jenderata_aliases(_apps, None)
+        count2 = SchoolAlias.objects.filter(
+            alias_type=SchoolAlias.AliasType.HANSARD,
+            alias_normalized__contains="jenderata",
+        ).count()
+        self.assertEqual(count1, count2)
+        self.assertGreater(count1, 0)
+
+    def test_reverse_removes_added_aliases(self):
+        from django.apps import apps as _apps
+        mod = self._load_migration()
+        mod.add_jenderata_aliases(_apps, None)
+        added_count = SchoolAlias.objects.filter(
+            alias_type=SchoolAlias.AliasType.HANSARD,
+            alias_normalized__contains="jenderata",
+        ).count()
+        self.assertGreater(added_count, 0)
+
+        mod.remove_jenderata_aliases(_apps, None)
+        remaining = SchoolAlias.objects.filter(
+            alias_type=SchoolAlias.AliasType.HANSARD,
+            alias_normalized__contains="jenderata",
+        ).count()
+        self.assertEqual(remaining, 0)
