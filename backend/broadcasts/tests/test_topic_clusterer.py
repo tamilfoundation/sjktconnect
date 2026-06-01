@@ -1,4 +1,4 @@
-"""Tests for Sprint 24 task #2 — topic_clusterer service."""
+"""Tests for Sprint 24 task #2 + #10b — topic_clusterer service."""
 
 import json
 from datetime import date
@@ -8,21 +8,31 @@ from django.test import TestCase
 
 from broadcasts.services.topic_clusterer import (
     cluster_news_articles,
+    rank_and_cap_clusters,
     _materialise_clusters,
+    _pick_lead_article,
+    _score_cluster,
+    _sentiment_majority,
+    _max_relevance,
 )
 
 
-def _make_article(pk, title, source="BERNAMA", pub_date=None):
+def _make_article(pk, title, source="BERNAMA", pub_date=None,
+                  relevance_score=None, sentiment="", url="https://example.com/"):
     """Build a duck-typed article-like object for clustering tests.
 
-    The clusterer only reads pk, title, source_name, published_date —
-    no DB row required.
+    Explicitly sets relevance_score + sentiment + url so the score
+    computation in the clusterer doesn't see Mock's auto-generated
+    truthy MagicMock attributes.
     """
     article = Mock()
     article.pk = pk
     article.title = title
     article.source_name = source
     article.published_date = pub_date or date(2026, 4, 15)
+    article.relevance_score = relevance_score
+    article.sentiment = sentiment
+    article.url = url
     return article
 
 
@@ -253,3 +263,200 @@ class MaterialiseClustersUnitTest(TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["headline"], "Other coverage")
         self.assertEqual(len(result[0]["articles"]), 3)
+
+
+class ClusterMetadataTest(TestCase):
+    """Sprint 24 #10b — score, lead article, sentiment majority shape."""
+
+    def test_real_cluster_carries_score_and_metadata(self):
+        articles = [
+            _make_article(1, "A", relevance_score=4, sentiment="POSITIVE"),
+            _make_article(2, "B", relevance_score=5, sentiment="POSITIVE"),
+        ]
+        data = {"clusters": [{"headline": "X", "story_summary": "",
+                              "article_ids": [1, 2]}]}
+        result = _materialise_clusters(data, articles)
+        c = result[0]
+        self.assertEqual(c["article_count"], 2)
+        self.assertEqual(c["max_relevance"], 5)
+        self.assertEqual(c["sentiment_majority"], "POSITIVE")
+        # 2*2 + 5 + 1 (POSITIVE bonus) = 10
+        self.assertEqual(c["score"], 10)
+        self.assertFalse(c["is_other"])
+        self.assertIsNotNone(c["lead_article"])
+
+    def test_other_bucket_is_marked_and_unscored(self):
+        articles = [_make_article(i, f"A{i}") for i in range(1, 4)]
+        result = _materialise_clusters({"clusters": []}, articles)
+        c = result[0]
+        self.assertTrue(c["is_other"])
+        self.assertEqual(c["score"], 0)
+        self.assertEqual(c["article_count"], 3)
+
+
+class ScoreFormulaTest(TestCase):
+    def test_dengkil_example(self):
+        # 4 articles, max relevance 5, majority positive → 4*2 + 5 + 1 = 14
+        self.assertEqual(_score_cluster(4, 5, "POSITIVE"), 14)
+
+    def test_single_negative_high_relevance_competes(self):
+        # 1 article, relevance 5, negative → 1*2 + 5 + 2 = 9
+        self.assertEqual(_score_cluster(1, 5, "NEGATIVE"), 9)
+
+    def test_neutral_gets_no_bonus(self):
+        self.assertEqual(_score_cluster(3, 4, "NEUTRAL"), 10)
+
+    def test_unknown_sentiment_treated_as_neutral(self):
+        self.assertEqual(_score_cluster(2, 3, ""), 7)
+
+
+class SentimentMajorityTest(TestCase):
+    def test_unanimous_positive(self):
+        articles = [_make_article(i, "x", sentiment="POSITIVE") for i in range(1, 4)]
+        self.assertEqual(_sentiment_majority(articles), "POSITIVE")
+
+    def test_negative_wins_tie_against_positive(self):
+        # Severity bias: a single concerning article isn't diluted.
+        articles = [
+            _make_article(1, "x", sentiment="POSITIVE"),
+            _make_article(2, "x", sentiment="NEGATIVE"),
+        ]
+        self.assertEqual(_sentiment_majority(articles), "NEGATIVE")
+
+    def test_empty_or_blank_falls_back_to_neutral(self):
+        articles = [_make_article(1, "x", sentiment="")]
+        self.assertEqual(_sentiment_majority(articles), "NEUTRAL")
+
+
+class MaxRelevanceTest(TestCase):
+    def test_returns_highest_score(self):
+        articles = [
+            _make_article(1, "x", relevance_score=3),
+            _make_article(2, "x", relevance_score=5),
+            _make_article(3, "x", relevance_score=4),
+        ]
+        self.assertEqual(_max_relevance(articles), 5)
+
+    def test_handles_none_and_missing(self):
+        articles = [
+            _make_article(1, "x", relevance_score=None),
+            _make_article(2, "x", relevance_score=4),
+        ]
+        self.assertEqual(_max_relevance(articles), 4)
+
+    def test_empty_list_returns_zero(self):
+        self.assertEqual(_max_relevance([]), 0)
+
+
+class PickLeadArticleTest(TestCase):
+    def test_highest_relevance_wins(self):
+        articles = [
+            _make_article(1, "low", relevance_score=2),
+            _make_article(2, "high", relevance_score=5),
+            _make_article(3, "mid", relevance_score=3),
+        ]
+        lead = _pick_lead_article(articles)
+        self.assertEqual(lead.pk, 2)
+
+    def test_tie_break_on_earliest_published_date(self):
+        articles = [
+            _make_article(1, "late", relevance_score=5,
+                          pub_date=date(2026, 4, 20)),
+            _make_article(2, "early", relevance_score=5,
+                          pub_date=date(2026, 4, 5)),
+        ]
+        lead = _pick_lead_article(articles)
+        self.assertEqual(lead.pk, 2)
+
+    def test_tie_break_on_pk_when_dates_match(self):
+        articles = [
+            _make_article(7, "x", relevance_score=5,
+                          pub_date=date(2026, 4, 5)),
+            _make_article(3, "x", relevance_score=5,
+                          pub_date=date(2026, 4, 5)),
+        ]
+        lead = _pick_lead_article(articles)
+        self.assertEqual(lead.pk, 3)
+
+
+class RankAndCapClustersTest(TestCase):
+    """Sprint 24 #10b — rank_and_cap_clusters compose-step helper."""
+
+    def _cluster(self, headline, score, count, is_other=False):
+        return {
+            "headline": headline,
+            "story_summary": "",
+            "articles": [],
+            "article_count": count,
+            "lead_article": None,
+            "max_relevance": 3,
+            "sentiment_majority": "NEUTRAL",
+            "score": score,
+            "is_other": is_other,
+        }
+
+    def test_sorts_by_score_desc(self):
+        clusters = [
+            self._cluster("low", score=5, count=2),
+            self._cluster("high", score=14, count=4),
+            self._cluster("mid", score=9, count=1),
+        ]
+        top, remainder = rank_and_cap_clusters(clusters, top_n=10)
+        self.assertEqual([c["headline"] for c in top], ["high", "mid", "low"])
+        self.assertEqual(remainder, 0)
+
+    def test_caps_at_top_n_and_counts_dropped_articles(self):
+        clusters = [self._cluster(f"c{i}", score=20 - i, count=3)
+                    for i in range(12)]
+        top, remainder = rank_and_cap_clusters(clusters, top_n=10)
+        self.assertEqual(len(top), 10)
+        # 2 dropped clusters × 3 articles each = 6.
+        self.assertEqual(remainder, 6)
+
+    def test_other_bucket_excluded_from_cards_added_to_remainder(self):
+        clusters = [
+            self._cluster("real", score=10, count=3),
+            self._cluster("Other coverage", score=0, count=5, is_other=True),
+        ]
+        top, remainder = rank_and_cap_clusters(clusters, top_n=10)
+        self.assertEqual(len(top), 1)
+        self.assertEqual(top[0]["headline"], "real")
+        self.assertEqual(remainder, 5)
+
+    def test_remainder_combines_dropped_and_other(self):
+        clusters = [self._cluster(f"c{i}", score=20 - i, count=2)
+                    for i in range(11)]
+        clusters.append(self._cluster("Other coverage", score=0, count=4,
+                                       is_other=True))
+        top, remainder = rank_and_cap_clusters(clusters, top_n=10)
+        self.assertEqual(len(top), 10)
+        # 1 dropped real cluster × 2 + Other (4) = 6.
+        self.assertEqual(remainder, 6)
+
+    def test_empty_input(self):
+        top, remainder = rank_and_cap_clusters([], top_n=10)
+        self.assertEqual(top, [])
+        self.assertEqual(remainder, 0)
+
+    def test_under_top_n_returns_all_real_clusters(self):
+        clusters = [
+            self._cluster("a", score=10, count=2),
+            self._cluster("b", score=8, count=2),
+        ]
+        top, remainder = rank_and_cap_clusters(clusters, top_n=10)
+        self.assertEqual(len(top), 2)
+        self.assertEqual(remainder, 0)
+
+    def test_stable_tiebreak_on_equal_scores(self):
+        # Same score: tie-break by article_count DESC, then max_relevance
+        # DESC, then headline alpha. Deterministic across runs.
+        clusters = [
+            self._cluster("alpha", score=10, count=2),
+            self._cluster("bravo", score=10, count=3),
+            self._cluster("charlie", score=10, count=3),
+        ]
+        top, _ = rank_and_cap_clusters(clusters, top_n=10)
+        # bravo + charlie (count=3) come before alpha (count=2);
+        # within the count=3 pair, alpha-order on headline → bravo first.
+        self.assertEqual([c["headline"] for c in top],
+                         ["bravo", "charlie", "alpha"])

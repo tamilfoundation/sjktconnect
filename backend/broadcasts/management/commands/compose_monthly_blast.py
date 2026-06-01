@@ -28,7 +28,12 @@ from broadcasts.services.duplicate_guard import (
 from broadcasts.services.image_generator import generate_hero_image
 from broadcasts.services.monthly_analyst import generate_monthly_analysis
 from broadcasts.services.sender import send_broadcast
-from broadcasts.services.topic_clusterer import cluster_news_articles
+from broadcasts.services.topic_clusterer import (
+    cluster_news_articles,
+    rank_and_cap_clusters,
+)
+
+NEWS_TOP_N = 10
 
 
 class Command(BaseCommand):
@@ -73,17 +78,40 @@ class Command(BaseCommand):
                 "or spam-flag fix."
             ),
         )
+        parser.add_argument(
+            "--preview-html",
+            type=str,
+            default="",
+            help=(
+                "Sprint 24 #10: render the full v2 template (incl. Gemini "
+                "analysis + topic clustering) and write the HTML to the "
+                "given local path. Does NOT create a Broadcast row, does "
+                "NOT send to Brevo. Open the file in a browser to preview "
+                "before deploy. Costs ~$0.001 in Gemini tokens per call. "
+                "Mutually exclusive with --dry-run / --auto-send."
+            ),
+        )
 
     def handle(self, *args, **options):
         year, month = self._parse_month(options["month"])
         month_label = f"{calendar.month_name[month]} {year}"
         dry_run = options["dry_run"]
+        preview_path = options.get("preview_html", "") or ""
         backfill_since = self._parse_backfill_since(options["backfill_since"])
+
+        if preview_path and (dry_run or options.get("auto_send")):
+            raise CommandError(
+                "--preview-html is mutually exclusive with --dry-run and "
+                "--auto-send. Pick one mode."
+            )
 
         coverage_start = date(year, month, 1)
         coverage_end = date(year, month, calendar.monthrange(year, month)[1])
 
-        if not dry_run and not options["force_duplicate"]:
+        # Skip the duplicate-broadcast guard for preview too — preview
+        # creates no Broadcast row, so a same-month "duplicate" is not
+        # actually a duplicate.
+        if not dry_run and not preview_path and not options["force_duplicate"]:
             existing = check_duplicate(
                 kind=Broadcast.Kind.MONTHLY_BLAST,
                 coverage_start=coverage_start,
@@ -159,10 +187,19 @@ class Command(BaseCommand):
         # topic groups so a 46-article month reads as a small set of
         # named stories rather than a flat list. Fail-open inside the
         # service — never raises.
-        news_clusters = cluster_news_articles(list(data.get("news_all", [])))
+        all_clusters = cluster_news_articles(list(data.get("news_all", [])))
+        # Sprint 24 task #10b: rank by hybrid score, cap at top N
+        # stories shown as cards. Everything else (Other bucket +
+        # dropped clusters past the cap) becomes the footer remainder
+        # count so a reader can still see all news on the website.
+        news_clusters, news_remainder_count = rank_and_cap_clusters(
+            all_clusters, top_n=NEWS_TOP_N,
+        )
         self.stdout.write(
-            f"News clustered into {len(news_clusters)} group(s) "
-            f"from {data.get('news_total', 0)} approved articles"
+            f"News: {len(all_clusters)} cluster(s) from "
+            f"{data.get('news_total', 0)} approved articles -- "
+            f"showing top {len(news_clusters)} as cards, "
+            f"{news_remainder_count} article(s) rolled into footer"
         )
 
         # Sprint 23 + 24: extra context for v2 render. Surfaces the
@@ -171,6 +208,7 @@ class Command(BaseCommand):
         v2_context_extras = {
             "news_all": list(data.get("news_all", [])),
             "news_clusters": news_clusters,
+            "news_remainder_count": news_remainder_count,
             "schools_mentioned": data.get("schools_mentioned", []),
             "schools_mentioned_total": data.get("schools_mentioned_total", 0),
             "news_total": data.get("news_total", 0),
@@ -214,6 +252,21 @@ class Command(BaseCommand):
             },
         )
         self.stdout.write("Using v2 analytical template (Gemini)")
+
+        # Sprint 24 #10: preview-only path. Writes the rendered HTML to
+        # a local file and returns BEFORE any Broadcast row is created.
+        # No DB write, no send, no Brevo call. Safe by construction —
+        # the only code that touches Brevo is send_broadcast, which is
+        # downstream of this early return.
+        if preview_path:
+            with open(preview_path, "w", encoding="utf-8") as f:
+                f.write(html_content)
+            self.stdout.write(self.style.SUCCESS(
+                f"Preview written to {preview_path} "
+                f"({len(html_content):,} bytes). "
+                f"No Broadcast row created, no email sent."
+            ))
+            return
 
         text_content = strip_tags(html_content)
 

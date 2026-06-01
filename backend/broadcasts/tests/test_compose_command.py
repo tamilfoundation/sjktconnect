@@ -319,6 +319,12 @@ class TestSprint24RenderSmoke:
                 "headline": "Test story cluster",
                 "story_summary": "1-2 sentence synopsis",
                 "articles": [],
+                "article_count": 0,
+                "lead_article": None,
+                "max_relevance": 0,
+                "sentiment_majority": "NEUTRAL",
+                "score": 0,
+                "is_other": False,
             }
         ]
 
@@ -394,10 +400,12 @@ class TestSprint24RenderSmoke:
         broadcast = Broadcast.objects.first()
         assert "Parliament was not in session" not in broadcast.html_content
 
-    def test_render_news_cluster_renders_headline_and_link(
+    def test_render_news_cluster_renders_headline_and_lead_link(
         self, _hero, _cluster, _ana, db
     ):
-        from datetime import date as _date
+        """Sprint 24 #10b: one card per story. Cluster headline is the
+        linked text; lead_article.url is the destination.
+        """
         article = NewsArticle.objects.create(
             url="https://themalaysiapress.com/sjkt-test",
             title="SJK(T) Test Article",
@@ -414,14 +422,68 @@ class TestSprint24RenderSmoke:
                 "headline": "Test cluster headline",
                 "story_summary": "Synopsis.",
                 "articles": [article],
+                "article_count": 1,
+                "lead_article": article,
+                "max_relevance": 4,
+                "sentiment_majority": "POSITIVE",
+                "score": 7,
+                "is_other": False,
             }
         ]
         call_command("compose_monthly_blast", month="2026-02")
         broadcast = Broadcast.objects.first()
         assert "Test cluster headline" in broadcast.html_content
-        assert "SJK(T) Test Article" in broadcast.html_content
-        # Source link present
+        # Lead article URL is the destination of the cluster headline link.
         assert "https://themalaysiapress.com/sjkt-test" in broadcast.html_content
+        # The source name appears in the cluster meta line.
+        assert "Test Source" in broadcast.html_content
+
+    def test_render_shows_remainder_footer_when_articles_dropped(
+        self, _hero, _cluster, _ana, db
+    ):
+        """Sprint 24 #10b: dropped + Other articles tally into a footer
+        line so the email never silently hides coverage.
+        """
+        article = NewsArticle.objects.create(
+            url="https://example.com/lead",
+            title="Lead",
+            source_name="Src",
+            published_date=timezone.make_aware(datetime(2026, 2, 5)),
+            status=NewsArticle.ANALYSED,
+            review_status=NewsArticle.APPROVED,
+            relevance_score=4,
+            sentiment="POSITIVE",
+        )
+        _ana.return_value = _stub_analysis()
+        # 1 real cluster shown + 1 Other bucket (3 articles) → remainder=3
+        _cluster.return_value = [
+            {
+                "headline": "Top",
+                "story_summary": "S",
+                "articles": [article],
+                "article_count": 1,
+                "lead_article": article,
+                "max_relevance": 4,
+                "sentiment_majority": "POSITIVE",
+                "score": 7,
+                "is_other": False,
+            },
+            {
+                "headline": "Other coverage",
+                "story_summary": "",
+                "articles": [article, article, article],
+                "article_count": 3,
+                "lead_article": article,
+                "max_relevance": 4,
+                "sentiment_majority": "POSITIVE",
+                "score": 0,
+                "is_other": True,
+            },
+        ]
+        call_command("compose_monthly_blast", month="2026-02")
+        broadcast = Broadcast.objects.first()
+        assert "Plus 3 other articles" in broadcast.html_content
+        assert "tamilschool.org/en/news" in broadcast.html_content
 
     def test_render_suppresses_scorecards_section_on_lifetime_fallback(
         self, _hero, _cluster, _ana, scorecard

@@ -82,13 +82,80 @@ def _other_bucket(articles):
     """Build the fail-open / un-clustered fallback shape.
 
     Single 'Other' cluster containing all the input articles, with empty
-    story_summary so the template can hide the summary line.
+    story_summary so the template can hide the summary line. The
+    template + compose step treat the Other bucket as the rolled-up
+    footer line, never as a card — so it doesn't carry a score.
     """
+    article_list = list(articles)
     return [{
-        "headline": "Other coverage" if articles else "",
+        "headline": "Other coverage" if article_list else "",
         "story_summary": "",
-        "articles": list(articles),
+        "articles": article_list,
+        "article_count": len(article_list),
+        "lead_article": article_list[0] if article_list else None,
+        "max_relevance": _max_relevance(article_list),
+        "sentiment_majority": _sentiment_majority(article_list),
+        "score": 0,
+        "is_other": True,
     }]
+
+
+def _max_relevance(articles) -> int:
+    """Highest relevance_score across the cluster, defaulting unset → 0."""
+    scores = [getattr(a, "relevance_score", None) or 0 for a in articles]
+    return max(scores) if scores else 0
+
+
+def _sentiment_majority(articles) -> str:
+    """Pick the dominant sentiment label across the cluster.
+
+    Returns one of "POSITIVE", "NEGATIVE", "NEUTRAL". Negative wins ties
+    against neutral (a single concerning article shouldn't be diluted),
+    positive wins ties against neutral, and negative wins ties against
+    positive (severity bias for editorial framing).
+    """
+    counts = {"POSITIVE": 0, "NEGATIVE": 0, "NEUTRAL": 0}
+    for a in articles:
+        label = (getattr(a, "sentiment", "") or "").upper()
+        if label in counts:
+            counts[label] += 1
+    if not any(counts.values()):
+        return "NEUTRAL"
+    # Severity-biased ordering: NEGATIVE > POSITIVE > NEUTRAL on ties.
+    return max(
+        counts,
+        key=lambda k: (counts[k], {"NEGATIVE": 2, "POSITIVE": 1, "NEUTRAL": 0}[k]),
+    )
+
+
+def _pick_lead_article(articles):
+    """Pick the representative article for a cluster.
+
+    Highest relevance_score wins; tie-break on earliest published_date
+    (first to break the story), then on lowest pk for determinism.
+    """
+    def sort_key(a):
+        rel = getattr(a, "relevance_score", None) or 0
+        pub = getattr(a, "published_date", None)
+        # date.max sorts last so missing dates lose the tiebreak.
+        from datetime import date as _date
+        pub_key = pub or _date.max
+        return (-rel, pub_key, a.pk)
+    return sorted(articles, key=sort_key)[0]
+
+
+def _score_cluster(article_count: int, max_relevance: int, sentiment: str) -> int:
+    """Hybrid ranking: count weighted x2, plus relevance, plus severity bias.
+
+    score = (article_count * 2) + max_relevance + severity_bonus
+    severity_bonus: NEGATIVE=2, POSITIVE=1, NEUTRAL=0.
+
+    Designed so multi-source coverage dominates (Dengkil's 4 articles
+    score 14 vs a single-source positive at 6) but a single high-
+    relevance negative story can still compete (1*2 + 5 + 2 = 9).
+    """
+    severity_bonus = {"NEGATIVE": 2, "POSITIVE": 1, "NEUTRAL": 0}.get(sentiment, 0)
+    return (article_count * 2) + max_relevance + severity_bonus
 
 
 def cluster_news_articles(articles):
@@ -211,10 +278,18 @@ def _materialise_clusters(data, article_list):
             for article in cluster_articles:
                 seen_ids.discard(article.pk)
             continue
+        max_rel = _max_relevance(cluster_articles)
+        sentiment = _sentiment_majority(cluster_articles)
         clusters.append({
             "headline": str(raw_cluster.get("headline", "")).strip() or "Untitled story",
             "story_summary": str(raw_cluster.get("story_summary", "")).strip(),
             "articles": cluster_articles,
+            "article_count": len(cluster_articles),
+            "lead_article": _pick_lead_article(cluster_articles),
+            "max_relevance": max_rel,
+            "sentiment_majority": sentiment,
+            "score": _score_cluster(len(cluster_articles), max_rel, sentiment),
+            "is_other": False,
         })
 
     # Everything Gemini didn't cluster (or that we demoted) goes here.
@@ -224,6 +299,45 @@ def _materialise_clusters(data, article_list):
             "headline": "Other coverage",
             "story_summary": "",
             "articles": other_articles,
+            "article_count": len(other_articles),
+            "lead_article": other_articles[0],
+            "max_relevance": _max_relevance(other_articles),
+            "sentiment_majority": _sentiment_majority(other_articles),
+            "score": 0,
+            "is_other": True,
         })
 
     return clusters
+
+
+def rank_and_cap_clusters(clusters, top_n: int = 10):
+    """Sort by score DESC, cap at top_n, return dropped article count.
+
+    Excludes the Other-bucket from the ranked cards: those articles
+    feed the footer "Plus N other articles" line instead. Articles
+    that fall off the top_n cap also count toward the remainder.
+
+    Returns (top_clusters, remainder_count) where:
+        - top_clusters: ranked + capped, never includes is_other
+        - remainder_count: total articles in (Other bucket + dropped
+          clusters past the cap). 0 means everything fit.
+
+    Stable tie-break: sort by (-score, -article_count, -max_relevance,
+    headline) so the result is deterministic across runs.
+    """
+    rankable = [c for c in clusters if not c.get("is_other")]
+    other = [c for c in clusters if c.get("is_other")]
+
+    rankable.sort(key=lambda c: (
+        -c.get("score", 0),
+        -c.get("article_count", 0),
+        -c.get("max_relevance", 0),
+        c.get("headline", ""),
+    ))
+
+    top = rankable[:top_n]
+    dropped = rankable[top_n:]
+    remainder = sum(c.get("article_count", 0) for c in dropped) + sum(
+        c.get("article_count", 0) for c in other
+    )
+    return top, remainder
