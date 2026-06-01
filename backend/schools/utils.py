@@ -196,3 +196,45 @@ def format_phone(phone: str | None) -> str:
         return phone  # unexpected length
 
     return f"+60-{area_code} {formatted_sub}"
+
+
+# ── State Name Normalisation ─────────────────────────────────────────────
+
+# MOE's full Malay state names are accurate but unwieldy in compact UI:
+# "Wilayah Persekutuan Kuala Lumpur" wraps across two lines in tight columns
+# (digest emails, sidebars, filter chips). Standard Malaysian abbreviation
+# is "W.P. <name>". We canonicalise at storage so every display surface —
+# frontend pages, API consumers, email templates, SEO metadata — gets the
+# compact form automatically with no per-component formatting.
+#
+# The mapping is matched case-insensitively. All 3 W.P. variants are listed
+# pre-emptively even though only Kuala Lumpur has SJK(T) schools today;
+# this keeps Putrajaya / Labuan correct if MOE ever adds one.
+_STATE_DISPLAY = {
+    "wilayah persekutuan kuala lumpur": "W.P. Kuala Lumpur",
+    "wilayah persekutuan putrajaya": "W.P. Putrajaya",
+    "wilayah persekutuan labuan": "W.P. Labuan",
+}
+
+
+def format_state(state: str | None) -> str:
+    """Normalise a Malaysian state name to its canonical compact form.
+
+    Args:
+        state: Raw state string from MOE data, the DB, or anywhere else.
+            Accepts ALL-CAPS, Title Case, or already-abbreviated input.
+
+    Returns:
+        - Empty string for None / blank input.
+        - "W.P. <name>" for any casing of "Wilayah Persekutuan <name>"
+          (idempotent — re-calling on the abbreviated form is a no-op).
+        - The trimmed input unchanged for any other state (the 13 regular
+          state names like "Johor", "Selangor" are already short and don't
+          need rewriting).
+    """
+    if not state:
+        return ""
+    cleaned = state.strip()
+    if not cleaned:
+        return ""
+    return _STATE_DISPLAY.get(cleaned.lower(), cleaned)

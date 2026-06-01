@@ -11,6 +11,7 @@ Usage:
     python manage.py compose_monthly_blast --month 2026-02 --dry-run
 """
 
+import base64
 import calendar
 import os
 from datetime import date, datetime
@@ -234,13 +235,21 @@ class Command(BaseCommand):
             self.stdout.write("Hero image generated")
 
         # Render template without hero_image_url — it will be patched in
-        # after the broadcast is saved (needs the PK).
+        # after the broadcast is saved (needs the PK). Exception: in
+        # --preview-html mode there is no broadcast row, so inline the
+        # hero bytes as a base64 data: URL so the preview file is fully
+        # self-contained when opened from the filesystem.
+        if preview_path and hero_image_bytes:
+            hero_b64 = base64.b64encode(hero_image_bytes).decode("ascii")
+            preview_hero_url = f"data:image/png;base64,{hero_b64}"
+        else:
+            preview_hero_url = None
         html_content = render_to_string(
             "broadcasts/monthly_blast_v2.html",
             {
                 "month_label": month_label,
                 "analysis": analysis,
-                "hero_image_url": None,
+                "hero_image_url": preview_hero_url,
                 "briefs": data["briefs"],
                 "meeting_reports": data["meeting_reports"],
                 "scorecards": data["scorecards"],
@@ -259,11 +268,30 @@ class Command(BaseCommand):
         # the only code that touches Brevo is send_broadcast, which is
         # downstream of this early return.
         if preview_path:
+            # Wrap the bare-div email body in an HTML5 shell so the
+            # browser knows it's UTF-8. Without this, Windows browsers
+            # default to cp1252 and Tamil renders as mojibake. Also
+            # nudges the font stack toward Tamil-capable fallbacks so
+            # the preview matches what most email clients pick.
+            preview_html = (
+                "<!DOCTYPE html>\n"
+                '<html lang="en">\n<head>\n'
+                '<meta charset="UTF-8">\n'
+                '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
+                "<title>Monthly Intelligence Blast — preview</title>\n"
+                "<style>"
+                "body{margin:0;padding:24px;background:#f9fafb;"
+                "font-family:Georgia,'Noto Serif Tamil','Latha',serif;}"
+                "</style>\n"
+                "</head>\n<body>\n"
+                f"{html_content}\n"
+                "</body>\n</html>\n"
+            )
             with open(preview_path, "w", encoding="utf-8") as f:
-                f.write(html_content)
+                f.write(preview_html)
             self.stdout.write(self.style.SUCCESS(
                 f"Preview written to {preview_path} "
-                f"({len(html_content):,} bytes). "
+                f"({len(preview_html):,} bytes). "
                 f"No Broadcast row created, no email sent."
             ))
             return

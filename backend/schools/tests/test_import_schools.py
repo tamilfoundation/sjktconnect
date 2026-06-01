@@ -199,7 +199,8 @@ class ImportSchoolsTest(TestCase):
         Path(path).unlink()
 
     def test_updates_constituency_state(self):
-        """Importing schools should fill in constituency state from MOE data."""
+        """Importing schools should fill in constituency state from MOE data,
+        title-cased and W.P.-normalised (Sprint 24 #10c)."""
         rows = [
             [
                 "JOHOR", "PPD SEGAMAT", "P140 SEGAMAT", "N01 BULOH KASAP", "SEKOLAH RENDAH",
@@ -213,5 +214,28 @@ class ImportSchoolsTest(TestCase):
         call_command("import_schools", path, "--gps-file", "nonexistent.csv")
 
         self.c1.refresh_from_db()
-        assert self.c1.state == "JOHOR"
+        assert self.c1.state == "Johor"
+        Path(path).unlink()
+
+    def test_constituency_state_normalised_for_wp_kuala_lumpur(self):
+        """W.P. abbreviation applied to Constituency.state at import."""
+        c_kl = Constituency.objects.create(code="P116", name="Setiawangsa", state="")
+        DUN.objects.create(code="N01b", name="Wangsa Maju", constituency=c_kl, state="")
+        rows = [
+            [
+                "WILAYAH PERSEKUTUAN KUALA LUMPUR", "PPD WP KL", "P116 SETIAWANGSA",
+                "N01b WANGSA MAJU", "SEKOLAH RENDAH",
+                "SJK(T)", "WBD0001", "SEKOLAH JENIS KEBANGSAAN (TAMIL) WANGSA MAJU",
+                "Jalan Wangsa", "53300", "Kuala Lumpur", "", "", "",
+                "", "A", "", 1, "PAGI", 0, 100, 0, 8,
+                0, 0, 101.7, 3.2, "",
+            ],
+        ]
+        path = self._create_test_file(rows)
+        call_command("import_schools", path, "--gps-file", "nonexistent.csv")
+
+        school = School.objects.get(moe_code="WBD0001")
+        c_kl.refresh_from_db()
+        assert school.state == "W.P. Kuala Lumpur"
+        assert c_kl.state == "W.P. Kuala Lumpur"
         Path(path).unlink()

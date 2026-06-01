@@ -2,7 +2,7 @@
 
 import pytest
 
-from schools.utils import format_phone, to_proper_case
+from schools.utils import format_phone, format_state, to_proper_case
 
 
 class TestToProperCase:
@@ -131,3 +131,42 @@ class TestFormatPhone:
 
     def test_unparseable_returns_original(self):
         assert format_phone("CALL OFFICE") == "CALL OFFICE"
+
+
+class TestFormatState:
+    """Test format_state() — collapses W.P. variants to compact form."""
+
+    def test_kuala_lumpur_title_case(self):
+        assert format_state("Wilayah Persekutuan Kuala Lumpur") == "W.P. Kuala Lumpur"
+
+    def test_kuala_lumpur_all_caps(self):
+        assert format_state("WILAYAH PERSEKUTUAN KUALA LUMPUR") == "W.P. Kuala Lumpur"
+
+    def test_putrajaya(self):
+        assert format_state("Wilayah Persekutuan Putrajaya") == "W.P. Putrajaya"
+
+    def test_labuan(self):
+        assert format_state("Wilayah Persekutuan Labuan") == "W.P. Labuan"
+
+    def test_regular_state_unchanged(self):
+        assert format_state("Selangor") == "Selangor"
+        assert format_state("Johor") == "Johor"
+        assert format_state("Pulau Pinang") == "Pulau Pinang"
+
+    def test_idempotent_on_abbreviated_form(self):
+        # Re-running on already-abbreviated input is a no-op.
+        assert format_state("W.P. Kuala Lumpur") == "W.P. Kuala Lumpur"
+
+    def test_blank_input_returns_empty(self):
+        assert format_state("") == ""
+        assert format_state(None) == ""
+
+    def test_whitespace_only_returns_empty(self):
+        assert format_state("   ") == ""
+
+    def test_trims_surrounding_whitespace(self):
+        assert format_state("  Wilayah Persekutuan Kuala Lumpur  ") == "W.P. Kuala Lumpur"
+
+    def test_unknown_state_passes_through(self):
+        # Hypothetical state name not in the canonical map → trim + return.
+        assert format_state("Some New State") == "Some New State"

@@ -18,7 +18,7 @@ from django.db import transaction
 from openpyxl import load_workbook
 
 from schools.models import Constituency, DUN, School
-from schools.utils import to_proper_case, format_phone
+from schools.utils import to_proper_case, format_phone, format_state
 
 # MOE name prefix to replace with short form
 MOE_PREFIX = "SEKOLAH JENIS KEBANGSAAN (TAMIL)"
@@ -255,14 +255,21 @@ class Command(BaseCommand):
                 if dun_obj:
                     stats["dun_linked"] += 1
 
-                # Also update constituency/DUN state from MOE data
+                # Also update constituency/DUN state from MOE data.
+                # Normalise: title-case + collapse W.P. variants to the
+                # compact form. Existing populated values are NOT
+                # overwritten by this import — the data migration
+                # `schools/0011_normalise_state_names` handles fixups
+                # for the historical Constituency rows that were
+                # imported pre-normalisation in ALL CAPS.
                 state = str(get_cell(row, "NEGERI") or "").strip()
-                if constituency and not constituency.state and state:
-                    constituency.state = state
+                normalised_state = format_state(to_proper_case(state)) if state else ""
+                if constituency and not constituency.state and normalised_state:
+                    constituency.state = normalised_state
                     if not dry_run:
                         constituency.save(update_fields=["state"])
-                if dun_obj and not dun_obj.state and state:
-                    dun_obj.state = state
+                if dun_obj and not dun_obj.state and normalised_state:
+                    dun_obj.state = normalised_state
                     if not dry_run:
                         dun_obj.save(update_fields=["state"])
 
@@ -276,7 +283,7 @@ class Command(BaseCommand):
                     "address": to_proper_case(str(get_cell(row, "ALAMATSURAT") or "").strip()),
                     "postcode": str(get_cell(row, "POSKODSURAT") or "").strip(),
                     "city": to_proper_case(str(get_cell(row, "BANDARSURAT") or "").strip()),
-                    "state": to_proper_case(state),
+                    "state": format_state(to_proper_case(state)),
                     "ppd": to_proper_case(str(get_cell(row, "PPD") or "").strip()),
                     "constituency": constituency,
                     "dun": dun_obj,

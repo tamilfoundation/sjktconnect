@@ -196,16 +196,14 @@
   <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Schools In The Spotlight &mdash; {{ schools_mentioned_total }} School{{ schools_mentioned_total|pluralize }}</div>
   <table width="100%" cellpadding="6" cellspacing="0" style="border-collapse: collapse; font-size: 14px;">
     <tr style="background: #f9fafb; color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
-      <th align="left" style="padding: 8px;">State</th>
-      <th align="right" style="padding: 8px;">Schools</th>
-      <th align="left" style="padding: 8px;">Examples</th>
+      <th align="left" valign="top" style="padding: 10px 12px; width: 30%;">State</th>
+      <th align="left" valign="top" style="padding: 10px 12px;">Schools</th>
     </tr>
     {% for state, schools in schools_by_state.items %}
     <tr style="border-top: 1px solid #f3f4f6;">
-      <td style="padding: 8px; font-weight: 600;">{{ state }}</td>
-      <td align="right" style="padding: 8px;">{{ schools|length }}</td>
-      <td style="padding: 8px; color: #6b7280; font-size: 13px;">
-        {% for s in schools|slice:":2" %}<a href="https://tamilschool.org/en/school/{{ s.moe_code }}" style="color: #7c3aed; text-decoration: none;">{{ s.short_name|default:s.name|truncatechars:34 }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}{% if schools|length > 2 %} &hellip;{% endif %}
+      <td valign="top" style="padding: 10px 12px; font-weight: 600; white-space: nowrap;">{{ state }} <span style="color: #9ca3af; font-weight: 400; font-size: 12px;">({{ schools|length }})</span></td>
+      <td valign="top" style="padding: 10px 12px; color: #4b5563; font-size: 13px; line-height: 1.7;">
+        {% for s in schools %}<a href="https://tamilschool.org/en/school/{{ s.moe_code }}" style="color: #7c3aed; text-decoration: none; white-space: nowrap;">{{ s.short_name|default:s.name }}</a>{% if not forloop.last %}<span style="color: #d1d5db;"> &middot; </span>{% endif %}{% endfor %}
       </td>
     </tr>
     {% endfor %}
