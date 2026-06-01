@@ -2,8 +2,8 @@
 Import SJK(T) schools from MOE Excel file.
 
 Usage:
-    python manage.py import_schools ../data/SenaraiSekolahWeb_Januari2026.xlsx
-    python manage.py import_schools --dry-run ../data/SenaraiSekolahWeb_Januari2026.xlsx
+    python manage.py import_schools ../data/SenaraiSekolahWeb_April2026.xlsx
+    python manage.py import_schools --dry-run ../data/SenaraiSekolahWeb_April2026.xlsx
     python manage.py import_schools --gps-file ../data/school_pin_verification.csv <excel_file>
 """
 
@@ -99,7 +99,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "file",
             type=str,
-            help="Path to MOE Excel file (SenaraiSekolahWeb_Januari2026.xlsx)",
+            help="Path to MOE Excel file (SenaraiSekolahWeb_April2026.xlsx)",
         )
         parser.add_argument(
             "--dry-run",

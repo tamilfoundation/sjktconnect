@@ -175,7 +175,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 | File | Rows | Purpose |
 |------|------|---------|
-| `data/SenaraiSekolahWeb_Januari2026.xlsx` | 528 SJK(T) | MOE official school list |
+| `data/SenaraiSekolahWeb_April2026.xlsx` | 528 SJK(T) | MOE official school list (April 2026 release; previous: SenaraiSekolahWeb_Januari2026.xlsx) |
 | `data/Political Constituencies.csv` | 613 DUN | Constituency reference data |
 | `data/school_pin_verification.csv` | 528 | GPS verification results |
 | `data/பள்ளிகள் - மாநிலம்.xlsx` | 529 | TF school database |
