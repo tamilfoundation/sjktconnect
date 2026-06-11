@@ -11,10 +11,20 @@ Usage:
     python manage.py resume_sending --dry-run
 """
 
-from django.core.management.base import BaseCommand
+from datetime import timedelta
+
+from django.core.management.base import BaseCommand, CommandError
+from django.utils import timezone
 
 from broadcasts.models import Broadcast, BroadcastRecipient
 from broadcasts.services.sender import resume_broadcast
+
+# How far back the post-run FAILED sweep looks. 7 days means a FAILED
+# broadcast makes this DAILY job exit non-zero for a week — long enough
+# that the Cloud Run console shows a red streak and the job-failure
+# alert has multiple chances to fire (2026-06-11 incident: four digests
+# sat FAILED for five weeks while every job involved kept exiting 0).
+FAILED_SWEEP_DAYS = 7
 
 
 class Command(BaseCommand):
@@ -43,6 +53,7 @@ class Command(BaseCommand):
 
         if not sending.exists():
             self.stdout.write("No broadcasts in SENDING status.")
+            self._fail_on_recent_failed_broadcasts(dry_run)
             return
 
         for broadcast in sending:
@@ -87,3 +98,35 @@ class Command(BaseCommand):
                         f"Remaining: {remaining}"
                     )
                 )
+
+        self._fail_on_recent_failed_broadcasts(dry_run)
+
+    def _fail_on_recent_failed_broadcasts(self, dry_run):
+        """Exit non-zero while any recently FAILED broadcast needs attention.
+
+        A FAILED broadcast is rare now (quota exhaustion stays SENDING),
+        so one means something genuinely broke. Failing this daily job
+        turns that into a visible red execution in the Cloud Run console
+        and feeds the job-failure Cloud Monitoring alert — closing the
+        monitoring gap that let the 2026-06-11 stuck-digest incident hide
+        for five weeks. Resolve by fixing the cause and setting the
+        broadcast to CANCELLED (abandoned) or SENDING (re-attempt).
+        """
+        cutoff = timezone.now() - timedelta(days=FAILED_SWEEP_DAYS)
+        failed = list(
+            Broadcast.objects.filter(
+                status=Broadcast.Status.FAILED,
+                updated_at__gte=cutoff,
+            ).values_list("pk", flat=True)
+        )
+        if not failed:
+            return
+        message = (
+            f"BROADCAST_FAILED_ALERT: broadcasts {failed} are FAILED "
+            f"(updated within {FAILED_SWEEP_DAYS} days). Investigate, then "
+            "set each to CANCELLED (abandon) or SENDING (re-attempt)."
+        )
+        if dry_run:
+            self.stdout.write(self.style.WARNING(f"DRY RUN — {message}"))
+            return
+        raise CommandError(message)

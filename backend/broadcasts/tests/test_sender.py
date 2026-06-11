@@ -6,8 +6,10 @@ import pytest
 from django.utils import timezone
 
 from broadcasts.models import Broadcast, BroadcastRecipient
+from broadcasts.services.brevo_quota import BrevoQuotaError
 from broadcasts.services.sender import (
     _wrap_broadcast_html,
+    resume_broadcast,
     send_broadcast,
 )
 from subscribers.models import Subscriber
@@ -275,6 +277,219 @@ class TestSendBroadcast:
             broadcast=draft_broadcast, subscriber=subscriber_a
         )
         assert recipient.email == "alice@example.com"
+
+
+@pytest.fixture
+def sending_broadcast_with_pending(db, subscriber_a, subscriber_b):
+    """A broadcast mid-drain: SENDING with two PENDING recipients."""
+    broadcast = Broadcast.objects.create(
+        subject="Mid-drain digest",
+        html_content="<p>Hello</p>",
+        kind=Broadcast.Kind.NEWS_DIGEST,
+        status=Broadcast.Status.SENDING,
+    )
+    for sub in (subscriber_a, subscriber_b):
+        BroadcastRecipient.objects.create(
+            broadcast=broadcast,
+            subscriber=sub,
+            email=sub.email,
+            status=BroadcastRecipient.DeliveryStatus.PENDING,
+        )
+    return broadcast
+
+
+def _quota(remaining, daily=300):
+    return {
+        "daily_quota": daily,
+        "used_today": daily - remaining,
+        "remaining": remaining,
+        "dev_mode": False,
+    }
+
+
+def _ok_post_response():
+    response = MagicMock()
+    response.json.return_value = {"messageId": "msg-1"}
+    response.raise_for_status = MagicMock()
+    return response
+
+
+@pytest.mark.django_db
+class TestQuotaResilience:
+    """Quota exhaustion is transient — it must NEVER mark a broadcast FAILED.
+
+    Regression tests for the 2026-06-11 stuck-digest incident: a
+    QuotaExceeded on resume marked broadcasts 79-82 FAILED, the resume
+    job ignores FAILED, and the same ~250 subscribers silently received
+    nothing for five weeks. The same path made full-list urgent alerts
+    (audience > daily quota) permanently unsendable.
+    """
+
+    def test_resume_with_quota_exhausted_stays_sending(
+        self, sending_broadcast_with_pending
+    ):
+        """THE incident regression: zero quota left -> stay SENDING, not FAILED."""
+        with patch.dict("os.environ", {"BREVO_API_KEY": "test-key"}):
+            with patch(
+                "broadcasts.services.sender.get_quota",
+                return_value=_quota(0),
+            ):
+                result = resume_broadcast(sending_broadcast_with_pending.pk)
+
+        assert result.status == Broadcast.Status.SENDING
+        pending = result.recipients.filter(
+            status=BroadcastRecipient.DeliveryStatus.PENDING
+        ).count()
+        assert pending == 2
+
+    @patch("broadcasts.services.sender.requests.post")
+    def test_resume_partial_quota_sends_what_fits(
+        self, mock_post, sending_broadcast_with_pending
+    ):
+        """Quota for 1 of 2 pending -> 1 sent, 1 pending, still SENDING."""
+        mock_post.return_value = _ok_post_response()
+        with patch.dict("os.environ", {"BREVO_API_KEY": "test-key"}):
+            with patch("broadcasts.services.sender.time.sleep"):
+                with patch(
+                    "broadcasts.services.sender.get_quota",
+                    return_value=_quota(1),
+                ):
+                    result = resume_broadcast(sending_broadcast_with_pending.pk)
+
+        assert result.status == Broadcast.Status.SENDING
+        assert mock_post.call_count == 1
+        statuses = list(
+            result.recipients.values_list("status", flat=True)
+        )
+        assert sorted(statuses) == [
+            BroadcastRecipient.DeliveryStatus.PENDING,
+            BroadcastRecipient.DeliveryStatus.SENT,
+        ]
+
+    @patch("broadcasts.services.sender.requests.post")
+    def test_resume_next_day_completes_to_sent(
+        self, mock_post, sending_broadcast_with_pending
+    ):
+        """With quota available, the drain finishes and the broadcast is SENT."""
+        mock_post.return_value = _ok_post_response()
+        with patch.dict("os.environ", {"BREVO_API_KEY": "test-key"}):
+            with patch("broadcasts.services.sender.time.sleep"):
+                with patch(
+                    "broadcasts.services.sender.get_quota",
+                    return_value=_quota(300),
+                ):
+                    result = resume_broadcast(sending_broadcast_with_pending.pk)
+
+        assert result.status == Broadcast.Status.SENT
+        assert result.sent_at is not None
+        assert mock_post.call_count == 2
+
+    def test_resume_quota_probe_failure_stays_sending(
+        self, sending_broadcast_with_pending
+    ):
+        """A failed quota PROBE is transient too — stay SENDING for retry."""
+        with patch.dict("os.environ", {"BREVO_API_KEY": "test-key"}):
+            with patch(
+                "broadcasts.services.sender.get_quota",
+                side_effect=BrevoQuotaError("probe failed"),
+            ):
+                result = resume_broadcast(sending_broadcast_with_pending.pk)
+
+        assert result.status == Broadcast.Status.SENDING
+
+    def test_send_broadcast_quota_exhausted_stays_sending(
+        self, draft_broadcast, subscriber_a, subscriber_b
+    ):
+        """Initial send with zero quota queues everyone and stays SENDING.
+
+        This is the urgent-alert scenario: an audience larger than the
+        daily cap must drain over days, never refuse-and-FAIL.
+        """
+        with patch.dict("os.environ", {"BREVO_API_KEY": "test-key"}):
+            with patch(
+                "broadcasts.services.sender.get_quota",
+                return_value=_quota(0),
+            ):
+                result = send_broadcast(draft_broadcast.pk)
+
+        assert result.status == Broadcast.Status.SENDING
+        pending = result.recipients.filter(
+            status=BroadcastRecipient.DeliveryStatus.PENDING
+        ).count()
+        assert pending == 2
+
+    @patch("broadcasts.services.sender.requests.post")
+    def test_send_broadcast_partial_quota_sends_what_fits(
+        self, mock_post, draft_broadcast, subscriber_a, subscriber_b
+    ):
+        mock_post.return_value = _ok_post_response()
+        with patch.dict("os.environ", {"BREVO_API_KEY": "test-key"}):
+            with patch("broadcasts.services.sender.time.sleep"):
+                with patch(
+                    "broadcasts.services.sender.get_quota",
+                    return_value=_quota(1),
+                ):
+                    result = send_broadcast(draft_broadcast.pk)
+
+        assert result.status == Broadcast.Status.SENDING
+        assert mock_post.call_count == 1
+
+    def test_send_broadcast_quota_probe_failure_stays_sending(
+        self, draft_broadcast, subscriber_a
+    ):
+        with patch.dict("os.environ", {"BREVO_API_KEY": "test-key"}):
+            with patch(
+                "broadcasts.services.sender.get_quota",
+                side_effect=BrevoQuotaError("probe failed"),
+            ):
+                result = send_broadcast(draft_broadcast.pk)
+
+        assert result.status == Broadcast.Status.SENDING
+
+
+@pytest.mark.django_db
+class TestSenderName:
+    """News-type emails arrive from "SJK(T) News" (owner decision 2026-06-11)."""
+
+    def _payload_for_kind(self, kind, subscriber):
+        broadcast = Broadcast.objects.create(
+            subject="Sender name test",
+            html_content="<p>Hi</p>",
+            kind=kind,
+            status=Broadcast.Status.DRAFT,
+        )
+        mock_post_response = _ok_post_response()
+        with patch.dict("os.environ", {"BREVO_API_KEY": "test-key"}):
+            with patch("broadcasts.services.sender.time.sleep"):
+                with patch(
+                    "broadcasts.services.sender.get_quota",
+                    return_value=_quota(300),
+                ):
+                    with patch(
+                        "broadcasts.services.sender.requests.post",
+                        return_value=mock_post_response,
+                    ) as mock_post:
+                        send_broadcast(broadcast.pk)
+        return mock_post.call_args[1]["json"]
+
+    def test_news_digest_sends_as_sjkt_news(self, subscriber_a):
+        payload = self._payload_for_kind(
+            Broadcast.Kind.NEWS_DIGEST, subscriber_a
+        )
+        assert payload["sender"]["name"] == "SJK(T) News"
+        assert payload["sender"]["email"] == "noreply@tamilschool.org"
+
+    def test_urgent_alert_sends_as_sjkt_news(self, subscriber_a):
+        payload = self._payload_for_kind(
+            Broadcast.Kind.URGENT_ALERT, subscriber_a
+        )
+        assert payload["sender"]["name"] == "SJK(T) News"
+
+    def test_monthly_blast_keeps_platform_name(self, subscriber_a):
+        payload = self._payload_for_kind(
+            Broadcast.Kind.MONTHLY_BLAST, subscriber_a
+        )
+        assert payload["sender"]["name"] == "SJK(T) Connect"
 
 
 @pytest.mark.django_db

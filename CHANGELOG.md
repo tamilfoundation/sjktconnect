@@ -1,5 +1,31 @@
 # Changelog
 
+## Sprint — News Digest Stuck-Loop Fix (2026-06-11)
+
+**Trigger**: The "fortnightly" News Watch digest fired weekly with a frozen "5 May → today" window; the same ~250 subscribers (signup-order second half) received nothing 5 May – 8 Jun across four issues (broadcasts 79–82). Root-cause chain: a Brevo quota error on the same-day 10:00 resume run was caught as a generic failure → broadcast marked FAILED → `resume_sending` ignores FAILED → `_get_since_date` excludes FAILED → anchor frozen at 5 May → weekly recompose of an ever-growing window. The same path made full-list urgent alerts (~335 recipients > 300/day quota) permanently unsendable: broadcasts 83/84 FAILED with zero sent. Plan + locked owner decisions: `.claude/plans/news-digest-stuck-fix.md`. Live data repair (broadcast 82 catch-up to its 250 pending recipients, 79–81 + 83–84 → CANCELLED) was executed same-day before this sprint.
+
+### Fixed
+- **`broadcasts/services/sender.py`** — quota exhaustion is now transient, never terminal. `_enforce_quota` (raise on overflow) replaced by `_quota_allowance` (returns `min(planned, remaining)`): both `send_broadcast` and `resume_broadcast` send what fits today and leave the broadcast `SENDING` for the daily resume job to drain across days. A failed quota *probe* (`BrevoQuotaError`) also leaves the broadcast `SENDING` (retry tomorrow) instead of `FAILED`. Unexpected exceptions still mark `FAILED`. This un-breaks urgent alerts whose audience exceeds the daily cap. `QuotaExceededError` deleted (no remaining references).
+- **`compose_news_digest._get_since_date`** — now also excludes `CANCELLED`; docstring codifies the anchor rule: *coverage only advances when an issue is genuinely composed for delivery; a failed send re-attempts the same window* (owner decision 2026-06-11).
+- **`compose_news_digest._should_skip`** — replaced the 7-day `created_at` window (which let the weekly cron double-fire at day 8–13 AND let FAILED digests recompose weekly) with a **14-day coverage-anchored fortnight guard**: skip unless the last SENT/SENDING/DRAFT digest's `coverage_end_date` is ≥ `FORTNIGHT_DAYS` (14) ago. The Cloud Scheduler cron stays weekly (`0 9 * * 1`); cadence now lives in data, so 15 Jun skips and 22 Jun sends 9–22 Jun (owner-chosen timeline).
+
+### Added
+- **Headline subjects** — digest subject is now the big story's title (`_digest_subject`, ASCII-sanitised per lesson 21, 150-char cap), falling back to the dated "News Watch" pattern when Gemini returns no title. Precedent set manually on broadcast 82.
+- **Per-kind sender name** — `SENDER_NAMES_BY_KIND` in sender.py: `NEWS_DIGEST` + `URGENT_ALERT` arrive from **"SJK(T) News"**; everything else keeps "SJK(T) Connect". Sender address unchanged (noreply@tamilschool.org) so DKIM/DMARC unaffected.
+- **Stuck-anchor tripwires** — `compose_news_digest` warns when the coverage window exceeds 21 days and aborts (`CommandError`, non-zero job exit) beyond 35 days unless `--force-window` is passed (deliberate catch-up after an outage). Checked before any Gemini spend.
+- **FAILED-broadcast sweep** — `resume_sending` now exits non-zero (`BROADCAST_FAILED_ALERT`) while any broadcast is FAILED with `updated_at` in the last 7 days, after draining healthy SENDING broadcasts. Turns a silent FAILED row into a red daily execution in the Cloud Run console + job-failure alert feed — the monitoring gap that let this incident hide for 5 weeks. Dry-run warns instead of failing.
+- **`Broadcast.Status.CANCELLED`** formalised in the model (migration `broadcasts/0007`, choices-only, no schema change) — already present in prod data from the 2026-05-02 and 2026-06-11 repairs. CANCELLED neither advances the anchor nor suppresses the next compose.
+
+### Tests
+- `test_sender.py` +10: `TestQuotaResilience` (zero/partial/full quota on send + resume, probe failure, two-day drain to SENT) and `TestSenderName` (per-kind sender names).
+- `test_compose_news_digest.py` +13: fortnight guard (day-8 skip regression, exact-14 send), FAILED/CANCELLED don't suppress or advance, SENDING suppresses, `_digest_subject` (headline, ASCII sanitisation, fallback, truncation), window tripwires (abort + `--force-window`).
+- `test_resume_sending.py` (new file) +7: drains ALL SENDING broadcasts, FAILED sweep raises (incl. on the nothing-to-resume path), drain completes before sweep raises, old FAILED ignored, CANCELLED ignored, dry-run warns.
+- **Full backend suite: `1375 passed, 37 warnings, 6 subtests passed in 213.09s`**.
+
+### Operational (deploy sequence)
+- Deploy `sjktconnect-api`, then **mandatory** `./backend/scripts/update_jobs.sh` — the send-path fix MUST reach the `news-digest`, `resume-sending`, `urgent-alerts`, `monthly-blast` job images (they were still pre-65f9720; this also closes that Sprint 23 follow-up).
+- No scheduler changes: `sjktconnect-fortnightly-digest` stays weekly Monday 09:00 MYT; the 14-day guard provides the fortnight. **Hard deadline: deployed before Mon 22 Jun 09:00 MYT** — expected behaviour: 15 Jun skip, 22 Jun digest covering 9–22 Jun (~250 Monday + ~245 Tuesday via resume).
+
 ## Tooling — `import_schools --skip-fields` for safe partial refresh (2026-05-28)
 
 **Trigger**: Compared the new MOE master list `SenaraiSekolahWeb_April2026.xlsx` (10,254 schools, all types) against the project's January source (528 SJK(T)). Roster is identical — **no Tamil schools added or closed**. April carries genuine refreshes (enrolment net +109, preschool +327, special +41, teachers −57; 31 address fixes; 2 mis-linked emails; 2 SKM flags) **but** types `POSKODSURAT`/`NOTELEFON`/`NOFAX` as **floats** (e.g. `35000.0`, `54014510.0`), dropping the Malaysian leading zero. A straight re-import would overwrite the clean January contact data (`"+60-7 433 4480"` → `"54014510.0"`) for all 528 schools — a regression, not a refresh.

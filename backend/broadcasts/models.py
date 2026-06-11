@@ -15,6 +15,12 @@ class Broadcast(models.Model):
         SENDING = "SENDING", "Sending"
         SENT = "SENT", "Sent"
         FAILED = "FAILED", "Failed"
+        # Abandoned by an operator — never sent, never will be. Already
+        # used in prod data (duplicate-blast repair 2026-05-02, stuck-
+        # digest repair 2026-06-11) before being formalised here.
+        # CANCELLED broadcasts neither advance the digest coverage anchor
+        # nor suppress the next compose.
+        CANCELLED = "CANCELLED", "Cancelled"
 
     class Kind(models.TextChoices):
         NEWS_DIGEST = "NEWS_DIGEST", "News Digest"

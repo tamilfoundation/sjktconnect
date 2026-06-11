@@ -21,9 +21,15 @@ logger = logging.getLogger(__name__)
 
 BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 
-
-class QuotaExceededError(Exception):
-    """Raised when a planned send exceeds today's Brevo quota."""
+# Owner decision 2026-06-11: news-type emails arrive from "SJK(T) News";
+# everything else (monthly blast, parliament watch, transactional) keeps
+# the platform name. Sender ADDRESS stays noreply@tamilschool.org so
+# DKIM/DMARC are unaffected.
+DEFAULT_SENDER_NAME = "SJK(T) Connect"
+SENDER_NAMES_BY_KIND = {
+    Broadcast.Kind.NEWS_DIGEST: "SJK(T) News",
+    Broadcast.Kind.URGENT_ALERT: "SJK(T) News",
+}
 
 
 def send_broadcast(broadcast_id, batch_size=0):
@@ -81,11 +87,17 @@ def send_broadcast(broadcast_id, batch_size=0):
             "Broadcast %s: %d recipients created", broadcast_id, len(recipients)
         )
 
-        _enforce_quota(broadcast, recipients, batch_size)
-
-        sent_count, failed_count = _send_pending_recipients(
-            broadcast, api_key, frontend_url, batch_size
-        )
+        allowance = _quota_allowance(broadcast, len(recipients), batch_size)
+        if allowance > 0:
+            sent_count, failed_count = _send_pending_recipients(
+                broadcast, api_key, frontend_url, allowance
+            )
+        else:
+            logger.warning(
+                "Broadcast %s: Brevo daily quota exhausted — 0 of %d sent now; "
+                "staying SENDING for the daily resume job to drain.",
+                broadcast_id, len(recipients),
+            )
 
         # Check if there are still PENDING recipients
         pending = broadcast.recipients.filter(
@@ -99,6 +111,15 @@ def send_broadcast(broadcast_id, batch_size=0):
             )
         else:
             broadcast.status = Broadcast.Status.SENT
+    except BrevoQuotaError:
+        # Quota PROBE failed (network/auth) — transient, never terminal.
+        # Stay SENDING so the daily resume_sending job retries tomorrow.
+        # Marking this FAILED froze the digest anchor for 5 weeks
+        # (2026-06-11 incident: broadcasts 79-82).
+        logger.exception(
+            "Broadcast %s: quota probe failed — staying SENDING for retry",
+            broadcast_id,
+        )
     except Exception:
         broadcast.status = Broadcast.Status.FAILED
         logger.exception("Broadcast %s failed during send", broadcast_id)
@@ -146,17 +167,21 @@ def resume_broadcast(broadcast_id, batch_size=250):
     api_key = os.environ.get("BREVO_API_KEY")
     frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
-    try:
-        pending_recipients = list(
-            broadcast.recipients.filter(
-                status=BroadcastRecipient.DeliveryStatus.PENDING
-            )
-        )
-        _enforce_quota(broadcast, pending_recipients, batch_size)
+    sent_count = 0
+    failed_count = 0
 
-        sent_count, failed_count = _send_pending_recipients(
-            broadcast, api_key, frontend_url, batch_size
-        )
+    try:
+        allowance = _quota_allowance(broadcast, pending, batch_size)
+        if allowance > 0:
+            sent_count, failed_count = _send_pending_recipients(
+                broadcast, api_key, frontend_url, allowance
+            )
+        else:
+            logger.warning(
+                "Broadcast %s: Brevo daily quota exhausted — %d still pending; "
+                "staying SENDING for tomorrow's resume run.",
+                broadcast_id, pending,
+            )
 
         remaining = broadcast.recipients.filter(
             status=BroadcastRecipient.DeliveryStatus.PENDING
@@ -170,6 +195,15 @@ def resume_broadcast(broadcast_id, batch_size=250):
                 "Broadcast %s: batch done, %d still pending",
                 broadcast_id, remaining,
             )
+    except BrevoQuotaError:
+        # Transient probe failure — stay SENDING, retry tomorrow. A quota
+        # error is NOT terminal: this exact path marked broadcasts 79-82
+        # FAILED and silently cut off half the subscriber list for 5 weeks
+        # (2026-06-11 incident).
+        logger.exception(
+            "Broadcast %s: quota probe failed during resume — staying SENDING",
+            broadcast_id,
+        )
     except Exception:
         broadcast.status = Broadcast.Status.FAILED
         broadcast.save(update_fields=["status", "updated_at"])
@@ -182,44 +216,47 @@ def resume_broadcast(broadcast_id, batch_size=250):
     return broadcast
 
 
-def _enforce_quota(broadcast, recipients, batch_size):
-    """Pre-flight Brevo quota check; raise if planned send exceeds remaining.
+def _quota_allowance(broadcast, recipient_count, batch_size):
+    """How many emails may be sent right now under Brevo's daily cap.
 
-    The April 2026 blast hit Brevo's 300/day cap at 514/519 and the
-    tail-end 400s were swallowed silently. With this gate, the send
-    aborts with the three numbers visible in the log instead.
+    Returns ``min(planned, remaining)``. Running out of quota is
+    TRANSIENT (tomorrow there is fresh quota), so this never raises on
+    exhaustion — the caller sends what fits and leaves the broadcast in
+    SENDING for the daily ``resume_sending`` job to drain over days.
+    This replaces the old refuse-at-start gate, which raised, got caught
+    as a generic failure, marked broadcasts FAILED, and froze the digest
+    anchor for five weeks (2026-06-11 incident). It also un-breaks
+    urgent alerts, whose ~335-recipient audience exceeds the 300/day cap
+    and could otherwise never send at all.
 
-    ``batch_size`` of 0 means "send everything"; bounds the planned
-    count to ``len(recipients)``. A positive ``batch_size`` caps the
-    planned count to that batch.
+    ``batch_size`` of 0 means "send everything". Raises
+    ``BrevoQuotaError`` only when the quota PROBE fails — we refuse to
+    send blind, but callers must treat that as transient too (stay
+    SENDING, never FAILED).
     """
-    try:
-        quota = get_quota()
-    except BrevoQuotaError as exc:
-        # Quota probe failed (network, auth) — refuse to send blind.
-        logger.error("Broadcast %s: quota probe failed: %s", broadcast.pk, exc)
-        raise
+    quota = get_quota()
 
-    if quota["dev_mode"]:
-        return
-
-    planned = len(recipients)
+    planned = recipient_count
     if batch_size > 0:
         planned = min(planned, batch_size)
 
-    if planned > quota["remaining"]:
-        raise QuotaExceededError(
-            "Broadcast %d planned %d sends but Brevo has %d remaining today "
-            "(quota=%d, used=%d). Wait until tomorrow or pass batch_size <= %d."
-            % (
-                broadcast.pk,
-                planned,
-                quota["remaining"],
-                quota["daily_quota"],
-                quota["used_today"],
-                quota["remaining"],
-            )
+    if quota["dev_mode"]:
+        return planned
+
+    allowance = min(planned, quota["remaining"])
+    if allowance < planned:
+        logger.warning(
+            "Broadcast %d: planned %d sends but Brevo has %d remaining today "
+            "(quota=%d, used=%d) — sending %d now, the rest stays PENDING "
+            "for the daily resume job.",
+            broadcast.pk,
+            planned,
+            quota["remaining"],
+            quota["daily_quota"],
+            quota["used_today"],
+            allowance,
         )
+    return allowance
 
 
 def _send_pending_recipients(broadcast, api_key, frontend_url, batch_size=0):
@@ -240,6 +277,7 @@ def _send_pending_recipients(broadcast, api_key, frontend_url, batch_size=0):
 
     sent_count = 0
     failed_count = 0
+    sender_name = SENDER_NAMES_BY_KIND.get(broadcast.kind, DEFAULT_SENDER_NAME)
 
     for recipient in recipients:
         unsubscribe_url = (
@@ -270,6 +308,7 @@ def _send_pending_recipients(broadcast, api_key, frontend_url, batch_size=0):
                 html_content=wrapped_html,
                 text_content=broadcast.text_content,
                 recipient=recipient,
+                sender_name=sender_name,
             )
             if success:
                 sent_count += 1
@@ -281,7 +320,8 @@ def _send_pending_recipients(broadcast, api_key, frontend_url, batch_size=0):
 
 
 def _send_single_email(api_key, to_email, to_name, subject, html_content,
-                        text_content, recipient):
+                        text_content, recipient,
+                        sender_name=DEFAULT_SENDER_NAME):
     """
     Send a single email via Brevo transactional API.
 
@@ -297,7 +337,7 @@ def _send_single_email(api_key, to_email, to_name, subject, html_content,
 
     payload = {
         "sender": {
-            "name": "SJK(T) Connect",
+            "name": sender_name,
             "email": "noreply@tamilschool.org",
         },
         "replyTo": {

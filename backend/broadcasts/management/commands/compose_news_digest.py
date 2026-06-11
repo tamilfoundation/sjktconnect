@@ -16,7 +16,7 @@ Usage:
 import os
 from datetime import datetime, time, timedelta
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import strip_tags
@@ -29,6 +29,49 @@ from broadcasts.services.duplicate_guard import (
 from broadcasts.services.image_generator import generate_hero_image
 from broadcasts.services.news_digest import generate_news_digest
 from broadcasts.services.sender import send_broadcast
+
+# Owner decision 2026-06-11: the Cloud Scheduler cron fires every Monday;
+# fortnightly cadence is enforced HERE by skipping unless the last issue's
+# coverage ended >= FORTNIGHT_DAYS ago. Anchored on coverage_end_date (data),
+# never on sent_at/created_at (lesson 60) — a send can finish days after
+# compose, which would skew a timestamp-based guard.
+FORTNIGHT_DAYS = 14
+
+# Stuck-anchor tripwires (2026-06-11 incident: the window grew 20->34 days
+# over five weeks before anyone noticed, because the job kept exiting 0).
+# A wide window can be legitimate once (recovery after a missed issue), so
+# warn first and only abort when it is far beyond any honest catch-up.
+WINDOW_WARN_DAYS = 21
+WINDOW_ABORT_DAYS = 35
+
+_SUBJECT_ASCII_REPLACEMENTS = {
+    "—": "-",   # em dash
+    "–": "-",   # en dash
+    "‘": "'",   # left single quote
+    "’": "'",   # right single quote
+    "“": '"',   # left double quote
+    "”": '"',   # right double quote
+    " ": " ",   # non-breaking space
+}
+
+
+def _ascii_subject(text):
+    """Email subjects must be plain ASCII (lesson 21)."""
+    for char, replacement in _SUBJECT_ASCII_REPLACEMENTS.items():
+        text = text.replace(char, replacement)
+    return text.encode("ascii", "ignore").decode().strip()
+
+
+def _digest_subject(big_story, period_label):
+    """The big story's headline is the subject (owner decision 2026-06-11).
+
+    Falls back to the dated "News Watch" pattern when Gemini produced no
+    big story title.
+    """
+    title = _ascii_subject((big_story or {}).get("title") or "")
+    if title:
+        return title[:150]
+    return _ascii_subject(f"News Watch — {period_label}")
 
 
 class Command(BaseCommand):
@@ -59,19 +102,37 @@ class Command(BaseCommand):
                 "intentionally re-sending after a recipient-list correction."
             ),
         )
+        parser.add_argument(
+            "--force-window",
+            action="store_true",
+            help=(
+                "Bypass the stuck-anchor abort for coverage windows wider "
+                f"than {WINDOW_ABORT_DAYS} days. Only use for a deliberate "
+                "catch-up issue after a long outage."
+            ),
+        )
 
     def _get_since_date(self):
         """Return the day after the previous digest's coverage ended.
 
         Filters by kind=NEWS_DIGEST so urgent alerts (which also target the
         NEWS_WATCH audience) don't poison the coverage window.
+
+        FAILED and CANCELLED are excluded: a failed send does NOT advance
+        coverage — the next compose re-attempts the SAME window, so no
+        fortnight's news is ever silently skipped (owner decision
+        2026-06-11). The WINDOW_*_DAYS tripwires in handle() catch the
+        pathological case where repeated failures make the window grow.
         """
         last_end = (
             Broadcast.objects.filter(
                 kind=Broadcast.Kind.NEWS_DIGEST,
                 coverage_end_date__isnull=False,
             )
-            .exclude(status=Broadcast.Status.FAILED)
+            .exclude(status__in=[
+                Broadcast.Status.FAILED,
+                Broadcast.Status.CANCELLED,
+            ])
             .order_by("-coverage_end_date")
             .values_list("coverage_end_date", flat=True)
             .first()
@@ -79,22 +140,37 @@ class Command(BaseCommand):
         if last_end:
             next_start = last_end + timedelta(days=1)
             return timezone.make_aware(datetime.combine(next_start, time.min))
-        return timezone.now() - timedelta(days=14)
+        return timezone.now() - timedelta(days=FORTNIGHT_DAYS)
 
     def _should_skip(self):
-        """Skip if another digest was already created in the last 7 days.
+        """Fortnightly cadence guard: skip while the last issue is fresh.
 
-        Filtered to kind=NEWS_DIGEST so urgent alerts don't suppress digests.
+        Skips unless the most recent composed digest's coverage ended
+        >= FORTNIGHT_DAYS ago. The weekly Monday cron therefore sends on
+        alternating Mondays automatically (e.g. coverage ended 8 Jun ->
+        15 Jun is 7 days = skip; 22 Jun is 14 days = send).
+
+        Only SENT/SENDING/DRAFT count as "fresh": a digest mid-drain or
+        awaiting review suppresses a recompose, but a FAILED one must be
+        re-attempted at the next Monday fire, not waited out.
         """
-        return Broadcast.objects.filter(
-            kind=Broadcast.Kind.NEWS_DIGEST,
-            status__in=[
-                Broadcast.Status.SENT,
-                Broadcast.Status.SENDING,
-                Broadcast.Status.DRAFT,
-            ],
-            created_at__gte=timezone.now() - timedelta(days=7),
-        ).exists()
+        last_end = (
+            Broadcast.objects.filter(
+                kind=Broadcast.Kind.NEWS_DIGEST,
+                coverage_end_date__isnull=False,
+                status__in=[
+                    Broadcast.Status.SENT,
+                    Broadcast.Status.SENDING,
+                    Broadcast.Status.DRAFT,
+                ],
+            )
+            .order_by("-coverage_end_date")
+            .values_list("coverage_end_date", flat=True)
+            .first()
+        )
+        if last_end is None:
+            return False
+        return (timezone.now().date() - last_end).days < FORTNIGHT_DAYS
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
@@ -102,13 +178,31 @@ class Command(BaseCommand):
         if not dry_run and self._should_skip():
             self.stdout.write(
                 self.style.WARNING(
-                    "Skipping — a news digest was already created in the last 7 days."
+                    "Skipping — the last digest's coverage ended fewer than "
+                    f"{FORTNIGHT_DAYS} days ago (fortnightly cadence)."
                 )
             )
             return
 
         since = self._get_since_date()
         days_back = (timezone.now() - since).days or 1
+
+        # Stuck-anchor tripwires — checked BEFORE spending Gemini calls.
+        if days_back > WINDOW_ABORT_DAYS and not options["force_window"]:
+            raise CommandError(
+                f"Coverage window is {days_back} days (> {WINDOW_ABORT_DAYS}) — "
+                "the anchor looks stuck (see 2026-06-11 incident). Investigate "
+                "the last digests' coverage_end_date, or re-run with "
+                "--force-window for a deliberate catch-up issue."
+            )
+        if days_back > WINDOW_WARN_DAYS:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Coverage window is {days_back} days (> {WINDOW_WARN_DAYS}) "
+                    "— fine once after a missed issue, but if this repeats the "
+                    "anchor is stuck."
+                )
+            )
 
         digest = generate_news_digest(since=since)
         if digest is None:
@@ -180,7 +274,7 @@ class Command(BaseCommand):
                 return
 
         broadcast = Broadcast.objects.create(
-            subject=f"News Watch \u2014 {period_label}",
+            subject=_digest_subject(big_story, period_label),
             html_content=html_content,
             text_content=text_content,
             audience_filter={"category": "NEWS_WATCH"},
