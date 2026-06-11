@@ -673,3 +673,18 @@
 **Trade-offs:** "Future work" can become a dumping ground if not pruned. Mitigation: each Future work item must include a pull-in trigger (egress >250 MB/day for 3+ days, in Task #43's case) and an estimate, so the bar to revisit is concrete. Items without triggers should be removed.
 
 **Revisit if:** Future work accumulates >10 items without any being pulled in over 2-3 sprints — that's a signal the triggers are mis-calibrated or the items are stale.
+
+## Fortnightly digest cadence: weekly cron + data-anchored 14-day guard, not a fortnightly cron — News Digest Stuck-Loop Fix, 2026-06-11
+
+**Decision:** Keep the Cloud Scheduler cron at `0 9 * * 1` (every Monday) and enforce the fortnight in code: `compose_news_digest._should_skip()` skips unless the last SENT/SENDING/DRAFT digest's `coverage_end_date` is >= 14 days ago. The scheduler named `sjktconnect-fortnightly-digest` is therefore fortnightly-by-guard, not fortnightly-by-cron.
+
+**Alternatives considered:**
+1. True fortnightly cron `0 9 1-7,15-21 * 1` (1st + 3rd Monday) — structurally cannot double-fire; was the plan's original recommendation.
+2. Weekly cron + a `sent_at`/`created_at`-based ~13-day skip window — rejected outright: a send can finish days after compose (2-day quota drain), so a timestamp guard would have wrongly skipped the owner's chosen 22 Jun issue (sent 11 Jun, only 11 days before).
+3. Weekly cron + coverage-anchored 14-day guard (chosen).
+
+**Rationale:** The owner locked a recovery timeline requiring the next full digest on Monday **22 June** — the 4th Monday of the month, which a 1st/3rd-Monday cron can never fire on. Beyond the one-off, the coverage-anchored guard produces a steadier cadence: exactly every 14 days (22 Jun, 6 Jul, 20 Jul…) versus the 1st/3rd-Monday pattern's irregular 14-or-21-day gaps across month boundaries. Anchoring on `coverage_end_date` (data) rather than timestamps follows lesson 60 and makes the cadence self-healing after any delay: the next issue is eligible exactly a fortnight after the last issue's *coverage*, regardless of when its send physically completed.
+
+**Trade-offs:** The guard is now load-bearing — a bug in `_should_skip` re-opens the weekly double-fire this incident started with. Mitigated by regression tests (day-8 skip, exact-14 send, FAILED/CANCELLED/SENDING semantics) and two independent tripwires (window-width abort in compose; FAILED sweep in resume_sending). Also, the job name no longer matches its mechanics — acceptable; renaming a scheduler is churn with no behavioural benefit.
+
+**Revisit if:** the digest cadence ever needs to be calendar-pinned (e.g. "always the 1st and 3rd Monday" for editorial reasons), or if a second guard bug causes a double-fire — at that point, switch to the fortnightly cron AND keep the guard as belt-and-braces.
