@@ -250,7 +250,8 @@
     "copied": "இணைப்பு நகலெடுக்கப்பட்டது",
     "verified": "சரிபார்க்கப்பட்டது",
     "claimedOn": "கோரப்பட்ட நாள்:",
-    "verifiedOn": "தகவல் சரிபார்க்கப்பட்ட நாள்:"
+    "verifiedOn": "தகவல் சரிபார்க்கப்பட்ட நாள்:",
+    "verifyingClaim": "{email} வில் உங்கள் அணுகல் சரிபார்க்கப்படுகிறது… நீங்கள் இந்தப் பள்ளியின் தலைமை ஆசிரியராக இருந்தால், இந்த பக்கம் தானியங்கியாக மீண்டும் ஏற்றப்படும்."
   },
   "schoolEdit": {
     "officialName": "அதிகாரப்பூர்வப் பெயர் (KPM)",
@@ -467,7 +468,7 @@
     "perPage": "பக்கத்திற்கு",
     "previous": "முந்தைய",
     "next": "அடுத்த",
-    "intelligenceReports": "Meeting Reports",
+    "intelligenceReports": "புலனாய்வு அறிக்கைகள்",
     "intelligenceReportsDesc": "Policy briefings synthesising Tamil school discussions from each parliamentary meeting.",
     "readReport": "Read report",
     "latestSittings": "Latest Sitting Summaries",
@@ -487,7 +488,6 @@
     "collapseReport": "அறிக்கையைச் சுருக்கவும்",
     "sittingsTracked": "கண்காணிக்கப்பட்ட அமர்வுகள்",
     "meetingsCovered": "உள்ளடக்கிய கூட்டங்கள்",
-    "intelligenceReports": "புலனாய்வு அறிக்கைகள்",
     "mpsTracked": "கண்காணிக்கப்பட்ட எம்.பி.க்கள்",
     "yearsOfData": "ஆண்டுகள் தரவு",
     "schoolsMentioned": "குறிப்பிடப்பட்ட பள்ளிகள்"
@@ -609,7 +609,7 @@
   "aboutTamilSchools": {
     "title": "மலேசியாவில் தமிழ்ப் பள்ளிகள் — எத்தனை, எங்கே, புள்ளிவிவரங்கள் | SJK(T) Connect",
     "heading": "மலேசியாவில் தமிழ்ப் பள்ளிகள்",
-    "intro": "மலேசியாவில் 528 தமிழ் ஆரம்பப் பள்ளிகள் (SJK(T)) உள்ளன; 11 மாநிலங்களில் 69,000-க்கும் மேற்பட்ட மாணவர்கள் கல்வி பெறுகின்றனர். மலேசியாவில் தமிழ்வழி ஆரம்பக் கல்வி குறித்த பொதுவான கேள்விகளுக்கு இப்பக்கம் விடையளிக்கிறது.",
+    "intro": "மலேசியாவில் {totalSchools} தமிழ்த் தொடக்கப் பள்ளிகள் (SJK(T)) {states} மாநிலங்களில் {totalChildren} சிறுவர்களுக்கு கல்வி அளிக்கின்றன. இப்பக்கம் மலேசியாவில் தமிழ்மொழித் தொடக்கக் கல்வி பற்றிய பொதுவான கேள்விகளுக்கு பதிலளிக்கிறது.",
     "howManyHeading": "மலேசியாவில் எத்தனை தமிழ்ப் பள்ளிகள் உள்ளன?",
     "howManyBody": "மலேசியாவில் {totalSchools} தமிழ் ஆரம்பப் பள்ளிகள் (Sekolah Jenis Kebangsaan Tamil, சுருக்கமாக SJK(T)) இயங்கி வருகின்றன. இவை {states} மாநிலங்களில் {totalStudents} மாணவர்களுக்கு {totalTeachers} ஆசிரியர்களுடன் சேவை செய்கின்றன. {totalPreschool} குழந்தைகள் SJK(T) பாலர் வகுப்புகளில் கலந்துகொள்கின்றனர்; {totalSpecialNeeds} பேர் சிறப்புக் கல்வியில் சேர்க்கப்பட்டுள்ளனர். {schoolsUnder30} பள்ளிகளில் 30-க்கும் குறைவான மாணவர்கள் உள்ளனர்.",
     "byStateHeading": "தமிழ்ப் பள்ளிகள் மாநிலங்களில் எவ்வாறு பரவி உள்ளன?",

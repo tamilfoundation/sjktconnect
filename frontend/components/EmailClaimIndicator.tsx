@@ -125,27 +125,66 @@ export default function EmailClaimIndicator({
             </div>
 
             <div className="p-6 space-y-4 text-sm text-gray-700">
-              {!session ? (
-                <>
-                  <p>{t("hmPrompt", { school: "", email: schoolEmail })}</p>
-                  <button
-                    onClick={() => signIn("google")}
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
-                  >
-                    {t("signInToClaim")}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p>{t("wrongAccount", { viewer: viewerEmail ?? "", expected: schoolEmail })}</p>
-                  <button
-                    onClick={() => signOut()}
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-50"
-                  >
-                    {t("signOut")}
-                  </button>
-                </>
-              )}
+              {(() => {
+                // Resolve the viewer's email immediately from the NextAuth
+                // session (synchronous after init) rather than waiting on
+                // fetchMe() — that's the round-trip that left the May 2026
+                // modal showing "signed in as ." with an empty placeholder.
+                const sessionEmail = session?.user?.email ?? null;
+                const displayEmail = sessionEmail ?? viewerEmail ?? "";
+                const normalisedSession = sessionEmail?.toLowerCase() ?? "";
+                const normalisedExpected = schoolEmail.toLowerCase();
+
+                // Case A: anonymous — prompt sign-in.
+                if (!session) {
+                  return (
+                    <>
+                      <p>{t("hmPrompt", { school: "", email: schoolEmail })}</p>
+                      <button
+                        onClick={() => signIn("google")}
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
+                      >
+                        {t("signInToClaim")}
+                      </button>
+                    </>
+                  );
+                }
+
+                // Case B: signed in with the MATCHING email but viewerIsAdmin
+                // hasn't been set yet (fetchMe in flight, or auto-claim
+                // pending). Show a "verifying" state instead of the misleading
+                // wrong-account message. Once fetchMe completes and sets
+                // viewerIsAdmin=true, EmailClaimIndicator's outer guard at
+                // line ~100 will return null and this modal vanishes.
+                if (normalisedSession === normalisedExpected) {
+                  return (
+                    <>
+                      <p>{t("verifyingClaim", { email: displayEmail })}</p>
+                      <div className="flex items-center justify-center py-2">
+                        <svg className="animate-spin h-5 w-5 text-blue-600" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                        </svg>
+                      </div>
+                    </>
+                  );
+                }
+
+                // Case C: signed in with a different email. Show the
+                // wrong-account message with the viewer's email populated
+                // from the session (always present here).
+                return (
+                  <>
+                    <p>{t("wrongAccount", { viewer: displayEmail, expected: schoolEmail })}</p>
+                    <button
+                      onClick={() => signOut()}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-50"
+                    >
+                      {t("signOut")}
+                    </button>
+                  </>
+                );
+              })()}
 
               <div className="text-xs text-gray-500 pt-3 border-t border-gray-100">
                 <p className="mb-2">{t("alertHmPrompt")}</p>

@@ -250,7 +250,8 @@
     "copied": "Link copied",
     "verified": "Verified",
     "claimedOn": "Claimed on",
-    "verifiedOn": "Data verified on"
+    "verifiedOn": "Data verified on",
+    "verifyingClaim": "Verifying your access for {email}… If you are the headmaster of this school, this page will refresh automatically."
   },
   "schoolEdit": {
     "officialName": "Official Name (MOE)",
@@ -465,7 +466,7 @@
     "collapseReport": "Collapse report",
     "sittingsTracked": "Sittings tracked",
     "meetingsCovered": "Meetings covered",
-    "intelligenceReports": "Intelligence reports",
+    "intelligenceReports": "Meeting Reports",
     "mpsTracked": "MPs tracked",
     "yearsOfData": "Years of data",
     "schoolsMentioned": "Schools mentioned",
@@ -476,7 +477,6 @@
     "perPage": "per page",
     "previous": "Previous",
     "next": "Next",
-    "intelligenceReports": "Meeting Reports",
     "intelligenceReportsDesc": "Policy briefings synthesising Tamil school discussions from each parliamentary meeting.",
     "readReport": "Read report",
     "latestSittings": "Latest Sitting Summaries",
@@ -609,7 +609,7 @@
   "aboutTamilSchools": {
     "title": "Tamil Schools in Malaysia — How Many, Where, Statistics | SJK(T) Connect",
     "heading": "Tamil Schools in Malaysia",
-    "intro": "Malaysia has 528 Tamil primary schools (SJK(T)) educating over 69,000 students across 11 states. This page answers the most common questions about Tamil-medium primary education in Malaysia.",
+    "intro": "Malaysia has {totalSchools} Tamil primary schools (SJK(T)) educating over {totalChildren} children across {states} states. This page answers the most common questions about Tamil-medium primary education in Malaysia.",
     "howManyHeading": "How many Tamil schools are there in Malaysia?",
     "howManyBody": "There are {totalSchools} Tamil primary schools (Sekolah Jenis Kebangsaan Tamil, abbreviated SJK(T)) operating in Malaysia. They serve {totalStudents} students with {totalTeachers} teachers across {states} states. {totalPreschool} children attend SJK(T) preschool programmes; {totalSpecialNeeds} are enrolled in special education. {schoolsUnder30} schools have fewer than 30 students.",
     "byStateHeading": "How are Tamil schools distributed across states?",

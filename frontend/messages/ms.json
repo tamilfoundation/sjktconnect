@@ -250,7 +250,8 @@
     "copied": "Pautan disalin",
     "verified": "Disahkan",
     "claimedOn": "Dituntut pada",
-    "verifiedOn": "Data disahkan pada"
+    "verifiedOn": "Data disahkan pada",
+    "verifyingClaim": "Mengesahkan akses anda untuk {email}… Jika anda guru besar sekolah ini, halaman ini akan dimuat semula secara automatik."
   },
   "schoolEdit": {
     "officialName": "Nama Rasmi (KPM)",
@@ -467,7 +468,7 @@
     "perPage": "setiap halaman",
     "previous": "Sebelumnya",
     "next": "Seterusnya",
-    "intelligenceReports": "Meeting Reports",
+    "intelligenceReports": "Laporan risikan",
     "intelligenceReportsDesc": "Policy briefings synthesising Tamil school discussions from each parliamentary meeting.",
     "readReport": "Read report",
     "latestSittings": "Latest Sitting Summaries",
@@ -487,7 +488,6 @@
     "collapseReport": "Ringkaskan laporan",
     "sittingsTracked": "Persidangan dijejaki",
     "meetingsCovered": "Mesyuarat diliputi",
-    "intelligenceReports": "Laporan risikan",
     "mpsTracked": "Ahli Parlimen dijejaki",
     "yearsOfData": "Tahun data",
     "schoolsMentioned": "Sekolah disebut"
@@ -609,7 +609,7 @@
   "aboutTamilSchools": {
     "title": "Sekolah Tamil di Malaysia — Berapa Banyak, Di Mana, Statistik | SJK(T) Connect",
     "heading": "Sekolah Tamil di Malaysia",
-    "intro": "Malaysia mempunyai 528 sekolah rendah Tamil (SJK(T)) yang mendidik lebih 69,000 murid di 11 negeri. Halaman ini menjawab soalan paling lazim tentang pendidikan rendah Tamil di Malaysia.",
+    "intro": "Malaysia mempunyai {totalSchools} sekolah rendah Tamil (SJK(T)) yang mendidik lebih daripada {totalChildren} kanak-kanak di {states} negeri. Halaman ini menjawab soalan paling lazim tentang pendidikan rendah aliran Tamil di Malaysia.",
     "howManyHeading": "Berapa banyak sekolah Tamil di Malaysia?",
     "howManyBody": "Terdapat {totalSchools} sekolah rendah Tamil (Sekolah Jenis Kebangsaan Tamil, atau SJK(T)) yang beroperasi di Malaysia. Sekolah-sekolah ini melayani {totalStudents} murid dengan {totalTeachers} guru di {states} negeri. {totalPreschool} kanak-kanak mengikuti program prasekolah SJK(T); {totalSpecialNeeds} berdaftar dalam pendidikan khas. {schoolsUnder30} sekolah mempunyai kurang daripada 30 murid.",
     "byStateHeading": "Bagaimana sekolah Tamil tertabur di seluruh negeri?",
