@@ -232,11 +232,14 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
 # Safety net for urgent alerts. When true, send_urgent_alerts creates
 # a DRAFT broadcast and does NOT auto-send — a moderator must approve
-# from /admin/broadcasts/ before it goes out. Default false preserves
-# the current auto-send behaviour. Flip to true via Cloud Run env vars
-# (no redeploy needed) if the classifier misfires.
+# from /broadcast/ before it goes out. Default flipped to true in
+# Sprint 25 (2026-06-26) — urgent alerts were going out at the cron's
+# fire time (09:30 MYT) without admin sanity-check, which is the
+# wrong default for a "URGENT:" subject line that escapes the
+# fortnightly cadence. Set the env var to "false" only when you
+# deliberately want auto-send (e.g. a separately-throttled drill).
 URGENT_ALERT_REQUIRE_REVIEW = os.environ.get(
-    "URGENT_ALERT_REQUIRE_REVIEW", "false"
+    "URGENT_ALERT_REQUIRE_REVIEW", "true"
 ).lower() == "true"
 
 # Toyyib Pay

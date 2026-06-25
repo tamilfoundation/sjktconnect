@@ -734,3 +734,34 @@
 **Trade-offs:** Adds a hansard-app dependency to newswatch (`from hansard.models import SchoolAlias`). Acceptable: SchoolAlias is the canonical alias table for the whole project, not a hansard-internal concept. Future refactor: move SchoolAlias to `schools/models.py` (cross-cutting), then both newswatch and hansard import from schools. Not done in Sprint 24 because the model already exists with a lot of historical migrations rooted in the hansard app; moving it is a separate refactor.
 
 **Revisit if:** the SchoolAlias table grows large enough that the IN-query becomes slow (>10ms per article), at which point switch to a single PK lookup with normalised text as the secondary index. Currently ~1,500 rows; IN-queries are fine at this scale.
+
+## Test sends bypass the Brevo daily-quota gate — Sprint 25, 2026-06-26
+
+**Decision:** `send_test(broadcast_id, recipient_emails)` does NOT consult `brevo_quota.get_quota()` before sending. It calls Brevo directly per recipient, with the per-email 0.5s rate-limit, and lets Brevo's own 429 response (if quota is actually exhausted) surface as a failed count. The admin UI further caps test sends at 5 recipients per submission.
+
+**Alternatives considered:**
+1. Apply the same `_quota_allowance` gate as real sends — semantically consistent, but blocks a 2-email sanity check the moment the day's 300-recipient blast has used the quota. The admin then can't verify their next draft.
+2. Reserve N slots per day for test sends — adds a separate counter to track + reset; the complexity dwarfs the actual gain.
+3. Per-admin-user quota — premature; we have one admin in practice.
+4. Bypass the gate, cap at 5 per submission (chosen) — test sends are bounded by the UI; the worst case is one admin spamming themselves, which Brevo's own per-second limits would catch anyway.
+
+**Rationale:** The quota gate exists to keep a bulk send from going over the daily cap; test sends are intrinsically small. Letting test sends through doesn't materially change the day's total. The 5-recipient cap discourages "send to the whole team" as a substitute for the real broadcast, which would corrupt the audit trail (recipients don't get a Broadcast row for a test send). The cap is at the admin UI layer, not the service layer — because the management-command path is for ops who might legitimately want to test on 10 inboxes in a one-off backfill scenario, and forcing the cap there would be more annoying than safe.
+
+**Trade-offs:** A pathological admin could test-send 100 times in a day and consume a measurable chunk of quota. Mitigated by the 5-cap on the UI + the per-email 0.5s sleep (so 100 test sends = 50 seconds, visibly slow). We accept this over the alternative of "an admin can't verify a draft because the day's blast already happened."
+
+**Revisit if:** test-send volume becomes meaningful relative to bulk-send volume (rough threshold: >10% of day's quota), at which point a daily-per-admin counter would help.
+
+## `URGENT_ALERT_REQUIRE_REVIEW` default flips in code, not via Cloud Run env var — Sprint 25, 2026-06-26
+
+**Decision:** Change the default literal in `backend/sjktconnect/settings/base.py` from `"false"` to `"true"`. Do NOT only set the env var on `sjktconnect-urgent-alerts` Cloud Run job.
+
+**Alternatives considered:**
+1. Set `URGENT_ALERT_REQUIRE_REVIEW=true` via `gcloud run jobs update --update-env-vars` — zero code change, can be reverted in seconds.
+2. Change the code default + keep the env var as an explicit override (chosen) — the in-code default survives every deploy; env var still works for emergency rollback.
+3. Hard-code the behaviour (remove the flag entirely) — removes the safety net for cases where auto-send is genuinely desired.
+
+**Rationale:** Env-var-only defaults drift silently — `gcloud run deploy --source .` has been observed to drop env vars set via `--update-env-vars`, and a subsequent operator has no way to know the "default" should have been overridden. The code-level default codifies the intended permanent behaviour while preserving the env var as a documented escape hatch. This matches the pattern we use for other safety-critical defaults (e.g. `DEBUG`, `ALLOWED_HOSTS`).
+
+**Trade-offs:** Rollback requires either a code revert + redeploy OR setting `URGENT_ALERT_REQUIRE_REVIEW=false` env var on the job. Slightly more friction than a one-line env-var flip; the tradeoff is "code-level defaults can't drift silently."
+
+**Revisit if:** Auto-send becomes the desired behaviour for a specific operational mode (drill, load test, regression test). At that point the env-var override is the right tool — no code change needed.

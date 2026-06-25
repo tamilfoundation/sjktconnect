@@ -379,6 +379,87 @@ def _send_single_email(api_key, to_email, to_name, subject, html_content,
         return False
 
 
+def send_test(broadcast_id, recipient_emails):
+    """Send a broadcast to arbitrary test addresses without touching its state.
+
+    Sprint 25: lets an admin verify a DRAFT broadcast on their own inbox
+    before releasing it to ~519 real subscribers. Test sends DO NOT:
+      - change `broadcast.status` (it stays DRAFT)
+      - create `BroadcastRecipient` rows (the recipients list / counts
+        remain the audit trail for the eventual real send)
+      - apply the Brevo daily-quota gate (test sends are bounded and a
+        300/day cap shouldn't block a 2-email sanity check)
+
+    Per-email Brevo rate limit (0.5s) is honoured.
+
+    Returns ``(sent_count, failed_count)``.
+    """
+    broadcast = Broadcast.objects.get(pk=broadcast_id)
+    api_key = os.environ.get("BREVO_API_KEY")
+    frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+    sender_name = SENDER_NAMES_BY_KIND.get(broadcast.kind, DEFAULT_SENDER_NAME)
+
+    # The footer's unsub/prefs links need a real token; a test-only stub
+    # token keeps the rendered HTML structurally identical to a real send
+    # while making it obvious in the inbox that this is a test.
+    test_token = "TEST-SEND-DO-NOT-CLICK"
+    unsubscribe_url = f"{frontend_url}/unsubscribe/{test_token}/"
+    preferences_url = f"{frontend_url}/preferences/{test_token}/"
+    wrapped_html = _wrap_broadcast_html(
+        broadcast.html_content, unsubscribe_url, preferences_url
+    )
+    test_subject = f"[TEST] {broadcast.subject}"
+
+    sent_count = 0
+    failed_count = 0
+    for email in recipient_emails:
+        email = email.strip()
+        if not email:
+            continue
+        if not api_key:
+            logger.info(
+                "DEV MODE — Broadcast %s test-send to %s: %s",
+                broadcast.pk, email, test_subject,
+            )
+            sent_count += 1
+            continue
+        try:
+            response = requests.post(
+                BREVO_API_URL,
+                json={
+                    "sender": {
+                        "name": sender_name,
+                        "email": "noreply@tamilschool.org",
+                    },
+                    "replyTo": {
+                        "email": "feedback@tamilschool.org",
+                        "name": "SJK(T) Connect",
+                    },
+                    "to": [{"email": email}],
+                    "subject": test_subject,
+                    "htmlContent": wrapped_html,
+                    "textContent": broadcast.text_content,
+                },
+                headers={
+                    "api-key": api_key,
+                    "Content-Type": "application/json",
+                },
+                timeout=10,
+            )
+            response.raise_for_status()
+            sent_count += 1
+            logger.info("Test send to %s for broadcast %s succeeded", email, broadcast.pk)
+        except requests.RequestException as exc:
+            failed_count += 1
+            logger.exception(
+                "Test send to %s for broadcast %s failed: %s",
+                email, broadcast.pk, exc,
+            )
+        time.sleep(0.5)
+
+    return sent_count, failed_count
+
+
 # Sprint 24 task #7 — every broadcast (monthly blast, news digest, urgent
 # alert, parliament watch) gets these in the footer. Forward = mailto:
 # with a prefilled subject so a one-tap share works in any mail client.

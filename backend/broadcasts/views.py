@@ -10,19 +10,37 @@ from django.views.generic import DetailView, ListView, TemplateView
 
 from broadcasts.models import Broadcast, BroadcastRecipient
 from broadcasts.services.audience import get_filtered_subscribers
-from broadcasts.services.sender import send_broadcast
+from broadcasts.services.sender import send_broadcast, send_test
 from schools.models import School
 
 logger = logging.getLogger(__name__)
 
 
 class BroadcastListView(LoginRequiredMixin, ListView):
-    """List all broadcasts with status, subject, and dates."""
+    """List all broadcasts with status, subject, kind, and dates.
+
+    Sprint 25: supports `?kind=URGENT_ALERT` etc. so admins can quickly
+    surface DRAFT urgent alerts or Parliament Watch broadcasts amid the
+    monthly blast / news digest history.
+    """
 
     model = Broadcast
     template_name = "broadcasts/broadcast_list.html"
     context_object_name = "broadcasts"
     paginate_by = 50
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        kind = self.request.GET.get("kind", "").strip()
+        if kind and kind in Broadcast.Kind.values:
+            qs = qs.filter(kind=kind)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["kind_choices"] = Broadcast.Kind.choices
+        context["selected_kind"] = self.request.GET.get("kind", "")
+        return context
 
 
 class BroadcastComposeView(LoginRequiredMixin, TemplateView):
@@ -161,6 +179,59 @@ class BroadcastSendView(LoginRequiredMixin, View):
             )
 
         return redirect("broadcasts:broadcast-detail", pk=pk)
+
+
+class BroadcastSendTestView(LoginRequiredMixin, View):
+    """POST-only view to send a DRAFT broadcast to a list of test addresses.
+
+    Sprint 25: lets the admin verify a Parliament Watch / Urgent Alert /
+    News Digest draft on their own inbox before releasing it to ~519
+    subscribers. Does NOT change `broadcast.status`, does NOT create
+    `BroadcastRecipient` rows. Always returns to the preview page with a
+    flash message.
+    """
+
+    def post(self, request, pk):
+        broadcast = get_object_or_404(Broadcast, pk=pk)
+        raw = request.POST.get("recipients", "").strip()
+        recipients = [
+            email.strip() for email in raw.split(",") if email.strip()
+        ]
+        if not recipients:
+            messages.error(
+                request,
+                "Enter at least one test recipient email address.",
+            )
+            return redirect("broadcasts:broadcast-preview", pk=pk)
+        if len(recipients) > 5:
+            messages.error(
+                request,
+                "Test sends are capped at 5 recipients. Send the broadcast "
+                "for real once you're satisfied with a smaller test.",
+            )
+            return redirect("broadcasts:broadcast-preview", pk=pk)
+
+        try:
+            sent, failed = send_test(broadcast.pk, recipients)
+        except Exception as exc:
+            logger.exception("Test send failed for broadcast %s: %s", pk, exc)
+            messages.error(
+                request, "Test send failed. Check server logs for details."
+            )
+            return redirect("broadcasts:broadcast-preview", pk=pk)
+
+        if failed:
+            messages.warning(
+                request,
+                f"Test sent: {sent} succeeded, {failed} failed. "
+                "Broadcast status unchanged.",
+            )
+        else:
+            messages.success(
+                request,
+                f"Test sent to {sent} recipient(s). Broadcast status unchanged.",
+            )
+        return redirect("broadcasts:broadcast-preview", pk=pk)
 
 
 class BroadcastDetailView(LoginRequiredMixin, DetailView):

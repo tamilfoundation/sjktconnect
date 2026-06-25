@@ -1,5 +1,31 @@
 # Changelog
 
+## Sprint 25 — Urgent Alerts + Parliament Watch UI (closed 2026-06-26)
+
+**Goal**: stop random urgent sends; tighten preview discipline on Parliament Watch + Urgent Alert broadcasts; clean up Sprint 23 leftovers (`--test-recipients`, dry-run hardening). Backend-only sprint, ~9 files.
+
+### Changed
+- **`URGENT_ALERT_REQUIRE_REVIEW` default flipped to `true`** (`backend/sjktconnect/settings/base.py`). The 09:30 MYT `sjktconnect-urgent-alerts` Cloud Run job continues to compose, but now leaves DRAFT broadcasts for admin sanity-check instead of auto-sending. Set the env var to `"false"` if you want auto-send back on for a specific drill. The `test_send_urgent_alerts.py` tests already pin the flag explicitly via `@override_settings`, so no test churn.
+
+### Added
+- **`--test-recipients foo@x.com,bar@y.com` flag on `send_broadcast`** management command. Sends the broadcast HTML to arbitrary addresses with `[TEST]` subject prefix. The broadcast stays DRAFT — no `recipient_count` change, no `BroadcastRecipient` rows. Bypasses the Brevo daily-quota gate (a 2-email sanity check shouldn't be blocked by a 300/day cap). Per-email 0.5s rate-limit honoured.
+- **`send_test(broadcast_id, recipient_emails)` service function** in `broadcasts/services/sender.py` — the underlying primitive the management command + admin UI both call. Footer's unsub/prefs links use a stub `TEST-SEND-DO-NOT-CLICK` token so the rendered HTML is structurally identical to a real send.
+- **"Send Test" form on the broadcast preview admin UI** (`broadcasts/views.py::BroadcastSendTestView` + `templates/broadcasts/broadcast_preview.html`). POST to `/broadcast/send-test/<pk>/` with comma-separated recipients, capped at 5 per submission. Renders only for DRAFT broadcasts; flashes success/warning/error via Django messages.
+- **Kind filter dropdown on broadcast list** (`broadcasts/views.py::BroadcastListView` + `templates/broadcasts/broadcast_list.html`). `?kind=URGENT_ALERT|PARLIAMENT_WATCH|...` narrows the queryset; invalid values fall back to "all". Kind column added to the table. Closes the visibility gap where admins had to scroll past monthly-blast / news-digest history to find URGENT_ALERT / PARLIAMENT_WATCH DRAFTs.
+- **Dry-run hardening** on `compose_news_digest`, `compose_urgent_alert`, `compose_parliament_watch` — each now prints `Would target N subscriber(s)` so the dry-run output is decision-grade (Sprint 23 leftover).
+
+### Tests
+- `broadcasts/tests/test_sender.py` +4 (`TestSendTest`: dev-mode no-state-change, empty-strings skipped, `[TEST]` subject prefix, request failure does not raise).
+- `broadcasts/tests/test_views.py` +7 (3 kind-filter cases + 2 preview-page Send-Test form visibility cases + 4 `TestBroadcastSendTestView` cases: requires-login, empty-list flash, 5-recipient cap, `send_test()` called + broadcast stays DRAFT).
+- **Final**: 1406 backend (was 1389; +17 net) + 328 frontend (unchanged from "held bug fixes" baseline).
+
+### Pre-sprint bug fixes deployed alongside Sprint 25
+Held from Sprint 24 close with "deploy when convenient":
+- `f24ae71` — monthly blast subject defensively splits on `;`/` and `/` & `/` + ` to enforce single-story headline.
+- `bc4b16a` — claim modal handles 3 states (anonymous / matching-email-verifying / wrong-account); email pulled from `session.user.email` immediately (no `fetchMe` round-trip).
+- `a7224d3` — About page `totalChildren` = `total_students + total_preschool + total_special_needs` (was hardcoded `69,000`).
+- `eae51c4` — home `/?state=Perak` map filters via `filterByStateParam` pure function + `FitBoundsOnStateFilter` child; state-filter chip with clear link top-right of map.
+
 ## Sprint 24 — Monthly Digest Quality Overhaul + Scheduling Resume (closed 2026-06-26)
 
 **Goal**: ship the v2 monthly digest pipeline + un-pause `sjktconnect-monthly-blast`. Originally planned as 16 sequential tasks (started 2026-05-11, eng tasks 1–9 done by 2026-05-15); resumed 2026-06-25/26 with tasks 10b–10h covering everything the spec didn't anticipate (state normalisation, news-match architectural gap, Take Action design, prod data refresh, ISR cache invalidation discipline).

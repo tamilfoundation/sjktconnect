@@ -19,6 +19,7 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 
 from broadcasts.models import Broadcast
+from broadcasts.services.audience import get_filtered_subscribers
 from broadcasts.services.duplicate_guard import (
     check_duplicate,
     format_block_message,
@@ -167,11 +168,15 @@ class Command(BaseCommand):
 
         if dry_run:
             dev_count = len(digest.get("developments", []))
+            audience_size = get_filtered_subscribers(
+                {"category": "PARLIAMENT_WATCH"}
+            ).count()
             self.stdout.write(
                 f"DRY RUN — {meeting.short_name}\n"
                 f"  Headlines: {digest['headlines'][:80]}...\n"
                 f"  Developments: {dev_count}\n"
-                f"  One thing: {digest['one_thing'][:80]}"
+                f"  One thing: {digest['one_thing'][:80]}\n"
+                f"  Would target {audience_size} subscriber(s)"
             )
             return
 

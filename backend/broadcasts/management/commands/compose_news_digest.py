@@ -22,6 +22,7 @@ from django.utils import timezone
 from django.utils.html import strip_tags
 
 from broadcasts.models import Broadcast
+from broadcasts.services.audience import get_filtered_subscribers
 from broadcasts.services.duplicate_guard import (
     check_duplicate,
     format_block_message,
@@ -227,12 +228,16 @@ class Command(BaseCommand):
 
         if dry_run:
             in_brief_count = len(digest.get("in_brief", []))
+            audience_size = get_filtered_subscribers(
+                {"category": "NEWS_WATCH"}
+            ).count()
             self.stdout.write(
                 f"DRY RUN \u2014 News Watch ({period_label})\n"
                 f"  Editor's note: {digest['editors_note'][:80]}...\n"
                 f"  Big story: {digest['big_story']['title']}\n"
                 f"  In brief: {in_brief_count} items\n"
-                f"  The number: {digest['the_number']['number']}"
+                f"  The number: {digest['the_number']['number']}\n"
+                f"  Would target {audience_size} subscriber(s)"
             )
             return
 

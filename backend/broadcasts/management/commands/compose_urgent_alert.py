@@ -15,6 +15,7 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 
 from broadcasts.models import Broadcast
+from broadcasts.services.audience import get_filtered_subscribers
 from broadcasts.services.duplicate_guard import (
     check_duplicate,
     format_block_message,
@@ -79,12 +80,16 @@ class Command(BaseCommand):
             return
 
         if dry_run:
+            audience_size = get_filtered_subscribers(
+                {"category": "NEWS_WATCH"}
+            ).count()
             self.stdout.write(
                 f"DRY RUN — Urgent Alert\n"
                 f"  Article: {article.title}\n"
                 f"  What happened: {alert['what_happened'][:80]}...\n"
                 f"  Action: {alert['what_you_can_do'][:80]}...\n"
-                f"  Deadline: {alert.get('deadline') or 'None'}"
+                f"  Deadline: {alert.get('deadline') or 'None'}\n"
+                f"  Would target {audience_size} subscriber(s)"
             )
             return
 

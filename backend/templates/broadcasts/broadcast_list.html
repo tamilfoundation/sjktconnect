@@ -10,12 +10,26 @@
 </div>
 
 <div class="card">
-    <h2>All Broadcasts</h2>
+    <form method="get" style="margin-bottom: 16px; display: flex; gap: 8px; align-items: center;">
+        <label for="kind-filter" style="font-weight: 600;">Filter by kind:</label>
+        <select name="kind" id="kind-filter" onchange="this.form.submit()" style="padding: 6px;">
+            <option value="">All</option>
+            {% for value, label in kind_choices %}
+            <option value="{{ value }}" {% if selected_kind == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        {% if selected_kind %}
+        <a href="{% url 'broadcasts:broadcast-list' %}" style="font-size: 13px;">Clear</a>
+        {% endif %}
+    </form>
+
+    <h2>All Broadcasts{% if selected_kind %} — {{ selected_kind }}{% endif %}</h2>
     {% if broadcasts %}
     <table class="data-table">
         <thead>
             <tr>
                 <th>Subject</th>
+                <th>Kind</th>
                 <th>Status</th>
                 <th>Recipients</th>
                 <th>Created</th>
@@ -27,6 +41,7 @@
             {% for broadcast in broadcasts %}
             <tr>
                 <td>{{ broadcast.subject }}</td>
+                <td><span class="kind-{{ broadcast.kind|lower }}">{{ broadcast.get_kind_display }}</span></td>
                 <td>{{ broadcast.get_status_display }}</td>
                 <td>{{ broadcast.recipient_count }}</td>
                 <td>{{ broadcast.created_at|date:"d M Y H:i" }}</td>
@@ -43,7 +58,13 @@
         </tbody>
     </table>
     {% else %}
-    <p class="empty-state">No broadcasts yet. Compose your first broadcast to get started.</p>
+    <p class="empty-state">
+        {% if selected_kind %}
+        No {{ selected_kind }} broadcasts.
+        {% else %}
+        No broadcasts yet. Compose your first broadcast to get started.
+        {% endif %}
+    </p>
     {% endif %}
 </div>
 {% endblock %}

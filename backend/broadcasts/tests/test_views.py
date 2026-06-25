@@ -65,6 +65,37 @@ class TestBroadcastListView:
         response = auth_client.get(reverse("broadcasts:broadcast-list"))
         assert b"Compose New Broadcast" in response.content
 
+    def test_kind_filter_dropdown_present(self, auth_client):
+        """Sprint 25: kind filter dropdown is rendered with all choices."""
+        response = auth_client.get(reverse("broadcasts:broadcast-list"))
+        assert b"Filter by kind" in response.content
+        assert b"URGENT_ALERT" in response.content
+        assert b"PARLIAMENT_WATCH" in response.content
+
+    def test_kind_filter_narrows_queryset(self, auth_client, db):
+        """Sprint 25: ?kind=URGENT_ALERT shows only urgent alerts."""
+        Broadcast.objects.create(
+            subject="Monthly Blast Jan",
+            kind=Broadcast.Kind.MONTHLY_BLAST,
+        )
+        Broadcast.objects.create(
+            subject="URGENT: school closure",
+            kind=Broadcast.Kind.URGENT_ALERT,
+        )
+        response = auth_client.get(
+            reverse("broadcasts:broadcast-list") + "?kind=URGENT_ALERT"
+        )
+        assert b"URGENT: school closure" in response.content
+        assert b"Monthly Blast Jan" not in response.content
+
+    def test_kind_filter_invalid_value_ignored(self, auth_client, broadcast):
+        """Sprint 25: garbage ?kind=... falls back to showing everything."""
+        response = auth_client.get(
+            reverse("broadcasts:broadcast-list") + "?kind=NOT_A_KIND"
+        )
+        assert response.status_code == 200
+        assert b"Test Broadcast" in response.content
+
 
 @pytest.mark.django_db
 class TestBroadcastComposeView:
@@ -242,3 +273,80 @@ class TestBroadcastPreviewView:
             reverse("broadcasts:broadcast-preview", kwargs={"pk": b.pk})
         )
         assert b"All active subscribers" in response.content
+
+    def test_send_test_form_visible_for_draft(self, auth_client, broadcast):
+        """Sprint 25: Send Test form is rendered on DRAFT preview pages."""
+        response = auth_client.get(
+            reverse("broadcasts:broadcast-preview", kwargs={"pk": broadcast.pk})
+        )
+        assert b"Send Test" in response.content
+        assert b"broadcast/send-test/" in response.content
+
+    def test_send_test_form_hidden_for_sent(self, auth_client):
+        """Sprint 25: Send Test form is hidden once the broadcast leaves DRAFT."""
+        sent = Broadcast.objects.create(
+            subject="Already sent",
+            audience_filter={},
+            status=Broadcast.Status.SENT,
+        )
+        response = auth_client.get(
+            reverse("broadcasts:broadcast-preview", kwargs={"pk": sent.pk})
+        )
+        assert b"broadcast/send-test/" not in response.content
+
+
+@pytest.mark.django_db
+class TestBroadcastSendTestView:
+    """Sprint 25: test-send endpoint that does NOT touch broadcast state."""
+
+    def test_requires_login(self, broadcast):
+        client = Client()
+        response = client.post(
+            reverse("broadcasts:broadcast-send-test", kwargs={"pk": broadcast.pk}),
+            {"recipients": "x@example.com"},
+        )
+        assert response.status_code == 302
+        assert "/accounts/login/" in response.url
+
+    def test_empty_recipients_flashes_error(self, auth_client, broadcast):
+        response = auth_client.post(
+            reverse("broadcasts:broadcast-send-test", kwargs={"pk": broadcast.pk}),
+            {"recipients": "   "},
+        )
+        assert response.status_code == 302
+        # Broadcast unchanged
+        broadcast.refresh_from_db()
+        assert broadcast.status == Broadcast.Status.DRAFT
+        assert broadcast.recipient_count == 5  # from fixture
+
+    def test_cap_of_5_recipients(self, auth_client, broadcast):
+        """More than 5 recipients is rejected — test sends are not bulk sends."""
+        recipients = ",".join(f"u{i}@example.com" for i in range(6))
+        response = auth_client.post(
+            reverse("broadcasts:broadcast-send-test", kwargs={"pk": broadcast.pk}),
+            {"recipients": recipients},
+        )
+        assert response.status_code == 302
+        broadcast.refresh_from_db()
+        assert broadcast.status == Broadcast.Status.DRAFT
+
+    @pytest.mark.django_db
+    def test_calls_send_test_and_keeps_draft(self, auth_client, broadcast):
+        """send_test() is invoked; broadcast stays DRAFT; no recipients created."""
+        from unittest.mock import patch
+        with patch("broadcasts.views.send_test", return_value=(2, 0)) as mock:
+            response = auth_client.post(
+                reverse(
+                    "broadcasts:broadcast-send-test",
+                    kwargs={"pk": broadcast.pk},
+                ),
+                {"recipients": "a@example.com, b@example.com"},
+            )
+        assert response.status_code == 302
+        mock.assert_called_once()
+        args, _ = mock.call_args
+        assert args[0] == broadcast.pk
+        assert args[1] == ["a@example.com", "b@example.com"]
+        broadcast.refresh_from_db()
+        assert broadcast.status == Broadcast.Status.DRAFT
+        assert broadcast.recipients.count() == 0

@@ -11,6 +11,7 @@ from broadcasts.services.sender import (
     _wrap_broadcast_html,
     resume_broadcast,
     send_broadcast,
+    send_test,
 )
 from subscribers.models import Subscriber
 
@@ -515,3 +516,72 @@ class TestWrapBroadcastHtml:
         assert "&mdash;" in html
         assert "&middot;" in html
         assert "&amp;" in html
+
+
+@pytest.mark.django_db
+class TestSendTest:
+    """Sprint 25 — send_test() must not mutate broadcast state."""
+
+    def test_dev_mode_no_state_change(self, draft_broadcast):
+        """Without BREVO_API_KEY the function logs and counts as sent."""
+        with patch.dict("os.environ", {}, clear=False):
+            import os as _os
+            _os.environ.pop("BREVO_API_KEY", None)
+            sent, failed = send_test(
+                draft_broadcast.pk,
+                ["a@example.com", "b@example.com"],
+            )
+        assert sent == 2
+        assert failed == 0
+        draft_broadcast.refresh_from_db()
+        assert draft_broadcast.status == Broadcast.Status.DRAFT
+        assert draft_broadcast.recipient_count == 0
+        # CRITICAL: no BroadcastRecipient rows created.
+        assert draft_broadcast.recipients.count() == 0
+
+    def test_empty_strings_in_list_are_skipped(self, draft_broadcast):
+        with patch.dict("os.environ", {}, clear=False):
+            import os as _os
+            _os.environ.pop("BREVO_API_KEY", None)
+            sent, failed = send_test(
+                draft_broadcast.pk,
+                ["", "a@example.com", "  "],
+            )
+        assert sent == 1
+        assert failed == 0
+
+    def test_test_subject_is_prefixed(self, draft_broadcast):
+        """The Brevo payload subject is [TEST]-prefixed."""
+        captured = {}
+
+        def fake_post(url, json, headers, timeout):  # noqa: ARG001
+            captured["subject"] = json["subject"]
+            resp = MagicMock()
+            resp.status_code = 200
+            return resp
+
+        with patch.dict("os.environ", {"BREVO_API_KEY": "fake"}):
+            with patch("broadcasts.services.sender.requests.post", side_effect=fake_post):
+                with patch("broadcasts.services.sender.time.sleep"):
+                    send_test(draft_broadcast.pk, ["a@example.com"])
+
+        assert captured["subject"] == f"[TEST] {draft_broadcast.subject}"
+
+    def test_request_failure_counted_not_raised(self, draft_broadcast):
+        """A Brevo error does NOT bubble — failed count increments."""
+        import requests as real_requests
+
+        with patch.dict("os.environ", {"BREVO_API_KEY": "fake"}):
+            with patch(
+                "broadcasts.services.sender.requests.post",
+                side_effect=real_requests.RequestException("boom"),
+            ):
+                with patch("broadcasts.services.sender.time.sleep"):
+                    sent, failed = send_test(
+                        draft_broadcast.pk,
+                        ["a@example.com", "b@example.com"],
+                    )
+        assert sent == 0
+        assert failed == 2
+        draft_broadcast.refresh_from_db()
+        assert draft_broadcast.status == Broadcast.Status.DRAFT

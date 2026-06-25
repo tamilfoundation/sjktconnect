@@ -8,6 +8,7 @@ from broadcasts.views import (
     BroadcastDetailView,
     BroadcastListView,
     BroadcastPreviewView,
+    BroadcastSendTestView,
     BroadcastSendView,
 )
 
@@ -41,6 +42,11 @@ urlpatterns = [
         "broadcast/send/<int:pk>/",
         BroadcastSendView.as_view(),
         name="broadcast-send",
+    ),
+    path(
+        "broadcast/send-test/<int:pk>/",
+        BroadcastSendTestView.as_view(),
+        name="broadcast-send-test",
     ),
     path(
         "broadcast/<int:pk>/",

@@ -55,6 +55,34 @@
 </div>
 {% endif %}
 
+{% if messages %}
+<div class="card">
+    {% for message in messages %}
+    <p class="message message-{{ message.tags|default:'info' }}">{{ message }}</p>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if broadcast.status == "DRAFT" %}
+<div class="card">
+    <h2>Send Test (Sprint 25)</h2>
+    <p style="color: #666; font-size: 13px;">
+        Verify the email on your own inbox first. Test sends do NOT change
+        the broadcast status, do NOT touch the recipient list, and bypass
+        the Brevo daily quota. Subject is prefixed with <code>[TEST]</code>.
+        Max 5 addresses, comma-separated.
+    </p>
+    <form method="post" action="{% url 'broadcasts:broadcast-send-test' pk=broadcast.pk %}"
+          style="display: flex; gap: 8px; align-items: center;">
+        {% csrf_token %}
+        <input type="text" name="recipients"
+               placeholder="you@example.com, colleague@example.com"
+               style="flex: 1; padding: 8px;" required>
+        <button type="submit" class="btn btn-secondary">Send Test</button>
+    </form>
+</div>
+{% endif %}
+
 <div class="card">
     {% if broadcast.status == "DRAFT" %}
     <form method="post" action="{% url 'broadcasts:broadcast-send' pk=broadcast.pk %}"
