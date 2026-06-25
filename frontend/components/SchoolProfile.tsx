@@ -24,9 +24,8 @@ export default function SchoolProfile({ school }: SchoolProfileProps) {
         </div>
         <div className="p-6">
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
-            {school.name_tamil && (
-              <DetailRow label={t("tamilName")} value={school.name_tamil} />
-            )}
+            {/* Tamil name already renders under the English name in the
+                hero header — duplicating it here was Sprint 26 bug #3. */}
             <DetailRow
               label={t("address")}
               value={

@@ -8,7 +8,16 @@
 
 import { useTranslations } from "next-intl";
 import { SchoolEditData } from "@/lib/types";
-import { ReadOnlyField, EditableField } from "./FieldRow";
+import { ReadOnlyField, EditableField, SelectField } from "./FieldRow";
+
+// MOE only publishes two SESI values. A free-text input let admins type
+// "Pagi", "Morning", "AM", "pagi sahaja" etc., which broke the
+// `session_${value}` i18n lookup and the public profile fallback prose.
+// Sprint 26 bug #2 made this a constrained select.
+const SESSION_TYPE_OPTIONS = [
+  { value: "Pagi Sahaja", labelKey: "session_Pagi Sahaja" },
+  { value: "Pagi dan Petang", labelKey: "session_Pagi dan Petang" },
+];
 
 interface CoreTabProps {
   data: SchoolEditData;
@@ -88,9 +97,13 @@ export default function CoreTab({ data, onChange }: CoreTabProps) {
             onChange={(v) => onChange("session_count", v === "" ? 0 : Number(v))}
             type="number"
           />
-          <EditableField
+          <SelectField
             label={t("sessionType")}
-            value={data.session_type}
+            value={data.session_type ?? ""}
+            options={SESSION_TYPE_OPTIONS.map((o) => ({
+              value: o.value,
+              label: t.has(o.labelKey) ? t(o.labelKey) : o.value,
+            }))}
             onChange={(v) => onChange("session_type", v)}
           />
         </div>

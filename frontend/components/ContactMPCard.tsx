@@ -9,6 +9,51 @@ interface ContactMPCardProps {
   constituencyName: string;
 }
 
+/**
+ * Some MP records have multiple phone numbers separated by `/` (e.g.
+ * "05-2421470/011-2379104"). The `tel:` URI scheme accepts a single
+ * number only — passing the raw value produces an unusable link that
+ * most dialers reject. Sprint 26 bug #6: take the first number, strip
+ * whitespace, keep digits + leading `+`. The DISPLAY value (button
+ * label) keeps the original for transparency.
+ */
+export function firstPhoneForTelUri(raw: string | null | undefined): string {
+  if (!raw) return "";
+  // Multi-number values use `/`, `,`, or `;` as separators in MOE data.
+  // The `tel:` URI scheme accepts a single number only — passing the
+  // raw multi-number string produces an unusable link. Take the first,
+  // trim whitespace, leave other visual separators (-, space) alone —
+  // every modern dialer handles them, and stripping changes the value
+  // the user sees on tap.
+  const first = (raw.split(/[\/,;]/)[0] ?? "").trim();
+  return first;
+}
+
+/**
+ * Sprint 26 bug #5: many MP records have a generic ParlimenMY-page
+ * Facebook URL (e.g. https://www.facebook.com/ParlimenMY/#) instead of
+ * the MP's own profile. The scraper picked these up when the MP had no
+ * personal page on parlimen.gov.my; the link is useless and misleading.
+ * Hide the Facebook button when the URL matches the generic shape.
+ */
+export function isUsableMpFacebookUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    if (!u.hostname.endsWith("facebook.com")) return false;
+    const path = u.pathname.replace(/\/+$/, "").toLowerCase();
+    // Generic ParlimenMY/Parliament/Parlimen pages: no MP-specific
+    // content. Add new generic slugs here as they're discovered.
+    const generic = new Set(["/parlimenmy", "/parlimenmalaysia", "/parliament", "/parlimen"]);
+    if (generic.has(path)) return false;
+    // Bare facebook.com root or one with only a hash like `/#`
+    if (path === "" || path === "/") return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export default function ContactMPCard({
   mp,
   constituencyCode,
@@ -70,9 +115,9 @@ export default function ContactMPCard({
             </a>
           )}
 
-          {mp.phone && (
+          {mp.phone && firstPhoneForTelUri(mp.phone) && (
             <a
-              href={`tel:${mp.phone}`}
+              href={`tel:${firstPhoneForTelUri(mp.phone)}`}
               aria-label={t("callServiceCentre")}
               className="flex items-center justify-center gap-2 w-full py-2.5 bg-white border border-amber-700 text-amber-700 hover:bg-amber-50 font-medium text-sm rounded-lg transition-colors"
             >
@@ -83,9 +128,9 @@ export default function ContactMPCard({
             </a>
           )}
 
-          {mp.facebook_url && (
+          {isUsableMpFacebookUrl(mp.facebook_url) && (
             <a
-              href={mp.facebook_url}
+              href={mp.facebook_url!}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Facebook"

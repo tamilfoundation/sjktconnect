@@ -175,4 +175,52 @@ class SchoolEditViewTest(TestCase):
         self.assertEqual(self.school.name_tamil, "தோட்டம் பிக்கம்")
         self.assertEqual(self.school.phone, "07-1234567")
 
+    # --- Sprint 26 validation tests ---
+
+    def test_put_rejects_multi_number_phone(self):
+        """Sprint 26 #1: phone with `/` is the canonical bad shape."""
+        response = self.client.put(
+            "/api/v1/schools/JBD0050/edit/",
+            {"phone": "05-2421470/011-2379104"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("phone", response.data)
+
+    def test_put_rejects_phone_with_letters(self):
+        response = self.client.put(
+            "/api/v1/schools/JBD0050/edit/",
+            {"phone": "call us 03-1234"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_put_accepts_normal_phone_shapes(self):
+        for phone in ["+60 4 966 3429", "04-966 3429", "(03) 2601 7222"]:
+            response = self.client.put(
+                "/api/v1/schools/JBD0050/edit/",
+                {"phone": phone},
+                format="json",
+            )
+            self.assertEqual(response.status_code, 200, f"rejected: {phone}")
+
+    def test_put_rejects_invalid_session_type(self):
+        """Sprint 26 #2: session_type is constrained to MOE values."""
+        response = self.client.put(
+            "/api/v1/schools/JBD0050/edit/",
+            {"session_type": "MORNING"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("session_type", response.data)
+
+    def test_put_accepts_valid_session_types(self):
+        for v in ["Pagi Sahaja", "Pagi dan Petang", ""]:
+            response = self.client.put(
+                "/api/v1/schools/JBD0050/edit/",
+                {"session_type": v},
+                format="json",
+            )
+            self.assertEqual(response.status_code, 200, f"rejected: {v!r}")
+
 

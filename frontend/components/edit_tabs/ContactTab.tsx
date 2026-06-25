@@ -10,6 +10,11 @@
 
 import { useTranslations } from "next-intl";
 import { SchoolEditData } from "@/lib/types";
+import {
+  PHONE_PATTERN_HTML,
+  emailError,
+  phoneError,
+} from "@/lib/validation";
 import { ReadOnlyField, EditableField } from "./FieldRow";
 
 interface ContactTabProps {
@@ -49,18 +54,27 @@ export default function ContactTab({ data, isSuperAdmin, onChange }: ContactTabP
             value={data.email}
             onChange={(v) => onChange("email", v)}
             type="email"
+            error={emailError(String(data.email ?? ""), t)}
           />
           <EditableField
             label={t("phone")}
             value={data.phone}
             onChange={(v) => onChange("phone", v)}
             type="tel"
+            pattern={PHONE_PATTERN_HTML}
+            patternTitle={t("validationPhone")}
+            placeholder="04-966 3429"
+            error={phoneError(String(data.phone ?? ""), t)}
           />
           <EditableField
             label={t("fax")}
             value={data.fax}
             onChange={(v) => onChange("fax", v)}
             type="tel"
+            pattern={PHONE_PATTERN_HTML}
+            patternTitle={t("validationPhone")}
+            placeholder="04-966 3430"
+            error={phoneError(String(data.fax ?? ""), t)}
           />
         </div>
       </section>

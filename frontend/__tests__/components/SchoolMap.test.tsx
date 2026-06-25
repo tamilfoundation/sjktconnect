@@ -65,4 +65,20 @@ describe("filterByStateParam", () => {
   it("returns empty when the school list is empty", () => {
     expect(filterByStateParam([], "Johor")).toEqual([]);
   });
+
+  it("Sprint 26 #4: passes string-typed gps_lat/gps_lng through (FitBoundsOnStateFilter coerces)", () => {
+    // DRF serialises DecimalField as string. The pure filter doesn't
+    // care about coord types — the regression was downstream in
+    // FitBoundsOnStateFilter where bounds.extend({lat:"3.1"}) crashed.
+    // Smoke test that filter returns the same row shape it received.
+    const stringCoords = [
+      makeSchool("J001", "Johor", {
+        gps_lat: "1.4854" as unknown as number,
+        gps_lng: "103.7611" as unknown as number,
+      }),
+    ];
+    const out = filterByStateParam(stringCoords, "Johor");
+    expect(out).toHaveLength(1);
+    expect(typeof out[0].gps_lat).toBe("string");
+  });
 });

@@ -239,3 +239,30 @@ class SchoolLeaderCRUDBehaviourTests(TestCase):
             format="json",
         )
         self.assertEqual(response.status_code, 404)
+
+    def test_create_rejects_multi_number_phone(self):
+        """Sprint 26 #1: leader phone validated same as School.phone."""
+        response = self.client.post(
+            self.create_url,
+            {
+                "role": "headmaster",
+                "name": "Pn. Devi",
+                "phone": "07-1234567/011-9876543",
+                "email": "hm@example.com",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("phone", response.data)
+
+    def test_patch_rejects_multi_number_phone(self):
+        leader = SchoolLeader.objects.create(
+            school=self.school, role="headmaster",
+            name="Pn. Devi", phone="07-1234567",
+        )
+        response = self.client.patch(
+            f"{self.create_url}{leader.pk}/",
+            {"phone": "07-1234567/011-9876543"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)

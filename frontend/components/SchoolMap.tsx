@@ -47,9 +47,21 @@ function FitBoundsOnStateFilter({
   useEffect(() => {
     if (!map || !boundsKey || schools.length === 0) return;
     if (typeof google === "undefined" || !google.maps?.LatLngBounds) return;
+    // DRF serialises DecimalField as string. `bounds.extend({lat:"3.1"})`
+    // throws InvalidValueError in Google Maps and crashes the page (Sprint
+    // 26 bug #4: /en?state=Selangor produced a hydration error because the
+    // first Selangor school's coords reached fitBounds as strings).
+    // SchoolMarkers.tsx:113 already wraps every position with Number();
+    // mirror that here.
     const coords = schools
-      .map((s) => ({ lat: s.gps_lat ?? null, lng: s.gps_lng ?? null }))
-      .filter((c): c is { lat: number; lng: number } => c.lat !== null && c.lng !== null);
+      .map((s) => ({ lat: Number(s.gps_lat), lng: Number(s.gps_lng) }))
+      .filter(
+        (c) =>
+          Number.isFinite(c.lat) &&
+          Number.isFinite(c.lng) &&
+          c.lat !== 0 &&
+          c.lng !== 0,
+      );
     if (coords.length === 0) return;
     if (coords.length === 1) {
       map.setCenter(coords[0]);

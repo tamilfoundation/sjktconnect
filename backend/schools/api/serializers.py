@@ -113,6 +113,10 @@ class SchoolLeaderAdminSerializer(serializers.ModelSerializer):
     SchoolLeaderSerializer omits. Role is required on create but
     immutable on update — to change a leader's role, delete and
     re-create.
+
+    Sprint 26 #1: phone is validated the same way as School.phone so
+    a multi-number string like "05-2421470/011-2379104" is rejected
+    server-side, not just at the React form layer.
     """
 
     role_display = serializers.CharField(source="get_role_display", read_only=True)
@@ -121,6 +125,17 @@ class SchoolLeaderAdminSerializer(serializers.ModelSerializer):
         model = SchoolLeader
         fields = ["id", "role", "role_display", "name", "phone", "email"]
         read_only_fields = ["id", "role_display"]
+
+    def validate_phone(self, value):
+        if not value:
+            return value
+        import re
+        if not re.fullmatch(r"[\d+\-\s()]{6,20}", value):
+            raise serializers.ValidationError(
+                "phone must contain only digits, spaces, +, -, or brackets, "
+                "6-20 chars (no '/' for multi-number)."
+            )
+        return value
 
     def update(self, instance, validated_data):
         # Role is set at creation and cannot be changed via PATCH.
@@ -241,9 +256,42 @@ class SchoolEditSerializer(serializers.ModelSerializer):
 
     Sprint 19 (2026-04-28) added the read-only MOE metadata + leaders so the
     tabbed edit page renders from a single endpoint call.
+    Sprint 26 (2026-06-26) added server-side phone validators that mirror
+    the frontend rule (digits + space + - + + + brackets only; no `/`).
+    Front-end validation is the primary UX; back-end is the safety net
+    against curl + admin shell edits.
     """
 
     leaders = serializers.SerializerMethodField()
+
+    # Sprint 26 #1: refuse multi-number phone strings at the API layer.
+    # The frontend already shows an inline error, but a determined
+    # operator who curls the endpoint must still be blocked.
+    def _validate_phone_like(self, value, field_name):
+        if not value:
+            return value
+        import re
+        if not re.fullmatch(r"[\d+\-\s()]{6,20}", value):
+            raise serializers.ValidationError(
+                f"{field_name} must contain only digits, spaces, +, -, or "
+                f"brackets, 6-20 chars (no '/' for multi-number)."
+            )
+        return value
+
+    def validate_phone(self, value):
+        return self._validate_phone_like(value, "phone")
+
+    def validate_fax(self, value):
+        return self._validate_phone_like(value, "fax")
+
+    def validate_session_type(self, value):
+        # Sprint 26 #2: constrain Session Type to MOE-published values.
+        # Empty string is fine — MOE hasn't always provided this field.
+        if value and value not in ("Pagi Sahaja", "Pagi dan Petang"):
+            raise serializers.ValidationError(
+                "session_type must be empty, 'Pagi Sahaja', or 'Pagi dan Petang'."
+            )
+        return value
 
     def get_leaders(self, obj):
         # Sprint 20: edit-page consumers need the admin shape (id +

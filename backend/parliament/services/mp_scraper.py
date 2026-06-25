@@ -102,8 +102,41 @@ def parse_parlimen_profile(html: str) -> dict:
             fb_url = re.sub(r"^FB\s*:\s*", "", fb_url)
         if not fb_url.startswith("http"):
             fb_url = "https:" + fb_url if fb_url.startswith("//") else "https://" + fb_url
-        details["facebook_url"] = fb_url
+        # Sprint 26 #5: parlimen.gov.my MP profile pages sometimes embed
+        # the parliament's own Facebook page (ParlimenMY / ParlimenMalaysia)
+        # in the footer/header — the scraper was picking those up as if
+        # they were the MP's personal page. Drop the generic pages here
+        # so they don't reach the DB at all. The frontend has a mirror
+        # guard (isUsableMpFacebookUrl) to hide any rows that snuck in
+        # before this fix.
+        if not is_generic_facebook_url(fb_url):
+            details["facebook_url"] = fb_url
     return details
+
+
+_GENERIC_FB_SLUGS = {
+    "parlimenmy",
+    "parlimenmalaysia",
+    "parliament",
+    "parlimen",
+}
+
+
+def is_generic_facebook_url(url: str) -> bool:
+    """True if `url` is a parliament-org Facebook page, not an MP's own."""
+    if not url:
+        return False
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+    except Exception:
+        return False
+    if "facebook.com" not in (parsed.hostname or ""):
+        return False
+    path = parsed.path.strip("/").lower()
+    if not path or path in _GENERIC_FB_SLUGS:
+        return True
+    return False
 
 
 def fetch_parlimen_profile(profile_id: str) -> dict:

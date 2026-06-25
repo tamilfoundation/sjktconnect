@@ -28,6 +28,13 @@ import {
   deleteSchoolLeader,
   LeaderRole,
 } from "@/lib/api";
+import {
+  PHONE_PATTERN_HTML,
+  emailError,
+  isValidEmail,
+  isValidPhone,
+  phoneError,
+} from "@/lib/validation";
 
 const ROLE_ORDER: LeaderRole[] = [
   "board_chair",
@@ -130,6 +137,19 @@ export default function LeadersTab({
       setError(t("noChanges"));
       setSuccess("");
       return;
+    }
+    // Sprint 26 bug #1: refuse to save if any pending slot has an
+    // invalid phone or email. Inline errors already render on the
+    // individual rows, but a final guard prevents an unsaved-row
+    // submit from reaching the API.
+    for (const role of ROLE_ORDER) {
+      const slot = slots[role];
+      if (!slot || slot.removed) continue;
+      if (!isValidPhone(slot.phone) || !isValidEmail(slot.email)) {
+        setError(t("validationFixBeforeSave"));
+        setSuccess("");
+        return;
+      }
     }
     setSaving(true);
     setError("");
@@ -395,9 +415,20 @@ function LeaderRow({ role, roleLabel, slot, onChange, onRemove }: LeaderRowProps
             id={`leader-${role}-phone`}
             type="tel"
             value={slot.phone}
+            placeholder="04-966 3429"
+            pattern={PHONE_PATTERN_HTML}
+            title={t("validationPhone")}
+            aria-invalid={phoneError(slot.phone, t) ? true : undefined}
             onChange={(e) => onChange({ phone: e.target.value })}
-            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-sm focus:ring-2 ${
+              phoneError(slot.phone, t)
+                ? "border-red-400 focus:ring-red-500 focus:border-red-500"
+                : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+            }`}
           />
+          {phoneError(slot.phone, t) && (
+            <p className="mt-1 text-xs text-red-600">{phoneError(slot.phone, t)}</p>
+          )}
         </div>
         <div>
           <label htmlFor={`leader-${role}-email`} className="block text-xs text-gray-600 mb-1">
@@ -407,9 +438,17 @@ function LeaderRow({ role, roleLabel, slot, onChange, onRemove }: LeaderRowProps
             id={`leader-${role}-email`}
             type="email"
             value={slot.email}
+            aria-invalid={emailError(slot.email, t) ? true : undefined}
             onChange={(e) => onChange({ email: e.target.value })}
-            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-sm focus:ring-2 ${
+              emailError(slot.email, t)
+                ? "border-red-400 focus:ring-red-500 focus:border-red-500"
+                : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+            }`}
           />
+          {emailError(slot.email, t) && (
+            <p className="mt-1 text-xs text-red-600">{emailError(slot.email, t)}</p>
+          )}
         </div>
       </div>
     </div>

@@ -53,11 +53,11 @@ describe("SchoolProfile", () => {
     expect(screen.getByText("School Details")).toBeInTheDocument();
   });
 
-  it("renders Tamil name when present", () => {
+  it("Sprint 26 #3: does NOT render Tamil name in the School Details box (it lives in the page hero)", () => {
     render(<SchoolProfile school={makeSchoolDetail()} />);
     expect(
-      screen.getByText("எஸ்.ஜே.கே.(த) லாடாங் பிகாம்")
-    ).toBeInTheDocument();
+      screen.queryByText("எஸ்.ஜே.கே.(த) லாடாங் பிகாம்")
+    ).not.toBeInTheDocument();
   });
 
   it("renders address with postcode and city grouped", () => {

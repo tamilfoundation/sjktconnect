@@ -1,6 +1,7 @@
 from pathlib import Path
 from django.test import TestCase
 from parliament.services.mp_scraper import (
+    is_generic_facebook_url,
     parse_parlimen_listing,
     parse_parlimen_profile,
     parse_mymp_sitemap,
@@ -34,6 +35,37 @@ class ParlimenProfileParserTest(TestCase):
         details = parse_parlimen_profile(html)
         self.assertTrue(details["facebook_url"].startswith("https://"))
         self.assertIn("facebook.com", details["facebook_url"])
+
+
+class GenericFacebookUrlTest(TestCase):
+    """Sprint 26 #5: keep parliament-org FB pages out of MP rows."""
+
+    def test_parlimen_pages_flagged_generic(self):
+        for url in [
+            "https://www.facebook.com/ParlimenMY/",
+            "https://www.facebook.com/ParlimenMY/#",
+            "https://facebook.com/parlimenmalaysia",
+            "https://www.facebook.com/Parliament",
+            "https://www.facebook.com/parlimen/",
+        ]:
+            self.assertTrue(is_generic_facebook_url(url), url)
+
+    def test_bare_root_flagged_generic(self):
+        self.assertTrue(is_generic_facebook_url("https://www.facebook.com/"))
+        self.assertTrue(is_generic_facebook_url("https://facebook.com"))
+
+    def test_real_mp_pages_not_flagged(self):
+        for url in [
+            "https://www.facebook.com/kulasegaran",
+            "https://facebook.com/anwaribrahim",
+            "https://www.facebook.com/ramli",
+        ]:
+            self.assertFalse(is_generic_facebook_url(url), url)
+
+    def test_non_facebook_returns_false(self):
+        self.assertFalse(is_generic_facebook_url("https://twitter.com/foo"))
+        self.assertFalse(is_generic_facebook_url(""))
+        self.assertFalse(is_generic_facebook_url(None))
 
 
 class MyMPSitemapParserTest(TestCase):

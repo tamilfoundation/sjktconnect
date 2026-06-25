@@ -765,3 +765,50 @@
 **Trade-offs:** Rollback requires either a code revert + redeploy OR setting `URGENT_ALERT_REQUIRE_REVIEW=false` env var on the job. Slightly more friction than a one-line env-var flip; the tradeoff is "code-level defaults can't drift silently."
 
 **Revisit if:** Auto-send becomes the desired behaviour for a specific operational mode (drill, load test, regression test). At that point the env-var override is the right tool — no code change needed.
+
+## `tel:` link strategy: split on multi-number separators, preserve visual chars — Sprint 26, 2026-06-26
+
+**Decision:** `firstPhoneForTelUri(raw)` splits multi-number values on `/`, `,`, or `;`, trims whitespace, and returns the first segment AS-IS — including dashes and spaces. It does NOT strip non-digits.
+
+**Alternatives considered:**
+1. **Aggressive strip** — `raw.replace(/[^\d+]/g, "")` — produces canonical `+60326017222` form. Maximally portable, but the value shown on tap (`+60326017222`) no longer matches the displayed label (`03-2601 7222`).
+2. **Reject multi-number entirely** — display "Invalid phone" instead of the first number. Surfaces the data quality issue, but breaks user flow for what's actually a usable number.
+3. **Take the first number, preserve visual separators (chosen)** — RFC 3966 allows `-` and space as visual separators; every modern dialer parses them; the value-on-tap matches the value-shown.
+
+**Rationale:** Phone display is one of those rare cases where visual formatting carries information ("you're calling a Selangor landline"). Stripping it for tel: gets the user to the right call but changes the value visible in the dialer history, which causes a "did I type that right?" double-take. The RFC compatibility means we don't trade portability for the visual preservation.
+
+**Trade-offs:** A dialer that doesn't follow RFC 3966 strictly could fail on the visual chars. None of the major mobile dialers (iOS, Android) have this problem; legacy desktop dialers (which mostly don't exist on phones-of-record anymore) might.
+
+**Revisit if:** A user reports that a specific dialer refuses to call the formatted number. At that point the right answer is probably to strip on a per-dialer-detected basis, but we'd revisit per-data first.
+
+## Frontend + backend validation for the same constraint always ship together — Sprint 26, 2026-06-26
+
+**Decision:** Every input constraint added in Sprint 26 (phone shape, email shape, session_type enum) ships with BOTH a frontend rule (inline error in the React form) AND a backend rule (`serializer.validate_<field>`). Neither layer is sufficient alone.
+
+**Alternatives considered:**
+1. **Backend-only** — frontend just lets the user type anything; on Save the API responds with 400 + field errors and the form renders them. Smallest code surface. Cost: opaque UX (user types invalid data for 30 seconds, hits Save, sees a red toast).
+2. **Frontend-only** — inline validation prevents Save when invalid. Cost: `curl` users + browser console hackers can write any garbage. The point of validation is the trust boundary, which lives at the API.
+3. **Both layers, paired in the same commit (chosen)** — frontend gives immediate feedback, backend guarantees the rule. The pair is the right shape; either alone is a missing-half.
+4. **Shared schema via JSON Schema / OpenAPI** — generate both layers from one source. Right answer for a much larger codebase. Overkill for our scale.
+
+**Rationale:** Inline frontend errors save a round-trip and let the user correct mistakes immediately — that's UX. Server-side validation refuses bad data even when the frontend is bypassed — that's the trust boundary. The two concerns are orthogonal; covering only one is incomplete. The cost of duplicating regex constants between `frontend/lib/validation.ts` and `serializers.py` is low — the regex is 10 chars long and changes once a decade.
+
+**Trade-offs:** Regex drift risk between frontend + backend (a fix in one place doesn't propagate to the other). Mitigated by the test suite — both layers have tests asserting the same canonical bad inputs are rejected. If the regex grows past ~30 chars or starts using lookahead, the case for shared-schema generation gets stronger.
+
+**Revisit if:** We add 3+ more validation rules (then the duplication becomes annoying and a shared-schema tool earns its complexity), OR if a regex drift causes a real bug.
+
+## Scrape-time + display-time guards for bad data (two-layer fix) — Sprint 26, 2026-06-26
+
+**Decision:** When fixing bad data sourced from a scraper (Sprint 26 #5, the generic ParlimenMY Facebook URLs), patch the scraper to stop writing the bad shape going forward AND patch the frontend to hide existing bad rows in the database.
+
+**Alternatives considered:**
+1. **Scraper-only fix + run a one-off cleanup** — fix the scraper, then run a Django shell command to clear existing `MP.facebook_url` rows matching the generic pattern. Cost: requires a destructive one-off operation on prod data; if the cleanup runs before the scraper fix lands, the next scrape re-adds the bad rows.
+2. **Display-only fix** — frontend hides the bad URLs. Cost: the next scrape still adds new bad rows; the DB has stale data forever; downstream consumers (CSV export, analytics) still see them.
+3. **Both (chosen)** — scraper drops at write time so future runs are clean; frontend hides existing rows so users don't see them. The pair lets us defer the SQL cleanup indefinitely with no user-visible impact.
+4. **DB constraint** (`CHECK (facebook_url NOT IN (...))`) — over-engineered for a value-list of 4 generic slugs. Hard to test, hard to revoke.
+
+**Rationale:** The two layers cover different time windows. The scraper guard protects future state; the frontend guard protects current state. Together they decouple "fix the bug now" from "clean up the existing bad rows" — the cleanup becomes optional ops work, not a release blocker. This pattern generalises to any scraper-sourced data quality bug.
+
+**Trade-offs:** The DB still carries stale bad rows. A future data-consumer that bypasses the frontend (e.g. a CSV export) would see them. Mitigated by documenting the pattern + running the SQL cleanup whenever convenient (we have a TODO carry-over for it in retro). If we ever add a CSV export, that's the trigger to schedule the cleanup before shipping.
+
+**Revisit if:** We add a non-frontend consumer of `MP.facebook_url` (CSV export, analytics dashboard, public API endpoint).

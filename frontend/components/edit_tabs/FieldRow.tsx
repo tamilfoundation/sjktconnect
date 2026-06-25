@@ -45,6 +45,20 @@ interface EditableFieldProps {
   id?: string;
   /** Render as a full-width row spanning both columns of the parent grid. */
   fullWidth?: boolean;
+  /**
+   * Inline validation message. Empty string = field is valid. When non-
+   * empty: red border, red text, browser-level invalid styling. Sprint
+   * 26 bug #1 added this — previously phone/email took any string.
+   */
+  error?: string;
+  /**
+   * HTML5 `pattern` attribute. Combined with browser native validation
+   * to refuse submit on invalid values; the `error` prop also surfaces
+   * the message inline so users don't have to dismiss a tooltip.
+   */
+  pattern?: string;
+  /** Hint shown to native validation tooltip when pattern fails. */
+  patternTitle?: string;
 }
 
 export function EditableField({
@@ -55,8 +69,12 @@ export function EditableField({
   placeholder,
   id,
   fullWidth = false,
+  error,
+  pattern,
+  patternTitle,
 }: EditableFieldProps) {
   const inputId = id ?? `field-${label.toLowerCase().replace(/\s+/g, "-")}`;
+  const hasError = Boolean(error);
   return (
     <div className={fullWidth ? "md:col-span-2" : ""}>
       <label htmlFor={inputId} className="block text-sm font-medium text-gray-800 mb-1">
@@ -67,9 +85,74 @@ export function EditableField({
         type={type}
         value={value ?? ""}
         placeholder={placeholder}
+        pattern={pattern}
+        title={patternTitle}
+        aria-invalid={hasError || undefined}
+        aria-describedby={hasError ? `${inputId}-error` : undefined}
+        onChange={(e) => onChange(e.target.value)}
+        className={`w-full px-3 py-2 bg-white border rounded-lg text-sm focus:ring-2 ${
+          hasError
+            ? "border-red-400 focus:ring-red-500 focus:border-red-500"
+            : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+        }`}
+      />
+      {hasError && (
+        <p
+          id={`${inputId}-error`}
+          className="mt-1 text-xs text-red-600"
+        >
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+interface SelectFieldProps {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+  id?: string;
+  fullWidth?: boolean;
+  /** Render a blank "choose…" option as the first item. */
+  allowEmpty?: boolean;
+  emptyLabel?: string;
+}
+
+/**
+ * Constrained variant of EditableField — a `<select>` populated from a
+ * known enum (e.g. Session Type, which MOE only ever publishes as
+ * `Pagi Sahaja` or `Pagi dan Petang`). Sprint 26 bug #2 replaced the
+ * free-text input that let admins type arbitrary garbage.
+ */
+export function SelectField({
+  label,
+  value,
+  options,
+  onChange,
+  id,
+  fullWidth = false,
+  allowEmpty = true,
+  emptyLabel = "—",
+}: SelectFieldProps) {
+  const inputId = id ?? `field-${label.toLowerCase().replace(/\s+/g, "-")}`;
+  return (
+    <div className={fullWidth ? "md:col-span-2" : ""}>
+      <label htmlFor={inputId} className="block text-sm font-medium text-gray-800 mb-1">
+        {label}
+      </label>
+      <select
+        id={inputId}
+        value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
         className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-      />
+      >
+        {allowEmpty && <option value="">{emptyLabel}</option>}
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
     </div>
   );
 }

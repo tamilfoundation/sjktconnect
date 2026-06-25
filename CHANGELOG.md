@@ -1,5 +1,34 @@
 # Changelog
 
+## Sprint 26 — School Page UX Pass (closed 2026-06-26)
+
+**Goal**: address 6 concrete UX bugs the owner observed on the school page edit flow + MP card + About state-link. Backend + frontend mixed, ~13 files.
+
+### Fixed
+- **#4 — `/en?state=Selangor` (and other states) crashed in the browser after hydration.** Root cause: DRF serialises `School.gps_lat` / `gps_lng` as `DecimalField` strings. `SchoolMarkers.tsx:113` coerces with `Number(...)` before rendering markers, but my Sprint-24 `FitBoundsOnStateFilter` passed raw values to `bounds.extend({lat, lng})` — Google Maps throws `InvalidValueError` on string coords and the page died. Fixed in `frontend/components/SchoolMap.tsx`: coerce with `Number()`, then `Number.isFinite` + non-zero check filters NaN and origin-stub rows. The server-rendered HTML was fine (curl returned 200), which is why my Sprint 24 smoke missed it; only the browser saw the crash.
+- **#3 — Tamil name appeared twice on the school page** (once under the English name in the hero, once in the School Details box). `frontend/components/SchoolProfile.tsx` no longer renders the Tamil-name DetailRow — the hero rendering (in `app/[locale]/school/[moe_code]/page.tsx`) is the single source of truth.
+- **#6 — `tel:05-2421470/011-2379104` link unusable.** MP records sometimes carry multiple numbers separated by `/`, `,` or `;`. New `firstPhoneForTelUri()` helper in `ContactMPCard.tsx` splits on those separators, trims, returns the first. Visual separators (`-`, space) are preserved — every modern dialer handles them and stripping changes the value the user sees on tap.
+- **#5 — MP "Facebook" button on the constituency sidebar landed on the generic ParlimenMY page** (`facebook.com/ParlimenMY/#`) instead of the MP's personal page. Two-layer fix: (a) frontend `isUsableMpFacebookUrl()` in `ContactMPCard.tsx` hides the button when URL matches the known generic slugs (`parlimenmy`, `parlimenmalaysia`, `parliament`, `parlimen`) or is a bare-root URL; (b) backend `is_generic_facebook_url()` in `parliament/services/mp_scraper.py` drops the same generic shapes at scrape time so future `import_mp_profiles` runs don't add new bad rows. Existing bad rows remain in DB (harmless — hidden by the frontend guard); a one-off cleanup is left as low-priority follow-up.
+
+### Added
+- **#2 — `SelectField` component** in `frontend/components/edit_tabs/FieldRow.tsx`. Constrained `<select>` populated from a known enum, used in `CoreTab.tsx` to replace the free-text Session Type input. MOE only publishes two SESI values (`Pagi Sahaja`, `Pagi dan Petang`); admins were typing arbitrary garbage (`Pagi`, `Morning`, `AM`) that broke the `session_${value}` i18n lookup. Backend mirror: `SchoolEditSerializer.validate_session_type` rejects anything outside the enum (or empty string).
+- **#1 — Phone + email validation across all admin edit forms** (Contact tab + Leaders tab).
+  - New `frontend/lib/validation.ts` with `isValidPhone()`, `isValidEmail()`, `phoneError()`, `emailError()` and exported regex constants. Phone permissive (`[\d+\-\s()]{6,20}`) but rejects multi-number values with `/`, `,` or `;` (the canonical bad shape from #6).
+  - `EditableField` extended with `error`, `pattern`, `patternTitle` props — inline red-border styling, accessible error message via `aria-describedby`, browser-native `pattern` validation on submit.
+  - `ContactTab.tsx` wires phone/fax to `phoneError(...)` and the email field to `emailError(...)`. `LeadersTab.tsx` does the same per-row and refuses to flush a Save when any visible slot has an invalid phone or email.
+  - Server-side mirror in `SchoolEditSerializer.validate_phone` / `.validate_fax` and `SchoolLeaderAdminSerializer.validate_phone` — `curl` against the API can't bypass the rule.
+  - i18n: `validationPhone`, `validationEmail`, `validationFixBeforeSave` added to all 3 locales (en / ms / ta).
+
+### Tests
+- `frontend/__tests__/lib/validation.test.ts` — 16 cases covering phone happy path, multi-number reject, letter reject, length bounds, email happy path, malformed reject.
+- `frontend/__tests__/components/ContactMPCard.test.tsx` — 13 new cases (`firstPhoneForTelUri` 3, `isUsableMpFacebookUrl` 5, MP card behaviour with multi-number phone + generic FB hide + real MP FB show).
+- `frontend/__tests__/components/SchoolMap.test.tsx` — 1 case ensuring `filterByStateParam` passes string coords through (FitBoundsOnStateFilter coerces downstream).
+- `frontend/__tests__/components/SchoolProfile.test.tsx` — 1 changed test (Tamil name absent from Details box, present in hero is outside this component's scope).
+- `backend/schools/tests/test_edit_api.py` — 5 new cases (multi-number reject, letter reject, normal-shape accept, session_type invalid reject, session_type valid accept).
+- `backend/schools/tests/test_leader_crud_api.py` — 2 new cases (create + patch reject multi-number phone).
+- `backend/parliament/tests/test_mp_scraper.py` — 4 new cases for `is_generic_facebook_url` (parlimen pages flagged, bare-root flagged, real MP pages allowed, non-facebook returns false).
+- **Final**: 1417 backend (+11) + 349 frontend (+21).
+
 ## Sprint 25 — Urgent Alerts + Parliament Watch UI (closed 2026-06-26)
 
 **Goal**: stop random urgent sends; tighten preview discipline on Parliament Watch + Urgent Alert broadcasts; clean up Sprint 23 leftovers (`--test-recipients`, dry-run hardening). Backend-only sprint, ~9 files.
