@@ -83,7 +83,21 @@ export default async function AboutTamilSchoolsPage({
       <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
         {t("heading")}
       </h1>
-      <p className="text-lg text-gray-600 mb-12">{t("intro")}</p>
+      <p className="text-lg text-gray-600 mb-12">
+        {t("intro", {
+          totalSchools: fmt(stats.total_schools),
+          // Lead with the TOTAL children attending SJK(T) facilities
+          // (primary + preschool + special education), matching the
+          // breakdown that follows in the body. Was previously a
+          // hardcoded "69,000" string that drifted from live data.
+          totalChildren: fmt(
+            stats.total_students +
+              stats.total_preschool +
+              stats.total_special_needs,
+          ),
+          states: fmt(stats.states),
+        })}
+      </p>
 
       {/* Q1: How many */}
       <section className="mb-12">
