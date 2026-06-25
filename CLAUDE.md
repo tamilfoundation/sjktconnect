@@ -11,8 +11,8 @@
 
 ## Project Status
 
-- **Current Phase**: Post-roadmap maintenance + ad-hoc improvement sprints. Sprint 24 in progress (paused for the 2026-06-11 incident sprint).
-- **Last Sprint**: News Digest Stuck-Loop Fix (2026-06-11, ad-hoc incident sprint) — see CHANGELOG + `docs/retrospective-news-digest-stuck-fix.md`
+- **Current Phase**: Post-roadmap maintenance + ad-hoc improvement sprints. Sprint 24 closed 2026-06-26; v2.0 release tag pending.
+- **Last Sprint**: Sprint 24 — Monthly Digest Quality Overhaul + Scheduling Resume (closed 2026-06-26) — see CHANGELOG + `docs/retrospective-sprint24.md`
 - **Tests**: 1695 (1375 backend + 320 frontend) — verified at 2026-06-11 close (`1375 passed` pytest; `320 passed` jest).
 - **Plan/billing**: Supabase Pro plan (Tamil Foundation org) — was forced to upgrade for headroom; goal is to drive egress low enough to revisit free tier later. Per-route observability dashboard now lives at Cloud Monitoring → "SJK(T) Connect — Egress by Route/UA" (id `f1722366-2df9-4446-9941-7cda5c019615`).
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
@@ -274,37 +274,42 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 23 ✅ deployed 2026-05-11 — recovery cut after the 2026-05-02 duplicate-blast incident. Sprint 24 next, plan written, awaiting kickoff.**
+**Sprint 24 ✅ closed 2026-06-26 — Monthly Digest Quality Overhaul + Scheduling Resume; `monthly-blast` scheduler un-paused, May 2026 blast sent (Broadcast 86). v2.0 release tag pending (separate release workflow). Sprint 25 next.**
 
-### Sprint 24 — Monthly Digest Template Rework + Scheduling Resume
+### Sprint 25 — Urgent Alerts + Parliament Watch UI
 
-- **Plan**: `.claude/plans/sprint-24-monthly-digest-rework.md` (16 sequential tasks, ~19 files, single-agent execution).
-- **Goal**: fix the monthly digest template + content quality so the paused `sjktconnect-monthly-blast` scheduler can be safely re-enabled. Bundles in the global footer-CTA change (item 7 from 2026-05-11 roadmap conversation) so news digest, urgent alerts, and Parliament Watch broadcasts all benefit from one footer edit.
-- **Key scope**: (1) recess prompt propagated to all monthly_analyst sections (Recovery Cut only fixed `executive_summary`); (2) Gemini topic clustering with fail-open; (3) schools-by-state breakdown + stat-semantics docstring; (4) major `monthly_blast_v2.html` overhaul — recess banner, three in-body CTA cards, `<a href>` source links on every news/brief/meeting, captioned headline numbers, suppress stale lifetime scorecards; (5) top-N news article cards inline; (6) v1 template — recommend remove (Gemini-unavailable becomes a clean abort); (7) Donate + Forward links in `_wrap_broadcast_html` footer (all 4 broadcast types); (8) render smoke test; (11–13) deploy + verify + resume both paused schedulers; (14) sprint close docs; (15) tag v2.0.
-- **3 open questions to resolve at kickoff**: Forward CTA target (mailto vs share link), v1 monthly template (remove vs sync), schools-by-state layout (table vs accordion).
-- **Housekeeping at S24 start**: `git mv .claude/plans/sprint-24-personalised-digest.md .claude/plans/sprint-29-personalised-digest.md` — that file covers per-subscriber MP personalisation, now resequenced as Sprint 29 per the 2026-05-11 roadmap.
+- **Goal**: stop random urgent sends; let Parliament Watch broadcasts be admin-previewed + scheduled like the monthly. Bundles Sprint 23 leftovers (dry-run hardening, `--test-recipients` flag for safe test sends).
+- **Why now**: monthly blast is fully reliable post-Sprint 24. Urgent alerts and Parliament Watch are the two remaining broadcast types without first-class scheduling/preview discipline. Urgent alerts have historically gone out at unpredictable times because the daily 09:30 MYT cron always composed-and-sent without admin review.
+- **Plan**: not yet written. At kickoff: enumerate exact urgent-alert + Parliament Watch UX gaps and draft `.claude/plans/sprint-25-urgent-alerts.md`.
 
-### Sprint 24–29 roadmap (locked 2026-05-11)
+### Sprint 25–29 roadmap (locked 2026-05-11)
 
 | # | Sprint | Goal |
 |---|--------|------|
-| 24 | Monthly Digest Rework + Scheduling Resume | Fix the template + un-pause `monthly-blast` scheduler. Closes with v2.0 release tag. |
 | 25 | Urgent Alerts + Parliament Watch UI | Stop random urgent sends; let Parliament Watch be admin-previewed + scheduled like the monthly. Includes Sprint 23 leftovers (dry-run hardening, `--test-recipients` flag). |
 | 26 | School Page UX Pass | School page edit issues + school search issues. Enumerate exact symptoms at sprint start. |
 | 27 | Auth / Profile Cleanup | Sign-in / sign-out / profile issues. Suspect remnants of TD-01 / TD-18 race conditions. |
 | 28 | Egress Round 3 (conditional) | Only if 2026-05-08 egress checkpoint shows drift. Task #43 image-proxy if needed. |
 | 29 | Personalised Digest | Per-subscriber MP personalisation (`Subscriber.home_constituency` FK + per-recipient template injection). The original "Sprint 24" work, resequenced after quality + reliability fixes. |
 
-**Release + folder-move sequencing**: at S24 close, run `release` workflow + tag `v2.0` + write `docs/release-notes-v2.0.md` (covers Recovery Cut + Quality Overhaul as one v2.0 narrative). After S29 close, run `project-complete` workflow + move `Development/SJKTConnect/` → `Production/SJKTConnect/`.
+**Release + folder-move sequencing**: Sprint 24 closed without the v2.0 tag (deferred to a separate release workflow). v2.0 release notes will cover Recovery Cut (Sprint 23) + Quality Overhaul (Sprint 24) as one narrative. After S29 close, run `project-complete` workflow + move `Development/SJKTConnect/` → `Production/SJKTConnect/`.
 
-### Current codebase state (News Digest Stuck-Loop Fix deployed, 2026-06-11)
+### Current codebase state (Sprint 24 deployed + closed, 2026-06-26)
 
-- **Prod API**: `sjktconnect-api-00119-92c` (100% traffic, verified via `status.traffic`). Frontend unchanged: `sjktconnect-web-00112-p8q`. All 7 Cloud Run jobs synced to the 00119 image — **the Sprint 23 "pre-65f9720 job images" follow-up is CLOSED** (dup-guard, quota allowance, and the FAILED sweep now protect scheduled sends).
-- **Tests**: 1375 backend + 320 frontend (literal runner output recorded at 2026-06-11 close).
-- **Incident-sprint behaviour to verify** (also in retro): **Mon 15 Jun** digest job logs "Skipping — fewer than 14 days"; **Mon 22 Jun** composes 9–22 Jun from "SJK(T) News" with headline subject, ~250 sent; **Tue 23 Jun** resume drains the rest → SENT. If a broadcast ever goes FAILED, the daily `resume-sending` job now exits non-zero (`BROADCAST_FAILED_ALERT`) until it is set to CANCELLED or SENDING.
-- **Sprint 23 shipped**: (#4a) Brevo daily-quota pre-flight in `brevo_quota.py` (now consumed as an *allowance*, not refuse-at-start), (#4b) duplicate-Broadcast guard at compose time, recess detection at aggregator, admin coverage column.
-- **Scheduler state**: `sjktconnect-fortnightly-digest` ENABLED (weekly cron; fortnight enforced by the 14-day coverage guard). `sjktconnect-resume-sending` ENABLED (daily 10:00 MYT). `sjktconnect-urgent-alerts` ENABLED. `sjktconnect-monthly-blast` PAUSED until Sprint 24 ships.
-- **Traffic-pin gotcha discovered 2026-05-11**: prod was pinned to `00115-fdf` since 29 Apr; 3 deploys had landed at 0% traffic. `gcloud run revisions list` ACTIVE column is not the source of truth — always also check `services describe --format='value(status.traffic)'`.
+- **Prod API**: `sjktconnect-api-00121-7hb` (100% traffic; first deploy 00120-25k landed Sprint 24 #10b–#10h, second deploy 00121-7hb landed the Take Action redesign #10g). All 7 Cloud Run jobs synced via `./backend/scripts/update_jobs.sh`.
+- **Prod web**: `sjktconnect-web-00115-82q` (deploy + ISR cache-bust revision via `--update-env-vars=ISR_CACHE_BUST=$(date +%s)` after `rematch_schools` so the cached stale moe_codes were flushed).
+- **Tests**: 1389 backend (0 failed, 139.94s) + 320 frontend (unchanged — no JS/TS changes this sprint).
+- **Scheduler state**: ALL four enabled.
+  - `sjktconnect-monthly-blast` **ENABLED** (`0 9 1 * *` MYT) — un-paused 2026-06-26; June 2026 blast auto-fires 1 Jul 09:00 MYT.
+  - `sjktconnect-fortnightly-digest` ENABLED (weekly cron; 14-day coverage guard enforces fortnight cadence).
+  - `sjktconnect-resume-sending` ENABLED (daily 10:00 MYT).
+  - `sjktconnect-urgent-alerts` ENABLED.
+- **Active broadcast in flight**: Broadcast 86 (May 2026 blast, SENDING). 250/490 drained on 2026-06-26; remaining 240 drain at next `sjktconnect-resume-sending` run (~27 Jun 10:00 MYT). Subject: "May 2026: Private Sector Boosts SJK(T) Ladang Labu; Sedenak Gets Piped Water…".
+- **State normalisation live**: `format_state()` collapses W.P. variants to compact form at storage; 15 School + 9 Constituency rows rewritten by migration `schools/0011`. Frontend, API, email all show "W.P. Kuala Lumpur" with zero per-component formatting.
+- **News matcher activated**: Strategy 1.5 wires `SchoolAlias` lookup into `_resolve_school_codes` — 1,500+ existing seeded aliases + 31 new HANSARD aliases (Jenderata `hansard/0008` + KKB/St Teresa/West Country `hansard/0009`) now active for news matching.
+- **April 2026 MOE refresh confirmed** (imported 2026-05-28 via `--skip-fields postcode,phone,fax,gps_lat,gps_lng,gps_verified`); 9 frontend label strings updated `January 2026 → April 2026` across en/ms/ta.
+- **Sprint 23 shipped + still in effect**: dup-guard at compose, Brevo quota allowance (transient errors, not terminal), recess detection, admin coverage column.
+- **Traffic-pin gotcha (Sprint 23)**: prod was pinned to `00115-fdf` since 29 Apr; 3 deploys had landed at 0% traffic. `gcloud run revisions list` ACTIVE column is not the source of truth — always also check `services describe --format='value(status.traffic)'`.
 - **SEO baseline (Sprint 22)**: locale-aware metadata builders + JSON-LD on every school page + branded SVG fallback. `/about-tamil-schools` is live FAQ + state breakdown.
 - **Canonical hostname (Sprint 22, Cloudflare 2026-05-02)**: `www.tamilschool.org/*` → 301 → root via Cloudflare Single Redirect ruleset id `1af056d066e44a5885c933227a413981`.
 - **Cloudflare API access**: zone-scoped token in `.env`, perms = DNS / Zone Settings / Config Rules / Single Redirect (Edit).
@@ -330,17 +335,14 @@ The 5-sprint roadmap table below covers everything from Sprint 12 onward. The ea
 | 20 | Leader Inline CRUD | ✅ Done 2026-04-28 evening — Replaces Sprint 19's read-only LeadersTab. New backend POST/PATCH/DELETE endpoints on /api/v1/schools/<moe>/leaders/ with school-admin permission (mirrors community._is_photo_approver: SUPERADMIN OR bound admin only; MODERATOR not special-cased). 409 slot_taken on duplicate active role; soft-delete via is_active=False; delete-then-recreate-same-role works because unique constraint is conditional. SchoolEditSerializer.get_leaders switched to admin serializer (id+phone+email) so single round-trip serves the page. Frontend LeadersTab rewrite: 4 fixed role slots, existing rows editable (name + phone + email + Remove), empty roles show "+ Add {role}". Single Save Changes button (disabled when no pending changes). Sequential flush (delete → create → update) keeps unique-constraint happy on swap-same-role. Blanking name = treated as delete. 17 new backend + 8 new frontend tests. 1191 backend + 297 frontend total. Deploys: api-00110-r6l → api-00111-mrq; web-00106-dd6 → web-00107-wd9. |
 | 22 | **SEO Snippet & Canonical Hostname Fix** | ✅ Done 2026-05-01 (Cloudflare redirect 2026-05-02). Sprint 22 ships frontend metadata builders (`buildSchoolMetadata`, `buildConstituencyMetadata`, `buildDUNMetadata`) in `frontend/lib/seo.ts` — locale-aware Metadata with town-aware titles + labelled-k/v descriptions (Address/Alamat/முகவரி + Email + Phone + Location + Assistance). `buildSchoolJsonLd` emits EducationalOrganization JSON-LD on every school page. `frontend/public/school-placeholder.svg` (1200×630 branded) wired as og:image + ImageObject + SchoolPhotoGallery empty-state fallback so every school renders a real `<img>` for SERP thumbnail extraction. `/about-tamil-schools` extended from "Coming Soon" stub to live FAQ + state-breakdown table targeting "how many tamil schools" long-tail queries. **Cloudflare Single Redirect** (zone `tamilschool.org`, ruleset `1af056d066e44a5885c933227a413981`) applied via API 2026-05-02 — `www.*` → `https://tamilschool.org/$path?$query` 301; verified live. 1198 backend + 320 frontend tests (+23). |
 | 23 | **Recovery Cut — duplicate-blast incident response** | ✅ Deployed 2026-05-11 `sjktconnect-api-00118-5w4`. Triggered by 2026-05-02 duplicate April blast (4 Broadcast rows, ~80-300 subs got 2x). Landed: (#4a) Brevo daily-quota pre-flight check in `broadcasts/services/brevo_quota.py` calling `GET /v3/account` — refuses-at-start when `len(recipients) > remaining`; (#4b) duplicate-Broadcast guard at compose time — aborts if a SENT/SENDING/DRAFT Broadcast exists with matching `kind` + month coverage; recess detection at aggregator (`HansardSitting.status=COMPLETED` filter sets `parliament_was_in_session=False` for recess months); admin coverage column. `resume-sending` scheduler un-paused 2026-05-11 (drains Broadcast 77's 256 stragglers over 12–14 May). `monthly-blast` scheduler stays PAUSED until Sprint 24 ships. Traffic-pin gotcha discovered at deploy: prod was pinned to `00115-fdf` since 29 Apr; 3 deploys (00116-voy, 00117-kab `sprint23` tag, 00118-5w4) had landed at 0% traffic — `gcloud run services update-traffic --to-latest` required. 1225 backend + 320 frontend tests. Commit `65f9720`. |
-| 24 | **Monthly Digest Rework + Scheduling Resume** | 🚧 In Progress (started 2026-05-11; eng tasks 1-9 done+pushed; tasks 10-15 open; task-10 template WIP stashed as `sprint24-task10-wip`). Plan at `.claude/plans/sprint-24-monthly-digest-rework.md` — 16 tasks, ~19 files, single-agent. Open questions locked 2026-05-11: Forward CTA = `mailto:`; v1 template = delete; Schools-by-state = table; news triage = Gemini prompt tightening + 4-domain blocklist (no threshold change). Goal: ship quality monthly digest template, fix news triage upstream (Task 1a), propagate recess copy across analyst sections, propagate Donate/Forward CTAs to all broadcast footers — so paused `sjktconnect-monthly-blast` scheduler can resume. Closes with v2.0 release tag. |
+| 24 | **Monthly Digest Quality Overhaul + Scheduling Resume** | ✅ Closed 2026-06-26. Eng tasks 1–9 done 2026-05-15 (recess prompt, news triage, topic clustering, schools-by-state, template overhaul, footer CTAs, smoke test). Tasks 10b–10h done 2026-06-25/26: news section collapse with hybrid scoring + top-N cap (10b); W.P. KL state normalisation + UTF-8 preview-shell (10c, migration `schools/0011`); Jenderata aliases (10d, migration `hansard/0008`); April 2026 frontend label (10e, 9 strings × en/ms/ta); MOE file refs to April 2026 (10f); Take Action editorial-card redesign (10g); news matcher Strategy 1.5 SchoolAlias lookup + bracket/Ladang variants + KKB/St Teresa/West Country aliases (10h, migration `hansard/0009`). Plus PJS casing+spacing (parallel commit) + rematch_schools UTF-8 fix. Deployed: api 00120-25k → 00121-7hb; web 00114-2jq → 00115-82q (ISR cache-bust). `monthly-blast` scheduler un-paused. May 2026 blast manually composed+sent (Broadcast 86, 490 recipients, draining over 2-3 days). 1389 backend (+14 net) + 320 frontend. v2.0 release tag deferred to separate release workflow. Retro: `docs/retrospective-sprint24.md`. |
 | — | **News Digest Stuck-Loop Fix** (ad-hoc incident sprint) | ✅ Done 2026-06-11, deployed `sjktconnect-api-00119-92c` + all 7 jobs synced (commit `d2f6269`). Quota errors now transient (send-what-fits, stay SENDING — un-breaks full-list urgent alerts too); 14-day coverage-anchored fortnight guard (weekly cron unchanged); digest subject = big-story headline; sender "SJK(T) News" for digest+urgent; `Broadcast.Status.CANCELLED` formalised (migration 0007); `resume_sending` FAILED sweep + compose window tripwires close the exit-0-while-broken monitoring gap. Live repair same day: broadcast 82 catch-up sent to its 250 pending (zero duplicates), 79-81 + 83-84 CANCELLED. **Verify: 15 Jun skip log; 22 Jun digest covers 9-22 Jun; 23 Jun resume drains to SENT.** 1375 backend + 320 frontend tests. Retro: `docs/retrospective-news-digest-stuck-fix.md`. |
 
 ### Open tech debt remaining
 
-- **TD-07** (🟡 medium) — `Suggestion.image` BinaryField. Note: text says "replaced by Sprint 9 (TD-05)" — verify TD-05 closure also retired the BinaryField; if so, can be marked resolved.
-- **TD-09** (🟡 medium) — Hardcoded `content_type="image/png"` on suggestion image endpoint. Same — likely already retired by Sprint 14 photo flow rewrite.
-- **TD-11** (🟢 low) — `accounts/services/google.py` 25% coverage. Test-coverage padding.
-- **TD-12** (🟢 low) — `hansard/pipeline/extractor.py` 26% coverage. Same.
+- **TD-12** (🟢 low) — `hansard/pipeline/extractor.py` at 26% coverage. Test-coverage padding; can wait indefinitely.
 
-TD-07/09 should be triaged at the next session — they're flagged as resolved-by-other-sprints in the body but never marked `✅` in the header. TD-11/12 can wait indefinitely.
+(TD-07/09/11 were resolved in Sprint 14/16/18 — register headers + bodies now consistently marked ✅. TD-06 still PROVISIONALLY RESOLVED pending the 2026-05-08 egress checkpoint.)
 
 ### Gotchas carried out of Sprint 16 + 17
 

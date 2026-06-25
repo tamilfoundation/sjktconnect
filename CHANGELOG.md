@@ -1,5 +1,51 @@
 # Changelog
 
+## Sprint 24 — Monthly Digest Quality Overhaul + Scheduling Resume (closed 2026-06-26)
+
+**Goal**: ship the v2 monthly digest pipeline + un-pause `sjktconnect-monthly-blast`. Originally planned as 16 sequential tasks (started 2026-05-11, eng tasks 1–9 done by 2026-05-15); resumed 2026-06-25/26 with tasks 10b–10h covering everything the spec didn't anticipate (state normalisation, news-match architectural gap, Take Action design, prod data refresh, ISR cache invalidation discipline).
+
+### Added
+- **News section collapsed to one card per story** (`monthly_blast_v2.html` + `topic_clusterer.py`). 47-article month renders as ~10 story cards. Hybrid score formula `(article_count × 2) + max_relevance + severity_bonus` ranks clusters; multi-source coverage dominates but a single high-impact negative still competes. `lead_article` picker: highest relevance, tie-break on earliest `published_date`, then lowest pk for determinism. New `rank_and_cap_clusters(clusters, top_n)` helper. Dropped + Other-bucket articles roll into a "Plus N other articles" footer so coverage is never silently hidden.
+- **Schools-by-state table redesign** (2 columns: State | Schools). Drops the count column (count now inline as a dim `(N)` next to the state name). All schools listed without truncation, separated by `·` middle-dots, `valign-top` so the state aligns with the first row.
+- **Take Action editorial-card redesign** — white background, thin gray border, 3px brand-purple top accent stripe, brand-coloured icons (heart/envelope/flag). Content: "Donate / Tamil Foundation", "Forward / To a friend", "Your MP / Check activity".
+- **`format_state()` helper** in `schools/utils.py` — collapses `Wilayah Persekutuan <name>` (any case) to `W.P. <name>`. Idempotent + pre-emptive for KL/Putrajaya/Labuan. Applied at import via `format_state(to_proper_case(...))`. **Single source of truth at storage** — frontend, API consumers, email templates, SEO metadata all get the compact form with zero per-component formatting.
+- **`SchoolAlias` lookup wired into the news matcher** (`_resolve_school_codes` Strategy 1.5). Single IN-query against normalised forms of `{name, distinctive part, every variant, each prefixed with "SJK(T) "}`. Activates 1,500+ existing seeded aliases AND every HANSARD-source alias added via migrations (Jenderata, KKB, St Teresa, West Country) for news matching. The matcher had **never** consulted the alias table before this sprint — an architectural gap discovered mid-sprint.
+- **Variant generator additions** (`_generate_name_variants`): bracket ⇄ single-quote alternation (`(Timur)` ⇄ `'Timur'`) and drop/add Ladang/Ldg prefix.
+- **`--preview-html` mode** now wraps the bare-`<div>` email body in a minimal HTML5 shell (`<meta charset="UTF-8">` + Tamil-capable font fallback) so the standalone file renders Tamil correctly when opened in a Windows browser. Inlines hero image as base64 data URL so the file is fully self-contained. Production send path untouched.
+
+### Fixed
+- **W.P. Kuala Lumpur state name** wraps awkwardly in tight columns (digest emails, sidebars, filter chips). Migration `schools/0011_normalise_state_names` rewrites 15 School + 9 Constituency rows to the canonical compact form (also title-cases the historical Constituency rows that were imported in ALL CAPS — a separate drift bug fixed in the same pass). Reversible.
+- **News matcher missed obvious matches** (5 broken articles surfaced from June 2026 screenshots): "Ladang Sungai Muar", "West Country (Timur)", "Kuala Kubu Baru", "St. Theresa Convent", "Ladang Sungai Muar" (different article). Strategy 1.5 + variant additions + migration `hansard/0009_news_match_aliases` (17 alias rows for KKB Baru / St Theresa Convent / West Country Timur+Barat) close all 5. Verified live against prod DB: all 5 originally-broken articles now have every school resolved.
+- **Jenderata vs Jendarata spelling drift** (4 schools, "e" vs "a"). Migration `hansard/0008_add_jenderata_spelling_aliases` adds 14 HANSARD aliases. The variant generator can't bridge 1-letter spelling differences without false-positive risk; explicit aliases are the safer pattern.
+- **PJS school-name casing + spacing** (parallel work, separate commit 2026-05-21). `to_proper_case` keeps `PJS` uppercase via `_UPPER_ABBREVS`; `_generate_name_variants` bridges letter↔digit boundaries (`PJS1` ⇄ `PJS 1`, general — also handles `Boh1` ⇄ `Boh 1`).
+- **`rematch_schools` crashed on Tamil-character article titles** on Windows because Python defaults to cp1252 stdout. `sys.stdout.reconfigure(encoding="utf-8", errors="replace")` at the top of `handle()` with a `hasattr()` guard for compatibility.
+- **Frontend "January 2026" data-source label was stale** after the 27 May import of `SenaraiSekolahWeb_April2026.xlsx`. 9 strings updated across `en.json` / `ms.json` / `ta.json` (3 keys × 3 locales). Label is hardcoded — would not have auto-updated without this pass.
+- **Take Action old pastel cards** ("Donate" / "Share" / "Your MP" on lime/blue/amber). Replaced with the unified editorial treatment (above).
+
+### Tests
+- `broadcasts/tests/test_topic_clusterer.py` +22 (cluster metadata, score formula, sentiment majority, lead picker, ranking, top-N cap, remainder math, Other-bucket handling).
+- `broadcasts/tests/test_compose_command.py` +1 (`test_render_shows_remainder_footer_when_articles_dropped`); 1 existing test updated for new shape.
+- `schools/tests/test_utils.py` +11 (`TestFormatState`).
+- `schools/tests/test_import_schools.py` +1 (`test_constituency_state_normalised_for_wp_kuala_lumpur`) + 1 updated (`test_updates_constituency_state` expects `"Johor"` not `"JOHOR"`).
+- `hansard/tests/test_seed_aliases.py` +3 (`JenderataAliasesMigrationTest`: creation, idempotency, reverse).
+- `newswatch/tests/test_school_matching.py` +14 (variant generator bracket+Ladang, 4 alias-lookup tests, 4 ScreenshotFailureRegression cases).
+
+### Live operations during sprint close (2026-06-26)
+- Migrations applied to prod: `schools/0011`, `hansard/0008`, `hansard/0009` (all under `SJKTCONNECT_ALLOW_PROD_DB=1`).
+- Two api deploys (`sjktconnect-api-00120-25k` then `00121-7hb` for the Take Action redesign).
+- One web deploy (`sjktconnect-web-00114-2jq`) + one ISR cache-bust revision (`web-00115-82q`) via `--update-env-vars=ISR_CACHE_BUST=$(date +%s)` after `rematch_schools` ran.
+- `./backend/scripts/update_jobs.sh` run twice (after each api deploy).
+- `rematch_schools` re-resolved historical news articles against new aliases. First run crashed mid-stream on cp1252; second run with `PYTHONIOENCODING=utf-8` completed; the UTF-8 fix landed in a separate commit so future runs don't need the env-var workaround.
+- **May 2026 blast manually composed + sent via `compose_monthly_blast --month 2026-05 --auto-send`** — Broadcast 86 (subject: "May 2026: Private Sector Boosts SJK(T) Ladang Labu; Sedenak Gets Piped Water…"). 490 recipients, first batch of 250 drained via manual `sjktconnect-resume-sending` execution (213 DELIVERED + 22 SENT + 15 BOUNCED); remaining 240 drain at next scheduled 10:00 MYT resume-sending run.
+- **`sjktconnect-monthly-blast` scheduler un-paused** (ENABLED, `0 9 1 * *`, Asia/Kuala_Lumpur) — June 2026 blast will auto-fire 1 Jul 09:00 MYT.
+
+### Tests final
+- Backend: **1389 passed, 0 failed** (139.94s; was 1375 at News Digest Stuck-Loop close 2026-06-11; +14 net from Sprint 24).
+- Frontend: 320 (unchanged — no JS/TS changes this sprint).
+
+### Not done in this sprint (deferred)
+- **v2.0 release tag + `docs/release-notes-v2.0.md`** — separate release workflow per the locked plan; covers Recovery Cut (Sprint 23) + Quality Overhaul (Sprint 24) as one v2.0 narrative.
+
 ## Sprint — News Digest Stuck-Loop Fix (2026-06-11)
 
 **Trigger**: The "fortnightly" News Watch digest fired weekly with a frozen "5 May → today" window; the same ~250 subscribers (signup-order second half) received nothing 5 May – 8 Jun across four issues (broadcasts 79–82). Root-cause chain: a Brevo quota error on the same-day 10:00 resume run was caught as a generic failure → broadcast marked FAILED → `resume_sending` ignores FAILED → `_get_since_date` excludes FAILED → anchor frozen at 5 May → weekly recompose of an ever-growing window. The same path made full-list urgent alerts (~335 recipients > 300/day quota) permanently unsendable: broadcasts 83/84 FAILED with zero sent. Plan + locked owner decisions: `.claude/plans/news-digest-stuck-fix.md`. Live data repair (broadcast 82 catch-up to its 250 pending recipients, 79–81 + 83–84 → CANCELLED) was executed same-day before this sprint.

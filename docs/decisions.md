@@ -688,3 +688,49 @@
 **Trade-offs:** The guard is now load-bearing — a bug in `_should_skip` re-opens the weekly double-fire this incident started with. Mitigated by regression tests (day-8 skip, exact-14 send, FAILED/CANCELLED/SENDING semantics) and two independent tripwires (window-width abort in compose; FAILED sweep in resume_sending). Also, the job name no longer matches its mechanics — acceptable; renaming a scheduler is churn with no behavioural benefit.
 
 **Revisit if:** the digest cadence ever needs to be calendar-pinned (e.g. "always the 1st and 3rd Monday" for editorial reasons), or if a second guard bug causes a double-fire — at that point, switch to the fortnightly cron AND keep the guard as belt-and-braces.
+
+## State name display: normalise at storage, not at display — Sprint 24, 2026-06-26
+
+**Decision:** Rewrite `School.state` / `Constituency.state` / `DUN.state` to canonical compact form ("W.P. Kuala Lumpur", not "Wilayah Persekutuan Kuala Lumpur") via data migration `schools/0011`, AND apply `format_state()` at import in `import_schools.py` so future re-imports stay normalised. No display-time helper.
+
+**Alternatives considered:**
+1. Display-time helper — `format_state(s)` called from every component (frontend) + serializer (backend) that renders state. ~25 frontend files + ~5 serializers.
+2. DB normalisation (chosen).
+3. Hybrid — store raw, expose normalised via API only (frontend stays as-is). Would have kept MOE canonical form in the DB.
+
+**Rationale:** State name is read in ~25 frontend files (state filter dropdown, school detail page, SEO metadata, search results, etc.) — display-time normalisation would need each of those to know about and call the helper. Easy to forget; easy to drift. Storage normalisation costs one migration but eliminates the per-component dependency entirely. The W.P. abbreviation is a stable canonical form for Malaysia (used by MOE, KKM, JKR, every Malaysian government dept) so this is unlikely to need re-normalisation later. Trade-off accepted: storage encodes display style, but the W.P. style is so well-established that the coupling is low-risk.
+
+**Trade-offs:** Lose the MOE-canonical Malay form in storage. A future audit asking "what was the raw MOE state name?" needs to reverse-map via `_STATE_DISPLAY`. The migration's `reverse_code` does this if the migration is ever rolled back. Not reversible if someone hand-edits the migration to delete the mapping.
+
+**Revisit if:** MOE introduces a new federal territory (would need a new mapping row), or a stakeholder wants the full Malay form somewhere (would need a per-surface helper that maps back — defeating the simplicity gain).
+
+## News matcher cluster ranking: hybrid score, not Gemini judgement — Sprint 24, 2026-06-25
+
+**Decision:** Rank topic clusters in the monthly digest by `score = (article_count × 2) + max_relevance + severity_bonus` where `severity_bonus = NEGATIVE:2 / POSITIVE:1 / NEUTRAL:0`. Take the top N (currently 10) as story cards; everything else rolls into a "Plus N other articles" footer.
+
+**Alternatives considered:**
+1. `article_count` DESC only — cheapest and most deterministic, but ignores high-impact single-source stories.
+2. Hybrid code-level scoring (chosen).
+3. Gemini-driven top-N selection — second pass asking "of these N clusters, which 10 matter most?". Editorially smarter but ~$0.001 extra per render, non-deterministic, harder to test.
+
+**Rationale:** A single negative story with `relevance=5` shouldn't lose to a 4-article positive cluster with `relevance=3`. The hybrid formula gives the count signal a strong base (Dengkil's 4 articles × 2 = 8) while letting `max_relevance` (1-5) and severity bonus (0-2) provide editorial tie-breaks. Deterministic across runs — same input always produces same ranking, which matters for testing and for the user's "is this clustering consistent?" intuition. Cheap (pure Python; no extra API call). Easy to tune: weights are constants in `_score_cluster`.
+
+**Trade-offs:** A novel single-article story (high relevance, high severity) competes well but doesn't dominate. Example: a positive 4-article cluster (`4×2 + 5 + 1 = 14`) outranks a negative 1-article cluster (`1×2 + 5 + 2 = 9`). Acceptable — multi-source coverage is generally a signal of editorial importance and a single source can still surface via the footer link. Less acceptable for breaking-news contexts where coverage hasn't propagated yet; the urgent-alerts system (Sprint 25 next) handles that case separately.
+
+**Revisit if:** the editorial team wants a different weighting (e.g. all-negative-news edition), or if the article-count signal degrades because Google Alerts starts surfacing more duplicate-source coverage. Both are easy tunes; the formula is a single Python expression in `_score_cluster`.
+
+## News matcher Strategy 1.5: read SchoolAlias before exhausting in-table strategies — Sprint 24, 2026-06-26
+
+**Decision:** `_resolve_school_codes` now consults the `SchoolAlias` table as Strategy 1.5 — after exact `short_name` match (Strategy 1) and before all variant-generation strategies. Single IN-query against normalised forms of `{original name, distinctive part, every variant from _generate_name_variants, each prefixed with "SJK(T) "}` — one DB round-trip covers ~10 lookup strings.
+
+**Alternatives considered:**
+1. Add alias lookup as Strategy 7 (last resort) — wrong order; lets in-table fuzzies override curated aliases.
+2. Add as Strategy 0 (before exact short_name) — same DB cost but skips the cheap in-memory exact match for no reason.
+3. Strategy 1.5 (chosen) — between exact short_name and variant generation. Curated aliases get priority over fuzzy variants but don't pre-empt the cheap exact case.
+4. Drop the in-table strategies entirely and rely on aliases for everything — would require seeding aliases for every possible spelling at import time. Brittle; doesn't gracefully handle Gemini's novel name forms.
+
+**Rationale:** The alias table is the only place where curated, human-reviewed name variants live. Putting it before variant generation means a Hansard-found "Jenderata" alias resolves correctly even if the variant generator would have eventually found the canonical "Jendarata" via fuzzy match — the curated mapping is more trustworthy than fuzzy. Putting it after Strategy 1 (exact short_name) preserves the zero-cost path for the common case where Gemini returns the canonical name. The single IN-query is essentially free (~1ms) so adding it doesn't bloat the per-article cost.
+
+**Trade-offs:** Adds a hansard-app dependency to newswatch (`from hansard.models import SchoolAlias`). Acceptable: SchoolAlias is the canonical alias table for the whole project, not a hansard-internal concept. Future refactor: move SchoolAlias to `schools/models.py` (cross-cutting), then both newswatch and hansard import from schools. Not done in Sprint 24 because the model already exists with a lot of historical migrations rooted in the hansard app; moving it is a separate refactor.
+
+**Revisit if:** the SchoolAlias table grows large enough that the IN-query becomes slow (>10ms per article), at which point switch to a single PK lookup with normalised text as the secondary index. Currently ~1,500 rows; IN-queries are fine at this scale.
