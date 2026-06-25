@@ -495,6 +495,43 @@ def _generate_name_variants(distinctive):
     if stripped_jalan != distinctive:
         variants.append(stripped_jalan)
 
+    # Sprint 24 #10h — bracket ⇄ single-quote alternation.
+    # Article text uses "West Country (Timur)"; MOE record uses
+    # "West Country 'Timur'". Match both directions.
+    paren_match = re.search(r"\(([^)]+)\)", distinctive)
+    if paren_match:
+        token = paren_match.group(1)
+        quoted = distinctive.replace(f"({token})", f"'{token}'")
+        if quoted not in variants:
+            variants.append(quoted)
+    quote_match = re.search(r"'([^']+)'", distinctive)
+    if quote_match:
+        token = quote_match.group(1)
+        bracketed = distinctive.replace(f"'{token}'", f"({token})")
+        if bracketed not in variants:
+            variants.append(bracketed)
+
+    # Sprint 24 #10h — drop/add "Ladang"/"Ldg" prefix.
+    # Article text often omits the estate qualifier ("West Country"
+    # vs MOE's "Ldg West Country"). Generate both directions so a
+    # bare distinctive still matches and a Ladang-prefixed one can
+    # match a bare DB record.
+    stripped_ladang = re.sub(
+        r"^(?:Ladang|Ldg)\s+", "", distinctive, flags=re.IGNORECASE
+    ).strip()
+    if stripped_ladang and stripped_ladang != distinctive:
+        if stripped_ladang not in variants:
+            variants.append(stripped_ladang)
+    elif distinctive:
+        # Distinctive doesn't start with Ladang/Ldg — add both prefixes
+        # so a bare article name can match a Ladang-prefixed DB record.
+        ladang_form = f"Ladang {distinctive}"
+        ldg_form = f"Ldg {distinctive}"
+        if ladang_form not in variants:
+            variants.append(ladang_form)
+        if ldg_form not in variants:
+            variants.append(ldg_form)
+
     # Split compound words: "Springhill" → "Spring Hill", "Greenfield" → "Green Field"
     # Try inserting a space at each position in long words (≥8 chars, both
     # halves ≥3 chars) to handle joined/split spelling variants.
@@ -549,6 +586,40 @@ def _resolve_school_codes(mentioned_schools, article=None):
 
         # Strategy 1: Exact match on short_name as given
         candidates = School.objects.filter(short_name__iexact=name)
+
+        # Strategy 1.5: SchoolAlias lookup (Sprint 24 #10h). Curated
+        # variants — covers Hansard-found spellings, common abbreviation
+        # mixes (Ladang+Sg), bracket/quote alternations, and 1-letter
+        # typos that have been registered. The same table feeds the
+        # Hansard matcher, so growth in either domain benefits both.
+        # Single IN-query against normalised forms of {original name,
+        # distinctive part, every variant of distinctive} so one DB
+        # round-trip covers ~10 lookup strings.
+        if not candidates.exists():
+            from hansard.models import SchoolAlias
+            import re as _re
+
+            def _norm(s):
+                return _re.sub(r"\s+", " ", (s or "").lower().strip())
+
+            lookup_strings = {_norm(name)}
+            if distinctive:
+                lookup_strings.add(_norm(distinctive))
+                for variant in _generate_name_variants(distinctive):
+                    lookup_strings.add(_norm(variant))
+                    lookup_strings.add(_norm(f"SJK(T) {variant}"))
+            lookup_strings.discard("")
+            if lookup_strings:
+                alias_hit = (
+                    SchoolAlias.objects
+                    .filter(alias_normalized__in=list(lookup_strings))
+                    .select_related("school")
+                    .first()
+                )
+                if alias_hit:
+                    candidates = School.objects.filter(
+                        moe_code=alias_hit.school.moe_code
+                    )
 
         # Strategy 2: SJK(T) + distinctive exact match
         if not candidates.exists() and distinctive:
