@@ -111,13 +111,16 @@ month, include:
    - "reason" (string): 1-2 sentences on why it stood out.
    Set to null if no school was particularly notable.
 
-7. "headline" (string): A short, punchy single-line headline (max 80 chars) \
+7. "headline" (string): A short, punchy single-line headline (max 70 chars) \
 capturing the most important news of the month, suitable for an email subject \
-line. Lead with the most newsworthy specific item (a policy announcement, a \
-funding figure, a major project milestone). Avoid generic phrasing like \
-"Monthly update". Examples of good style: "Special ed coming to Tamil schools \
-in 2027" or "RM15.7M committed to SJK(T) infrastructure". If the month is \
-genuinely quiet, return a calm honest line rather than fabricating drama.
+line. **ONE story only — never join two stories with a semicolon, "and", "+" \
+or "&".** Lead with the single most newsworthy specific item (a policy \
+announcement, a funding figure, a major project milestone). Avoid generic \
+phrasing like "Monthly update". Examples of good style: "Special ed coming to \
+Tamil schools in 2027" or "RM15.7M committed to SJK(T) infrastructure". \
+Counter-example to avoid: "Funding boost; new playground opens" — pick one. \
+If the month is genuinely quiet, return a calm honest line rather than \
+fabricating drama.
 
 Rules:
 - Be specific: use names, amounts, dates, constituency names from the data.

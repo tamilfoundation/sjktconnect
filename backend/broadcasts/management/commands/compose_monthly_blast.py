@@ -361,6 +361,13 @@ class Command(BaseCommand):
         Falls back to the generic month label when the LLM output is
         absent or the headline field is missing/empty. The headline
         prefix `{month_label}: ` keeps the cadence visible in inboxes.
+
+        Defensive single-story collapse: the prompt asks Gemini for ONE
+        story only, but the May 2026 send shipped a two-story headline
+        joined by a semicolon ("Private Sector Boosts SJK(T) Ladang
+        Labu; Sedenak Gets Piped Water After 67 Years"). If a separator
+        slips through, take only the first clause so the subject reads
+        as a single story.
         """
         generic = f"Monthly Intelligence Blast \u2014 {month_label}"
         if not analysis:
@@ -368,6 +375,16 @@ class Command(BaseCommand):
         headline = (analysis.get("headline") or "").strip()
         if not headline:
             return generic
+        # Single-story collapse: split on semicolon or " and " (with surrounding
+        # spaces to avoid splitting words like "Sungai Sandhanam"). Take the
+        # first non-empty clause and strip trailing punctuation/whitespace.
+        for sep in (";", " and ", " & ", " + "):
+            if sep in headline:
+                first = headline.split(sep, 1)[0].strip()
+                if first:
+                    headline = first
+                    break
+        headline = headline.rstrip(",.;:&+ ").strip()
         # Cap length to avoid Gmail truncation in list view.
         max_len = 90
         candidate = f"{month_label}: {headline}"

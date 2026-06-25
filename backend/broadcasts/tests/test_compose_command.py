@@ -290,6 +290,49 @@ class TestSprint23DynamicSubject:
         assert len(result) <= 90
         assert result.endswith("\u2026")  # ellipsis
 
+    def test_semicolon_split_keeps_only_first_story(self):
+        """Regression for May 2026 send: Gemini occasionally joins two stories
+        with a semicolon. Defensive split takes only the first clause."""
+        from broadcasts.management.commands.compose_monthly_blast import Command
+        cmd = Command()
+        result = cmd._build_subject(
+            "May 2026",
+            {"headline": "Private Sector Boosts SJK(T) Ladang Labu; "
+                         "Sedenak Gets Piped Water After 67 Years"},
+        )
+        assert result == "May 2026: Private Sector Boosts SJK(T) Ladang Labu"
+
+    def test_and_joiner_split_keeps_only_first_story(self):
+        from broadcasts.management.commands.compose_monthly_blast import Command
+        cmd = Command()
+        result = cmd._build_subject(
+            "April 2026",
+            {"headline": "RM15M funding announced and new playground opens"},
+        )
+        assert result == "April 2026: RM15M funding announced"
+
+    def test_does_not_split_internal_and_in_school_name(self):
+        """Word boundary safety: 'and' inside a name (no surrounding spaces
+        treated as a joiner) must not split."""
+        from broadcasts.management.commands.compose_monthly_blast import Command
+        cmd = Command()
+        # "Sungai Sandhanam" contains 'and' but as part of a single word \u2014
+        # our splitter uses " and " (with spaces) so this is safe.
+        result = cmd._build_subject(
+            "April 2026",
+            {"headline": "Sungai Sandhanam school expansion approved"},
+        )
+        assert result == "April 2026: Sungai Sandhanam school expansion approved"
+
+    def test_trailing_punctuation_stripped_after_split(self):
+        from broadcasts.management.commands.compose_monthly_blast import Command
+        cmd = Command()
+        result = cmd._build_subject(
+            "April 2026",
+            {"headline": "Funding boost,; new playground opens"},
+        )
+        assert result == "April 2026: Funding boost"
+
 
 @pytest.mark.django_db
 @patch(
