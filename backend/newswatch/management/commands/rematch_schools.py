@@ -4,6 +4,8 @@ Finds articles where mentioned_schools contains entries with empty moe_code
 and re-runs the matching pipeline against the current school database.
 """
 
+import sys
+
 from django.core.management.base import BaseCommand
 
 from newswatch.models import NewsArticle
@@ -21,6 +23,13 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        # Force UTF-8 stdout so Tamil-character article titles don't crash
+        # the run on Windows (where the default is cp1252). Bare attribute
+        # check to avoid AttributeError on TextIOBase replacements that
+        # don't support reconfigure().
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
         dry_run = options["dry_run"]
         updated_count = 0
 
