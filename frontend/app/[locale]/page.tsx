@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { setRequestLocale } from "next-intl/server";
 import HeroSection from "@/components/HeroSection";
 import NationalStats from "@/components/NationalStats";
@@ -36,7 +37,11 @@ export default async function HomePage({ params }: PageProps) {
       />
       {stats && <NationalStats stats={stats} />}
       <div id="school-map">
-        <SchoolMap initialSchools={mapSchools} />
+        {/* Suspense boundary required by Next 14+ when a client child uses
+            useSearchParams (the SchoolMap state-filter URL param reader). */}
+        <Suspense fallback={null}>
+          <SchoolMap initialSchools={mapSchools} />
+        </Suspense>
       </div>
     </>
   );

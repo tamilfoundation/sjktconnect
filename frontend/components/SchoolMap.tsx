@@ -1,18 +1,67 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { APIProvider, Map } from "@vis.gl/react-google-maps";
+import { APIProvider, Map, useMap } from "@vis.gl/react-google-maps";
 import SchoolMarkers from "./SchoolMarkers";
 import MapFilterPanel, {
   ColourMode,
   FilterToggles,
 } from "./MapFilterPanel";
 import SearchBox from "./SearchBox";
+import { Link } from "@/i18n/navigation";
 import { School } from "@/lib/types";
 
 const MALAYSIA_CENTER = { lat: 4.2105, lng: 101.9758 };
 const DEFAULT_ZOOM = 7;
+const SINGLE_SCHOOL_ZOOM = 13;
+const FIT_BOUNDS_PADDING = 60;
+
+/**
+ * Filter the school list by `state` URL param (case-insensitive).
+ * Exported as a pure function for unit testing without React/map setup.
+ */
+export function filterByStateParam(
+  schools: School[],
+  stateParam: string | null,
+): School[] {
+  if (!stateParam) return schools;
+  const needle = stateParam.toLowerCase().trim();
+  return schools.filter((s) => (s.state ?? "").toLowerCase() === needle);
+}
+
+/**
+ * Inside-the-Map child component that auto-fits bounds to the visible school
+ * set when the bounds-key changes (typically the state filter changing).
+ * Must be a child of <Map> so useMap() can resolve. Returns null — render-free.
+ */
+function FitBoundsOnStateFilter({
+  schools,
+  boundsKey,
+}: {
+  schools: School[];
+  boundsKey: string;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (!map || !boundsKey || schools.length === 0) return;
+    if (typeof google === "undefined" || !google.maps?.LatLngBounds) return;
+    const coords = schools
+      .map((s) => ({ lat: s.gps_lat ?? null, lng: s.gps_lng ?? null }))
+      .filter((c): c is { lat: number; lng: number } => c.lat !== null && c.lng !== null);
+    if (coords.length === 0) return;
+    if (coords.length === 1) {
+      map.setCenter(coords[0]);
+      map.setZoom(SINGLE_SCHOOL_ZOOM);
+      return;
+    }
+    const bounds = new google.maps.LatLngBounds();
+    coords.forEach((c) => bounds.extend(c));
+    map.fitBounds(bounds, FIT_BOUNDS_PADDING);
+  }, [map, boundsKey, schools]);
+  return null;
+}
 
 const DEFAULT_TOGGLES: FilterToggles = {
   governmentAided: true,
@@ -31,6 +80,8 @@ interface SchoolMapProps {
 
 export default function SchoolMap({ initialSchools }: SchoolMapProps) {
   const t = useTranslations("home");
+  const searchParams = useSearchParams();
+  const stateParam = searchParams.get("state");
   const [searchResult, setSearchResult] = useState<School | null>(null);
 
   // Filter state
@@ -41,11 +92,19 @@ export default function SchoolMap({ initialSchools }: SchoolMapProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
   const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "";
 
+  // State-filtered subset: applied BEFORE the toggle filters so the
+  // MapFilterPanel's "X of Y" count reflects the state context, not the
+  // national total.
+  const stateScopedSchools = useMemo(
+    () => filterByStateParam(initialSchools, stateParam),
+    [initialSchools, stateParam],
+  );
+
   // Filter schools based on toggles and colour mode
   const filteredSchools = useMemo(() => {
     if (searchResult) return [searchResult];
 
-    return initialSchools.filter((school) => {
+    return stateScopedSchools.filter((school) => {
       switch (colourMode) {
         case "assistance": {
           const isAided = school.assistance_type === "SBK" || school.assistance_type === "SABK";
@@ -74,7 +133,7 @@ export default function SchoolMap({ initialSchools }: SchoolMapProps) {
           return true;
       }
     });
-  }, [initialSchools, searchResult, colourMode, toggles, enrolmentThreshold]);
+  }, [stateScopedSchools, searchResult, colourMode, toggles, enrolmentThreshold]);
 
   const handleToggleChange = useCallback((key: keyof FilterToggles) => {
     setToggles((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -112,6 +171,22 @@ export default function SchoolMap({ initialSchools }: SchoolMapProps) {
 
   return (
     <div className="relative">
+      {/* State-filter chip — only renders when a ?state= URL param is active */}
+      {stateParam && (
+        <div className="absolute top-4 right-4 z-10 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-gray-200 shadow-sm text-xs text-gray-700">
+          <span className="font-medium">{stateParam}</span>
+          <span className="text-gray-400">·</span>
+          <span className="tabular-nums">{stateScopedSchools.length} {stateScopedSchools.length === 1 ? "school" : "schools"}</span>
+          <Link
+            href="/"
+            className="text-blue-600 hover:text-blue-800"
+            aria-label="Clear state filter"
+          >
+            ✕
+          </Link>
+        </div>
+      )}
+
       {/* Controls overlay */}
       <div className="absolute top-4 left-4 z-10 flex flex-col gap-3 w-64 md:w-72">
         <SearchBox
@@ -147,6 +222,10 @@ export default function SchoolMap({ initialSchools }: SchoolMapProps) {
               schools={filteredSchools}
               colourMode={colourMode}
               enrolmentThreshold={enrolmentThreshold}
+            />
+            <FitBoundsOnStateFilter
+              schools={stateScopedSchools}
+              boundsKey={stateParam ?? ""}
             />
           </Map>
         </APIProvider>
