@@ -812,3 +812,19 @@
 **Trade-offs:** The DB still carries stale bad rows. A future data-consumer that bypasses the frontend (e.g. a CSV export) would see them. Mitigated by documenting the pattern + running the SQL cleanup whenever convenient (we have a TODO carry-over for it in retro). If we ever add a CSV export, that's the trigger to schedule the cleanup before shipping.
 
 **Revisit if:** We add a non-frontend consumer of `MP.facebook_url` (CSV export, analytics dashboard, public API endpoint).
+
+## ISR + explicit revalidation, not "drop ISR" or "shrink revalidate" — Sprint 27, 2026-06-26
+
+**Decision:** Keep `revalidate=86400` on the public school page AND add a `/api/revalidate` route handler that the edit flow calls after a successful save. Three layers: edge cache (Cloudflare) + Next ISR (24h) + explicit invalidation on edit.
+
+**Alternatives considered:**
+1. **Drop ISR on the school page** (`revalidate=0` or `dynamic="force-dynamic"`) — guarantees freshness but kills the egress optimisation Sprint 17/21 worked hard to land. School pages get 1000s of bot hits a day; rebuilding per-hit is wasteful when the data changes maybe once a month per school.
+2. **Shrink revalidate to 60s** — still stale by up to 60s after an edit, AND wastes most of the cache benefit. Worst of both worlds.
+3. **Both ISR (24h) and explicit revalidate on edit (chosen)** — Next.js idiomatic pattern. Cache benefit retained for the 99% of traffic that's read-only; freshness guaranteed for the 1% that's edit-driven.
+4. **Server-Sent Events / WebSocket signal** — way over-engineered for a page that updates from "any admin saves" → "1 user looking at the freshly-saved version."
+
+**Rationale:** ISR's whole reason for existing is "cache aggressively, invalidate explicitly when you know data changed." We knew. We just hadn't wired the invalidation. The cost is one route handler (~40 lines) + 6 lines of client code (revalidate + push). The benefit is the edit flow finally feels responsive — the user lands on the public page with their change reflected, instead of seeing stale data and wondering if Save worked.
+
+**Trade-offs:** The route handler is unauthenticated (we'd otherwise have to pass cookies through from a client component, which is fragile). Worst-case abuse is "a malicious caller invalidates the cache for a specific moe_code" — same impact as a normal ISR miss, so essentially zero damage. We further restrict the route's path-building so only `/(en|ta|ms)/school/<UPPERCASE_KEY>` paths can be revalidated, never arbitrary paths.
+
+**Revisit if:** We add other ISR-cached pages that also need explicit invalidation (constituency, DUN, news article pages). At that point the `{type, key}` shape extends naturally — add a switch case per type. If the count grows past ~5 types, consider a per-type route handler or a typed RPC instead.

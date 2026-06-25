@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { NewsArticle } from "@/lib/types";
+import { fetchNews } from "@/lib/api";
 import NewsCard from "./NewsCard";
 import PaginationBar from "./PaginationBar";
 
@@ -14,29 +15,68 @@ interface Props {
 
 type Category = "all" | "school" | "general";
 
-export default function NewsList({ articles, totalCount }: Props) {
+// Sprint 27 #3: search now hits the API instead of client-filtering
+// the initial 250. This widens search to ALL approved articles in the
+// DB (currently ~111+ per month), not just what fit in the initial
+// paint. Debounce keeps us from spamming the backend on every
+// keystroke.
+const SEARCH_DEBOUNCE_MS = 300;
+const SEARCH_PAGE_SIZE = 250;
+
+export default function NewsList({ articles: initialArticles, totalCount: initialTotal }: Props) {
   const t = useTranslations("news");
   const [activeTab, setActiveTab] = useState<Category>("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchedArticles, setSearchedArticles] = useState<NewsArticle[] | null>(null);
+  const [searchedTotal, setSearchedTotal] = useState<number | null>(null);
+  const [searching, setSearching] = useState(false);
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Debounced live API search — empty query reverts to initial articles.
+  useEffect(() => {
+    const trimmed = searchInput.trim();
+    if (!trimmed) {
+      setSearchedArticles(null);
+      setSearchedTotal(null);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    let cancelled = false;
+    const handle = setTimeout(async () => {
+      try {
+        const data = await fetchNews({
+          search: trimmed,
+          pageSize: SEARCH_PAGE_SIZE,
+        });
+        if (cancelled) return;
+        setSearchedArticles(data.results);
+        setSearchedTotal(data.count);
+      } catch {
+        if (cancelled) return;
+        setSearchedArticles([]);
+        setSearchedTotal(0);
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [searchInput]);
+
+  const activeArticles = searchedArticles ?? initialArticles;
+  const activeTotal = searchedTotal ?? initialTotal;
+
   const filtered = useMemo(() => {
-    return articles.filter((article) => {
+    return activeArticles.filter((article) => {
       if (activeTab === "school" && article.mentioned_schools.length === 0) return false;
       if (activeTab === "general" && article.mentioned_schools.length > 0) return false;
-
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        return (
-          article.title.toLowerCase().includes(q) ||
-          article.ai_summary.toLowerCase().includes(q) ||
-          article.source_name.toLowerCase().includes(q)
-        );
-      }
       return true;
     });
-  }, [articles, activeTab, searchQuery]);
+  }, [activeArticles, activeTab]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(currentPage, totalPages);
@@ -49,7 +89,7 @@ export default function NewsList({ articles, totalCount }: Props) {
     setCurrentPage(1);
   };
   const handleSearchChange = (value: string) => {
-    setSearchQuery(value);
+    setSearchInput(value);
     setCurrentPage(1);
   };
   const handlePageSizeChange = (size: number) => {
@@ -57,10 +97,11 @@ export default function NewsList({ articles, totalCount }: Props) {
     setCurrentPage(1);
   };
 
-  // Compute most mentioned schools
+  // Compute most mentioned schools (always over the initial 250 — the
+  // sidebar shouldn't shuffle to follow what the user is searching for).
   const topSchools = useMemo(() => {
     const schoolCounts = new Map<string, { name: string; moe_code: string; count: number }>();
-    articles.forEach((article) => {
+    initialArticles.forEach((article) => {
       article.mentioned_schools.forEach((school) => {
         if (!school.moe_code) return;
         const existing = schoolCounts.get(school.moe_code);
@@ -74,7 +115,7 @@ export default function NewsList({ articles, totalCount }: Props) {
     return Array.from(schoolCounts.values())
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
-  }, [articles]);
+  }, [initialArticles]);
 
   const tabs: { key: Category; label: string }[] = [
     { key: "all", label: t("tabAll") },
@@ -104,20 +145,27 @@ export default function NewsList({ articles, totalCount }: Props) {
             ))}
           </div>
 
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder={t("searchPlaceholder")}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm flex-1 min-w-[200px] focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
+          <div className="flex-1 min-w-[200px] relative">
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder={t("searchPlaceholder")}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+            {searching && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                {t.has("searching") ? t("searching") : "Searching..."}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Article list */}
         {paged.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             <p className="text-sm">
-              {searchQuery ? t("noArticlesFiltered") : t("noArticles")}
+              {searchInput.trim() ? t("noArticlesFiltered") : t("noArticles")}
             </p>
           </div>
         ) : (

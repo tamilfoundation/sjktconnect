@@ -286,3 +286,69 @@ class JenderataAliasesMigrationTest(TestCase):
             alias_normalized__contains="jenderata",
         ).count()
         self.assertEqual(remaining, 0)
+
+
+class LadangLabuBahagianAliasesMigrationTest(TestCase):
+    """Sprint 27 #2 — verify the 0010 migration creates the NBD4079
+    Bahagian/Division/Bhg variants that bridge the news-matcher gap.
+    """
+
+    def setUp(self):
+        self.constituency = Constituency.objects.create(
+            code="P132", name="Seremban", state="Negeri Sembilan",
+        )
+        School.objects.create(
+            moe_code="NBD4079",
+            name="Sekolah Jenis Kebangsaan (Tamil) Ladang Labu Bhg 4",
+            short_name="SJK(T) Ladang Labu Bhg 4",
+            state="Negeri Sembilan",
+            constituency=self.constituency,
+        )
+
+    def _load_migration(self):
+        import importlib
+        return importlib.import_module(
+            "hansard.migrations.0010_ladang_labu_bahagian_aliases"
+        )
+
+    def test_adds_bahagian_division_variants_for_nbd4079(self):
+        from django.apps import apps as _apps
+        self._load_migration().add_aliases(_apps, None)
+        school = School.objects.get(moe_code="NBD4079")
+        aliases = SchoolAlias.objects.filter(
+            school=school,
+            alias_type=SchoolAlias.AliasType.HANSARD,
+        )
+        self.assertGreaterEqual(aliases.count(), 10)
+        # Spot-check the critical variants the news matcher was missing.
+        normalized = set(aliases.values_list("alias_normalized", flat=True))
+        self.assertIn("sjk(t) ladang labu bahagian 4", normalized)
+        self.assertIn("sjk(t) ladang labu division 4", normalized)
+        self.assertIn("ladang labu bahagian 4", normalized)
+
+    def test_migration_is_idempotent(self):
+        from django.apps import apps as _apps
+        mod = self._load_migration()
+        mod.add_aliases(_apps, None)
+        count1 = SchoolAlias.objects.filter(
+            school__moe_code="NBD4079",
+            alias_type=SchoolAlias.AliasType.HANSARD,
+        ).count()
+        mod.add_aliases(_apps, None)
+        count2 = SchoolAlias.objects.filter(
+            school__moe_code="NBD4079",
+            alias_type=SchoolAlias.AliasType.HANSARD,
+        ).count()
+        self.assertEqual(count1, count2)
+        self.assertGreater(count1, 0)
+
+    def test_reverse_removes_added_aliases(self):
+        from django.apps import apps as _apps
+        mod = self._load_migration()
+        mod.add_aliases(_apps, None)
+        mod.remove_aliases(_apps, None)
+        remaining = SchoolAlias.objects.filter(
+            school__moe_code="NBD4079",
+            alias_type=SchoolAlias.AliasType.HANSARD,
+        ).count()
+        self.assertEqual(remaining, 0)

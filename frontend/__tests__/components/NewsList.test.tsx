@@ -3,11 +3,21 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import NewsList from "@/components/NewsList";
 import { NewsArticle } from "@/lib/types";
 
-jest.mock("next-intl", () => ({
-  useTranslations: () => (key: string, params?: Record<string, unknown>) => {
+jest.mock("next-intl", () => {
+  const t: any = (key: string, params?: Record<string, unknown>) => {
     if (params) return `${key}:${JSON.stringify(params)}`;
     return key;
-  },
+  };
+  t.has = () => true;
+  return {
+    useTranslations: () => t,
+  };
+});
+
+// Sprint 27 #3: NewsList now does API-backed search; mock fetchNews so
+// the debounce timer doesn't fire against a real backend in tests.
+jest.mock("@/lib/api", () => ({
+  fetchNews: jest.fn().mockResolvedValue({ results: [], count: 0 }),
 }));
 
 jest.mock("@/i18n/navigation", () => ({

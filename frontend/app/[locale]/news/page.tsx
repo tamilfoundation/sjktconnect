@@ -34,9 +34,11 @@ export default async function NewsPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("news");
-  // Sprint 17: was pageSize: 500 (~138 KB on every render). 50 is plenty
-  // for the initial paint; NewsList already shows totalCount and can paginate.
-  const data = await fetchNews({ pageSize: 50 });
+  // Sprint 27 #3: raised from 50 (Sprint 17 egress cap) to 250. The
+  // initial paint still shows 10 per page; 250 widens what the
+  // tab-filter + top-schools sidebar can compute over. The full search
+  // path bypasses this cap by hitting the API live — see NewsList.
+  const data = await fetchNews({ pageSize: 250 });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

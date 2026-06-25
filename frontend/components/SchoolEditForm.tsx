@@ -13,10 +13,11 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { SchoolEditData } from "@/lib/types";
-import { updateSchool } from "@/lib/api";
+import { revalidateSchoolPage, updateSchool } from "@/lib/api";
 import TabBar from "@/components/edit_tabs/TabBar";
 import CoreTab from "@/components/edit_tabs/CoreTab";
 import ContactTab from "@/components/edit_tabs/ContactTab";
@@ -59,6 +60,8 @@ type TabId = (typeof TAB_IDS)[number];
 export default function SchoolEditForm({ school, isSuperAdmin }: SchoolEditFormProps) {
   const t = useTranslations("schoolEdit");
   const tc = useTranslations("common");
+  const router = useRouter();
+  const locale = useLocale();
 
   const [formData, setFormData] = useState<SchoolEditData>(school);
   const [activeTab, setActiveTab] = useState<TabId>("core");
@@ -133,6 +136,21 @@ export default function SchoolEditForm({ school, isSuperAdmin }: SchoolEditFormP
       const result = await updateSchool(school.moe_code, updates);
       setSuccess(t("changesSaved"));
       setFormData(result);
+      // Sprint 27 #1: invalidate the ISR cache for the public school
+      // page across all 3 locales, then navigate the user there so
+      // they can see their change reflected immediately. Without the
+      // revalidate call the page would serve stale data for up to 24h.
+      // router.refresh() invalidates this route's RSC payload too, so
+      // a back-button to /edit picks up the new state.
+      try {
+        await revalidateSchoolPage(school.moe_code);
+      } catch {
+        // Revalidate is best-effort — a network blip here shouldn't
+        // block the user from continuing. Worst case the public page
+        // is stale for 24h, which is the pre-Sprint-27 status quo.
+      }
+      router.refresh();
+      router.push(`/${locale}/school/${school.moe_code}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("failedSave"));
     } finally {

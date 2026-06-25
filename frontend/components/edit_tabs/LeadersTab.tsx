@@ -20,12 +20,14 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import { SchoolLeaderAdminData } from "@/lib/types";
 import {
   createSchoolLeader,
   updateSchoolLeader,
   deleteSchoolLeader,
+  revalidateSchoolPage,
   LeaderRole,
 } from "@/lib/api";
 import {
@@ -75,6 +77,8 @@ export default function LeadersTab({
   onLeadersChange,
 }: LeadersTabProps) {
   const t = useTranslations("schoolEdit");
+  const router = useRouter();
+  const locale = useLocale();
 
   // Bootstrap one slot per role from the server-shape leaders array.
   const [slots, setSlots] = useState<Record<LeaderRole, SlotState | null>>(
@@ -196,6 +200,17 @@ export default function LeadersTab({
       const sorted = updated.sort((a, b) => a.role.localeCompare(b.role));
       setSuccess(t("leadersSaved"));
       onLeadersChange?.(sorted);
+      // Sprint 27 #4: same ISR cache invalidation as Core/Contact
+      // tabs. The public school page caches the leaders list for up
+      // to 24h; without this call a freshly-added Board Chairman
+      // wouldn't reach the School Leadership card until tomorrow.
+      try {
+        await revalidateSchoolPage(moeCode);
+      } catch {
+        // Best-effort — see SchoolEditForm comment.
+      }
+      router.refresh();
+      router.push(`/${locale}/school/${moeCode}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : t("leadersFailedSave");
       // Translate the backend's slot-taken code into the locale string.

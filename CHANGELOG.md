@@ -1,5 +1,28 @@
 # Changelog
 
+## Sprint 27 — School Page UX Pass (follow-up) (closed 2026-06-26)
+
+**Goal**: 4 more owner-reported bugs surfaced after the Sprint 26 deploy. Mostly cache-invalidation + a news-matcher data-quality investigation. ~9 files.
+
+### Fixed
+- **#1 + #4 — Edit save success doesn't reflect on public school page (ISR cache held stale data for up to 24h).** Two-part fix: (a) new `frontend/app/api/revalidate/route.ts` route handler accepting `{type: "school", key: moeCode}` and calling `revalidatePath()` on `/en/school/<moe>` + `/ta/...` + `/ms/...`. (b) `SchoolEditForm.handleSave` and `LeadersTab.handleSave` now call `revalidateSchoolPage(moeCode)` + `router.refresh()` + `router.push('/{locale}/school/{moeCode}')` after a successful save — the user lands on the public page and immediately sees their change. Revalidate failures are swallowed (best-effort; worst case is the pre-Sprint-27 status quo of 24h staleness). Key shape validated `/^[A-Z0-9]{3,10}$/` so the handler can't be abused to invalidate arbitrary paths.
+- **#2 — Monthly blast cluster says 8 articles, school news page shows 2 (NBD4079 / SJK(T) Ladang Labu Bhg 4).** Investigation: 9 articles in the news DB are about Ladang Labu Bhg 4, but only 2 were correctly tagged with `NBD4079`. The other 7 went to **ABDB006** (the *only* other school in the DB with "Bahagian" in its short_name) or **MBD0067** (the *only* other school with "Division"). The news matcher's variant generator doesn't bridge `Bhg ⇔ Bahagian ⇔ Division`, so when an article mentioned "SJKT Ladang Labu Bahagian 4" the matcher's exact-match strategies landed on whichever school had the matching suffix word. **Fix**: new migration `hansard/0010_ladang_labu_bahagian_aliases` adds 13 HANSARD aliases for NBD4079 covering the Bahagian/Division/Bhg/IV/Empat variants. Strategy 1.5 SchoolAlias lookup (Sprint 24) makes them active immediately. **Post-deploy step**: run `rematch_schools` against the 9 affected articles to re-resolve them to NBD4079.
+
+### Added
+- **#3 — News page pageSize 50 → 250 + API-backed search.** `frontend/app/[locale]/news/page.tsx` requests 250 articles for the initial paint (was 50 capped by Sprint 17 egress fix). `frontend/components/NewsList.tsx` debounces the search input by 300ms and hits `fetchNews({search})` via the existing `?search=` API param — search now spans the entire approved-news corpus, not just the visible page. Shows "Searching..." indicator while in-flight. Cancel-on-keystroke avoids stale results. Top-mentioned-schools sidebar still computes over the initial 250 (doesn't shuffle with the search).
+- **`revalidateSchoolPage(moeCode)` helper** in `frontend/lib/api.ts` — wraps the same-origin POST to the route handler.
+
+### Tests
+- `frontend/__tests__/components/LeadersTab.test.tsx` — added `next/navigation` + `revalidateSchoolPage` mocks (8 tests now pass on the new router-dependent code path).
+- `frontend/__tests__/components/SchoolEditForm.test.tsx` — same mocks added (12 tests).
+- `frontend/__tests__/components/NewsList.test.tsx` — added `fetchNews` mock (no API calls during tests); `useTranslations` mock gained `.has` so the search-indicator render path works.
+- `backend/hansard/tests/test_seed_aliases.py` — +3 cases (`LadangLabuBahagianAliasesMigrationTest`: creation, idempotency, reverse).
+- **Final**: 1420 backend (+3) + 349 frontend (unchanged from Sprint 26 close).
+
+### Operational follow-up after deploy
+- Run `gcloud run jobs execute sjktconnect-check-hansards` then a one-off shell to apply migration `hansard/0010` (or wait for next backend deploy which runs migrations on startup).
+- Run `rematch_schools` against NBD4079 + the affected articles to re-tag the 7 mis-resolved articles. Then verify the school news page shows ~9 articles.
+
 ## Sprint 26 — School Page UX Pass (closed 2026-06-26)
 
 **Goal**: address 6 concrete UX bugs the owner observed on the school page edit flow + MP card + About state-link. Backend + frontend mixed, ~13 files.

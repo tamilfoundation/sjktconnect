@@ -862,3 +862,26 @@ export async function deleteSchoolLeader(
     throw new Error(text || `API error: ${res.status}`);
   }
 }
+
+// ----- Sprint 27 #1+#4 — explicit ISR cache invalidation after admin edits -----
+
+/**
+ * Tell the Next.js server to re-render the public school detail page
+ * for `/{locale}/school/{moeCode}` across all 3 locales. Without this,
+ * the page's `revalidate=86400` cache holds stale data for up to 24h
+ * after a school admin saves their edit.
+ *
+ * Hits the Next route handler at `/api/revalidate` (same-origin), NOT
+ * the Django API. Fire-and-forget semantics — callers should swallow
+ * exceptions so a network blip here doesn't block the post-save flow.
+ */
+export async function revalidateSchoolPage(moeCode: string): Promise<void> {
+  const res = await fetch("/api/revalidate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "school", key: moeCode }),
+  });
+  if (!res.ok) {
+    throw new Error(`revalidate failed: ${res.status}`);
+  }
+}
