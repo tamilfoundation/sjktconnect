@@ -1,5 +1,51 @@
 # Changelog
 
+## Sprint 28.1 — Sprint 28 follow-up bundle (closed 2026-06-26)
+
+**Goal**: rapid-fire fix stream from owner testing Sprint 28's deploy. 9 distinct issues across edit flow, validation, ISR cache, naming, and news matcher. ~16 files, 9 commits, ~3h end-to-end.
+
+### Fixed
+
+- **GPS edit silently dropped for SUPERADMIN** (`f18de71` → `cda6d38`). Two-part bug: (a) `SchoolEditSerializer` had `gps_lat`/`gps_lng` in `read_only_fields`, stripping them server-side regardless of role; (b) `SchoolEditView` didn't pass `context={"request": request}` to the serializer, so the SUPERADMIN check that gates GPS writes always saw `request=None` and dropped the fields. Fixed both: removed `gps_lat`/`gps_lng` from `read_only_fields`, added `.update()` override that pops them for non-SUPERADMIN, and threaded `context` from the view.
+- **GPS save returned 400 on Google-Maps-paste precision** (`cda6d38`). `School.gps_lat`/`gps_lng` are `DecimalField(max_digits=10, decimal_places=7)`; pasted 15-decimal values trigger DRF rejection. Frontend `ContactTab` now rounds to 7 dp on `onChange`; serializer has a `_quantize_gps` validator as the trust-boundary mirror.
+- **Edit save shows "Changes saved" but view page stays stale** (`67f2110`). Sprint 28's slug URL introduction broke Sprint 27's revalidate path. The `revalidatePath(segment, 'page')` form returns success but doesn't actually invalidate the cached slug instance in Next 16 (verified live: revalidate returned the expected path list, slug URL kept serving stale data). Fix: client computes slug and passes it; route handler revalidates the literal slug URL. `SchoolEditForm` + `LeadersTab` now both pass the slug; `SchoolEditForm` also navigates directly to the slug URL (no 301 hop) after save.
+- **TIADA not accepted as phone value** (`8b4c99b`). MOE uses literal "TIADA" (Bahasa for "none") in their dataset when a school has no phone; school admins re-enter it verbatim. Validators rejected. Now any-case `TIADA`, `N/A`, `none`, `-` pass through both frontend `isValidPhone` and backend `SchoolEditSerializer` / `SchoolLeaderAdminSerializer`.
+- **Leader phones display inconsistently with school phones** (`67f2110` + `cfc57c1`). Schools normalised at MOE import (Sprint 3.1's `format_phone` → `+60-X XXX XXXX`); leader phones stored raw. Now serializer-side normalisation on every save. Plus root cause: `format_phone`'s `_DOUBLE_DIGIT_AREA_CODES` only listed East-MY landline (82-89) — mobile prefixes 010-019 fell through as "unparseable". Extended to include 10-19. Migration `schools/0013` ran with broken `format_phone` (+0 normalised); migration `schools/0014` re-ran with the fix and normalised M. Jeyakumar's `0122090008` → `+60-12 209 0008`.
+- **`SJK(T) Kg.Simee` missing space after period** (`cda6d38`). MOE Excel source has `KG.SIMEE` (no space) for 3 SJKT schools (KG.SIMEE, CEP.NIYOR KLUANG, K.PATHMANABAN). `to_proper_case` correctly title-cased but didn't insert a space. Updated to emit `". "` between dot-joined token parts; migration `schools/0012` rewrites the 3 affected rows.
+- **MP CTA in monthly blast → /parliament-watch** (`a02b6ae`). Template change: `https://tamilschool.org/en/parliament-watch` → `https://tamilschool.org/en/constituencies`.
+- **7 articles about Ladang Labu Bhg 4 mis-tagged to ABDB006/MBD0067** (`1dcd814`). Sprint 28's alias generator fix closed the systemic root cause for future articles, but the 7 existing rows still had wrong `moe_code`s. `rematch_schools --force-all` couldn't fix them — first-resolution overwrites `mentioned_schools[i].name` with the matched school's `short_name`, so re-resolving the stored name produces the same wrong match. New `relabel_labu_mistags` management command does a targeted title-based rewrite (title contains "Labu" AND `moe_code` in wrong-set → NBD4079). Ran on prod: 7 articles relabelled.
+- **Two more alias gaps: Kathumba + Jawa Lane** (`1c3032b`). Article 117 extracted "SJK(T) Ladang Kathumba" (silent-h spelling of canonical "Katumba" KBD0053). Article 82 extracted "SJK(T) Jawa Lane" (English translation of "Lorong Java" NBD4070). Migration `hansard/0011` adds 14 HANSARD aliases; `rematch_schools` re-resolved both.
+
+### Added
+
+- **`rematch_schools --force-all` flag** (`8b4c99b`) — re-processes articles whose mentions already have moe_codes (the historical fast-path skips them). Documented as having a known limitation (can't fix wrong-name-stored cases — that's what `relabel_labu_mistags` handles).
+- **`relabel_labu_mistags` management command** — targeted, idempotent, dry-run-able cleanup for the Sprint 27 Strategy 5 false-positive.
+- **`schools/0012_fix_no_space_after_period_names`** — fixes 3 short_name/name pairs.
+- **`schools/0013_normalise_leader_phones`** + **`schools/0014_normalise_leader_phones_with_mobile`** — backfill leader phones to canonical format.
+- **`hansard/0011_kathumba_jawa_lane_aliases`** — 14 alias variants for KBD0053 + NBD4070.
+- **MY-mobile recognition** in `format_phone` — `_DOUBLE_DIGIT_AREA_CODES` now includes 10-19.
+
+### Net effect on news matching
+
+| School | Articles before | After | Delta |
+|---|---:|---:|---:|
+| NBD4079 SJK(T) Ladang Labu Bhg 4 | 2 | **9** | +7 (Labu relabel) |
+| ABDB006 SJK(T) Ladang Jendarata Bahagian Alpha Bernam | 4 (all false-positive) | **0** | -4 |
+| MBD0067 SJK(T) Ldg Kemuning Kru Division | 3 (all false-positive) | **0** | -3 |
+| KBD0053 SJK(T) Ldg Katumba | 0 | **1** | +1 (Kathumba alias) |
+| NBD4070 SJK(T) Lorong Java | 1 | **2** | +1 (Jawa Lane alias) |
+
+### Tests
+
+- `frontend/__tests__/lib/validation.test.ts` — TIADA acceptance + MY-specific digit-count rule (+6 cases, kept from Sprint 28).
+- `backend/schools/tests/test_edit_api.py` + `test_leader_crud_api.py` — phone assertions updated to `+60-X XXX XXXX` normalised form (+0 net, 3 updated).
+- `backend/schools/tests/test_utils.py` — `Kg.Simee` → `Kg. Simee` expectation (+0 net, 2 updated).
+- **Final**: 1424 backend (+0 net from Sprint 28) + 367 frontend (+1 from Sprint 28).
+
+### Deploy revisions
+
+api `00121 → 00133-2cf` (11 deploys), web `00118 → 00125-9jl` (7 deploys), 7/7 jobs synced after every backend deploy. ISR cache-busted twice via `--update-env-vars=ISR_CACHE_BUST`. All migrations applied on container startup. `seed_aliases` re-run on prod after `hansard/0011`.
+
 ## Sprint 28 — SEO URL Slug + Alias Bridge + Phone Validation Tightening (closed 2026-06-26)
 
 **Goal**: 3 owner-flagged items. (1) URL slug for SEO (apac.com.my outranking us because their URL has the school name in it). (2) Aliasing investigation — root cause of news-matcher mis-tagging is alias-generator gap, not Strategy 5. (3) Phone validation too permissive — truncated numbers passed.

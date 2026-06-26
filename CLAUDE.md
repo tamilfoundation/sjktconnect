@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Post-roadmap maintenance + ad-hoc improvement sprints. Sprint 28 closed 2026-06-26.
-- **Last Sprint**: Sprint 28 — SEO URL Slug + Alias Bridge + Phone Validation (closed 2026-06-26) — see CHANGELOG + `docs/retrospective-sprint28.md`
-- **Tests**: 1790 (1424 backend + 366 frontend) — verified at 2026-06-26 Sprint 28 close.
+- **Current Phase**: Post-roadmap maintenance + ad-hoc improvement sprints. Sprint 28.1 closed 2026-06-26.
+- **Last Sprint**: Sprint 28.1 — Sprint 28 follow-up bundle (closed 2026-06-26) — see CHANGELOG + `docs/retrospective-sprint28.1.md`
+- **Tests**: 1791 (1424 backend + 367 frontend) — verified at 2026-06-26 Sprint 28.1 close.
 - **Plan/billing**: Supabase Pro plan (Tamil Foundation org) — was forced to upgrade for headroom; goal is to drive egress low enough to revisit free tier later. Per-route observability dashboard now lives at Cloud Monitoring → "SJK(T) Connect — Egress by Route/UA" (id `f1722366-2df9-4446-9941-7cda5c019615`).
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
@@ -274,7 +274,7 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 28 ✅ closed 2026-06-26 — SEO URL slug + alias-generator bridge + phone validation tightening. School pages now have SEO-friendly URLs (`/school/<name>-<city>-<moe>`). `Bhg ⇔ Bahagian ⇔ Division` auto-bridge in seed_aliases fixes Sprint 27's NBD4079 root cause. Phone validation now MY-specific digit-count (no more truncated-number passes). Sprint 29 next.**
+**Sprint 28.1 ✅ closed 2026-06-26 — Sprint 28 follow-up bundle. 9 owner-reported issues from post-deploy testing: GPS edit unblocked for SUPERADMIN, ISR revalidate-slug fixed (literal URL not segment), TIADA accepted in phone validators, leader phones normalised to +60-X XXX XXXX (incl. format_phone mobile prefix recognition), Kg.Simee space fix + 2 other no-space-after-period names, MP CTA → /constituencies, 7 Labu articles relabelled + 2 more alias gaps closed (Kathumba + Jawa Lane). Sprint 29 next.**
 
 ### Sprint 29 — Personalised Digest (from original roadmap) OR SEO follow-up
 
@@ -300,9 +300,9 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ### Current codebase state (Sprint 28 closed, 2026-06-26)
 
-- **Prod API**: `sjktconnect-api-00124-plx` (Sprint 27 deploy; ran migration hansard/0010 on startup). Sprint 28 backend (seed_aliases Bhg/Bahagian/Division bridge + map serializer city field) pending deploy at close. **Post-deploy step**: run `seed_aliases` on prod to materialise the new variants.
-- **Prod web**: `sjktconnect-web-00118-4hx` (Sprint 27 deploy). Sprint 28 frontend (URL slug + tightened phone validation + slug-aware sitemap/canonical) pending deploy at close.
-- **Tests**: 1424 backend + 366 frontend (Sprint 28 close).
+- **Prod API**: `sjktconnect-api-00133-2cf` (Sprint 28.1 — applied migrations schools/0012, 0013, 0014, hansard/0011 on startup; carries TIADA accept, GPS context+precision fix, format_phone mobile prefix recognition, MP-link template fix, relabel_labu_mistags command).
+- **Prod web**: `sjktconnect-web-00125-9jl` (Sprint 28.1 — URL slug + tightened phone validation + slug-aware sitemap/canonical + literal-slug revalidate-after-save + GPS round-to-7-dp on input + TIADA validator).
+- **Tests**: 1424 backend + 367 frontend (Sprint 28.1 close).
 - **Scheduler state**: ALL four enabled.
   - `sjktconnect-monthly-blast` **ENABLED** (`0 9 1 * *` MYT) — un-paused 2026-06-26; June 2026 blast auto-fires 1 Jul 09:00 MYT.
   - `sjktconnect-fortnightly-digest` ENABLED (weekly cron; 14-day coverage guard enforces fortnight cadence).
@@ -345,6 +345,7 @@ The 5-sprint roadmap table below covers everything from Sprint 12 onward. The ea
 | 27 | **School Page UX Pass (follow-up)** | ✅ Closed 2026-06-26 (~1.5h, 11 files). 4 more owner-reported bugs: (#1+#4) ISR cache held edit-saves stale for up to 24h — new `app/api/revalidate/route.ts` + `revalidateSchoolPage()` helper called from SchoolEditForm + LeadersTab after Save, then `router.refresh()` + `router.push('/{locale}/school/{moe}')` so the user lands on the public page with the change live. (#3) News page `pageSize` 50→250 + search input converted to debounced API-backed (`?search=` was always supported server-side); search now spans entire approved corpus. (#2) NBD4079 (SJK(T) Ladang Labu Bhg 4) had 9 articles in news DB but only 2 correctly tagged — investigation found the variant generator doesn't bridge `Bhg ⇔ Bahagian ⇔ Division`, and the only two other schools in the DB with "Bahagian" / "Division" in their names (ABDB006, MBD0067) were absorbing the 7 mis-tagged articles. Migration `hansard/0010_ladang_labu_bahagian_aliases` adds 13 HANSARD aliases; post-deploy `rematch_schools` cleans up existing rows. 1420 backend (+3) + 349 frontend (unchanged). Retro: `docs/retrospective-sprint27.md`. |
 | 28 | **SEO URL Slug + Alias Bridge + Phone Validation** | ✅ Closed 2026-06-26 (~2.5h, 18 files). 3 owner-flagged items: **(A) URL slug**: `/school/<name>-<city>-<moe>` shape (e.g. `subramaniya-barathee-gelugor-pbd1088`) replaces bare-code. New `lib/urls.ts` (`schoolPath` / `parseSchoolSlug` / `isCanonicalSchoolSlug`). Page handler accepts both slug + legacy bare-code; non-canonical → 301 to canonical. Sitemap + JSON-LD + meta canonical all emit slug. Closes the SEO gap vs apac.com.my that put us at #7 vs their #3. **(B) Aliasing root cause** (owner-corrected diagnosis): extended `seed_aliases.generate_aliases_for_school` with `Bhg ⇔ Bahagian ⇔ Division` bridge — closes the gap that caused Sprint 27's mis-tagging at the proper layer (alias generator) rather than at the fallback (Strategy 5). Sprint 27's hansard/0010 migration becomes belt-and-braces. **(C) Phone validation**: replaced permissive `{6,20}` shape regex with MY-specific digit-count rules (mobile 10-11 + landline 9-10 + `+60` normalisation). Truncated numbers now fail. **(D)** Added `city` to `/api/v1/schools/map/` serializer for slug builder. **Post-deploy step**: run `seed_aliases` on prod to materialise the new Bhg/Bahagian/Division variants. 1424 backend (+4) + 366 frontend (+17). Retro: `docs/retrospective-sprint28.md`. |
 | — | **News Digest Stuck-Loop Fix** (ad-hoc incident sprint) | ✅ Done 2026-06-11, deployed `sjktconnect-api-00119-92c` + all 7 jobs synced (commit `d2f6269`). Quota errors now transient (send-what-fits, stay SENDING — un-breaks full-list urgent alerts too); 14-day coverage-anchored fortnight guard (weekly cron unchanged); digest subject = big-story headline; sender "SJK(T) News" for digest+urgent; `Broadcast.Status.CANCELLED` formalised (migration 0007); `resume_sending` FAILED sweep + compose window tripwires close the exit-0-while-broken monitoring gap. Live repair same day: broadcast 82 catch-up sent to its 250 pending (zero duplicates), 79-81 + 83-84 CANCELLED. **Verify: 15 Jun skip log; 22 Jun digest covers 9-22 Jun; 23 Jun resume drains to SENT.** 1375 backend + 320 frontend tests. Retro: `docs/retrospective-news-digest-stuck-fix.md`. |
+| 28.1 | **Sprint 28 follow-up bundle** | ✅ Closed 2026-06-26 (~3h, 16 files, 9 commits, 11 api + 7 web deploys). 9 owner-reported issues from post-deploy testing. **GPS edit unblocked for SUPERADMIN** (read_only_fields drop + .update() role gate + view context= threading + FE round-to-7dp + BE quantize). **ISR revalidate-slug fixed** (literal slug URL in payload — segment+'page' was returning 200 but not invalidating in Next 16). **TIADA / N/A / - accepted** in phone validators. **Leader phones normalised to +60-X XXX XXXX** (serializer-side; +format_phone mobile prefix recognition — was missing 010-019; +migration 0014 backfill). **`Kg.Simee` → `Kg. Simee` space** (to_proper_case + migration 0012 for 3 affected rows). **MP CTA in monthly blast** → /constituencies. **7 Labu articles relabelled** via new relabel_labu_mistags command (the systemic alias fix from Sprint 28 couldn't reach them — first-resolution overwrote Gemini's name). **Kathumba + Jawa Lane aliases added** (migration hansard/0011, 14 alias variants); 2 more articles tagged correctly. Net news-matcher effect: NBD4079 2→9, ABDB006 4→0, MBD0067 3→0, KBD0053 0→1, NBD4070 1→2. 1424 backend (+0 net) + 367 frontend (+1). Retro: `docs/retrospective-sprint28.1.md`. |
 
 ### Open tech debt remaining
 
