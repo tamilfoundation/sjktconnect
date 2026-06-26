@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Post-roadmap maintenance + ad-hoc improvement sprints. Sprint 28.1 closed 2026-06-26.
-- **Last Sprint**: Sprint 28.1 — Sprint 28 follow-up bundle (closed 2026-06-26) — see CHANGELOG + `docs/retrospective-sprint28.1.md`
-- **Tests**: 1791 (1424 backend + 367 frontend) — verified at 2026-06-26 Sprint 28.1 close.
+- **Current Phase**: Post-roadmap maintenance + pre-v2.0 prep. Sprint 29 closed 2026-06-26.
+- **Last Sprint**: Sprint 29 — Security & Dependency Refresh (closed 2026-06-26) — see CHANGELOG + `docs/tech-debt-audit-2026-06-26.md`
+- **Tests**: 1803 (1436 backend + 367 frontend) — verified at 2026-06-26 Sprint 29 close.
 - **Plan/billing**: Supabase Pro plan (Tamil Foundation org) — was forced to upgrade for headroom; goal is to drive egress low enough to revisit free tier later. Per-route observability dashboard now lives at Cloud Monitoring → "SJK(T) Connect — Egress by Route/UA" (id `f1722366-2df9-4446-9941-7cda5c019615`).
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
@@ -274,13 +274,27 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 28.1 ✅ closed 2026-06-26 — Sprint 28 follow-up bundle. 9 owner-reported issues from post-deploy testing: GPS edit unblocked for SUPERADMIN, ISR revalidate-slug fixed (literal URL not segment), TIADA accepted in phone validators, leader phones normalised to +60-X XXX XXXX (incl. format_phone mobile prefix recognition), Kg.Simee space fix + 2 other no-space-after-period names, MP CTA → /constituencies, 7 Labu articles relabelled + 2 more alias gaps closed (Kathumba + Jawa Lane). Sprint 29 next.**
+**Sprint 29 ✅ closed 2026-06-26 — Security & Dependency Refresh.** Driven by the 2026-06-26 TD audit (`docs/tech-debt-audit-2026-06-26.md`). Closes TD-19 (Django 5.2.15 / Pillow 12.2 / cryptography 49 / lxml 6.1; ws/next-intl/postcss on the npm side), TD-20 (broadcast views now SUPERADMIN-gated via `SuperuserRequiredMixin`), TD-21 (revalidate route now requires `X-Revalidate-Token`; backend triggers via `schools/services/revalidation.py`), TD-22/23/25 (cleanups). TD-24 deferred to user (gcloud auth expired non-interactively — 1-line dashboard check post-deploy). 1436 backend (+12) + 367 frontend. Sprint 30 next.
 
-### Sprint 29 — Personalised Digest (from original roadmap) OR SEO follow-up
+### Sprint 30 — SEO follow-up (recommended next)
 
-- **Personalised digest** (from the locked 2026-05-11 roadmap): per-subscriber MP personalisation — `Subscriber.home_constituency` FK + per-recipient template injection.
-- **OR SEO follow-up** items from `docs/seo-investigation-sprint28.md` Part 2: 157 GSC 404s, 53 missing canonicals, 380 "crawled - currently not indexed".
-- Owner picks at kickoff.
+Per the post-audit ordering: TD audit → Sprint 29 (security) → Sprint 30 (SEO) → Sprint 31 (release+folder move). Execute `docs/seo-investigation-sprint28.md` Part 2:
+- 157 GSC 404s — audit list + Cloudflare redirect mapping for legit old URLs
+- 53 "Duplicate without user-selected canonical" + 34 "Google chose different canonical"
+- 380 "Crawled - currently not indexed" — sample 20, identify thin-content pattern, beef up school-page body
+- Manual GSC URL Inspection requests for top-30 school pages
+- 3-week GSC re-pull as validation
+
+### Sprint 31 — v2.0 Release + Production folder move (after Sprint 30)
+
+- Tag `v2.0` (release notes drafted at `docs/release-notes-v2.0.md`)
+- Move `Development/SJKTConnect/` → `Production/SJKTConnect/`
+- Run `project-complete` workflow
+- Update workspace `CLAUDE.md` + `MEMORY.md` paths
+
+### Original Sprint 27 — Auth / Profile Cleanup (DEFERRED — no longer planned)
+
+The original 2026-05-11 roadmap had S27=Auth/Profile, S28=Egress R3, S29=Personalised Digest. The actual delivery diverged: S27/28/28.1 were owner-reported bug bundles + SEO URL slug, S29 became the audit-driven Security sprint. Personalised Digest deferred to post-v2.0 backlog — SEO has higher leverage for an unknown-to-Google site.
 
 ### Original Sprint 27 — Auth / Profile Cleanup (DEFERRED)
 

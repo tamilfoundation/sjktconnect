@@ -863,35 +863,8 @@ export async function deleteSchoolLeader(
   }
 }
 
-// ----- Sprint 27 #1+#4 — explicit ISR cache invalidation after admin edits -----
-
-/**
- * Tell the Next.js server to re-render the public school detail page
- * across all 3 locales. Without this, the page's `revalidate=86400`
- * cache holds stale data for up to 24h after a school admin saves
- * their edit.
- *
- * Pass the FULL slug as a second arg whenever possible — the dynamic-
- * segment revalidatePath form (`/[locale]/school/[moe_code]`) doesn't
- * actually invalidate cached slug instances in our Next 16 setup
- * (verified 2026-06-26 — the bare-code variant works, the segment
- * form does not). Without the slug, the bare-code URL gets busted
- * (still useful for 301s) but the canonical slug page stays stale.
- *
- * Hits the Next route handler at `/api/revalidate` (same-origin), NOT
- * the Django API. Fire-and-forget — callers should swallow exceptions
- * so a network blip here doesn't block the post-save flow.
- */
-export async function revalidateSchoolPage(
-  moeCode: string,
-  slug?: string,
-): Promise<void> {
-  const res = await fetch("/api/revalidate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type: "school", key: moeCode, slug }),
-  });
-  if (!res.ok) {
-    throw new Error(`revalidate failed: ${res.status}`);
-  }
-}
+// `revalidateSchoolPage` (Sprint 27/28 client-side ISR trigger) was
+// removed by TD-21 (2026-06-26). Server-driven revalidation now fires
+// from the Django backend's `schools/services/revalidation.py` after a
+// successful edit, with a shared-secret `X-Revalidate-Token` header
+// gating the Next route handler. Browser-side callers are gone.

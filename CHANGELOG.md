@@ -1,5 +1,43 @@
 # Changelog
 
+## Sprint 29 — Security & Dependency Refresh (closed 2026-06-26)
+
+**Goal**: clear the security backlog ahead of v2.0 release. Driven by the 2026-06-26 tech-debt audit (`docs/tech-debt-audit-2026-06-26.md`). Closes TD-19 (deps), TD-20 (broadcast role gate), TD-21 (revalidate auth), TD-22 (migration pair comment), TD-23 (stale commands), TD-25 (hero-image endpoint comment). TD-24 documented as 1-line follow-up needing user-side GCP auth.
+
+### Security
+
+- **TD-20 — Broadcast admin views now explicitly SUPERADMIN-gated.** New `SuperuserRequiredMixin` (`backend/broadcasts/views.py`) combines `LoginRequiredMixin` + `UserPassesTestMixin` with role-aware `handle_no_permission` — anonymous still redirects to login (302), authenticated non-superusers get 403. Applied to all 6 views: List, Compose, Preview, Send, SendTest, Detail. The previous implicit "Google OAuth doesn't create a Django User row" invariant is no longer the only line of defense. 6 new tests verify regular-user 403.
+- **TD-21 — `/api/revalidate` now requires `X-Revalidate-Token` header.** Previously unauthenticated and callable from the browser; was a DoS amplifier (3 locales × 2 URLs per request → 6 ISR regenerations, each running SchoolDetailPage → Django API → Supabase). Now: backend (`schools/services/revalidation.py`) triggers revalidation after `serializer.save()` in SchoolEditView + leader CRUD endpoints, sending the token in a header. Frontend route handler validates the header (401 if wrong, 503 if env var unset). Browser-side `revalidateSchoolPage` helper removed. Python slug builder mirrors `frontend/lib/urls.ts::schoolPath` for parity. 12 new backend tests (8 slug parity + 4 trigger behaviour). Env vars: `REVALIDATE_WEBHOOK_URL` on api, `REVALIDATE_TOKEN` on both api + web.
+- **TD-19 — Python dependency refresh.** `Django 5.2.11 → 5.2.15` (16 CVEs), `Pillow 11.3.0 → 12.2.0` (7 CVEs — directly on community upload path), `cryptography 46.0.5 → 49.0.0` (5 CVEs), `lxml 6.0.2 → 6.1.1` (1 CVE). Minimums pinned in `requirements.txt` with CVE rationale in comments. Held on Django 5.2 LTS rather than jumping to 6.0 (surgical upgrade). 1424 backend tests continue to pass after upgrade.
+- **TD-19 — npm dependency refresh.** `ws` high (memory disclosure + DoS) → cleared. `next-intl 4.9.1 → 4.13.0` (prototype pollution) → cleared. `postcss < 8.5.10` (XSS) → cleared via `overrides` block in package.json. From 28 vulns (3 high, 22 mod, 3 low) to 19 mod (all in the jest dev-chain — test-only, never ships to prod, deferred). 367 frontend tests pass; `next build` succeeds (prerender ECONNREFUSED is pre-existing localhost-no-backend behaviour).
+
+### Cleanup
+
+- **TD-22**: comment added to `schools/migrations/0013_normalise_leader_phones.py` explaining why it shipped paired with `0014` (it ran in prod with a broken `format_phone`; 0014 re-runs after fix; 0014 is now no-op on fresh installs).
+- **TD-23**: deleted `backend/newswatch/management/commands/relabel_labu_mistags.py` (Sprint 28.1 one-off, ran 2026-06-26) and `backend/outreach/management/commands/migrate_images_to_storage.py` + its test (Sprint 13 one-off, ran 2026-04-26). Both confirmed already-run per CHANGELOG.
+- **TD-25**: comment added to `broadcast_hero_image_view` documenting the intentional unauthenticated exposure (hero images are public marketing email content; pk enumeration leaks count only, not subjects).
+
+### Tests
+
+- `backend/broadcasts/tests/test_views.py` — `user` fixture promoted to superuser; new `regular_user` + `regular_client` fixtures; `TestBroadcastViewsRoleGating` adds 6 cases verifying regular-user 403.
+- `backend/broadcasts/tests/test_send_views.py` — `user` fixture promoted to superuser.
+- `backend/schools/tests/test_revalidation_service.py` (NEW) — 12 cases: 8 covering `build_school_slug` parity with the frontend; 4 covering `trigger_school_revalidate` (noop without env, POSTs with token + slug, swallows network errors, logs 4xx without raising).
+- `frontend/__tests__/components/SchoolEditForm.test.tsx` + `LeadersTab.test.tsx` — removed `mockRevalidate` (no longer used).
+- **Final**: 1436 backend (+12) + 367 frontend (unchanged).
+
+### Audit deliverables
+- `docs/tech-debt-audit-2026-06-26.md` (NEW) — full TD audit report
+- `docs/tech-debt.md` — 7 new entries (TD-19 through TD-25); TD-06 flagged as unverified pending TD-24; TD-12 priority bumped due to pypdf upgrade context
+
+### Deferred (out of scope for this sprint)
+- **TD-24 operational check** — gcloud auth expired non-interactively during sprint; needs user to open `https://console.cloud.google.com/monitoring/dashboards/builder/f1722366-2df9-4446-9941-7cda5c019615?project=sjktconnect`, record last-7-day egress, flip TD-06 to ✅ if <150 MB/day.
+- **TD-12 — hansard extractor 26% coverage** — still deferred; pypdf is NOT a direct dep of this project (it was flagged in pip-audit from another local-only project's transitive), so the urgency reason ("pypdf upgrade exercises this code") doesn't apply. Leaving 🟢 low.
+- **19 jest-chain npm vulns** — test-only dev deps; auto-fix wants a SemVer-major jest regression which is worse than the moderate finding. Acceptable per TD-19 closure note.
+
+### Operational follow-ups
+- **MANDATORY before web deploy**: set `REVALIDATE_TOKEN` env var on both api + web Cloud Run services to the same opaque value, and set `REVALIDATE_WEBHOOK_URL=https://tamilschool.org/api/revalidate` on api. Without these, revalidation no-ops on api and 503s on web (safe; ISR falls back to 24h natural expiry).
+- **Post-deploy smoke**: PATCH /api/v1/schools/<moe>/edit/ via the UI, verify the public slug URL reflects the change within seconds (not minutes/hours). curl `https://tamilschool.org/api/revalidate` without the token; expect 401.
+
 ## Sprint 28.1 — Sprint 28 follow-up bundle (closed 2026-06-26)
 
 **Goal**: rapid-fire fix stream from owner testing Sprint 28's deploy. 9 distinct issues across edit flow, validation, ISR cache, naming, and news matcher. ~16 files, 9 commits, ~3h end-to-end.

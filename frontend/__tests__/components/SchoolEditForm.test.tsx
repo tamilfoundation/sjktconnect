@@ -4,10 +4,8 @@ import SchoolEditForm from "@/components/SchoolEditForm";
 import { SchoolEditData } from "@/lib/types";
 
 const mockUpdateSchool = jest.fn();
-const mockRevalidate = jest.fn().mockResolvedValue(undefined);
 jest.mock("@/lib/api", () => ({
   updateSchool: (...args: unknown[]) => mockUpdateSchool(...args),
-  revalidateSchoolPage: (...args: unknown[]) => mockRevalidate(...args),
 }));
 
 const mockPush = jest.fn();
@@ -53,7 +51,6 @@ const mockSchool: SchoolEditData = {
 
 beforeEach(() => {
   mockUpdateSchool.mockClear();
-  mockRevalidate.mockClear();
   mockPush.mockReset();
   mockRefresh.mockReset();
   // Reset window.location.hash so each test starts on the default tab.

@@ -13,7 +13,10 @@ from subscribers.models import Subscriber
 
 @pytest.fixture
 def user(db):
-    return User.objects.create_user(username="admin", password="testpass123")
+    # TD-20 (2026-06-26): broadcast views are SUPERUSER-only.
+    return User.objects.create_superuser(
+        username="admin", email="admin@example.com", password="testpass123"
+    )
 
 
 @pytest.fixture

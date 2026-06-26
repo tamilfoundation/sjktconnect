@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { SchoolEditData } from "@/lib/types";
-import { revalidateSchoolPage, updateSchool } from "@/lib/api";
+import { updateSchool } from "@/lib/api";
 import { schoolPath } from "@/lib/urls";
 import TabBar from "@/components/edit_tabs/TabBar";
 import CoreTab from "@/components/edit_tabs/CoreTab";
@@ -137,28 +137,13 @@ export default function SchoolEditForm({ school, isSuperAdmin }: SchoolEditFormP
       const result = await updateSchool(school.moe_code, updates);
       setSuccess(t("changesSaved"));
       setFormData(result);
-      // Sprint 27 #1: invalidate the ISR cache for the public school
-      // page across all 3 locales, then navigate the user there so
-      // they can see their change reflected immediately. Without the
-      // revalidate call the page would serve stale data for up to 24h.
-      // router.refresh() invalidates this route's RSC payload too, so
-      // a back-button to /edit picks up the new state.
-      // Sprint 28 follow-up: pass the slug so revalidatePath gets
-      // called with the LITERAL canonical URL, not just the dynamic
-      // segment form (which doesn't bust the slug instance cache in
-      // our Next 16 setup — verified 2026-06-26).
-      const slug = schoolPath(result).replace("/school/", "");
-      try {
-        await revalidateSchoolPage(school.moe_code, slug);
-      } catch {
-        // Revalidate is best-effort — a network blip here shouldn't
-        // block the user from continuing. Worst case the public page
-        // is stale for 24h, which is the pre-Sprint-27 status quo.
-      }
+      // TD-21 (2026-06-26): ISR revalidation is now triggered server-
+      // side by the Django backend (schools/services/revalidation.py)
+      // after serializer.save(). The previous client-side trigger
+      // was an unauthenticated DoS amplifier.
       router.refresh();
       // Sprint 28: navigate to the canonical SLUG URL (not bare-code),
-      // so the user doesn't pay the 301-redirect hop AND the page they
-      // land on is the one the revalidate just invalidated.
+      // so the user doesn't pay the 301-redirect hop.
       router.push(`/${locale}${schoolPath(result)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("failedSave"));

@@ -11,6 +11,12 @@ re-running it leaves already-formatted values unchanged because
 `format_phone` short-circuits when the input already starts with
 `+60-`. Reversible (best-effort — original raw form isn't preserved,
 so revert strips the formatting back to digits).
+
+Note (Sprint 28.1, 2026-06-26): originally ran in prod with a broken
+`format_phone()` (didn't recognise mobile prefixes 010-019). Sibling
+migration `0014_normalise_leader_phones_with_mobile` re-runs after
+the fix in `schools/utils.py`. On a fresh install today, 0013 does
+all the work and 0014 is a no-op. Kept as a pair for prod history.
 """
 
 from django.db import migrations

@@ -27,7 +27,6 @@ import {
   createSchoolLeader,
   updateSchoolLeader,
   deleteSchoolLeader,
-  revalidateSchoolPage,
   LeaderRole,
 } from "@/lib/api";
 import {
@@ -209,15 +208,8 @@ export default function LeadersTab({
       const sorted = updated.sort((a, b) => a.role.localeCompare(b.role));
       setSuccess(t("leadersSaved"));
       onLeadersChange?.(sorted);
-      // Sprint 27 #4: same ISR cache invalidation as Core/Contact
-      // tabs. The public school page caches the leaders list for up
-      // to 24h; without this call a freshly-added Board Chairman
-      // wouldn't reach the School Leadership card until tomorrow.
-      try {
-        await revalidateSchoolPage(moeCode, slug);
-      } catch {
-        // Best-effort — see SchoolEditForm comment.
-      }
+      // TD-21 (2026-06-26): server-side ISR revalidation now fires
+      // from the Django leader CRUD endpoints. See SchoolEditForm.
       router.refresh();
       // Navigate to slug if known (parent passed it), else bare-code
       // (which will 301 to slug — extra hop but still correct).

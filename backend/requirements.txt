@@ -1,5 +1,8 @@
 # Django core
-Django>=5.0,<6.0
+# Django>=5.2.15 — closes CVE-2026-25673/25674 + PYSEC-2026-48/49/50/51/52/
+# 53/54/55/197/198/199/200/201 (16 CVEs, audit 2026-06-26). Holding on 5.2.x
+# (LTS) rather than jumping to 6.0 to keep the upgrade surgical.
+Django>=5.2.15,<6.0
 gunicorn>=21.0
 python-dotenv>=1.0
 
@@ -46,8 +49,22 @@ qrcode[pil]>=7.0
 
 # Image storage (Supabase Storage via S3-compatible API)
 django-storages[boto3]>=1.14
-Pillow>=10.0
+# Pillow>=12.2.0 — closes CVE-2026-25990 / 40192 / 42309 / 42310 / 42311 +
+# PYSEC-2026-165 (7 CVEs, audit 2026-06-26). Pillow is on the community
+# image-upload path (outreach/services/image_processor.py) — accepts
+# untrusted user-uploaded image bytes, exactly where parser CVEs bite.
+Pillow>=12.2.0
 imagehash>=4.3
+
+# Crypto (transitive via google-auth + pdfminer.six)
+# cryptography>=46.0.7 — closes PYSEC-2026-35 / PYSEC-2026-36 + GHSA-537c-gmf6-5ccf
+# (5 CVEs, audit 2026-06-26). Pinned here because the transitive resolver
+# would otherwise leave us on the older 46.0.5 that satisfies google-auth.
+cryptography>=46.0.7
+
+# XML / HTML parsing (transitive via trafilatura + via beautifulsoup4)
+# lxml>=6.1.0 — closes PYSEC-2026-87 (audit 2026-06-26).
+lxml>=6.1.0
 
 # Testing
 pytest>=8.0

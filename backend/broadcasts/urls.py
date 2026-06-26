@@ -14,7 +14,16 @@ from broadcasts.views import (
 
 
 def broadcast_hero_image_view(request, pk):
-    """Serve the broadcast hero image as a PNG."""
+    """Serve the broadcast hero image as a PNG.
+
+    Deliberately unauthenticated: hero images are embedded in marketing
+    emails sent to ~519 subscribers, so the content is intentionally
+    public. Sequential `pk` enumeration leaks the broadcast count but
+    not subjects / recipients (those live in `BroadcastDetailView`
+    which IS auth-gated). If hero images ever need access control,
+    migrate to Supabase Storage (consistent with community/school
+    images post-Sprint-13) and serve via signed URLs. — TD-25, 2026-06-26.
+    """
     broadcast = get_object_or_404(Broadcast, pk=pk)
     if not broadcast.hero_image:
         return HttpResponse(status=404)

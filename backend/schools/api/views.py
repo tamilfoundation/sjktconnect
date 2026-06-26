@@ -25,6 +25,7 @@ from accounts.permissions import IsProfileAuthenticated
 from core.email_blocklist import is_blocked_email
 from core.models import AuditLog
 from schools.api.geojson import to_feature, to_feature_collection
+from schools.services.revalidation import trigger_school_revalidate
 from schools.api.serializers import (
     ConstituencyDetailSerializer,
     ConstituencyListSerializer,
@@ -170,6 +171,10 @@ class SchoolEditView(APIView):
             ip_address=request.META.get("REMOTE_ADDR"),
         )
 
+        # TD-21: server-side ISR revalidation. Replaces the previous
+        # unauthenticated client-side trigger. No-ops if env vars unset.
+        trigger_school_revalidate(school)
+
         return Response(SchoolEditSerializer(school).data)
 
 
@@ -240,6 +245,7 @@ def school_leader_create_view(request, moe_code):
         )
 
     leader = serializer.save(school=school)
+    trigger_school_revalidate(school)  # TD-21
     return Response(
         SchoolLeaderAdminSerializer(leader).data,
         status=status.HTTP_201_CREATED,
@@ -272,12 +278,14 @@ def school_leader_detail_view(request, moe_code, leader_id):
     if request.method == "DELETE":
         leader.is_active = False
         leader.save(update_fields=["is_active", "updated_at"])
+        trigger_school_revalidate(school)  # TD-21
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     # PATCH
     serializer = SchoolLeaderAdminSerializer(leader, data=request.data, partial=True)
     serializer.is_valid(raise_exception=True)
     leader = serializer.save()
+    trigger_school_revalidate(school)  # TD-21
     return Response(SchoolLeaderAdminSerializer(leader).data)
 
 

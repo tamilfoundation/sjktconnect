@@ -1,29 +1,27 @@
 /**
- * Sprint 27 — explicit ISR cache invalidation after admin edits.
- * Sprint 28 update — also invalidate the dynamic-route segment so the
- * slug URL the user lands on AFTER the redirect is busted, not just
- * the bare-code URL.
+ * Server-driven ISR cache invalidation after admin edits.
  *
- * Problem: school detail pages have `revalidate=86400`. Without
- * explicit invalidation, edits don't appear for up to 24h. Sprint 28
- * additionally introduced slug URLs (`/school/<name>-<city>-<moe>`);
- * the bare-code URL 301s to the slug, but the SLUG page itself is
- * ISR-cached. Without busting the slug, the user lands on a stale
- * page even after the bare-code revalidation fires.
+ * Originally Sprint 27 (route handler) and Sprint 28 (slug fix). TD-21
+ * (audit 2026-06-26) added the auth gate: previous design was an
+ * unauthenticated POST callable from the browser. That was a DoS
+ * amplifier — a scripted attacker at 10 req/s triggered 60 ISR
+ * regenerations/s, each running a full SchoolDetailPage + Django API +
+ * Supabase fetch. With two prior egress incidents in project history,
+ * leaving that surface open was the wrong default.
  *
- * Fix: revalidate the entire `/[locale]/school/[moe_code]` dynamic
- * segment with type `page` — Next invalidates every cached instance
- * of that route, regardless of slug shape. This covers the bare-code
- * URL, the new canonical slug URL, AND any stale slug from a previous
- * name/city. Heavier than per-URL revalidation but correct, and the
- * extra cost is negligible (each cached school page just regenerates
- * on next access).
+ * Now requires `X-Revalidate-Token` header matching `REVALIDATE_TOKEN`
+ * env var (set on Cloud Run for both api + web). The Django backend
+ * fires the POST after a successful school/leader edit
+ * (`schools/services/revalidation.py`). The browser no longer calls
+ * this endpoint.
  *
- * Auth: NEXT_PUBLIC pages can call this safely — the worst a malicious
- * caller can do is flush the cache for the school detail segment,
- * which is the same as a normal ISR miss. No real damage. Keeping it
- * unauthenticated avoids the cookie / CSRF dance from a client
- * component.
+ * What we revalidate: bare-code URL `/{locale}/school/{key}` (legacy
+ * inbound links that 301 to the slug) AND the literal slug URL
+ * `/{locale}/school/{slug}` (the canonical, what users actually land
+ * on). The dynamic-segment form `revalidatePath('...', 'page')` does
+ * NOT invalidate the specific cached slug instance in our setup
+ * (verified live 2026-06-26 — Sprint 28.1 lesson). Passing the
+ * literal slug is the only thing that actually busts it.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -33,6 +31,20 @@ const LOCALES = ["en", "ta", "ms"] as const;
 const VALID_TYPES = new Set(["school"]);
 
 export async function POST(req: NextRequest) {
+  // TD-21 auth gate. Env var must be set on Cloud Run for prod
+  // revalidation to work; if unset locally, every request is 503.
+  const expected = process.env.REVALIDATE_TOKEN?.trim();
+  if (!expected) {
+    return NextResponse.json(
+      { error: "revalidate_disabled" },
+      { status: 503 },
+    );
+  }
+  const provided = req.headers.get("x-revalidate-token")?.trim();
+  if (!provided || provided !== expected) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
   let body: { type?: string; key?: string; slug?: string };
   try {
     body = await req.json();

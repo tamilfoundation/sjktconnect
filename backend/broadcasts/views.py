@@ -3,7 +3,7 @@
 import logging
 
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import get_object_or_404, redirect
 from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView
@@ -16,7 +16,37 @@ from schools.models import School
 logger = logging.getLogger(__name__)
 
 
-class BroadcastListView(LoginRequiredMixin, ListView):
+class SuperuserRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """Gate a CBV behind `is_authenticated AND is_superuser`.
+
+    Until TD-20 (audit 2026-06-26), broadcast views relied on the
+    architectural invariant "Google OAuth doesn't create a Django User
+    row" for role gating — i.e. only `manage.py createsuperuser` users
+    could pass `LoginRequiredMixin`. That invariant was undocumented
+    and untested; if django-allauth were ever wired in, every broadcast
+    endpoint would silently become accessible to any signed-in user
+    (including `POST /broadcast/send/<pk>/` which fires a blast to all
+    ~519 subscribers, and `POST /broadcast/send-test/<pk>/` which is a
+    Brevo-quota-bypassing spam relay).
+
+    Defense-in-depth: explicit `is_superuser` check. Anonymous users
+    redirect to login (LoginRequiredMixin default); authenticated
+    non-superusers get 403 (PermissionDenied).
+    """
+
+    def test_func(self):
+        return self.request.user.is_superuser
+
+    def handle_no_permission(self):
+        if self.request.user.is_authenticated:
+            # Authenticated but failed test_func — raise 403.
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied()
+        # Anonymous — fall through to LoginRequiredMixin's redirect-to-login.
+        return super().handle_no_permission()
+
+
+class BroadcastListView(SuperuserRequiredMixin, ListView):
     """List all broadcasts with status, subject, kind, and dates.
 
     Sprint 25: supports `?kind=URGENT_ALERT` etc. so admins can quickly
@@ -43,7 +73,7 @@ class BroadcastListView(LoginRequiredMixin, ListView):
         return context
 
 
-class BroadcastComposeView(LoginRequiredMixin, TemplateView):
+class BroadcastComposeView(SuperuserRequiredMixin, TemplateView):
     """Compose a new broadcast with subject, content, and audience filters."""
 
     template_name = "broadcasts/broadcast_compose.html"
@@ -120,7 +150,7 @@ class BroadcastComposeView(LoginRequiredMixin, TemplateView):
         return redirect("broadcasts:broadcast-preview", pk=broadcast.pk)
 
 
-class BroadcastPreviewView(LoginRequiredMixin, TemplateView):
+class BroadcastPreviewView(SuperuserRequiredMixin, TemplateView):
     """Preview a broadcast before sending."""
 
     template_name = "broadcasts/broadcast_preview.html"
@@ -156,7 +186,7 @@ class BroadcastPreviewView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class BroadcastSendView(LoginRequiredMixin, View):
+class BroadcastSendView(SuperuserRequiredMixin, View):
     """POST-only view to trigger sending a DRAFT broadcast."""
 
     def post(self, request, pk):
@@ -181,7 +211,7 @@ class BroadcastSendView(LoginRequiredMixin, View):
         return redirect("broadcasts:broadcast-detail", pk=pk)
 
 
-class BroadcastSendTestView(LoginRequiredMixin, View):
+class BroadcastSendTestView(SuperuserRequiredMixin, View):
     """POST-only view to send a DRAFT broadcast to a list of test addresses.
 
     Sprint 25: lets the admin verify a Parliament Watch / Urgent Alert /
@@ -234,7 +264,7 @@ class BroadcastSendTestView(LoginRequiredMixin, View):
         return redirect("broadcasts:broadcast-preview", pk=pk)
 
 
-class BroadcastDetailView(LoginRequiredMixin, DetailView):
+class BroadcastDetailView(SuperuserRequiredMixin, DetailView):
     """Show broadcast details with per-recipient delivery status."""
 
     model = Broadcast

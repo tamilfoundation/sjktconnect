@@ -9,12 +9,10 @@ import { SchoolLeaderAdminData } from "@/lib/types";
 const mockCreate = jest.fn();
 const mockUpdate = jest.fn();
 const mockDelete = jest.fn();
-const mockRevalidate = jest.fn().mockResolvedValue(undefined);
 jest.mock("@/lib/api", () => ({
   createSchoolLeader: (...args: unknown[]) => mockCreate(...args),
   updateSchoolLeader: (...args: unknown[]) => mockUpdate(...args),
   deleteSchoolLeader: (...args: unknown[]) => mockDelete(...args),
-  revalidateSchoolPage: (...args: unknown[]) => mockRevalidate(...args),
 }));
 
 const mockPush = jest.fn();
@@ -36,7 +34,6 @@ beforeEach(() => {
   mockCreate.mockReset();
   mockUpdate.mockReset();
   mockDelete.mockReset();
-  mockRevalidate.mockClear();
   mockPush.mockReset();
   mockRefresh.mockReset();
 });

@@ -11,13 +11,32 @@ from subscribers.models import Subscriber
 
 @pytest.fixture
 def user(db):
-    return User.objects.create_user(username="admin", password="testpass123")
+    # TD-20 (2026-06-26): broadcast views are now SUPERUSER-only via
+    # SuperuserRequiredMixin. The shared `user` fixture creates a
+    # superuser so the bulk of the test suite (which asserts 200 OK on
+    # admin actions) continues to pass. `regular_user` below is for
+    # the new role-gating tests that expect 403.
+    return User.objects.create_superuser(
+        username="admin", email="admin@example.com", password="testpass123"
+    )
 
 
 @pytest.fixture
 def auth_client(user):
     client = Client()
     client.login(username="admin", password="testpass123")
+    return client
+
+
+@pytest.fixture
+def regular_user(db):
+    return User.objects.create_user(username="regular", password="testpass123")
+
+
+@pytest.fixture
+def regular_client(regular_user):
+    client = Client()
+    client.login(username="regular", password="testpass123")
     return client
 
 
@@ -37,6 +56,49 @@ def subscriber(db):
     return Subscriber.objects.create(
         email="reader@example.com", name="Reader", is_active=True
     )
+
+
+@pytest.mark.django_db
+class TestBroadcastViewsRoleGating:
+    """TD-20 (2026-06-26): regular users are 403'd from broadcast admin endpoints.
+
+    Anonymous users redirect to login (LoginRequiredMixin); authenticated
+    non-superusers get 403 (SuperuserRequiredMixin.raise_exception=True).
+    Only superusers reach the view body.
+    """
+
+    def test_list_regular_user_403(self, regular_client):
+        response = regular_client.get(reverse("broadcasts:broadcast-list"))
+        assert response.status_code == 403
+
+    def test_compose_regular_user_403(self, regular_client):
+        response = regular_client.get(reverse("broadcasts:broadcast-compose"))
+        assert response.status_code == 403
+
+    def test_preview_regular_user_403(self, regular_client, broadcast):
+        response = regular_client.get(
+            reverse("broadcasts:broadcast-preview", kwargs={"pk": broadcast.pk})
+        )
+        assert response.status_code == 403
+
+    def test_send_regular_user_403(self, regular_client, broadcast):
+        response = regular_client.post(
+            reverse("broadcasts:broadcast-send", kwargs={"pk": broadcast.pk})
+        )
+        assert response.status_code == 403
+
+    def test_send_test_regular_user_403(self, regular_client, broadcast):
+        response = regular_client.post(
+            reverse("broadcasts:broadcast-send-test", kwargs={"pk": broadcast.pk}),
+            {"recipients": "spam@example.com"},
+        )
+        assert response.status_code == 403
+
+    def test_detail_regular_user_403(self, regular_client, broadcast):
+        response = regular_client.get(
+            reverse("broadcasts:broadcast-detail", kwargs={"pk": broadcast.pk})
+        )
+        assert response.status_code == 403
 
 
 @pytest.mark.django_db
