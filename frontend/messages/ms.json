@@ -747,6 +747,7 @@
     "success": "Cadangan berjaya dihantar!",
     "error": "Gagal menghantar cadangan",
     "cancel": "Batal",
+    "close": "Tutup",
     "mySuggestions": "Cadangan Saya",
     "noSuggestions": "Anda belum membuat sebarang cadangan.",
     "moderationQueue": "Barisan Moderasi",

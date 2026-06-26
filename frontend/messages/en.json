@@ -747,6 +747,7 @@
     "success": "Suggestion submitted successfully!",
     "error": "Failed to submit suggestion",
     "cancel": "Cancel",
+    "close": "Close",
     "mySuggestions": "My Suggestions",
     "noSuggestions": "You haven't made any suggestions yet.",
     "moderationQueue": "Moderation Queue",
