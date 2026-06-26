@@ -1,10 +1,31 @@
 """DRF serializers for School, Constituency, and DUN models."""
 
+from decimal import Decimal, ROUND_HALF_UP
+
 from rest_framework import serializers
 
 from parliament.models import MP
 from schools.models import Constituency, DUN, School, SchoolLeader
 from schools.utils import format_phone
+
+
+# Sprint 28 follow-up: School.gps_lat / gps_lng are
+# DecimalField(max_digits=10, decimal_places=7). DRF rejects inputs with
+# more than 7 decimal places (400). Frontend admin edit pastes Google
+# Maps values (15+ JS-double digits) which triggers the reject. Round
+# down to 7 dp before validation so the field accepts.
+_GPS_QUANT = Decimal("0.0000001")
+
+
+def _quantize_gps(value, field_name):
+    if value in (None, ""):
+        return value
+    try:
+        return Decimal(str(value)).quantize(_GPS_QUANT, rounding=ROUND_HALF_UP)
+    except Exception as exc:
+        raise serializers.ValidationError(
+            f"{field_name} must be a numeric value."
+        ) from exc
 
 
 class SchoolListSerializer(serializers.ModelSerializer):
@@ -294,6 +315,12 @@ class SchoolEditSerializer(serializers.ModelSerializer):
 
     def validate_fax(self, value):
         return self._validate_phone_like(value, "fax")
+
+    def validate_gps_lat(self, value):
+        return _quantize_gps(value, "gps_lat")
+
+    def validate_gps_lng(self, value):
+        return _quantize_gps(value, "gps_lng")
 
     def validate_session_type(self, value):
         # Sprint 26 #2: constrain Session Type to MOE-published values.

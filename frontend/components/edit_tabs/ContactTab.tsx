@@ -91,16 +91,31 @@ export default function ContactTab({ data, isSuperAdmin, onChange }: ContactTabP
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {isSuperAdmin ? (
             <>
+              {/* Sprint 28 follow-up: round to 7 dp before sending to
+                  match the DecimalField(max_digits=10, decimal_places=7)
+                  schema. 7 dp ≈ 1cm precision — plenty for a school
+                  location. Without rounding, a pasted Google Maps value
+                  (15+ JS-double digits) gets a 400 from DRF. */}
               <EditableField
                 label={t("gpsLat")}
                 value={data.gps_lat ?? ""}
-                onChange={(v) => onChange("gps_lat", v === "" ? 0 : Number(v))}
+                onChange={(v) =>
+                  onChange(
+                    "gps_lat",
+                    v === "" ? 0 : Number(Number(v).toFixed(7)),
+                  )
+                }
                 type="number"
               />
               <EditableField
                 label={t("gpsLng")}
                 value={data.gps_lng ?? ""}
-                onChange={(v) => onChange("gps_lng", v === "" ? 0 : Number(v))}
+                onChange={(v) =>
+                  onChange(
+                    "gps_lng",
+                    v === "" ? 0 : Number(Number(v).toFixed(7)),
+                  )
+                }
                 type="number"
               />
             </>

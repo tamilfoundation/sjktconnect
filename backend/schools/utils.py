@@ -77,11 +77,14 @@ def _convert_token(token: str) -> str:
         suffix = token[len(bare):]  # preserve trailing dot if present
         return _SHORT_FORMS[bare] + suffix
 
-    # Handle dot-joined tokens like KG.SIMEE
+    # Handle dot-joined tokens like KG.SIMEE — MOE wrote "KG.SIMEE"
+    # without a space; the human-readable form is "Kg. Simee". Convert
+    # each part, then join with ". " (period + space) instead of just
+    # ".". Sprint 28 follow-up after owner-flagged "Kg.Simee" issue.
     if "." in token and not token.endswith("."):
         parts = token.split(".")
         converted = [_convert_token(p) for p in parts]
-        return ".".join(converted)
+        return ". ".join(converted)
 
     # Handle parenthetical tokens like (TAMIL) or (H/D) or (KOMPLEKS
     if token.startswith("("):

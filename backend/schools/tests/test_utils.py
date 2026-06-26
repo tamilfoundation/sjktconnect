@@ -27,7 +27,9 @@ class TestToProperCase:
         assert to_proper_case("SJK(T) LDG SG BULOH") == "SJK(T) Ldg Sg Buloh"
 
     def test_short_form_with_dot(self):
-        assert to_proper_case("SJK(T) KG.SIMEE") == "SJK(T) Kg.Simee"
+        # Sprint 28 follow-up: dot-joined tokens (KG.SIMEE) now expand to
+        # "Kg. Simee" with a space after the period — owner-flagged.
+        assert to_proper_case("SJK(T) KG.SIMEE") == "SJK(T) Kg. Simee"
 
     def test_roman_numerals(self):
         assert (
@@ -42,7 +44,9 @@ class TestToProperCase:
         assert to_proper_case("SJK(T) SAINT MARY'S") == "SJK(T) Saint Mary's"
 
     def test_apostrophe_dato(self):
-        assert to_proper_case("DATO' K.PATHMANABAN") == "Dato' K.Pathmanaban"
+        # Sprint 28 follow-up: dot-joined "K.PATHMANABAN" now expands
+        # to "K. Pathmanaban" with a space after the period.
+        assert to_proper_case("DATO' K.PATHMANABAN") == "Dato' K. Pathmanaban"
 
     def test_sjkt_dato_full_name(self):
         assert (

@@ -143,7 +143,15 @@ class SchoolEditView(APIView):
         contact_email = profile.user.email
 
         old_values = SchoolEditSerializer(school).data
-        serializer = SchoolEditSerializer(school, data=request.data, partial=True)
+        # Sprint 28 follow-up: pass context so SchoolEditSerializer.update
+        # can read request.session for the SUPERADMIN check that gates
+        # gps_lat/gps_lng writes. Without context the override always
+        # sees request=None and silently strips GPS edits (owner-
+        # reported 2026-06-26: SUPERADMIN GPS edit didn't persist).
+        serializer = SchoolEditSerializer(
+            school, data=request.data, partial=True,
+            context={"request": request},
+        )
         serializer.is_valid(raise_exception=True)
         school = serializer.save()
 
