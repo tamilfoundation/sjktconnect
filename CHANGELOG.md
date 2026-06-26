@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-06-26 — Small-change-lane: legacy URL 301s (Cloudflare)
+
+Closes 148 of 157 GSC 404 URLs from the 2026-06-26 SEO audit (`docs/seo-investigation-sprint28.md` Part 2 item B). Cloudflare ruleset `1af056d066e44a5885c933227a413981` extended with 2 new rules (regardless of host, so `www.` variants also redirect in 1 hop):
+- `/claim`, `/{en,ta,ms}/claim*` → 301 to `/` (legacy magic-link URLs, system removed Sprint 11a)
+- `*.aspx` → 301 to `/` (pre-revamp Tamil Foundation site URLs: MainNews1.aspx, SchooMainPage.aspx, TamilschoolProfile1.aspx)
+
+Existing Sprint 22 `www.tamilschool.org` → root canonical preserved as third rule. No repo code changes. Curl-verified live: 4/4 claim variants + 2/2 ASPX redirect to root with 301; no regression on school slug pages, locale routing, or about page.
+
+Original Sprint 30 SEO scope (D body-content beef-up on school pages) was dropped after owner feedback: school pages are already content-rich; the thin-content gap is on DUN/constituency pages, deferred. Sprint 30 didn't open as a full sprint — this Cloudflare change shipped via small-change-lane workflow. The 87 canonical-conflict URLs from item C need no action (mostly pre-Sprint-22 www variants that will clear naturally on re-crawl; Google-chose-different-canonical bucket is Google correctly folding locale variants).
+
 ## Sprint 29 — Security & Dependency Refresh (closed 2026-06-26)
 
 **Goal**: clear the security backlog ahead of v2.0 release. Driven by the 2026-06-26 tech-debt audit (`docs/tech-debt-audit-2026-06-26.md`). Closes TD-19 (deps), TD-20 (broadcast role gate), TD-21 (revalidate auth), TD-22 (migration pair comment), TD-23 (stale commands), TD-25 (hero-image endpoint comment). TD-24 documented as 1-line follow-up needing user-side GCP auth.
