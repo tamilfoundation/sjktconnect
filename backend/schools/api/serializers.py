@@ -355,6 +355,13 @@ class SchoolEditSerializer(serializers.ModelSerializer):
             "claimed_at",
             "leaders",
         ]
+        # NOTE: gps_lat + gps_lng are conditionally writable — see
+        # SchoolEditSerializer.update() below. They're NOT in
+        # read_only_fields so DRF will pass them through to validated_data;
+        # the override drops them when the request user isn't SUPERADMIN.
+        # Owner-reported bug 2026-06-26: keeping them in read_only_fields
+        # silently dropped SUPERADMIN GPS edits, leaving the user with a
+        # green "Changes saved" message but stale data on the public page.
         read_only_fields = [
             "moe_code",
             "name",
@@ -365,12 +372,31 @@ class SchoolEditSerializer(serializers.ModelSerializer):
             "assistance_type",
             "skm_eligible",
             "location_type",
-            "gps_lat",
-            "gps_lng",
             "gps_verified",
             "claimed_at",
             "leaders",
         ]
+
+    def update(self, instance, validated_data):
+        # Only SUPERADMINs may update GPS — school admins see the fields
+        # as read-only badges (Sprint 5.4's batch-verified pins). The
+        # frontend gates the UI, this guard is the trust boundary.
+        request = self.context.get("request")
+        profile_id = (
+            request.session.get("user_profile_id") if request else None
+        )
+        is_superadmin = False
+        if profile_id:
+            from accounts.models import UserProfile
+            try:
+                profile = UserProfile.objects.get(pk=profile_id)
+                is_superadmin = profile.role == "SUPERADMIN"
+            except UserProfile.DoesNotExist:
+                pass
+        if not is_superadmin:
+            validated_data.pop("gps_lat", None)
+            validated_data.pop("gps_lng", None)
+        return super().update(instance, validated_data)
 
 
 class DUNListSerializer(serializers.ModelSerializer):
