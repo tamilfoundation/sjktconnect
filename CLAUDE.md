@@ -11,8 +11,8 @@
 
 ## Project Status
 
-- **Current Phase**: **v2.0 LIVE** (tagged 2026-06-26). Production maintenance mode.
-- **Last Sprint**: Sprint 30 — v2.0 release + Production folder move (closed 2026-06-26) — see CHANGELOG + `docs/release-notes-v2.0.md`
+- **Current Phase**: **v2.0 series complete** — `v2.0.1` LIVE (tagged 2026-06-26, supersedes earlier v2.0). Production maintenance mode.
+- **Last Sprint**: Sprint 30 — v2.0.1 release + Production folder move (closed 2026-06-26) — see CHANGELOG + `docs/release-notes-v2.0.1.md`
 - **Tests**: 1803 (1436 backend + 367 frontend) — verified at v2.0 tag.
 - **Plan/billing**: Supabase Pro plan (Tamil Foundation org) — was forced to upgrade for headroom; goal is to drive egress low enough to revisit free tier later. Per-route observability dashboard now lives at Cloud Monitoring → "SJK(T) Connect — Egress by Route/UA" (id `f1722366-2df9-4446-9941-7cda5c019615`).
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
@@ -286,9 +286,9 @@ Sprint 30 SEO scope items (C) and (D) **dropped** after owner review:
 
 3-week GSC validation pull target: ~2026-07-17.
 
-### Sprint 30 — v2.0 Release + Production folder move (✅ DONE 2026-06-26)
+### Sprint 30 — v2.0.1 Release + Production folder move (✅ DONE 2026-06-26)
 
-- Tagged `v2.0` covering Sprint 23 → Sprint 29 + 2026-06-26 small-change-lane. Full notes at `docs/release-notes-v2.0.md`.
+- Tagged `v2.0.1` (cumulative cleanup superseding the earlier v2.0 from Sprint 24 close) covering Sprint 25 → Sprint 29 + 2026-06-26 small-change-lane. Full notes at `docs/release-notes-v2.0.1.md`.
 - Moved `Development/SJKTConnect/` → `Production/SJKTConnect/`.
 - Updated workspace `MEMORY.md` registry row + `memory/sjktconnect.md` path refs.
 

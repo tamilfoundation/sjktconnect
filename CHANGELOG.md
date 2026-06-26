@@ -1,8 +1,8 @@
 # Changelog
 
-## v2.0 (2026-06-26) — Reliability + Security + SEO Foundation
+## v2.0.1 (2026-06-26) — v2.0 series complete (cumulative cleanup)
 
-Release tag. Spans Sprint 23 → Sprint 29 + 2026-06-26 small-change-lane. Full notes: [`docs/release-notes-v2.0.md`](docs/release-notes-v2.0.md). Headline themes: broadcast pipeline reliability (Sprint 23 + News Digest Stuck-Loop Fix), news matcher consults its own alias table (Sprint 24), school page UX bug-bash (Sprint 26/27), SEO-friendly URL slugs (Sprint 28), GPS/TIADA/phone normalisation fixes (Sprint 28.1), security & dependency refresh closing 103 Python + 28 npm CVEs and adding explicit role gates (Sprint 29), Cloudflare 301s for 148 legacy 404 URLs (small-change-lane).
+Release tag superseding the earlier v2.0 (which covered Sprint 23+24 only). v2.0.1 adds Sprint 25 → Sprint 29 + 2026-06-26 small-change-lane. Full notes: [`docs/release-notes-v2.0.1.md`](docs/release-notes-v2.0.1.md). Headline themes: broadcast pipeline reliability (Sprint 23 + News Digest Stuck-Loop Fix), news matcher consults its own alias table (Sprint 24), school page UX bug-bash (Sprint 26/27), SEO-friendly URL slugs (Sprint 28), GPS/TIADA/phone normalisation fixes (Sprint 28.1), security & dependency refresh closing 103 Python + 28 npm CVEs and adding explicit role gates (Sprint 29), Cloudflare 301s for 148 legacy 404 URLs (small-change-lane).
 
 Live: api `00135-kxm`, web `00127-vhh`, 7/7 jobs synced, monthly-blast scheduler enabled. Tests: 1436 backend + 367 frontend.
 

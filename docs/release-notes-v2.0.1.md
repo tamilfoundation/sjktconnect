@@ -1,11 +1,15 @@
-# v2.0 — Reliability + Security + SEO Foundation
+# v2.0.1 — Reliability + Security + SEO Foundation (v2.0 series complete)
 
 **Tagged**: 2026-06-26
-**Spans**: Sprint 23 (2026-05-11) → Sprint 29 + small-change-lane (2026-06-26)
+**Supersedes**: v2.0 (tagged earlier 2026-06-26 at end of Sprint 24, covered Sprint 23+24 only).
+**Spans (cumulative since v1.x)**: Sprint 23 (2026-05-11) → Sprint 29 + small-change-lane (2026-06-26)
+**Spans (delta vs v2.0)**: Sprint 25 → Sprint 29 + 2026-06-26 small-change-lane
 **Live revisions at tag**: `sjktconnect-api-00135-kxm`, `sjktconnect-web-00127-vhh`, all 7 Cloud Run jobs synced.
 **Tests at tag**: 1436 backend (`pytest`) + 367 frontend (`jest`).
 
-This is the project's first numbered release tag, marking the point where:
+v2.0 was tagged at Sprint 24 close (2026-06-26 early) covering the Recovery Cut + Quality Overhaul narrative. The 5 sprints since (Urgent Alerts, two School Page UX bug-bash sprints, SEO URL Slug, Security & Dependency Refresh) plus the 2026-06-26 SEO audit small-change-lane all warranted a release tag too — they're substantial. Per owner choice, framed as `v2.0.1` to keep `v2.0` as the milestone marker, with `v2.0.1` capturing the cleanup-to-production-ready work.
+
+The v2.0 series collectively marks the point where:
 
 1. The broadcast pipeline became reliable enough to leave the `sjktconnect-monthly-blast` scheduler running unattended (Sprint 23 + later News Digest Stuck-Loop Fix).
 2. The news matcher actually consults its own curated alias table (Sprint 24 architectural fix).
