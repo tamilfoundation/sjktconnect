@@ -28,6 +28,19 @@ def _quantize_gps(value, field_name):
         ) from exc
 
 
+def _normalise_phone(value):
+    """Run a phone string through format_phone() but preserve sentinel
+    no-value markers (TIADA / N/A / -) verbatim."""
+    if not value:
+        return value
+    if value.strip().lower() in ("tiada", "n/a", "na", "none", "-"):
+        return value
+    formatted = format_phone(value)
+    # format_phone returns the original input if unparseable; either
+    # way the result is what we want to store.
+    return formatted
+
+
 class SchoolListSerializer(serializers.ModelSerializer):
     """Compact school representation for list views."""
 
@@ -162,7 +175,11 @@ class SchoolLeaderAdminSerializer(serializers.ModelSerializer):
                 "phone must contain only digits, spaces, +, -, or brackets, "
                 "6-20 chars (no '/' for multi-number). Use 'TIADA' if none."
             )
-        return value
+        # Sprint 28 follow-up: normalise to +60-X XXX XXXX format so
+        # leader phones display consistently with MOE-imported School
+        # phones. Owner-flagged 2026-06-26: leader 0122090008 looked
+        # inconsistent next to school +60-5 548 4299.
+        return _normalise_phone(value)
 
     def update(self, instance, validated_data):
         # Role is set at creation and cannot be changed via PATCH.
@@ -311,10 +328,10 @@ class SchoolEditSerializer(serializers.ModelSerializer):
         return value
 
     def validate_phone(self, value):
-        return self._validate_phone_like(value, "phone")
+        return _normalise_phone(self._validate_phone_like(value, "phone"))
 
     def validate_fax(self, value):
-        return self._validate_phone_like(value, "fax")
+        return _normalise_phone(self._validate_phone_like(value, "fax"))
 
     def validate_gps_lat(self, value):
         return _quantize_gps(value, "gps_lat")

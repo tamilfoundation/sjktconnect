@@ -69,12 +69,21 @@ interface LeadersTabProps {
   initialLeaders: SchoolLeaderAdminData[];
   /** Lifts the latest leaders array up to the parent so the form's formData stays in sync. */
   onLeadersChange?: (leaders: SchoolLeaderAdminData[]) => void;
+  /**
+   * Sprint 28: the canonical school slug (e.g.
+   * `kg-simee-ipoh-abd2166`) — passed by the parent SchoolEditForm
+   * so revalidate-after-save invalidates the LITERAL slug URL the
+   * user is about to navigate to. The dynamic-segment form of
+   * revalidatePath doesn't work in our Next 16 setup.
+   */
+  slug?: string;
 }
 
 export default function LeadersTab({
   moeCode,
   initialLeaders,
   onLeadersChange,
+  slug,
 }: LeadersTabProps) {
   const t = useTranslations("schoolEdit");
   const router = useRouter();
@@ -205,12 +214,18 @@ export default function LeadersTab({
       // to 24h; without this call a freshly-added Board Chairman
       // wouldn't reach the School Leadership card until tomorrow.
       try {
-        await revalidateSchoolPage(moeCode);
+        await revalidateSchoolPage(moeCode, slug);
       } catch {
         // Best-effort — see SchoolEditForm comment.
       }
       router.refresh();
-      router.push(`/${locale}/school/${moeCode}`);
+      // Navigate to slug if known (parent passed it), else bare-code
+      // (which will 301 to slug — extra hop but still correct).
+      router.push(
+        slug
+          ? `/${locale}/school/${slug}`
+          : `/${locale}/school/${moeCode}`,
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : t("leadersFailedSave");
       // Translate the backend's slot-taken code into the locale string.

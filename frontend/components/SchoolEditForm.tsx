@@ -143,8 +143,13 @@ export default function SchoolEditForm({ school, isSuperAdmin }: SchoolEditFormP
       // revalidate call the page would serve stale data for up to 24h.
       // router.refresh() invalidates this route's RSC payload too, so
       // a back-button to /edit picks up the new state.
+      // Sprint 28 follow-up: pass the slug so revalidatePath gets
+      // called with the LITERAL canonical URL, not just the dynamic
+      // segment form (which doesn't bust the slug instance cache in
+      // our Next 16 setup — verified 2026-06-26).
+      const slug = schoolPath(result).replace("/school/", "");
       try {
-        await revalidateSchoolPage(school.moe_code);
+        await revalidateSchoolPage(school.moe_code, slug);
       } catch {
         // Revalidate is best-effort — a network blip here shouldn't
         // block the user from continuing. Worst case the public page
@@ -189,6 +194,7 @@ export default function SchoolEditForm({ school, isSuperAdmin }: SchoolEditFormP
               moeCode={formData.moe_code}
               initialLeaders={formData.leaders}
               onLeadersChange={(leaders) => setFormData((prev) => ({ ...prev, leaders }))}
+              slug={schoolPath(formData).replace("/school/", "")}
             />
           )}
           {activeTab === "support" && <SupportTab data={formData} onChange={handleChange} />}

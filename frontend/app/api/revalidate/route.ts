@@ -33,7 +33,7 @@ const LOCALES = ["en", "ta", "ms"] as const;
 const VALID_TYPES = new Set(["school"]);
 
 export async function POST(req: NextRequest) {
-  let body: { type?: string; key?: string };
+  let body: { type?: string; key?: string; slug?: string };
   try {
     body = await req.json();
   } catch {
@@ -42,36 +42,38 @@ export async function POST(req: NextRequest) {
 
   const type = body.type;
   const key = body.key;
+  const slug = body.slug;
   if (!type || !VALID_TYPES.has(type)) {
     return NextResponse.json({ error: "invalid_type" }, { status: 400 });
   }
   if (!key || typeof key !== "string" || !/^[A-Z0-9]{3,10}$/.test(key)) {
     return NextResponse.json({ error: "invalid_key" }, { status: 400 });
   }
+  // Slug is optional but validated when present — same alphabet as
+  // schoolPath() output (lowercase letters, digits, hyphens).
+  if (slug !== undefined && (typeof slug !== "string" || !/^[a-z0-9-]{3,200}$/.test(slug))) {
+    return NextResponse.json({ error: "invalid_slug" }, { status: 400 });
+  }
 
   const paths: string[] = [];
   if (type === "school") {
     for (const locale of LOCALES) {
-      // 1. The specific bare-code URL the legacy callers use.
+      // Bare-code URL — what legacy inbound links point at; 301s to slug.
       paths.push(`/${locale}/school/${key}`);
-      // 2. Sprint 28: invalidate the WHOLE dynamic segment so the
-      //    slug URL the user lands on after the 301 also re-renders.
-      //    Passing "page" tells Next to revalidate every cached
-      //    instance of this dynamic route — every slug for this school
-      //    plus any stale prior slug. Heavier but correct.
-      paths.push(`/${locale}/school/[moe_code]`);
+      // Slug URL — the canonical, what users actually land on. The
+      // dynamic-segment form (`/[locale]/school/[moe_code]`) does NOT
+      // invalidate the specific cached slug instance in our setup
+      // (verified live 2026-06-26 — revalidate returned the expected
+      // path list, but the slug URL kept serving stale data). Passing
+      // the literal slug is the only thing that actually busts it.
+      if (slug) {
+        paths.push(`/${locale}/school/${slug}`);
+      }
     }
   }
 
   for (const p of paths) {
-    // Per Next.js docs, calling revalidatePath with a dynamic segment
-    // shape needs the second arg `"page"` to invalidate all matching
-    // cached instances. Plain string revalidates a single URL.
-    if (p.includes("[")) {
-      revalidatePath(p, "page");
-    } else {
-      revalidatePath(p);
-    }
+    revalidatePath(p);
   }
 
   return NextResponse.json({ revalidated: paths });

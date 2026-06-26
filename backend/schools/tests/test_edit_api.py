@@ -134,7 +134,8 @@ class SchoolEditViewTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.school.refresh_from_db()
-        self.assertEqual(self.school.phone, "07-9999999")
+        # Sprint 28: phone is auto-normalised to +60-X XXX XXXX on save.
+        self.assertEqual(self.school.phone, "+60-7 999 9999")
         self.assertEqual(self.school.enrolment, 150)
 
     def test_put_creates_audit_log(self):

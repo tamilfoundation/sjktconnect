@@ -126,7 +126,8 @@ class SchoolLeaderCRUDBehaviourTests(TestCase):
         )
         self.assertEqual(response.status_code, 201)
         leader = SchoolLeader.objects.get(pk=response.data["id"])
-        self.assertEqual(leader.phone, "07-1234567")
+        # Sprint 28: phone is auto-normalised to +60-X XXX XXXX on save.
+        self.assertEqual(leader.phone, "+60-7 123 4567")
         self.assertEqual(leader.email, "hm@example.com")
 
     def test_duplicate_role_returns_409_slot_taken(self):
@@ -177,7 +178,8 @@ class SchoolLeaderCRUDBehaviourTests(TestCase):
         self.assertEqual(response.status_code, 200)
         leader.refresh_from_db()
         self.assertEqual(leader.name, "New Name")
-        self.assertEqual(leader.phone, "07-9999999")
+        # Sprint 28: phone is auto-normalised on save.
+        self.assertEqual(leader.phone, "+60-7 999 9999")
 
     def test_patch_does_not_change_role(self):
         leader = SchoolLeader.objects.create(
