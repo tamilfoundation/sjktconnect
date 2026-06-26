@@ -1,21 +1,28 @@
 /**
  * Sprint 27 — explicit ISR cache invalidation after admin edits.
+ * Sprint 28 update — also invalidate the dynamic-route segment so the
+ * slug URL the user lands on AFTER the redirect is busted, not just
+ * the bare-code URL.
  *
- * Problem: `/school/[moe_code]` has `revalidate=86400` so changes a
- * school admin saves don't appear on the public page for up to 24
- * hours. The user reported this twice (Sprint 27 #1 + #4 — Core/Contact
- * tab Save and Leaders tab Save both "succeed" but the public page
- * stays stale).
+ * Problem: school detail pages have `revalidate=86400`. Without
+ * explicit invalidation, edits don't appear for up to 24h. Sprint 28
+ * additionally introduced slug URLs (`/school/<name>-<city>-<moe>`);
+ * the bare-code URL 301s to the slug, but the SLUG page itself is
+ * ISR-cached. Without busting the slug, the user lands on a stale
+ * page even after the bare-code revalidation fires.
  *
- * Fix: this route handler accepts a `moe_code` and calls
- * `revalidatePath()` for the school detail page across all 3 locales.
- * SchoolEditForm + LeadersTab call this after a successful save, then
- * navigate to the view page so the user sees the result immediately.
+ * Fix: revalidate the entire `/[locale]/school/[moe_code]` dynamic
+ * segment with type `page` — Next invalidates every cached instance
+ * of that route, regardless of slug shape. This covers the bare-code
+ * URL, the new canonical slug URL, AND any stale slug from a previous
+ * name/city. Heavier than per-URL revalidation but correct, and the
+ * extra cost is negligible (each cached school page just regenerates
+ * on next access).
  *
  * Auth: NEXT_PUBLIC pages can call this safely — the worst a malicious
- * caller can do is flush the cache for a specific moe_code, which is
- * the same as a normal ISR miss. No real damage. We keep it
- * unauthenticated to avoid the cookie / CSRF dance from a client
+ * caller can do is flush the cache for the school detail segment,
+ * which is the same as a normal ISR miss. No real damage. Keeping it
+ * unauthenticated avoids the cookie / CSRF dance from a client
  * component.
  */
 
@@ -45,12 +52,26 @@ export async function POST(req: NextRequest) {
   const paths: string[] = [];
   if (type === "school") {
     for (const locale of LOCALES) {
+      // 1. The specific bare-code URL the legacy callers use.
       paths.push(`/${locale}/school/${key}`);
+      // 2. Sprint 28: invalidate the WHOLE dynamic segment so the
+      //    slug URL the user lands on after the 301 also re-renders.
+      //    Passing "page" tells Next to revalidate every cached
+      //    instance of this dynamic route — every slug for this school
+      //    plus any stale prior slug. Heavier but correct.
+      paths.push(`/${locale}/school/[moe_code]`);
     }
   }
 
   for (const p of paths) {
-    revalidatePath(p);
+    // Per Next.js docs, calling revalidatePath with a dynamic segment
+    // shape needs the second arg `"page"` to invalidate all matching
+    // cached instances. Plain string revalidates a single URL.
+    if (p.includes("[")) {
+      revalidatePath(p, "page");
+    } else {
+      revalidatePath(p);
+    }
   }
 
   return NextResponse.json({ revalidated: paths });

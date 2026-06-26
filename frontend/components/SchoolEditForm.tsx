@@ -18,6 +18,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { SchoolEditData } from "@/lib/types";
 import { revalidateSchoolPage, updateSchool } from "@/lib/api";
+import { schoolPath } from "@/lib/urls";
 import TabBar from "@/components/edit_tabs/TabBar";
 import CoreTab from "@/components/edit_tabs/CoreTab";
 import ContactTab from "@/components/edit_tabs/ContactTab";
@@ -150,7 +151,10 @@ export default function SchoolEditForm({ school, isSuperAdmin }: SchoolEditFormP
         // is stale for 24h, which is the pre-Sprint-27 status quo.
       }
       router.refresh();
-      router.push(`/${locale}/school/${school.moe_code}`);
+      // Sprint 28: navigate to the canonical SLUG URL (not bare-code),
+      // so the user doesn't pay the 301-redirect hop AND the page they
+      // land on is the one the revalidate just invalidated.
+      router.push(`/${locale}${schoolPath(result)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("failedSave"));
     } finally {
