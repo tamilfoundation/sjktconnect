@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.0 (2026-06-26) — Reliability + Security + SEO Foundation
+
+Release tag. Spans Sprint 23 → Sprint 29 + 2026-06-26 small-change-lane. Full notes: [`docs/release-notes-v2.0.md`](docs/release-notes-v2.0.md). Headline themes: broadcast pipeline reliability (Sprint 23 + News Digest Stuck-Loop Fix), news matcher consults its own alias table (Sprint 24), school page UX bug-bash (Sprint 26/27), SEO-friendly URL slugs (Sprint 28), GPS/TIADA/phone normalisation fixes (Sprint 28.1), security & dependency refresh closing 103 Python + 28 npm CVEs and adding explicit role gates (Sprint 29), Cloudflare 301s for 148 legacy 404 URLs (small-change-lane).
+
+Live: api `00135-kxm`, web `00127-vhh`, 7/7 jobs synced, monthly-blast scheduler enabled. Tests: 1436 backend + 367 frontend.
+
+Project status: moving from `Development/SJKTConnect/` → `Production/SJKTConnect/` at this tag.
+
 ## 2026-06-26 — Small-change-lane: legacy URL 301s (Cloudflare)
 
 Closes 148 of 157 GSC 404 URLs from the 2026-06-26 SEO audit (`docs/seo-investigation-sprint28.md` Part 2 item B). Cloudflare ruleset `1af056d066e44a5885c933227a413981` extended with 2 new rules (regardless of host, so `www.` variants also redirect in 1 hop):

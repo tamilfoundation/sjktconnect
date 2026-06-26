@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Post-roadmap maintenance + pre-v2.0 prep. Sprint 29 closed 2026-06-26.
-- **Last Sprint**: Sprint 29 — Security & Dependency Refresh (closed 2026-06-26) — see CHANGELOG + `docs/tech-debt-audit-2026-06-26.md`
-- **Tests**: 1803 (1436 backend + 367 frontend) — verified at 2026-06-26 Sprint 29 close.
+- **Current Phase**: **v2.0 LIVE** (tagged 2026-06-26). Production maintenance mode.
+- **Last Sprint**: Sprint 30 — v2.0 release + Production folder move (closed 2026-06-26) — see CHANGELOG + `docs/release-notes-v2.0.md`
+- **Tests**: 1803 (1436 backend + 367 frontend) — verified at v2.0 tag.
 - **Plan/billing**: Supabase Pro plan (Tamil Foundation org) — was forced to upgrade for headroom; goal is to drive egress low enough to revisit free tier later. Per-route observability dashboard now lives at Cloud Monitoring → "SJK(T) Connect — Egress by Route/UA" (id `f1722366-2df9-4446-9941-7cda5c019615`).
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
@@ -276,21 +276,36 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 **Sprint 29 ✅ closed 2026-06-26 — Security & Dependency Refresh.** Driven by the 2026-06-26 TD audit (`docs/tech-debt-audit-2026-06-26.md`). Closes TD-19 (Django 5.2.15 / Pillow 12.2 / cryptography 49 / lxml 6.1; ws/next-intl/postcss on the npm side), TD-20 (broadcast views now SUPERADMIN-gated via `SuperuserRequiredMixin`), TD-21 (revalidate route now requires `X-Revalidate-Token`; backend triggers via `schools/services/revalidation.py`), TD-22/23/25 (cleanups). TD-24 deferred to user (gcloud auth expired non-interactively — 1-line dashboard check post-deploy). 1436 backend (+12) + 367 frontend. Sprint 30 next.
 
-### Sprint 30 — SEO follow-up (recommended next)
+### 2026-06-26 small-change-lane — Cloudflare legacy URL 301s
 
-Per the post-audit ordering: TD audit → Sprint 29 (security) → Sprint 30 (SEO) → Sprint 31 (release+folder move). Execute `docs/seo-investigation-sprint28.md` Part 2:
-- 157 GSC 404s — audit list + Cloudflare redirect mapping for legit old URLs
-- 53 "Duplicate without user-selected canonical" + 34 "Google chose different canonical"
-- 380 "Crawled - currently not indexed" — sample 20, identify thin-content pattern, beef up school-page body
-- Manual GSC URL Inspection requests for top-30 school pages
-- 3-week GSC re-pull as validation
+Item (B) from the 2026-06-26 SEO audit shipped via small-change-lane (commit `01348d0`): Cloudflare ruleset extended with `/claim*` → / and `*.aspx` → / rules, closing 148 of 157 GSC 404 URLs. No repo code changes.
 
-### Sprint 31 — v2.0 Release + Production folder move (after Sprint 30)
+Sprint 30 SEO scope items (C) and (D) **dropped** after owner review:
+- (C) 87 canonical conflicts: no action needed — mostly pre-Sprint-22 www variants that clear naturally on re-crawl; 34 "Google-chose-different" are Google correctly folding locale variants.
+- (D) School-page body-content beef-up: dropped — school pages already content-rich; thin-content gap is on DUN/constituency pages (deferred to a future content sprint, not in current scope).
 
-- Tag `v2.0` (release notes drafted at `docs/release-notes-v2.0.md`)
-- Move `Development/SJKTConnect/` → `Production/SJKTConnect/`
-- Run `project-complete` workflow
-- Update workspace `CLAUDE.md` + `MEMORY.md` paths
+3-week GSC validation pull target: ~2026-07-17.
+
+### Sprint 30 — v2.0 Release + Production folder move (✅ DONE 2026-06-26)
+
+- Tagged `v2.0` covering Sprint 23 → Sprint 29 + 2026-06-26 small-change-lane. Full notes at `docs/release-notes-v2.0.md`.
+- Moved `Development/SJKTConnect/` → `Production/SJKTConnect/`.
+- Updated workspace `MEMORY.md` registry row + `memory/sjktconnect.md` path refs.
+
+### Post-v2.0 backlog (no scheduled sprint)
+
+The project enters maintenance. Owner-flagged work runs via small-change-lane unless it crosses the sprint threshold (≥6 files, new model/feature/page, or money/consent/auth/PII).
+
+- **2026-07-17 GSC validation pull** — confirm Sprint 28 URL slug + small-change-lane 301s shifted the numbers. Update TD-06 / TD-24 with the egress dashboard outcome.
+- **DUN/constituency page content enrichment** — the genuinely-thin pages per the 2026-06-26 audit. Defer until GSC re-pull confirms they're the binding constraint.
+- **Personalised digest** (per-subscriber MP personalisation) — original 2026-05-11 roadmap Sprint 29 item. Defer indefinitely unless owner pulls it in.
+
+### Future SEO follow-up (post-v2.0)
+
+After ~2026-07-17 GSC re-pull, drive next moves from what actually shifted:
+- If "Not found (404)" dropped from 157 → ~10, item (B) confirmed effective; no further action.
+- If "Crawled - currently not indexed" remains >300, revisit DUN/constituency page enrichment.
+- If avg position on school-name queries improved 2+ places, Sprint 28's slug work paying off.
 
 ### Original Sprint 27 — Auth / Profile Cleanup (DEFERRED — no longer planned)
 
