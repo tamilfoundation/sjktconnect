@@ -879,3 +879,33 @@
 **Trade-offs:** New MY area codes or carrier prefixes would require a code change. Last MCMC change to MY mobile prefix structure was ~2010 (introduction of 011 prefix); the rate of change doesn't justify defensive abstraction. International numbers other than +60 are rejected — fine; this is a MY-only product.
 
 **Revisit if:** We need to accept Singapore/Indonesia/Thai phones (would require a real library or per-country lookup), or if MCMC introduces new prefix shapes.
+
+## Server-driven ISR revalidation with shared-secret header — Sprint 29, 2026-06-26
+
+**Decision:** Trigger Next.js ISR revalidation from the Django backend (after `serializer.save()` in school/leader edit endpoints), sending an opaque shared secret in an `X-Revalidate-Token` header. Route handler validates the header; 401 on mismatch, 503 on env unset. Browser-side revalidation removed.
+
+**Alternatives considered:**
+1. **HMAC-signed payload** — caller signs request body with shared secret; route handler verifies signature. Strong against replay, modest crypto complexity.
+2. **JWT-like time-limited token** — backend mints a short-TTL token per request. Replay protection + token rotation hooks. Highest complexity.
+3. **Plain shared secret in header (chosen)** — same auth posture as #1 for our threat model, zero crypto, easy rotation (just regenerate + update both Cloud Run env vars).
+4. **Keep client-side trigger, add rate limiting at Cloudflare WAF** — addresses the DoS amplification but leaves the failure mode where a flaky browser hop swallows the revalidate call. Doesn't co-locate the side effect with the data change.
+
+**Rationale:** The threat is DoS amplification (528 schools × 3 locales × 2 URLs × N req/s → ISR regen storm), not data tampering or replay. A simple bearer-secret in a header closes that vector at zero crypto cost. The backend-driven trigger also co-locates the cache invalidation with the write that necessitates it — closes a separate "browser request fails silently, page stays stale" failure mode the client-side trigger had.
+
+**Trade-offs:** Anyone who learns the secret can revalidate. Acceptable because (a) the worst-case is the same as the original unauthenticated route — a flushed cache — but bounded by whoever has access; (b) the secret lives only on Cloud Run env vars, never in source, never in NEXT_PUBLIC_*; (c) rotation is two `gcloud run services update --update-env-vars` calls. No replay protection — also acceptable because there's no harm in replaying a revalidate request.
+
+**Revisit if:** We add a second route handler that does something more sensitive than cache invalidation, OR if rotation cadence becomes painful (then move to short-TTL signed tokens), OR if Cloudflare WAF gains route-specific rate limiting we want to use as belt-and-braces.
+
+## Stay on Django 5.2 LTS rather than jumping to 6.0 — Sprint 29, 2026-06-26
+
+**Decision:** Bump Django 5.2.11 → 5.2.15 (latest 5.2 patch) for CVE coverage. Defer the 5.2 → 6.0 major upgrade.
+
+**Alternatives considered:**
+1. **Jump straight to Django 6.0.6** — also closes all flagged CVEs (PYSEC-2026-48–55, 197–201, CVE-2026-25673/25674). Future-proofs against the eventual 5.2 EOL.
+2. **Stay on 5.2.15 (chosen)** — minimum change to close the CVE list.
+
+**Rationale:** Sprint 29's goal was surgical: clear the security backlog ahead of v2.0 release, not absorb a major upgrade. 5.2 is the active LTS; security patches will continue for ~3 years. 6.0 has minor breaking changes (some deprecations, 3rd-party plugin compatibility) that would need a real test cycle. The audit-driven sprint cap is "do the security thing, ship". A separate Django 6 upgrade can be its own scoped sprint when there's a feature reason to do it (admin redesign, async views, etc.).
+
+**Trade-offs:** Will need to do the 5.2 → 6.0 jump eventually. Carrying a minor LTS upgrade burden vs. carrying a major upgrade burden — same total work, just deferred. Acceptable.
+
+**Revisit if:** Django 5.2 LTS announces EOL <12 months away, OR a Django 6+ feature becomes load-bearing for a new sprint.
