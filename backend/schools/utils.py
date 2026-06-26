@@ -24,9 +24,18 @@ _SHORT_FORMS = {
 # ── Phone Formatting Configuration ───────────────────────────────────────
 
 # Malaysian double-digit area codes (East Malaysia + some special)
-_DOUBLE_DIGIT_AREA_CODES = {"82", "83", "84", "85", "86", "87", "88", "89"}
+# Sprint 28: extended from landline-only to also cover mobile prefixes
+# (10-19). Owner reported that leader-phone "0122090008" wasn't being
+# normalised by format_phone — root cause was format_phone treating mobile
+# as "unparseable" because 12 wasn't in the area-code list.
+_DOUBLE_DIGIT_AREA_CODES = {
+    # East Malaysian landline prefixes
+    "82", "83", "84", "85", "86", "87", "88", "89",
+    # Malaysian mobile prefixes 010-019
+    "10", "11", "12", "13", "14", "15", "16", "17", "18", "19",
+}
 
-# Single-digit area codes
+# Single-digit area codes (Peninsular landline)
 _SINGLE_DIGIT_AREA_CODES = {"3", "4", "5", "6", "7", "9"}
 
 
