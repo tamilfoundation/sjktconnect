@@ -47,9 +47,16 @@ export const EMAIL_PATTERN_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * The HTML5 `pattern` attr still keeps the input shape-restricted;
  * this digit-count rule runs in `phoneError()` for the inline message.
  */
+// MOE uses the literal "TIADA" (Bahasa for "none") in their dataset
+// when a school has no phone or fax — it's a meaningful "no value"
+// marker, not a typo. School admins also re-enter this when their
+// number is genuinely unassigned. Accept any-case TIADA explicitly.
+const PHONE_SENTINELS = new Set(["tiada", "n/a", "na", "none", "-"]);
+
 export function isValidPhone(value: string): boolean {
   if (!value) return true;
   const trimmed = value.trim();
+  if (PHONE_SENTINELS.has(trimmed.toLowerCase())) return true;
   // Shape-level check first (no /, ,, ;, no letters, etc.).
   if (!PHONE_PATTERN_RE.test(trimmed)) return false;
   // Digit-count check. Strip everything except digits, then strip a

@@ -133,11 +133,13 @@ class SchoolLeaderAdminSerializer(serializers.ModelSerializer):
     def validate_phone(self, value):
         if not value:
             return value
+        if value.strip().lower() in ("tiada", "n/a", "na", "none", "-"):
+            return value
         import re
         if not re.fullmatch(r"[\d+\-\s()]{6,20}", value):
             raise serializers.ValidationError(
                 "phone must contain only digits, spaces, +, -, or brackets, "
-                "6-20 chars (no '/' for multi-number)."
+                "6-20 chars (no '/' for multi-number). Use 'TIADA' if none."
             )
         return value
 
@@ -271,14 +273,19 @@ class SchoolEditSerializer(serializers.ModelSerializer):
     # Sprint 26 #1: refuse multi-number phone strings at the API layer.
     # The frontend already shows an inline error, but a determined
     # operator who curls the endpoint must still be blocked.
+    # Sprint 28 follow-up: MOE uses "TIADA" (Bahasa for "none") as the
+    # canonical no-phone marker; accept it explicitly (any case).
     def _validate_phone_like(self, value, field_name):
         if not value:
+            return value
+        if value.strip().lower() in ("tiada", "n/a", "na", "none", "-"):
             return value
         import re
         if not re.fullmatch(r"[\d+\-\s()]{6,20}", value):
             raise serializers.ValidationError(
                 f"{field_name} must contain only digits, spaces, +, -, or "
-                f"brackets, 6-20 chars (no '/' for multi-number)."
+                f"brackets, 6-20 chars (no '/' for multi-number). "
+                "Use 'TIADA' if the school has no number."
             )
         return value
 

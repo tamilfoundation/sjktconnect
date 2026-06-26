@@ -60,6 +60,18 @@ describe("validation helpers", () => {
       expect(isValidPhone("9876543210")).toBe(false);
       expect(isValidPhone("1234567890")).toBe(false);
     });
+    // Owner-flagged 2026-06-26: MOE uses "TIADA" as the canonical
+    // no-phone marker (Bahasa for "none"). School admins re-enter it
+    // verbatim. Accept any-case TIADA and a few common synonyms.
+    it("accepts TIADA and common no-value markers (any case)", () => {
+      expect(isValidPhone("TIADA")).toBe(true);
+      expect(isValidPhone("tiada")).toBe(true);
+      expect(isValidPhone("Tiada")).toBe(true);
+      expect(isValidPhone("  TIADA  ")).toBe(true);
+      expect(isValidPhone("N/A")).toBe(true);
+      expect(isValidPhone("none")).toBe(true);
+      expect(isValidPhone("-")).toBe(true);
+    });
   });
 
   describe("isValidEmail", () => {

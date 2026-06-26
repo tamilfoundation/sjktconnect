@@ -13,13 +13,24 @@ from newswatch.services.news_analyser import _resolve_school_codes
 
 
 class Command(BaseCommand):
-    help = "Re-match unlinked school mentions in news articles"
+    help = "Re-match school mentions in news articles (un-matched by default; --force-all also re-resolves rows that already have a moe_code)."
 
     def add_arguments(self, parser):
         parser.add_argument(
             "--dry-run",
             action="store_true",
             help="Show what would be updated without saving",
+        )
+        parser.add_argument(
+            "--force-all",
+            action="store_true",
+            help=(
+                "Re-resolve EVERY mention even when it already has a "
+                "moe_code. Use this after extending alias coverage so "
+                "previously WRONG matches get re-evaluated against the "
+                "new aliases. Without this flag, only un-matched mentions "
+                "(moe_code=='') are re-tried."
+            ),
         )
 
     def handle(self, *args, **options):
@@ -31,6 +42,7 @@ class Command(BaseCommand):
             sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
         dry_run = options["dry_run"]
+        force_all = options["force_all"]
         updated_count = 0
 
         articles = NewsArticle.objects.exclude(mentioned_schools=[]).exclude(
@@ -41,7 +53,11 @@ class Command(BaseCommand):
             unmatched = [
                 s for s in article.mentioned_schools if not s.get("moe_code")
             ]
-            if not unmatched:
+            # Sprint 28: --force-all also re-processes articles whose
+            # mentions ALL have moe_codes — to catch wrong-match cases
+            # after an alias-coverage extension. Without the flag we
+            # preserve the historical fast-path (skip if no gaps).
+            if not unmatched and not force_all:
                 continue
 
             self.stdout.write(
