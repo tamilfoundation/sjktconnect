@@ -121,11 +121,11 @@ describe("buildSchoolMetadata", () => {
     expect(m.title).toContain("Sungkai, Perak");
   });
 
-  it("canonical URL reflects current locale, not /en/", () => {
+  it("canonical URL reflects current locale, not /en/ (Sprint 28: now slug)", () => {
     const s = makeSchool();
     const m = buildSchoolMetadata(s, "ms");
     expect(m.alternates?.canonical).toBe(
-      "https://tamilschool.org/ms/school/ABDA004",
+      "https://tamilschool.org/ms/school/trolak-trolak-abda004",
     );
   });
 

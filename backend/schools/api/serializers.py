@@ -60,7 +60,10 @@ class SchoolListSerializer(serializers.ModelSerializer):
 
 
 class SchoolMapSerializer(serializers.ModelSerializer):
-    """Minimal school data for map pins — 10 fields instead of 23."""
+    """Minimal school data for map pins — 11 fields. Sprint 28 added
+    `city` so the sitemap and internal-link generators can build the
+    canonical slug URL (which includes city for SEO parity with
+    apac.com.my-style URLs)."""
 
     class Meta:
         model = School
@@ -75,6 +78,7 @@ class SchoolMapSerializer(serializers.ModelSerializer):
             "assistance_type",
             "location_type",
             "state",
+            "city",
         ]
 
 

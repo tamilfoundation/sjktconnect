@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { ConstituencyMention, HansardMention } from "@/lib/types";
+import { schoolPath } from "@/lib/urls";
 import PaginationBar from "./PaginationBar";
 
 type MentionItem = HansardMention | ConstituencyMention;
@@ -139,7 +140,7 @@ export default function MentionsList({ mentions, showSchools = false, title }: M
                   {mention.schools.map((school) => (
                     <Link
                       key={school.moe_code}
-                      href={`/school/${school.moe_code}`}
+                      href={schoolPath({moe_code: school.moe_code, short_name: school.name})}
                       className="text-xs font-medium bg-primary-50 text-primary-700 px-2.5 py-1 rounded-full hover:bg-primary-100 transition-colors"
                     >
                       {school.name}

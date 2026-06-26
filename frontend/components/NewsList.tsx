@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { NewsArticle } from "@/lib/types";
 import { fetchNews } from "@/lib/api";
+import { schoolPath } from "@/lib/urls";
 import NewsCard from "./NewsCard";
 import PaginationBar from "./PaginationBar";
 
@@ -216,7 +217,7 @@ export default function NewsList({ articles: initialArticles, totalCount: initia
               {topSchools.map((school) => (
                 <li key={school.moe_code}>
                   <Link
-                    href={`/school/${school.moe_code}`}
+                    href={schoolPath({moe_code: school.moe_code, short_name: school.name})}
                     className="text-sm text-primary-600 hover:text-primary-800 hover:underline"
                   >
                     {school.name}

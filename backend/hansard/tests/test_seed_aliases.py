@@ -84,6 +84,82 @@ class GenerateAliasesTests(TestCase):
         self.assertGreaterEqual(len(aliases), 3)
 
 
+class BhgBahagianDivisionAliasTests(TestCase):
+    """Sprint 28 — alias generator must bridge Bhg/Bahagian/Division
+    spellings so journalists' variants resolve to the canonical school
+    via Strategy 1.5 (SchoolAlias lookup) BEFORE Strategy 5's fuzzy
+    single-token fallback fires.
+
+    The Sprint 27 Ladang Labu mis-tagging traced to this gap: NBD4079's
+    short_name is "SJK(T) Ladang Labu Bhg 4" but every article said
+    "Bahagian 4" or "Division 4", and no alias bridged the difference.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.constituency = Constituency.objects.create(
+            code="P132", name="Seremban", state="Negeri Sembilan",
+        )
+
+    def test_bhg_school_gets_bahagian_and_division_variants(self):
+        school = School.objects.create(
+            moe_code="NBD4079",
+            name="Sekolah Jenis Kebangsaan (Tamil) Ladang Labu Bhg 4",
+            short_name="SJK(T) Ladang Labu Bhg 4",
+            state="Negeri Sembilan",
+            constituency=self.constituency,
+        )
+        aliases = generate_aliases_for_school(school)
+        normalized = {a["alias_normalized"] for a in aliases}
+        self.assertIn("sjk(t) ladang labu bahagian 4", normalized)
+        self.assertIn("sjk(t) ladang labu division 4", normalized)
+
+    def test_bahagian_school_gets_bhg_and_division_variants(self):
+        school = School.objects.create(
+            moe_code="ABDB006",
+            name="Sekolah Jenis Kebangsaan (Tamil) Ladang Jendarata Bahagian Alpha Bernam",
+            short_name="SJK(T) Ladang Jendarata Bahagian Alpha Bernam",
+            state="Perak",
+            constituency=self.constituency,
+        )
+        aliases = generate_aliases_for_school(school)
+        normalized = {a["alias_normalized"] for a in aliases}
+        # "Alpha" isn't numeric so the regex's number capture must fail.
+        # Our regex matches \d+|IV|III|II|I|Empat|... — "Alpha" doesn't
+        # qualify. School should NOT get spurious Bhg/Division variants.
+        self.assertNotIn("sjk(t) ladang jendarata bhg alpha bernam", normalized)
+        self.assertNotIn("sjk(t) ladang jendarata division alpha bernam", normalized)
+
+    def test_division_school_gets_bhg_and_bahagian_variants(self):
+        # A hypothetical "Division 4" school — bridge the other direction.
+        school = School.objects.create(
+            moe_code="ZZZ9999",
+            name="Sekolah Jenis Kebangsaan (Tamil) Ladang Test Division 4",
+            short_name="SJK(T) Ladang Test Division 4",
+            state="Negeri Sembilan",
+            constituency=self.constituency,
+        )
+        aliases = generate_aliases_for_school(school)
+        normalized = {a["alias_normalized"] for a in aliases}
+        self.assertIn("sjk(t) ladang test bhg 4", normalized)
+        self.assertIn("sjk(t) ladang test bahagian 4", normalized)
+
+    def test_no_bhg_no_extra_variants(self):
+        # School without any of the keywords should NOT get Bhg variants.
+        school = School.objects.create(
+            moe_code="JBD0050",
+            name="Sekolah Jenis Kebangsaan (Tamil) Ladang Bikam",
+            short_name="SJK(T) Ladang Bikam",
+            state="Johor",
+            constituency=self.constituency,
+        )
+        aliases = generate_aliases_for_school(school)
+        normalized = {a["alias_normalized"] for a in aliases}
+        for v in normalized:
+            self.assertNotIn("division", v)
+            self.assertNotIn("bahagian", v)
+
+
 class WithoutLadangAliasTests(TestCase):
     """Test 'without Ladang' alias variant for estate schools."""
 

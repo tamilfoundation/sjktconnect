@@ -6,6 +6,7 @@ import { AdvancedMarker, InfoWindow, Pin } from "@vis.gl/react-google-maps";
 import { Link } from "@/i18n/navigation";
 import { School } from "@/lib/types";
 import { fetchSchoolDetail } from "@/lib/api";
+import { schoolPath } from "@/lib/urls";
 import { ColourMode } from "./MapFilterPanel";
 
 interface SchoolMarkersProps {
@@ -263,7 +264,7 @@ export default function SchoolMarkers({
 
               {/* View School button */}
               <Link
-                href={`/school/${selectedSchool.moe_code}`}
+                href={schoolPath(selectedSchool)}
                 style={{
                   display: "block",
                   textAlign: "center",

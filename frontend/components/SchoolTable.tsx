@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { School } from "@/lib/types";
+import { schoolPath } from "@/lib/urls";
 
 interface SchoolTableProps {
   schools: School[];
@@ -43,7 +44,7 @@ export default function SchoolTable({ schools }: SchoolTableProps) {
               <tr key={school.moe_code} className="hover:bg-gray-50">
                 <td className="py-2 pr-4">
                   <Link
-                    href={`/school/${school.moe_code}`}
+                    href={schoolPath(school)}
                     className="text-primary-600 hover:text-primary-800 hover:underline"
                   >
                     {school.short_name || school.name}

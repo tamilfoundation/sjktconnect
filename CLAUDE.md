@@ -11,9 +11,9 @@
 
 ## Project Status
 
-- **Current Phase**: Post-roadmap maintenance + ad-hoc improvement sprints. Sprint 27 closed 2026-06-26.
-- **Last Sprint**: Sprint 27 — School Page UX Pass (follow-up) (closed 2026-06-26) — see CHANGELOG + `docs/retrospective-sprint27.md`
-- **Tests**: 1769 (1420 backend + 349 frontend) — verified at 2026-06-26 Sprint 27 close.
+- **Current Phase**: Post-roadmap maintenance + ad-hoc improvement sprints. Sprint 28 closed 2026-06-26.
+- **Last Sprint**: Sprint 28 — SEO URL Slug + Alias Bridge + Phone Validation (closed 2026-06-26) — see CHANGELOG + `docs/retrospective-sprint28.md`
+- **Tests**: 1790 (1424 backend + 366 frontend) — verified at 2026-06-26 Sprint 28 close.
 - **Plan/billing**: Supabase Pro plan (Tamil Foundation org) — was forced to upgrade for headroom; goal is to drive egress low enough to revisit free tier later. Per-route observability dashboard now lives at Cloud Monitoring → "SJK(T) Connect — Egress by Route/UA" (id `f1722366-2df9-4446-9941-7cda5c019615`).
 - **Backend URL**: https://sjktconnect-api-748286712183.asia-southeast1.run.app
 - **Frontend URL**: https://tamilschool.org (also: https://sjktconnect-web-748286712183.asia-southeast1.run.app)
@@ -274,12 +274,13 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 27 ✅ closed 2026-06-26 — School Page UX Pass (follow-up). 4 owner-reported bugs fixed (ISR cache stale after edit, news 50→250 + API-backed search, NBD4079 Bahagian/Division alias migration). Owner pivoted Sprint 27 scope from auth to school-page follow-up; Sprint 28 now picks up SEO investigation (rank + indexing).**
+**Sprint 28 ✅ closed 2026-06-26 — SEO URL slug + alias-generator bridge + phone validation tightening. School pages now have SEO-friendly URLs (`/school/<name>-<city>-<moe>`). `Bhg ⇔ Bahagian ⇔ Division` auto-bridge in seed_aliases fixes Sprint 27's NBD4079 root cause. Phone validation now MY-specific digit-count (no more truncated-number passes). Sprint 29 next.**
 
-### Sprint 28 — SEO Ranking + Indexing investigation (owner-flagged)
+### Sprint 29 — Personalised Digest (from original roadmap) OR SEO follow-up
 
-- **Goal**: improve search rank for school-name queries (e.g. "sjkt subramaniya barathee" — tamilschool.org is at 7th place; apac.com.my outranks). Address GSC's "not indexed" report (2.12k pages across 9 reasons — Alternative-canonical 170, Page-with-redirect 1119, 404 157, Duplicate-no-canonical 53, Blocked-by-robots 5, Soft 404 1, Crawled-not-indexed 380, Duplicate-Google-chose 34, Discovered-not-indexed 200).
-- See `docs/seo-investigation-sprint28.md` (created at Sprint 27 close as a starting brief for Sprint 28 kickoff).
+- **Personalised digest** (from the locked 2026-05-11 roadmap): per-subscriber MP personalisation — `Subscriber.home_constituency` FK + per-recipient template injection.
+- **OR SEO follow-up** items from `docs/seo-investigation-sprint28.md` Part 2: 157 GSC 404s, 53 missing canonicals, 380 "crawled - currently not indexed".
+- Owner picks at kickoff.
 
 ### Original Sprint 27 — Auth / Profile Cleanup (DEFERRED)
 
@@ -297,11 +298,11 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 **Release + folder-move sequencing**: Sprint 24 closed without the v2.0 tag (deferred to a separate release workflow). v2.0 release notes will cover Recovery Cut (Sprint 23) + Quality Overhaul (Sprint 24) + Urgent/PW UI (Sprint 25) as one narrative. After S29 close, run `project-complete` workflow + move `Development/SJKTConnect/` → `Production/SJKTConnect/`.
 
-### Current codebase state (Sprint 27 closed, 2026-06-26)
+### Current codebase state (Sprint 28 closed, 2026-06-26)
 
-- **Prod API**: `sjktconnect-api-00123-8b8` (Sprint 26 deploy). Sprint 27 backend (Ladang Labu alias migration) pending deploy at close.
-- **Prod web**: `sjktconnect-web-00117-jkd` (Sprint 26 deploy). Sprint 27 frontend (ISR revalidate handler + edit-save navigation + news 250 + API-backed search) pending deploy at close.
-- **Tests**: 1420 backend + 349 frontend (Sprint 27 close).
+- **Prod API**: `sjktconnect-api-00124-plx` (Sprint 27 deploy; ran migration hansard/0010 on startup). Sprint 28 backend (seed_aliases Bhg/Bahagian/Division bridge + map serializer city field) pending deploy at close. **Post-deploy step**: run `seed_aliases` on prod to materialise the new variants.
+- **Prod web**: `sjktconnect-web-00118-4hx` (Sprint 27 deploy). Sprint 28 frontend (URL slug + tightened phone validation + slug-aware sitemap/canonical) pending deploy at close.
+- **Tests**: 1424 backend + 366 frontend (Sprint 28 close).
 - **Scheduler state**: ALL four enabled.
   - `sjktconnect-monthly-blast` **ENABLED** (`0 9 1 * *` MYT) — un-paused 2026-06-26; June 2026 blast auto-fires 1 Jul 09:00 MYT.
   - `sjktconnect-fortnightly-digest` ENABLED (weekly cron; 14-day coverage guard enforces fortnight cadence).
@@ -342,6 +343,7 @@ The 5-sprint roadmap table below covers everything from Sprint 12 onward. The ea
 | 25 | **Urgent Alerts + Parliament Watch UI** | ✅ Closed 2026-06-26 (backend-only, ~1h wall time). `URGENT_ALERT_REQUIRE_REVIEW` default flipped to `true` in `base.py` — the 09:30 MYT cron now leaves DRAFTs for admin review instead of auto-sending. New `send_test(broadcast_id, recipient_emails)` primitive + `--test-recipients` flag on `send_broadcast` mgmt command + "Send Test" form on broadcast preview admin UI (capped at 5 recipients, bypasses Brevo daily quota, `[TEST]` subject prefix, no `BroadcastRecipient` rows, broadcast stays DRAFT). Kind filter dropdown + Kind column on broadcast list (`?kind=URGENT_ALERT` etc.). Dry-run hardening on all three compose commands — each now prints "Would target N subscriber(s)". 1406 backend (+17 net) + 328 frontend (+8 from held pre-sprint bug fixes). Retro: `docs/retrospective-sprint25.md`. |
 | 26 | **School Page UX Pass** | ✅ Closed 2026-06-26 (~1.5h, 13 files). 6 owner-reported bugs: (#4) `/en?state=Selangor` crashed in browser after hydration — DRF serialises `gps_lat`/`gps_lng` as string and `bounds.extend()` threw; `FitBoundsOnStateFilter` now coerces with `Number()` + `Number.isFinite` guard. (#3) Tamil name de-duplicated from School Details box (still in hero). (#2) Session Type free-text → constrained `SelectField` dropdown with backend `validate_session_type`. (#6) MP `tel:` link strips multi-number values via `firstPhoneForTelUri()` helper. (#5) MP Facebook button hidden when URL matches generic ParlimenMY shape via `isUsableMpFacebookUrl()` frontend guard + `is_generic_facebook_url()` scraper-side drop (two-layer fix). (#1) Phone + email validation across Contact + Leaders edit tabs: `validation.ts` helpers + `EditableField` `error`/`pattern` props + inline red-border + `aria-describedby` + serializer `validate_phone` mirror on `SchoolEditSerializer` and `SchoolLeaderAdminSerializer`; 3-locale i18n. 1417 backend (+11) + 349 frontend (+21). Retro: `docs/retrospective-sprint26.md`. |
 | 27 | **School Page UX Pass (follow-up)** | ✅ Closed 2026-06-26 (~1.5h, 11 files). 4 more owner-reported bugs: (#1+#4) ISR cache held edit-saves stale for up to 24h — new `app/api/revalidate/route.ts` + `revalidateSchoolPage()` helper called from SchoolEditForm + LeadersTab after Save, then `router.refresh()` + `router.push('/{locale}/school/{moe}')` so the user lands on the public page with the change live. (#3) News page `pageSize` 50→250 + search input converted to debounced API-backed (`?search=` was always supported server-side); search now spans entire approved corpus. (#2) NBD4079 (SJK(T) Ladang Labu Bhg 4) had 9 articles in news DB but only 2 correctly tagged — investigation found the variant generator doesn't bridge `Bhg ⇔ Bahagian ⇔ Division`, and the only two other schools in the DB with "Bahagian" / "Division" in their names (ABDB006, MBD0067) were absorbing the 7 mis-tagged articles. Migration `hansard/0010_ladang_labu_bahagian_aliases` adds 13 HANSARD aliases; post-deploy `rematch_schools` cleans up existing rows. 1420 backend (+3) + 349 frontend (unchanged). Retro: `docs/retrospective-sprint27.md`. |
+| 28 | **SEO URL Slug + Alias Bridge + Phone Validation** | ✅ Closed 2026-06-26 (~2.5h, 18 files). 3 owner-flagged items: **(A) URL slug**: `/school/<name>-<city>-<moe>` shape (e.g. `subramaniya-barathee-gelugor-pbd1088`) replaces bare-code. New `lib/urls.ts` (`schoolPath` / `parseSchoolSlug` / `isCanonicalSchoolSlug`). Page handler accepts both slug + legacy bare-code; non-canonical → 301 to canonical. Sitemap + JSON-LD + meta canonical all emit slug. Closes the SEO gap vs apac.com.my that put us at #7 vs their #3. **(B) Aliasing root cause** (owner-corrected diagnosis): extended `seed_aliases.generate_aliases_for_school` with `Bhg ⇔ Bahagian ⇔ Division` bridge — closes the gap that caused Sprint 27's mis-tagging at the proper layer (alias generator) rather than at the fallback (Strategy 5). Sprint 27's hansard/0010 migration becomes belt-and-braces. **(C) Phone validation**: replaced permissive `{6,20}` shape regex with MY-specific digit-count rules (mobile 10-11 + landline 9-10 + `+60` normalisation). Truncated numbers now fail. **(D)** Added `city` to `/api/v1/schools/map/` serializer for slug builder. **Post-deploy step**: run `seed_aliases` on prod to materialise the new Bhg/Bahagian/Division variants. 1424 backend (+4) + 366 frontend (+17). Retro: `docs/retrospective-sprint28.md`. |
 | — | **News Digest Stuck-Loop Fix** (ad-hoc incident sprint) | ✅ Done 2026-06-11, deployed `sjktconnect-api-00119-92c` + all 7 jobs synced (commit `d2f6269`). Quota errors now transient (send-what-fits, stay SENDING — un-breaks full-list urgent alerts too); 14-day coverage-anchored fortnight guard (weekly cron unchanged); digest subject = big-story headline; sender "SJK(T) News" for digest+urgent; `Broadcast.Status.CANCELLED` formalised (migration 0007); `resume_sending` FAILED sweep + compose window tripwires close the exit-0-while-broken monitoring gap. Live repair same day: broadcast 82 catch-up sent to its 250 pending (zero duplicates), 79-81 + 83-84 CANCELLED. **Verify: 15 Jun skip log; 22 Jun digest covers 9-22 Jun; 23 Jun resume drains to SENT.** 1375 backend + 320 frontend tests. Retro: `docs/retrospective-news-digest-stuck-fix.md`. |
 
 ### Open tech debt remaining

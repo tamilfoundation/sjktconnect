@@ -6,13 +6,17 @@ import { useTranslations } from "next-intl";
 import { useRouter, Link } from "@/i18n/navigation";
 import { fetchSchoolEdit, fetchMe } from "@/lib/api";
 import { SchoolEditData } from "@/lib/types";
+import { parseSchoolSlug, schoolPath } from "@/lib/urls";
 import Breadcrumb from "@/components/Breadcrumb";
 import SchoolEditForm from "@/components/SchoolEditForm";
 
 export default function SchoolEditPage() {
   const params = useParams();
   const router = useRouter();
-  const moeCode = params.moe_code as string;
+  // Sprint 28 — `params.moe_code` is now a SLUG, not a bare moe_code.
+  // Resolve to the canonical moe_code via parseSchoolSlug.
+  const rawSegment = params.moe_code as string;
+  const moeCode = parseSchoolSlug(rawSegment) ?? "";
   const t = useTranslations("schoolEdit");
   const tc = useTranslations("common");
 
@@ -73,7 +77,7 @@ export default function SchoolEditPage() {
           <p className="text-red-800 text-lg font-semibold">{t("accessDenied")}</p>
           <p className="text-red-600 mt-2">{error}</p>
           <Link
-            href={`/school/${moeCode}`}
+            href={schoolPath({ moe_code: moeCode })}
             className="inline-block mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
           >
             {t("backToSchool")}
@@ -88,7 +92,7 @@ export default function SchoolEditPage() {
   const breadcrumbItems = [
     { label: tc("home"), href: "/" },
     { label: school.state, href: `/?state=${encodeURIComponent(school.state)}` },
-    { label: school.short_name || school.name, href: `/school/${school.moe_code}` },
+    { label: school.short_name || school.name, href: schoolPath(school) },
     { label: t("editBreadcrumb") },
   ];
 

@@ -71,7 +71,8 @@ describe("ConstituencySchools", () => {
     );
 
     const link = screen.getByText("SJK(T) Tenang").closest("a");
-    expect(link).toHaveAttribute("href", "/school/JBD0051");
+    // Sprint 28: slug URLs now (`name-moe`).
+    expect(link).toHaveAttribute("href", "/school/tenang-jbd0051");
   });
 
   it("shows enrolment for each school", () => {

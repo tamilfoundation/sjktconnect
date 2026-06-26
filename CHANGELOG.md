@@ -1,5 +1,32 @@
 # Changelog
 
+## Sprint 28 — SEO URL Slug + Alias Bridge + Phone Validation Tightening (closed 2026-06-26)
+
+**Goal**: 3 owner-flagged items. (1) URL slug for SEO (apac.com.my outranking us because their URL has the school name in it). (2) Aliasing investigation — root cause of news-matcher mis-tagging is alias-generator gap, not Strategy 5. (3) Phone validation too permissive — truncated numbers passed.
+
+### Added
+- **`/school/<name-slug>-<city-slug>-<moe-code>` canonical URL** — school pages now have SEO-friendly URLs that contain the school name and city, not just a code. `subramaniya-barathee-gelugor-pbd1088` instead of `PBD1088`. New `frontend/lib/urls.ts` with `schoolPath()`, `parseSchoolSlug()`, `isCanonicalSchoolSlug()` helpers. Page handler accepts both the slug AND the legacy bare-code form; non-canonical visits 301 to the canonical slug so Google converges on a single URL per school. Sitemap + JSON-LD `@id`/`url` + `<link rel=canonical>` all emit the slug form. 14 new tests for the helper.
+- **`Bhg ⇔ Bahagian ⇔ Division` bridge in `seed_aliases.py`** — for any school whose name contains `\b(Bhg|Bahagian|Division)\s+(\d+|IV|III|II|I|Empat|...)\b`, the generator now emits two synonym variants. Closes the gap discovered in Sprint 27's NBD4079 investigation: the news matcher's Strategy 1.5 (SchoolAlias lookup) had no `Bahagian 4` alias for `SJK(T) Ladang Labu Bhg 4`, so Strategy 5 fell back to single-token `icontains` and landed on the only-school-with-Bahagian (ABDB006) or only-school-with-Division (MBD0067) — mis-tagging 7 articles. With this fix, the alias is generated at every `seed_aliases` run; Sprint 27's manual `hansard/0010` migration becomes belt-and-braces. **Post-deploy step**: run `seed_aliases` on prod to materialise the new aliases for the 4 affected schools (NBD4079, ABDB006, MBD0067, plus any future school with these tokens).
+- **`city` field on `/api/v1/schools/map/` response** — needed by the sitemap's slug builder. One-line serializer addition; payload grows ~1-2 KB per school × 528 schools = trivial.
+
+### Fixed
+- **Phone validation now enforces Malaysian digit-count rules.** Sprint 26's regex was `{6,20}` chars — too permissive; a 6-digit truncated number passed. The new `isValidPhone()` strips non-digits, normalises `+60` international form to local form (`+60 12 209 0008` → `0122090008`), and checks: mobile (`01X`) needs 10-11 digits, landline (`0[2-9]`) needs 9-10 digits. Truncated numbers like `012209000` (9 digits) and `06791` (5 digits) now fail.
+- **`tel:` URL in MP card** retains the Sprint 26 multi-number handling (first number wins).
+- **Admin edit form** uses the new `isValidPhone` automatically through the existing `phoneError()` helper — no API change needed.
+
+### Tests
+- `frontend/__tests__/lib/urls.test.ts` (NEW) — 14 cases covering slug build (with/without city), prefix stripping, special-char collapse, legacy bare-code parse, invalid-slug rejection, canonical detection, stale-slug detection.
+- `frontend/__tests__/lib/validation.test.ts` — +6 cases for the tightened MY-specific digit-count rule (truncated mobile/landline rejected, canonical shapes accepted, +60 prefix normalisation).
+- `backend/hansard/tests/test_seed_aliases.py` — +4 cases for `Bhg/Bahagian/Division` bridge generation (forward direction, reverse direction, no spurious variants for "Bahagian Alpha" non-numeric, no variants for schools without the keyword).
+- `frontend/__tests__/lib/seo.test.ts` — canonical-URL test updated to expect the slug form.
+- `frontend/__tests__/components/{ConstituencySchools,SchoolTable,NewsCard}.test.tsx` — href expectations updated to slug form.
+- **Final**: 1424 backend (+4) + 366 frontend (+17).
+
+### Operational follow-ups after deploy
+- **Run `seed_aliases` on prod** (Cloud Run job override or shell) to materialise the new Bhg/Bahagian/Division variants. Existing HANSARD-type aliases preserved; only COMMON-type variants regenerate.
+- **Re-resolve the 7 mis-tagged Ladang Labu articles** via a one-off shell against prod (extend `rematch_schools` with `--force-all` or run a Django shell command). Sprint 27 deferred this; now that aliases are in place via the generator, re-analyse will route them correctly.
+- **GSC reindex request** for the top-30 school pages so Google picks up the new canonical slug URLs faster than the natural crawl cycle.
+
 ## Sprint 27 — School Page UX Pass (follow-up) (closed 2026-06-26)
 
 **Goal**: 4 more owner-reported bugs surfaced after the Sprint 26 deploy. Mostly cache-invalidation + a news-matcher data-quality investigation. ~9 files.

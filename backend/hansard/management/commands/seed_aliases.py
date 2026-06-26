@@ -114,6 +114,46 @@ def generate_aliases_for_school(school: School) -> list[dict]:
         if malay_variant and malay_variant.lower() != school.name.lower():
             add(malay_variant, SchoolAlias.AliasType.COMMON)
 
+    # 8. Sprint 28 — Bhg ⇔ Bahagian ⇔ Division bridge. Articles and
+    # journalists routinely write "Bahagian N" or "Division N" where the
+    # MOE canonical short_name uses "Bhg N" (or vice versa). The
+    # variant generator in the news matcher doesn't bridge these
+    # spellings, so without alias coverage Strategy 5 falls back to a
+    # single-token icontains match and lands on whichever school
+    # happens to have the matching suffix word — causing the Sprint 27
+    # NBD4079 (Ladang Labu Bhg 4) mis-tagging where 7 articles went to
+    # ABDB006 ("Jendarata Bahagian Alpha", the only DB school with
+    # "Bahagian") or MBD0067 ("Kemuning Kru Division").
+    #
+    # For any school whose short_name (or name-without-prefix) contains
+    # `\b(Bhg|Bahagian|Division)\s*(\d+|IV|III|II)\b`, emit variants
+    # for the other two spellings — same in every other respect.
+    candidates = []
+    if school.short_name:
+        candidates.append(school.short_name)
+    if stripped and stripped != (school.short_name or ""):
+        candidates.append(stripped)
+
+    _BHG_RE = re.compile(
+        r"\b(Bhg|Bahagian|Division)\s+(\d+|IV|III|II|I|Empat|Lima|Tiga|Dua|Satu)\b",
+        re.IGNORECASE,
+    )
+    _BHG_SYNONYMS = ["Bhg", "Bahagian", "Division"]
+    for base in list(candidates):
+        match = _BHG_RE.search(base)
+        if not match:
+            continue
+        original_word = match.group(1)
+        for synonym in _BHG_SYNONYMS:
+            if synonym.lower() == original_word.lower():
+                continue
+            variant = (
+                base[: match.start(1)]
+                + synonym
+                + base[match.end(1) :]
+            )
+            add(variant, SchoolAlias.AliasType.COMMON)
+
     return aliases
 
 

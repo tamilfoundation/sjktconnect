@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { searchEntities } from "@/lib/api";
 import { Link } from "@/i18n/navigation";
 import { School, Constituency } from "@/lib/types";
+import { schoolPath } from "@/lib/urls";
 
 interface SearchBoxProps {
   onSelect: (school: School) => void;
@@ -152,7 +153,7 @@ export default function SearchBox({ onSelect, onClear }: SearchBoxProps) {
                     </p>
                   </button>
                   <Link
-                    href={`/school/${school.moe_code}`}
+                    href={schoolPath(school)}
                     className="ml-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium whitespace-nowrap"
                   >
                     {t("viewArrow")}

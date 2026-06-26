@@ -41,7 +41,8 @@ describe("SchoolTable", () => {
   it("renders school name as link", () => {
     render(<SchoolTable schools={[makeSchool()]} />);
     const link = screen.getByText("SJK(T) Ladang Bikam").closest("a");
-    expect(link).toHaveAttribute("href", "/school/JBD0050");
+    // Sprint 28: slug URLs (`name-moe`).
+    expect(link).toHaveAttribute("href", "/school/ladang-bikam-jbd0050");
   });
 
   it("renders enrolment and teacher count", () => {

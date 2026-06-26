@@ -62,9 +62,10 @@ describe("NewsCard", () => {
       />
     );
     const bikamLink = screen.getByRole("link", { name: /ladang bikam/i });
-    expect(bikamLink).toHaveAttribute("href", "/school/ABC1234");
+    // Sprint 28: slug URLs (`name-moe`).
+    expect(bikamLink).toHaveAttribute("href", "/school/ladang-bikam-abc1234");
     const klLink = screen.getByRole("link", { name: /kuala lumpur/i });
-    expect(klLink).toHaveAttribute("href", "/school/XYZ5678");
+    expect(klLink).toHaveAttribute("href", "/school/kuala-lumpur-xyz5678");
   });
 
   it("renders URGENT badge when is_urgent is true", () => {

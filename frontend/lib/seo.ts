@@ -17,6 +17,7 @@
 
 import type { Metadata } from "next";
 import type { SchoolDetail, ConstituencyDetail, DUNDetail } from "@/lib/types";
+import { schoolPath } from "@/lib/urls";
 
 const BASE_URL = "https://tamilschool.org";
 const LOCALES = ["en", "ta", "ms"] as const;
@@ -282,7 +283,9 @@ export function buildSchoolMetadata(
       siteName: "SJK(T) Connect",
       images: [{ url: school.image_url || SCHOOL_PLACEHOLDER_URL }],
     },
-    alternates: buildAlternates(`/school/${school.moe_code}`, locale),
+    // Sprint 28: canonical now uses the slug URL so Google indexes the
+    // SEO-friendly form. The bare-code URL 301s to the slug.
+    alternates: buildAlternates(schoolPath(school), locale),
   };
 }
 
@@ -367,7 +370,8 @@ export function buildDUNMetadata(
  * `<script type="application/ld+json">`.
  */
 export function buildSchoolJsonLd(school: SchoolDetail): Record<string, unknown> {
-  const url = `${BASE_URL}/en/school/${school.moe_code}`;
+  // Sprint 28: JSON-LD @id + url must point at the canonical slug URL.
+  const url = `${BASE_URL}/en${schoolPath(school)}`;
   const obj: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "EducationalOrganization",

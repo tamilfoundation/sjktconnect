@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import {
   fetchSchoolDetail,
@@ -8,6 +8,11 @@ import {
   fetchSchoolNews,
 } from "@/lib/api";
 import { buildSchoolMetadata, buildSchoolJsonLd } from "@/lib/seo";
+import {
+  isCanonicalSchoolSlug,
+  parseSchoolSlug,
+  schoolPath,
+} from "@/lib/urls";
 import Breadcrumb from "@/components/Breadcrumb";
 import EditSchoolLink from "@/components/EditSchoolLink";
 import SuggestButton from "@/components/SuggestButton";
@@ -37,12 +42,24 @@ interface PageProps {
   params: Promise<{ locale: string; moe_code: string }>;
 }
 
+// Sprint 28 — the URL segment is now a SLUG (e.g.
+// `subramaniya-barathee-gelugor-pbd1088`) not just the moe_code. The
+// segment name `moe_code` is kept to avoid a directory rename and to
+// preserve the `edit/` subroute below it; treat it as `slug` in code.
+// Both old bare-code visits AND the canonical slug both work — the
+// page 301-redirects a bare-code visit to the canonical slug so Google
+// converges on a single URL per school.
+
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const { locale, moe_code } = await params;
+  const { locale, moe_code: slug } = await params;
+  const code = parseSchoolSlug(slug);
+  if (!code) {
+    return { title: "School Not Found — SJK(T) Connect" };
+  }
   try {
-    const school = await fetchSchoolDetail(moe_code);
+    const school = await fetchSchoolDetail(code);
     return buildSchoolMetadata(school, locale);
   } catch {
     return {
@@ -52,14 +69,22 @@ export async function generateMetadata({
 }
 
 export default async function SchoolPage({ params }: PageProps) {
-  const { locale } = await params;
+  const { locale, moe_code: slug } = await params;
   setRequestLocale(locale);
-  const { moe_code } = await params;
+  const code = parseSchoolSlug(slug);
+  if (!code) notFound();
   let school;
   try {
-    school = await fetchSchoolDetail(moe_code);
+    school = await fetchSchoolDetail(code);
   } catch {
     notFound();
+  }
+  // Canonicalisation: if the URL the user arrived at isn't the
+  // canonical slug, 301 to the canonical one so Google indexes a
+  // single URL per school. Legacy bare-code visits (PBD1088) and stale
+  // slugs after a name/city change both end up here and redirect.
+  if (!isCanonicalSchoolSlug(slug, school)) {
+    redirect(`/${locale}${schoolPath(school)}`);
   }
 
   const displayName = school.short_name || school.name;

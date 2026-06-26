@@ -50,14 +50,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     buildLocaleEntries(path, path === "/news" ? "daily" : "weekly", path === "/" ? 1.0 : 0.7)
   );
 
-  // Dynamic school pages
+  // Dynamic school pages — Sprint 28: emit the canonical slug URL
+  // (`/school/<name-slug>-<city-slug>-<moe-code>`), not the bare
+  // moe_code. The slug is the URL Google should index; visits to the
+  // bare-code form 301 to the slug.
   let schoolEntries: MetadataRoute.Sitemap = [];
   try {
     const res = await fetch(`${apiBase}/api/v1/schools/map/`);
     if (res.ok) {
-      const schools: { moe_code: string }[] = await res.json();
+      const schools: { moe_code: string; short_name?: string; city?: string }[] =
+        await res.json();
+      const { schoolPath } = await import("@/lib/urls");
       schoolEntries = schools.flatMap((s) =>
-        buildLocaleEntries(`/school/${s.moe_code}`, "monthly", 0.8)
+        buildLocaleEntries(schoolPath(s), "monthly", 0.8),
       );
     }
   } catch {

@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { NewsArticle } from "@/lib/types";
+import { schoolPath } from "@/lib/urls";
 
 interface Props {
   article: NewsArticle;
@@ -81,7 +82,7 @@ export default function NewsCard({ article }: Props) {
         <div className="mt-3 flex flex-wrap gap-1.5">
           {article.mentioned_schools.map((school, idx) =>
             school.moe_code ? (
-              <Link key={school.moe_code} href={`/school/${school.moe_code}`}
+              <Link key={school.moe_code} href={schoolPath({moe_code: school.moe_code, short_name: school.name})}
                     className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full hover:bg-primary-100">
                 {school.name}
               </Link>

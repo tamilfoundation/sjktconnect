@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { School } from "@/lib/types";
+import { schoolPath } from "@/lib/urls";
 
 interface ConstituencySchoolsProps {
   schools: School[];
@@ -37,7 +38,7 @@ export default function ConstituencySchools({
             {otherSchools.map((school) => (
               <li key={school.moe_code}>
                 <Link
-                  href={`/school/${school.moe_code}`}
+                  href={schoolPath(school)}
                   className="flex justify-between items-center text-sm hover:bg-gray-50 rounded px-2 py-1.5 -mx-2 transition-colors"
                 >
                   <span className="text-primary-600 hover:text-primary-800">

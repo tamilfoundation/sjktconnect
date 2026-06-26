@@ -828,3 +828,54 @@
 **Trade-offs:** The route handler is unauthenticated (we'd otherwise have to pass cookies through from a client component, which is fragile). Worst-case abuse is "a malicious caller invalidates the cache for a specific moe_code" — same impact as a normal ISR miss, so essentially zero damage. We further restrict the route's path-building so only `/(en|ta|ms)/school/<UPPERCASE_KEY>` paths can be revalidated, never arbitrary paths.
 
 **Revisit if:** We add other ISR-cached pages that also need explicit invalidation (constituency, DUN, news article pages). At that point the `{type, key}` shape extends naturally — add a switch case per type. If the count grows past ~5 types, consider a per-type route handler or a typed RPC instead.
+
+## School URL slug: `<name>-<city>-<moe>`, name first, moe at end — Sprint 28, 2026-06-26
+
+**Decision:** School URLs are `/school/<name-slug>-<city-slug>-<moe-code>` (e.g. `subramaniya-barathee-gelugor-pbd1088`). Page handler accepts both the slug AND the legacy bare-code form; non-canonical visits 301 to the canonical. Sitemap, JSON-LD `@id`/`url`, `<link rel=canonical>` all emit the slug form.
+
+**Alternatives considered:**
+1. **Bare moe-code only** (status quo before Sprint 28) — URL has zero keyword density, ranks behind any site that puts the school name in the URL (apac.com.my SERP position #3 vs ours at #7).
+2. **`<moe>-<name>-<city>` (moe first)** — moe-code at start makes parsing trivial, but loses SEO benefit. Google weights early-path words more.
+3. **`<name>` only (no moe)** — best SEO BUT names collide ("Ladang Bikam" exists in multiple states). Requires a slug-collision resolver (DB unique constraint + suffix-N suffixes). Brittle.
+4. **`<name>-<city>-<moe>` (chosen)** — keyword density at the start, city adds local relevance, moe at the end is the lookup primary key.
+
+**Rationale:** apac.com.my outranks us at #3 vs our #7 mainly because their URL is `/pbd1088/SJK%20T%20SUBRAMANIYA%20BARATHEE,%20GELUGOR.html` — the school name is in the URL. For a query like "sjkt subramaniya barathee", the URL alone matches half the query words before Google even reads our title. Sprint 22's labelled-meta-description gave us competitive snippet quality but couldn't close the URL-relevance gap. The slug shape mirrors what every well-ranking directory site does (Wikipedia, GitHub, Stripe). Keeping the moe-code at the end gives us an exact-match parse-back regex (`/^.+-([a-z]{3,4}\d{3,4})$/`) and prevents collisions without a DB constraint.
+
+**Trade-offs:**
+- Existing inbound links to `/school/PBD1088` keep working (legacy form accepted) but route through a 301 to the slug. Mild SEO cost for the redirect chain; Google handles 301 redirects well.
+- When a school's `short_name` or `city` changes (rare), old slugs in the wild become stale — they still 301 to the new canonical, no broken links.
+- Sitemap regenerates ~528 URLs once; Google re-crawls and the old canonicals fade from the index over 2-4 weeks.
+- Internal links that don't pass full school context (admin pages with just `moe_code`) emit bare-code and rely on the 301. One extra redirect per click; acceptable for non-public surfaces.
+
+**Revisit if:** Google penalises us for excessive 301 redirects in the link graph (unlikely; 301s are first-class), OR if a school's slug collides somehow despite the moe suffix (impossible by design — moe-code is unique).
+
+## `Bhg ⇔ Bahagian ⇔ Division` bridge in seed_aliases, not as per-school migrations — Sprint 28, 2026-06-26
+
+**Decision:** Extend `generate_aliases_for_school` to detect `\b(Bhg|Bahagian|Division)\s+<number>\b` in any school's name and emit two synonym variants. Re-running `seed_aliases` materialises the new aliases for every affected school automatically.
+
+**Alternatives considered:**
+1. **Per-school migration** (Sprint 27's `hansard/0010` approach) — explicit, reviewable, but requires a new migration for every newly-imported school that contains these tokens. Manual maintenance burden.
+2. **Generic Strategy 5 patch** (my initial Sprint 27.5 proposal) — extend `_GENERIC_WORDS` to include "bahagian", "division" so Strategy 5 stops falsely matching them. Works as a fallback but doesn't help the alias lookup find the right school; just makes the failure mode "no match" instead of "wrong match".
+3. **Both 1 and 3 (chosen for Sprint 28)**: extend the alias generator (the proper layer per owner instinct) AND keep the Sprint 27 migration as belt-and-braces. Either alone would work; both together is defence-in-depth.
+
+**Rationale:** Owner correctly diagnosed that aliasing is the proper mechanism — articles use journalists' spelling, our aliases should bridge to MOE's canonical spelling. The variant bridge belongs in the generator because: (a) it covers every future school automatically, (b) it's one block of code instead of one migration per school, (c) re-running `seed_aliases` after a schools-table import refreshes everything. Strategy 5 stays as a fallback for cases the generator can't anticipate (e.g. typos, transliteration drift).
+
+**Trade-offs:** Re-running `seed_aliases` regenerates COMMON-type aliases (it preserves HANSARD-type) — fine because COMMON aliases are derivable from school data. Adds 1-2 aliases per affected school; current DB has ~1,500 aliases, this brings it to ~1,510. Negligible storage/lookup cost.
+
+**Revisit if:** New token-pair drift emerges (e.g. "Estate" vs "Ladang", "Section" vs "Bahagian" — though we already handle Section via state distribution). At that point extend the bridge logic — same pattern.
+
+## MY-specific phone validation (digit-count), not generic shape regex — Sprint 28, 2026-06-26
+
+**Decision:** `isValidPhone()` enforces Malaysian phone-number digit-count rules (mobile 10-11 digits with `01X` prefix; landline 9-10 digits with `0[2-9]` prefix; `+60` international form normalised to local). The shape-regex (`[\d+\-\s()]{6,20}`) stays as a fast pre-filter but is no longer the validation primary.
+
+**Alternatives considered:**
+1. **Pure shape regex** (Sprint 26 status quo) — easy to write, passes truncated numbers.
+2. **Full MCMC carrier-prefix lookup** — checks not just digit count but that "012" is a known TM mobile prefix etc. Overkill at our scale; new carriers/prefixes would require code changes.
+3. **`libphonenumber` library** — Google's canonical phone-number validation. ~150 KB to the bundle, validates every country in the world. Overkill for a MY-only app where the rules are 4 lines of code.
+4. **Domain-specific digit-count rule** (chosen) — encodes the MCMC spec without dragging in a library. Fast, deterministic, 5 lines of code.
+
+**Rationale:** The bug was "truncated numbers passed" — solvable by counting digits after normalisation. MY phone numbers have a stable, well-known structure: mobile starts `01X` and has 10-11 digits; landline starts `0[2-9]` and has 9-10 digits; international form prepends `+60` and drops the leading 0. Encoding this directly is more honest about what we're checking than pulling in a generic library.
+
+**Trade-offs:** New MY area codes or carrier prefixes would require a code change. Last MCMC change to MY mobile prefix structure was ~2010 (introduction of 011 prefix); the rate of change doesn't justify defensive abstraction. International numbers other than +60 are rejected — fine; this is a MY-only product.
+
+**Revisit if:** We need to accept Singapore/Indonesia/Thai phones (would require a real library or per-country lookup), or if MCMC introduces new prefix shapes.
