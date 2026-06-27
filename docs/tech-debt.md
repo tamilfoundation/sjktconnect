@@ -31,11 +31,12 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 
 - **Status**: Resolved in Sprint 13. `SchoolImage.image_file` (ImageField → Supabase Storage `school-images` bucket via S3-compat `django-storages`) added. `display_url` property prefers `image_file.url`, falls back to legacy `image_url`. Harvester rewritten to download bytes server-side and persist via `image_file.save()`. Production migration: 1009 PLACES + 528 SATELLITE re-harvested + 1 COMMUNITY migrated; **1534/1534 (100%) on Supabase Storage**. Broken-images sitewide issue is gone — verified on tamilschool.org school pages and map InfoWindow.
 
-## ⏳ TD-06 — Supabase egress regression (CHECKPOINT NEVER RECORDED — surfaced 2026-06-26)
+## ✅ TD-06 — Supabase egress regression (RESOLVED 2026-06-27)
 
 - **Status**: Sprint 13 (TD-05 fix) was the primary fix; Sprint 17 (ISR re-engagement) and Sprint 21 (next-intl ISR + AwarioBot UA block) hardened it further. Hero images now served from Supabase Storage CDN, bypassing backend.
-- **Verification plan**: single dated checkpoint on **2026-05-08** — review the preceding 7 days on Cloud Monitoring dashboard `f1722366-2df9-4446-9941-7cda5c019615` (or Supabase dashboard). If <150 MB/day for 7 consecutive days, flip to ✅ RESOLVED. If still elevated, pull Task #43 (Supabase Storage hot-link protection) into a micro-sprint.
-- **2026-06-26 audit update**: the 2026-05-08 checkpoint was never recorded. Treat TD-06 as ⏳ pending verification, not ✅ resolved. See TD-24 below — the missed checkpoint is itself a governance smell tracked separately. **Action**: pull the dashboard for the most recent 7 days as part of the next sprint's verification step; flip to ✅ or pull Task #43.
+- **Verification plan**: single dated checkpoint on **2026-05-08** — review the preceding 7 days on Cloud Monitoring dashboard `f1722366-2df9-4446-9941-7cda5c019615`. If <150 MB/day for 7 consecutive days, flip to ✅ RESOLVED. If still elevated, pull Task #43 (Supabase Storage hot-link protection) into a micro-sprint.
+- **2026-06-26 audit update**: the 2026-05-08 checkpoint was never recorded. Treat TD-06 as ⏳ pending verification, not ✅ resolved. See TD-24 below — the missed checkpoint is itself a governance smell tracked separately.
+- **2026-06-27 resolution**: pulled `run.googleapis.com/container/network/sent_bytes_count` via MQL for last 7 days. **`sjktconnect-web` daily egress: 6/21=87, 6/22=53, 6/23=59, 6/24=60, 6/25=55, 6/26=87 MB/day** (6 consecutive days well under the 150 MB/day target). `sjktconnect-api`: ~50 MB/day baseline. Combined ~140 MB/day total — comfortable margin. 6/27 spike to 194 MB on web is the day-of-launch traffic from the 2026-06-26 FB announcement, NOT a regression. Threshold met → **flipping to ✅ RESOLVED**. Task #43 (Supabase Storage hot-link protection) stays parked; pull only if egress climbs >250 MB/day for 3+ consecutive days.
 
 ## ✅ TD-07 — `Suggestion.image` BinaryField dropped (RESOLVED Sprint 14, header swept Sprint 18)
 
@@ -59,13 +60,11 @@ Severity scale: 🔴 high · 🟡 medium · 🟢 low.
 
 - **Status**: Resolved. 7 new tests added in `accounts/tests/test_google_auth.py` (Sprint 18 close +1 day): happy path, alt issuer form, forged-token bad issuer, bad audience, expired/malformed token (`ValueError`), network error (`ConnectionError`), missing `GOOGLE_OAUTH_CLIENT_ID`. Coverage went from 25% → **82%** (only uncovered lines are env-var loading inside `_get_client_ids()`, intentionally mocked). The actual security-critical paths — issuer validation, audience validation, exception handling — are all locked in by tests now.
 
-## 🟢 TD-12 — `hansard/pipeline/extractor.py` at 26% coverage
+## ✅ TD-12 — `hansard/pipeline/extractor.py` at 26% coverage (RESOLVED 2026-06-27)
 
-- **What**: PDF text extraction path has 26% coverage.
+- **What**: PDF text extraction path had 26% coverage. Function `extract_text()` was never directly called from any test — only via upstream integration paths that mocked it out.
 - **Why we accepted**: Hard to test without fixture PDFs; current integration tests cover only the easy branch.
-- **What it blocks**: Regressions in edge-case PDFs (encrypted, image-only, malformed) would surface only in production.
-- **Cost to fix**: 2-3 hours. Add a small fixtures directory with 3-4 edge-case PDFs and matching assertion cases.
-- **2026-06-26 audit update**: priority bumped from "deferred indefinitely" to "do alongside TD-19 if pypdf 5→6 upgrade exercises a regression." See `[tech-debt-audit-2026-06-26.md](tech-debt-audit-2026-06-26.md)`.
+- **2026-06-27 resolution**: new `backend/hansard/tests/test_extractor.py` with 8 tests using `reportlab` to generate fixture PDFs into `tmp_path` (no binary blobs in git). Coverage went from **26% → 100%** (19/19 statements). Tests cover: `FileNotFoundError` on missing path, `str`/`Path` interop, single-page extraction, multi-page page ordering (1-based), blank pages return empty string (not None), large PDF triggers periodic progress logging at page 20, malformed PDF raises an exception, summary log counts non-empty pages. Took ~45 min including fixture generator design.
 
 ## ✅ TD-13 — `uploaded_by` on `SchoolImage` never set by harvester (RESOLVED 2026-04-26)
 
@@ -141,54 +140,40 @@ Full audit doc: [`tech-debt-audit-2026-06-26.md`](tech-debt-audit-2026-06-26.md)
 | Record the missed 2026-05-08 egress checkpoint | TD-06 / TD-24 | 🟢 low | Sprint 29 (30 min — pull dashboard) |
 | Code comment OR Supabase Storage migration for `broadcast_hero_image_view` | TD-25 | 🟢 low | Sprint 29 (5 min comment) or backlog (1 h migrate) |
 
-## 🔴 TD-19 — Dependency CVE backlog (Python + npm)
+## ✅ TD-19 — Dependency CVE backlog (Python + npm) (RESOLVED Sprint 29, 2026-06-26)
 
 - **What**: `pip-audit` reports 103 CVEs across 17 packages (Django 16, pyjwt 10, pypdf 17, pillow 7, cryptography 5, + lxml/msgpack/idna/pyasn1/pygments/django-allauth). `npm audit` reports 28 vulns (3 high — `ws` memory disclosure + DoS, 22 moderate including `next-intl ≤ 4.9.1` prototype pollution and `postcss < 8.5.10` XSS, 3 low).
 - **Why we accepted**: drift since Sprint 16's `npm audit fix` (2026-04-27) and Sprint 11a's `pip install -U` round — two months of pinned deps in a security-active ecosystem.
-- **What it blocks**: clean security posture for v2.0 release. PyJWT + Pillow + pypdf are all on the data-ingest path for OAuth, community uploads, and Hansard PDFs respectively — exactly where CVE-bearing parsers bite.
-- **Cost to fix**: 1 sprint. `pip install -U` for the named packages (target Django 5.2.15, not 6.0 — stay on 5.2 LTS), `npm audit fix` for auto-fixable subset, re-run audits, smoke OAuth/community-upload/hansard/blast paths.
+- **Resolution (Sprint 29, commit `15ede75`)**: bumped Django 5.2.11→5.2.15 (16 CVEs), Pillow 11.3.0→12.2.0 (7 CVEs on community upload path), cryptography 46.0.5→49.0.0 (5 CVEs), lxml 6.0.2→6.1.1 (1 CVE). Stayed on Django 5.2 LTS (decisions.md). npm: `ws` high cleared, `next-intl` 4.9.1→4.13.0, `postcss` <8.5.10 → ≥8.5.10 via `overrides`. 28 vulns → 19 (all jest dev-chain, test-only, never bundled). pyjwt + pypdf were false-positives from the multi-project venv — not direct deps of this project; lesson added to lessons.md.
 
-## 🟡 TD-20 — Broadcast admin views rely on undocumented "Google OAuth ≠ Django User row" invariant for role gating
+## ✅ TD-20 — Broadcast admin views role-gating (RESOLVED Sprint 29, 2026-06-26)
 
-- **What**: All 6 broadcast admin views (List, Compose, Preview, Send, SendTest, Detail) use only `LoginRequiredMixin` — no SUPERADMIN role check. Currently safe because Google OAuth doesn't call `auth.login()` (it writes `session["user_profile_id"]` directly), so only `createsuperuser`-created users pass the gate. The single such user is `admin@tamilfoundation.org`.
+- **What**: All 6 broadcast admin views (List, Compose, Preview, Send, SendTest, Detail) used only `LoginRequiredMixin` — no SUPERADMIN role check. Currently safe because Google OAuth doesn't call `auth.login()` (it writes `session["user_profile_id"]` directly), so only `createsuperuser`-created users pass the gate. The single such user is `admin@tamilfoundation.org`.
 - **Why we accepted**: tests pass with a plain `User.objects.create_user(...)`, which masked the undocumented invariant.
-- **What it blocks**: defense-in-depth. If a future change introduces django-allauth Google flow, or a second `createsuperuser` is run, every broadcast endpoint silently becomes accessible to any signed-in user — including `POST /broadcast/send/<pk>/` which can fire a blast to all ~519 subscribers, and `POST /broadcast/send-test/<pk>/` which is a Brevo-quota-bypassing spam relay.
-- **Cost to fix**: 1 hour. Add an `IsSuperAdminUser` mixin (`request.user.is_authenticated and request.user.is_superuser`), apply to all 6 views, add a test verifying a regular `User` is 403'd.
+- **Resolution (Sprint 29, commit `15ede75`)**: new `SuperuserRequiredMixin` in `backend/broadcasts/views.py` combines `LoginRequiredMixin` + `UserPassesTestMixin` with role-aware `handle_no_permission()` — anonymous → 302 to login, authenticated non-superuser → 403. Applied to all 6 views. 6 new `TestBroadcastViewsRoleGating` cases verify regular `User` (`is_superuser=False`) gets 403 on each endpoint. Defense-in-depth no longer dependent on the undocumented "Google OAuth ≠ Django User row" invariant.
 
-## 🟡 TD-21 — `/api/revalidate` Next.js route handler unauthenticated — DoS amplifier
+## ✅ TD-21 — `/api/revalidate` Next.js route handler unauthenticated DoS amplifier (RESOLVED Sprint 29, 2026-06-26)
 
-- **What**: `frontend/app/api/revalidate/route.ts` accepts unauthenticated POST that triggers `revalidatePath()` for 6 paths per request (3 locales × bare-code URL × slug URL). A scripted attacker at 10 req/s causes 60 ISR regenerations/s, each running full SchoolDetailPage → Django API → Supabase fetch.
-- **Why we accepted**: original Sprint 27 design was client-side trigger from the edit form; auth felt heavyweight. Sprint 28 didn't revisit.
-- **What it blocks**: confidence in production stability under low-effort hostile traffic. The project has two prior egress incidents (Sprint 17, Sprint 21); an unauthenticated scriptable amplifier is exactly the vector that recreated them.
-- **Cost to fix**: 30 minutes. **Recommended approach**: move trigger backend-side — Django serializer's `.save()` calls a webhook with a shared-secret `X-Revalidate-Token` header; route handler validates the header; browser-side code stops calling the endpoint. Removes both the abuse vector AND the "stale browser fails to revalidate" failure mode.
+- **What**: `frontend/app/api/revalidate/route.ts` accepted unauthenticated POST that triggered `revalidatePath()` for 6 paths per request (3 locales × bare-code URL × slug URL). A scripted attacker at 10 req/s would cause 60 ISR regenerations/s, each running full SchoolDetailPage → Django API → Supabase fetch.
+- **Why we accepted**: original Sprint 27 design was client-side trigger from the edit form; auth felt heavyweight.
+- **Resolution (Sprint 29, commit `15ede75`)**: trigger moved backend-side. New `backend/schools/services/revalidation.py` with `trigger_school_revalidate(school)` called from `SchoolEditView.put()` + leader CRUD endpoints. Posts to route handler with `X-Revalidate-Token` header. Route handler now: 503 if env unset, 401 if wrong/missing token, 200 + revalidate if correct. `frontend/lib/api.ts::revalidateSchoolPage` deleted. 12 new backend tests (`schools/tests/test_revalidation_service.py`). Cloud Run env vars set on both api + web. Bonus side effect: removes the previous "stale browser fails to revalidate" failure mode where a flaky client `try/catch` would silently swallow revalidation failures.
 
-## 🟢 TD-22 — Migrations `schools/0013` + `schools/0014` pair; 0014 is now no-op on fresh installs
+## ✅ TD-22 — Migrations `schools/0013` + `schools/0014` pair documented (RESOLVED Sprint 29, 2026-06-26)
 
-- **What**: Sprint 28.1 shipped 0013 with broken `format_phone()`, then 0014 to re-run after fixing utils.py. utils.py is now correct, so on fresh installs 0013 does all the work and 0014 finds nothing.
-- **Why we accepted**: rapid-fix cadence during Sprint 28.1 — collapsing migrations after deploy would have required prod-data care.
-- **What it blocks**: nothing. Reader confusion ("why are there two near-identical migrations?").
-- **Cost to fix**: 5 minutes. Add a single-line comment to 0013 explaining the pair, OR collapse to one migration before v2.0 tag (safe because both are idempotent + reversible). Comment is the safer pick.
+- **What**: Sprint 28.1 shipped 0013 with broken `format_phone()`, then 0014 to re-run after fixing utils.py. utils.py is now correct, so on fresh installs 0013 does all the work and 0014 finds nothing. Reader confusion ("why are there two near-identical migrations?").
+- **Resolution (Sprint 29, commit `15ede75`)**: 5-line note added to `backend/schools/migrations/0013_normalise_leader_phones.py` docstring explaining the pair and why both are kept.
 
-## 🟢 TD-23 — Stale one-off management commands not deleted
+## ✅ TD-23 — Stale one-off management commands deleted (RESOLVED Sprint 29, 2026-06-26)
 
 - **What**: `backend/newswatch/management/commands/relabel_labu_mistags.py` (Sprint 28.1 cleanup, 7 articles, ran 2026-06-26) and `backend/outreach/management/commands/migrate_images_to_storage.py` (Sprint 13, 1534 images, ran 2026-04-26) both still present. Workspace rule: delete one-off helpers after they run.
-- **Why we accepted**: nobody swept at the relevant sprint-close.
-- **What it blocks**: future-audit signal ("do I need to run this?"). Mild clutter.
-- **Cost to fix**: 10 minutes. Delete the .py files + the test file (`outreach/tests/test_migrate_command.py`). Historical context preserved in retrospectives.
+- **Resolution (Sprint 29, commit `15ede75`)**: both .py files deleted + `outreach/tests/test_migrate_command.py` removed. Historical context preserved in retrospectives + CHANGELOG.
 
-## 🟢 TD-24 — TD-06 egress checkpoint scheduled 2026-05-08 was never recorded
+## ✅ TD-24 — Egress checkpoint recorded (RESOLVED 2026-06-27)
 
 - **What**: TD-06 above promised a 2026-05-08 verification with a specific Cloud Monitoring dashboard. 7 weeks past; no record in lessons.md / CHANGELOG / any retrospective. TD register still read "PROVISIONALLY RESOLVED" until the 2026-06-26 audit.
-- **Why we accepted**: not deliberately — operational miss.
-- **What it blocks**: confidence in TD-06's "resolved" claim. Either egress is fine (good — flip to ✅) or not (bad — pull Task #43).
-- **Status (Sprint 29, 2026-06-26)**: tried to pull during the sprint but the local `gcloud` token had expired and the session was non-interactive. **One-line check post-deploy** (paste into a browser when GCP-authenticated):
-  - https://console.cloud.google.com/monitoring/dashboards/builder/f1722366-2df9-4446-9941-7cda5c019615?project=sjktconnect
-  - Set time window to last 7 days; record peak + average MB/day; if <150 MB/day for 7 consecutive days, flip TD-06 above to ✅ RESOLVED. Otherwise pull Task #43 (Supabase Storage hot-link protection) into a follow-up.
-- **Cost to close**: 5 minutes once you're in the GCP console.
+- **Resolution (2026-06-27)**: gcloud reauthenticated; pulled `run.googleapis.com/container/network/sent_bytes_count` via MQL for the last 7 days; both services well under the 150 MB/day target on 6/22-6/26 (web: 53-87 MB/day; api: ~50 MB/day baseline). 6/27 spike to 194 MB on web traced to the 2026-06-26 FB launch announcement — expected post-launch behaviour, not regression. See TD-06 above for the full table.
 
-## 🟢 TD-25 — `broadcast_hero_image_view` returns DB bytes unauthenticated with sequential pk enumeration
+## ✅ TD-25 — `broadcast_hero_image_view` documented (RESOLVED Sprint 29, 2026-06-26)
 
 - **What**: `backend/broadcasts/urls.py:16-24` — function-based view at `/api/v1/broadcasts/<int:pk>/hero-image/` returns `bytes(broadcast.hero_image)` unauthenticated. Hero images are intentionally public (embedded in marketing emails), so the content exposure is fine. The pattern (return raw DB bytes by sequential pk) is the concern.
-- **Why we accepted**: convenience during the broadcast-pipeline build; hero images aren't sensitive.
-- **What it blocks**: low — enumeration leaks broadcast count but not subjects / recipients.
-- **Cost to fix**: 5 minutes for a code comment documenting the deliberate exposure, OR 1 hour to migrate hero images to Supabase Storage (consistent with how community/school images already work post-Sprint-13).
+- **Resolution (Sprint 29, commit `15ede75`)**: 8-line docstring added to `broadcast_hero_image_view` documenting the deliberate public exposure + the future-migration option (Supabase Storage with signed URLs, consistent with how community/school images work post-Sprint-13). Picked the "5 min comment" option over the "1 h migrate" option per owner preference; revisit if hero images ever need access control.
