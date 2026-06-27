@@ -247,6 +247,10 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
             "image_url",
             "images",
             "leaders",
+            "history",
+            "history_source_urls",
+            "history_status",
+            "history_updated_at",
         ]
 
     def get_is_claimed(self, obj):
@@ -398,6 +402,14 @@ class SchoolEditSerializer(serializers.ModelSerializer):
             "gps_verified",
             "claimed_at",
             "leaders",
+            # Sprint 31 (2026-06-27): school history (per-locale JSON +
+            # source URLs + status). All three writable by SUPERADMIN
+            # AND bound school admin. Status auto-flips to SCHOOL_REVIEWED
+            # on save by a non-SUPERADMIN; SUPERADMIN can set any status.
+            "history",
+            "history_source_urls",
+            "history_status",
+            "history_updated_at",
         ]
         # NOTE: gps_lat + gps_lng are conditionally writable — see
         # SchoolEditSerializer.update() below. They're NOT in
@@ -419,7 +431,42 @@ class SchoolEditSerializer(serializers.ModelSerializer):
             "gps_verified",
             "claimed_at",
             "leaders",
+            "history_updated_at",  # auto-managed in update()
         ]
+
+    def validate_history(self, value):
+        """history is a per-locale dict {en, ms, ta}. Strip unknowns; cap length."""
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("history must be an object {en, ms, ta}.")
+        allowed = {"en", "ms", "ta"}
+        unknown = set(value.keys()) - allowed
+        if unknown:
+            raise serializers.ValidationError(
+                f"history allows only keys en/ms/ta. Got unknown: {sorted(unknown)}"
+            )
+        for locale, text in value.items():
+            if not isinstance(text, str):
+                raise serializers.ValidationError(
+                    f"history.{locale} must be a string."
+                )
+            if len(text) > 5000:
+                raise serializers.ValidationError(
+                    f"history.{locale} too long ({len(text)} chars; max 5000)."
+                )
+        return value
+
+    def validate_history_source_urls(self, value):
+        """list of http(s) URLs. Cap length."""
+        if not isinstance(value, list):
+            raise serializers.ValidationError("history_source_urls must be a list.")
+        if len(value) > 10:
+            raise serializers.ValidationError("max 10 source URLs.")
+        for url in value:
+            if not isinstance(url, str) or not url.startswith(("http://", "https://")):
+                raise serializers.ValidationError(
+                    f"Each source URL must start with http:// or https://. Got: {url!r}"
+                )
+        return value
 
     def update(self, instance, validated_data):
         # Only SUPERADMINs may update GPS — school admins see the fields
@@ -440,6 +487,15 @@ class SchoolEditSerializer(serializers.ModelSerializer):
         if not is_superadmin:
             validated_data.pop("gps_lat", None)
             validated_data.pop("gps_lng", None)
+            # Sprint 31: non-SUPERADMIN edits flip status to SCHOOL_REVIEWED.
+            # SUPERADMIN can pass any status explicitly (incl. VERIFIED).
+            if "history" in validated_data or "history_source_urls" in validated_data:
+                validated_data.pop("history_status", None)  # ignore client value
+                validated_data["history_status"] = "SCHOOL_REVIEWED"
+        # Bump history_updated_at whenever history content changes (any role).
+        if "history" in validated_data or "history_source_urls" in validated_data:
+            from django.utils import timezone
+            validated_data["history_updated_at"] = timezone.now()
         return super().update(instance, validated_data)
 
 

@@ -129,6 +129,27 @@ class School(models.Model):
         null=True, blank=True,
         help_text="When a school admin first claimed this page via @moe.edu.my sign-in",
     )
+
+    # Sprint 31 (2026-06-27): per-locale school history / origin story.
+    # Shape: {"en": "...", "ms": "...", "ta": "..."} — any locale may be
+    # absent. Display falls back to English when current locale is empty.
+    # Status flips from UNVERIFIED → SCHOOL_REVIEWED when a bound school
+    # admin edits the field, → VERIFIED by SUPERADMIN.
+    history = models.JSONField(default=dict, blank=True)
+    history_source_urls = models.JSONField(default=list, blank=True)
+    HISTORY_STATUS_CHOICES = [
+        ("UNVERIFIED", "Unverified — drawn from public sources"),
+        ("SCHOOL_REVIEWED", "Reviewed by school admin"),
+        ("VERIFIED", "Verified by SUPERADMIN"),
+    ]
+    history_status = models.CharField(
+        max_length=20,
+        choices=HISTORY_STATUS_CHOICES,
+        default="UNVERIFIED",
+        blank=True,
+    )
+    history_updated_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

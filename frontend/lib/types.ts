@@ -64,6 +64,10 @@ export interface SchoolDetail extends School {
   bank_name: string;
   bank_account_number: string;
   bank_account_name: string;
+  history: { en?: string; ms?: string; ta?: string };
+  history_source_urls: string[];
+  history_status: "UNVERIFIED" | "SCHOOL_REVIEWED" | "VERIFIED";
+  history_updated_at: string | null;
 }
 
 export interface SchoolMention {

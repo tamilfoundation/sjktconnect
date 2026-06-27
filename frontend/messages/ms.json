@@ -146,6 +146,21 @@
     "statesLabel": "Negeri",
     "constituenciesLabel": "Kawasan Parlimen"
   },
+  "schoolHistory": {
+    "emptyHeading": "Sejarah",
+    "emptyIntro": "Bantu kami menceritakan kisah sekolah ini.",
+    "emptyBody": "Ada foto lama, tarikh penubuhan, atau kenangan tentang seorang guru besar yang dikasihi? Hubungi kami — setiap sumbangan menjadi sebahagian daripada rekod awam.",
+    "emptyContactCta": "✉ Hubungi kami",
+    "populatedHeading": "Tentang {name}",
+    "statusVerified": "Disahkan",
+    "disclaimerLabel": "Diambil daripada sumber awam.",
+    "disclaimerBody": "Belum disahkan oleh pihak sekolah.",
+    "disclaimerCta": "Tahu lebih lanjut? Bantu perbaiki →",
+    "fellBackToEnBody": "Versi dalam bahasa ini belum tersedia.",
+    "fellBackToEnCta": "Sumbangkan satu →",
+    "sourcesLabel": "Sumber",
+    "updatedFooter": "Dikemas kini oleh sekolah"
+  },
   "stats": {
     "heading": "Metrik Utama Kebangsaan",
     "totalStudents": "Murid",

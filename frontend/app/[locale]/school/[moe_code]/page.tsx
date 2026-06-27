@@ -200,8 +200,14 @@ export default async function SchoolPage({ params }: PageProps) {
           {/* News Watch */}
           <NewsWatchSection articles={newsArticles} />
 
-          {/* School History CTA */}
-          <SchoolHistory />
+          {/* School History (Sprint 31: real per-school history with 3 states) */}
+          <SchoolHistory
+            schoolName={displayName}
+            history={school.history || {}}
+            historySourceUrls={school.history_source_urls || []}
+            historyStatus={school.history_status || "UNVERIFIED"}
+            historyUpdatedAt={school.history_updated_at || null}
+          />
         </div>
 
         {/* Right column: sidebar */}

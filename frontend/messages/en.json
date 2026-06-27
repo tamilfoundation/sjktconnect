@@ -146,6 +146,21 @@
     "statesLabel": "States",
     "constituenciesLabel": "Constituencies"
   },
+  "schoolHistory": {
+    "emptyHeading": "History",
+    "emptyIntro": "Help us tell this school's story.",
+    "emptyBody": "Got an old photo, a founding date, or a memory of a beloved headmaster? Reach out — every contribution becomes part of the public record.",
+    "emptyContactCta": "✉ Contact us",
+    "populatedHeading": "About {name}",
+    "statusVerified": "Verified",
+    "disclaimerLabel": "Drawn from public sources.",
+    "disclaimerBody": "Not yet verified by the school.",
+    "disclaimerCta": "Know more? Help improve →",
+    "fellBackToEnBody": "A version in this language is not yet available.",
+    "fellBackToEnCta": "Contribute one →",
+    "sourcesLabel": "Sources",
+    "updatedFooter": "Updated by school"
+  },
   "stats": {
     "heading": "National Key Metrics",
     "totalStudents": "Students",
