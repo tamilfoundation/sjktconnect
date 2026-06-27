@@ -149,6 +149,10 @@ class School(models.Model):
         blank=True,
     )
     history_updated_at = models.DateTimeField(null=True, blank=True)
+    # Sprint 31 follow-up: 3-5 pivotal milestones per locale, rendered as
+    # compact pills above the prose for skimmers. Shape:
+    # {"en": ["1946 founded", "..."], "ms": ["1946 ditubuhkan", "..."]}
+    history_key_dates = models.JSONField(default=dict, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

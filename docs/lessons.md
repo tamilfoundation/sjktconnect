@@ -2,6 +2,9 @@
 
 Cross-cutting lessons from SJK(T) Connect development. Project-specific decisions live in CLAUDE.md.
 
+- **Never diagnose Next.js page render via curl alone**: Next.js `redirect()` from a Server Component returns an HTML *shell* page (~500 chars, navigation only) that triggers client-side navigation, NOT an HTTP 30x. curl sees `200 OK` + small body and a careless reader concludes "render failed". Use Playwright (executes JS, follows the redirect) or curl the *canonical* URL directly. If you must inspect via curl, `curl -L` doesn't help (the shell isn't a 30x) — look for the shell pattern (no `<h1>`, no real content) instead of relying on body size. (Sprint 31)
+- **Before any production rollback, write the falsifiable hypothesis**: "if I roll back to revision X, the page renders >2000 chars; if it still renders <500, the bug is downstream of code." If the first rollback falsifies the hypothesis, STOP and re-diagnose — don't keep rolling back hoping for a different result. Sprint 17's lesson ("retrospectives that claim work is done aren't proof") has a sibling: "rollbacks that don't fix the symptom mean the diagnosis was wrong, not that you need to roll back further." (Sprint 31)
+
 - Hoisting constants out of loop bodies (regex patterns, sets) is easy to miss during initial development — run a simplification pass after each feature sprint (Sprint 0.3)
 - Signal handlers that resolve settings on every fire (e.g. `_get_tracked_models()`) can be silently expensive — cache at module level when the setting doesn't change at runtime (Sprint 0.3)
 - f-string logging (`logger.warning(f"...")`) defeats lazy evaluation — always use `%s` style for log messages (Sprint 0.3)

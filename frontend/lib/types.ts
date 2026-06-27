@@ -68,6 +68,7 @@ export interface SchoolDetail extends School {
   history_source_urls: string[];
   history_status: "UNVERIFIED" | "SCHOOL_REVIEWED" | "VERIFIED";
   history_updated_at: string | null;
+  history_key_dates: { en?: string[]; ms?: string[]; ta?: string[] };
 }
 
 export interface SchoolMention {

@@ -153,13 +153,13 @@
     "emptyContactCta": "✉ எங்களைத் தொடர்பு கொள்ளுங்கள்",
     "populatedHeading": "{name} பற்றி",
     "statusVerified": "சரிபார்க்கப்பட்டது",
-    "disclaimerLabel": "பொது மூலங்களிலிருந்து எடுக்கப்பட்டது.",
-    "disclaimerBody": "பள்ளியால் இன்னும் சரிபார்க்கப்படவில்லை.",
-    "disclaimerCta": "மேலும் தெரியுமா? மேம்படுத்த உதவுங்கள் →",
+    "disclaimerNoSource": "பொது மூலங்களிலிருந்து எடுக்கப்பட்டது",
+    "notVerified": "பள்ளியால் இன்னும் சரிபார்க்கப்படவில்லை.",
+    "helpImprove": "மேம்படுத்த உதவுங்கள் →",
     "fellBackToEnBody": "இந்த மொழியில் ஒரு பதிப்பு இன்னும் கிடைக்கவில்லை.",
     "fellBackToEnCta": "ஒன்றை பங்களியுங்கள் →",
-    "sourcesLabel": "மூலங்கள்",
-    "updatedFooter": "பள்ளியால் புதுப்பிக்கப்பட்டது"
+    "sourcesLabel": "மூலம்",
+    "updatedFooter": "புதுப்பிக்கப்பட்டது"
   },
   "stats": {
     "heading": "தேசிய முக்கிய அளவீடுகள்",

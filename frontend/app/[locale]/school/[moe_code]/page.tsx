@@ -190,24 +190,39 @@ export default async function SchoolPage({ params }: PageProps) {
 
       {/* Main content: two-column layout on desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left column: main content */}
+        {/* Left column: main content. When history is populated, the
+            origin-story sits above School Details — it's the most unique
+            content per school, and lifts both reader engagement and the
+            page's signal-to-noise for crawlers. Empty-state stays at the
+            bottom (no point promoting a placeholder above the address). */}
         <div className="lg:col-span-2 space-y-6">
+          {school.history && Object.values(school.history).some((v) => v && v.trim()) && (
+            <SchoolHistory
+              schoolName={displayName}
+              history={school.history || {}}
+              historySourceUrls={school.history_source_urls || []}
+              historyStatus={school.history_status || "UNVERIFIED"}
+              historyUpdatedAt={school.history_updated_at || null}
+              historyKeyDates={school.history_key_dates || {}}
+            />
+          )}
+
           <SchoolProfile school={school} />
 
-          {/* Parliament Watch Mentions */}
           <MentionsSection mentions={mentions} />
 
-          {/* News Watch */}
           <NewsWatchSection articles={newsArticles} />
 
-          {/* School History (Sprint 31: real per-school history with 3 states) */}
-          <SchoolHistory
-            schoolName={displayName}
-            history={school.history || {}}
-            historySourceUrls={school.history_source_urls || []}
-            historyStatus={school.history_status || "UNVERIFIED"}
-            historyUpdatedAt={school.history_updated_at || null}
-          />
+          {(!school.history || !Object.values(school.history).some((v) => v && v.trim())) && (
+            <SchoolHistory
+              schoolName={displayName}
+              history={school.history || {}}
+              historySourceUrls={school.history_source_urls || []}
+              historyStatus={school.history_status || "UNVERIFIED"}
+              historyUpdatedAt={school.history_updated_at || null}
+              historyKeyDates={school.history_key_dates || {}}
+            />
+          )}
         </div>
 
         {/* Right column: sidebar */}

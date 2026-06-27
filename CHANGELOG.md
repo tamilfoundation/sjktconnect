@@ -1,5 +1,44 @@
 # Changelog
 
+## Sprint 31 — Per-school history / origin story (closed 2026-06-27)
+
+**Goal**: every school detail page invited contributions for "History & Story" since Sprint 1.10, but 100% of the 528 entries were still blank. Owner wanted a public-source backfill (Wikipedia ms-wiki) so the section showed something while we wait for school-admin curation. Shipped end-to-end: schema, research, AI-restructure, display.
+
+### Added
+
+- **Per-school history schema** (migrations `schools/0015`, `schools/0016`): 5 new fields on `School`.
+  - `history` — JSONField, per-locale dict `{en?, ms?, ta?}` of prose
+  - `history_source_urls` — JSONField list (e.g. Wikipedia URLs)
+  - `history_status` — choice `UNVERIFIED` / `SCHOOL_REVIEWED` / `VERIFIED` (auto-flips from UNVERIFIED → SCHOOL_REVIEWED when a non-SUPERADMIN admin saves; SUPERADMIN can set any)
+  - `history_updated_at` — DateTime auto-bumped on history change
+  - `history_key_dates` — JSONField, per-locale dict of compact pill phrases (e.g. `{"en": ["1946 founded", "1954 named by Nehru"], "ms": [...]}`)
+- **API**: 5 fields exposed on `SchoolDetailSerializer`; writable through `SchoolEditSerializer` (with `validate_history` per-locale dict-of-strings cap, `validate_history_source_urls` max-10 http(s) list, conditional status flip in `.update()`).
+- **Public display**: rewritten `SchoolHistory` component with 3 render states (empty CTA / fellback-to-en banner / populated). Populated state renders heading → prose paragraphs → pills row → single-line provenance footer (`Source: Wikipedia (ms) — Help improve →` for UNVERIFIED with source, `Drawn from public sources — Help improve →` for UNVERIFIED without source). Conditional placement in `app/[locale]/school/[moe_code]/page.tsx` — history renders **above** School Details when populated (most-unique content first for both readers and crawlers); falls back to bottom-of-column when empty so the placeholder doesn't crowd the address.
+- **Bulk-import command** `python manage.py seed_school_histories --file <results.json> [--dir <dir>] [--dry-run] [--force]`. Skips human-curated (`SCHOOL_REVIEWED` / `VERIFIED`) by default; `--force` overrides.
+- **i18n**: new `schoolHistory` namespace × 3 locales (en/ms/ta).
+- **Tests**: `backend/schools/tests/test_school_history.py` (18 tests — serialiser validation, status flip, force-overwrite); `frontend/__tests__/components/SchoolHistory.test.tsx` (11 tests — 3 render states, pills, fallback).
+
+### Backfill (72 / 528 schools — 14% coverage)
+
+- **Research**: scraped `ms.wikipedia.org/wiki/Kategori:Sekolah_jenis_kebangsaan_Tamil_di_Malaysia` + 11 state subcategories. 461 schools had an article; 72 had extractable history (Sejarah heading + lead paragraphs combined); 389 are stubs; 67 had no article.
+- **Restructure pass**: Gemini 2.5 Flash for cleanup (raw Malay → 2-paragraph 75-100-word per-locale prose + 3-5 key-date pills, en + ms). Owner-approved Azad sample first, then bulk on remaining 71 — 0 failures. Cost ~US$0.50.
+- **Tamil locale intentionally not seeded** (per `tamil-style-guide.md` rigour — Tamil content needs owner review).
+- **Status: UNVERIFIED** for all 72 so school admins / SUPERADMIN can review and approve.
+
+### Changed
+
+- Public page layout: history now above School Details on the 72 populated schools; placeholder stays at bottom on the other 456.
+
+### Live
+
+- api `sjktconnect-api-00137-z5g`, web `sjktconnect-web-00145-tmc` (final pills-below + smaller-pill + dropped-not-verified iteration), 7/7 jobs synced to api.
+
+### Live URL examples
+
+- https://tamilschool.org/en/school/azad-georgetown-pbd1082 (Penang)
+- https://tamilschool.org/en/school/tampin-tampin-nbd5029 (Negeri Sembilan)
+- https://tamilschool.org/en/school/PBD1085 (Ramakrishna, Penang — redirects to canonical slug)
+
 ## v2.0.1 (2026-06-26) — v2.0 series complete (cumulative cleanup)
 
 Release tag superseding the earlier v2.0 (which covered Sprint 23+24 only). v2.0.1 adds Sprint 25 → Sprint 29 + 2026-06-26 small-change-lane. Full notes: [`docs/release-notes-v2.0.1.md`](docs/release-notes-v2.0.1.md). Headline themes: broadcast pipeline reliability (Sprint 23 + News Digest Stuck-Loop Fix), news matcher consults its own alias table (Sprint 24), school page UX bug-bash (Sprint 26/27), SEO-friendly URL slugs (Sprint 28), GPS/TIADA/phone normalisation fixes (Sprint 28.1), security & dependency refresh closing 103 Python + 28 npm CVEs and adding explicit role gates (Sprint 29), Cloudflare 301s for 148 legacy 404 URLs (small-change-lane).

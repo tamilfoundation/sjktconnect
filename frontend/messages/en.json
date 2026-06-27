@@ -153,13 +153,13 @@
     "emptyContactCta": "✉ Contact us",
     "populatedHeading": "About {name}",
     "statusVerified": "Verified",
-    "disclaimerLabel": "Drawn from public sources.",
-    "disclaimerBody": "Not yet verified by the school.",
-    "disclaimerCta": "Know more? Help improve →",
+    "disclaimerNoSource": "Drawn from public sources",
+    "notVerified": "not yet verified by the school.",
+    "helpImprove": "Help improve →",
     "fellBackToEnBody": "A version in this language is not yet available.",
     "fellBackToEnCta": "Contribute one →",
-    "sourcesLabel": "Sources",
-    "updatedFooter": "Updated by school"
+    "sourcesLabel": "Source",
+    "updatedFooter": "Updated"
   },
   "stats": {
     "heading": "National Key Metrics",

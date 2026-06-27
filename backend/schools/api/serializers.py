@@ -251,6 +251,7 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
             "history_source_urls",
             "history_status",
             "history_updated_at",
+            "history_key_dates",
         ]
 
     def get_is_claimed(self, obj):
@@ -410,6 +411,7 @@ class SchoolEditSerializer(serializers.ModelSerializer):
             "history_source_urls",
             "history_status",
             "history_updated_at",
+            "history_key_dates",
         ]
         # NOTE: gps_lat + gps_lng are conditionally writable — see
         # SchoolEditSerializer.update() below. They're NOT in

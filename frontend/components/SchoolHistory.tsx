@@ -1,18 +1,19 @@
 "use client";
 
 /**
- * Sprint 31 (2026-06-27): School history / origin story.
+ * School history / origin story.
  *
- * Three render states:
- *   1. Empty   — no history in any locale. Show contribution CTA.
- *   2. UNVERIFIED — content present (drawn from public sources e.g. Wikipedia).
- *                   Show amber disclaimer banner + sources line.
- *   3. SCHOOL_REVIEWED / VERIFIED — content present, school-approved.
- *                                   No disclaimer. Show "Verified" badge for VERIFIED.
- *                                   Show "Updated by school admin · <date>" footer.
+ * Render states:
+ *   1. Empty — no history in any locale. Contribution CTA.
+ *   2. Populated — pills (key dates) + prose paragraphs + contextual
+ *      provenance footer ("Source: X — not yet verified. Help improve →"
+ *      when UNVERIFIED, or "Drawn from public sources — not yet verified"
+ *      when status is UNVERIFIED but no source URL recorded).
+ *      SCHOOL_REVIEWED / VERIFIED suppress the "not verified" suffix and
+ *      VERIFIED adds a small badge by the heading.
  *
- * Per-locale: text picked by current locale (en/ms/ta); falls back to en if
- * current locale empty; shows "translate this" CTA when fallback in use.
+ * Per-locale: text + key_dates picked by current locale (en/ms/ta);
+ * falls back to en if current locale empty.
  */
 
 import { useTranslations, useLocale } from "next-intl";
@@ -23,6 +24,7 @@ interface SchoolHistoryProps {
   historySourceUrls: string[];
   historyStatus: "UNVERIFIED" | "SCHOOL_REVIEWED" | "VERIFIED";
   historyUpdatedAt: string | null;
+  historyKeyDates?: { en?: string[]; ms?: string[]; ta?: string[] };
 }
 
 type Locale = "en" | "ms" | "ta";
@@ -38,11 +40,21 @@ function pickText(
   return { text: "", fellBackToEn: false };
 }
 
+function pickKeyDates(
+  keyDates: { en?: string[]; ms?: string[]; ta?: string[] } | undefined,
+  locale: Locale,
+): string[] {
+  if (!keyDates) return [];
+  const native = keyDates[locale];
+  if (native && native.length) return native;
+  return keyDates.en || [];
+}
+
 function sourceLabel(url: string): string {
   try {
     const host = new URL(url).hostname.replace(/^www\./, "");
     if (host.endsWith("wikipedia.org")) {
-      const lang = host.split(".")[0]; // "en" / "ms" / "ta"
+      const lang = host.split(".")[0];
       return `Wikipedia (${lang})`;
     }
     return host;
@@ -57,12 +69,13 @@ export default function SchoolHistory({
   historySourceUrls,
   historyStatus,
   historyUpdatedAt,
+  historyKeyDates,
 }: SchoolHistoryProps) {
   const t = useTranslations("schoolHistory");
   const locale = useLocale() as Locale;
   const { text, fellBackToEn } = pickText(history, locale);
+  const keyDates = pickKeyDates(historyKeyDates, locale);
 
-  // State 1: empty — placeholder + contribution CTA
   if (!text) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -81,11 +94,8 @@ export default function SchoolHistory({
     );
   }
 
-  // States 2 + 3: content present
-  const showDisclaimer = historyStatus === "UNVERIFIED";
+  const isUnverified = historyStatus === "UNVERIFIED";
   const isVerified = historyStatus === "VERIFIED";
-
-  // Render paragraphs (split on double newline; fall back to single para)
   const paragraphs = text
     .split(/\n\s*\n/)
     .map((p) => p.trim())
@@ -107,24 +117,6 @@ export default function SchoolHistory({
         )}
       </div>
 
-      {showDisclaimer && (
-        <div className="bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mb-4 flex items-start gap-2">
-          <svg className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <p className="text-xs text-amber-900 leading-relaxed">
-            <strong>{t("disclaimerLabel")}</strong>{" "}
-            {t("disclaimerBody")}{" "}
-            <a
-              href={`mailto:info@tamilfoundation.org?subject=${encodeURIComponent(`History correction — ${schoolName}`)}`}
-              className="font-medium text-amber-900 underline hover:text-amber-700"
-            >
-              {t("disclaimerCta")}
-            </a>
-          </p>
-        </div>
-      )}
-
       {fellBackToEn && (
         <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 mb-4">
           <p className="text-xs text-blue-900">
@@ -145,37 +137,64 @@ export default function SchoolHistory({
         ))}
       </div>
 
-      {historySourceUrls.length > 0 && (
-        <div className="mt-5 pt-4 border-t border-gray-100">
-          <p className="text-xs text-gray-500">
-            <span className="font-medium">{t("sourcesLabel")}:</span>{" "}
-            {historySourceUrls.map((url, i) => (
-              <span key={url}>
-                {i > 0 && " · "}
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary-600 hover:text-primary-800 underline"
-                >
-                  {sourceLabel(url)}
-                </a>
-              </span>
-            ))}
-          </p>
+      {keyDates.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-4">
+          {keyDates.map((d, i) => (
+            <span
+              key={i}
+              className="inline-block text-[11px] font-medium text-primary-700 bg-primary-50 border border-primary-100 px-2 py-0.5 rounded-full"
+            >
+              {d}
+            </span>
+          ))}
         </div>
       )}
 
-      {historyUpdatedAt && historyStatus !== "UNVERIFIED" && (
-        <p className="mt-2 text-xs text-gray-400">
-          {t("updatedFooter")} ·{" "}
-          {new Date(historyUpdatedAt).toLocaleDateString(locale, {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
+      <div className="mt-5 pt-4 border-t border-gray-100">
+        <p className="text-xs text-gray-500">
+          {historySourceUrls.length > 0 ? (
+            <>
+              <span className="font-medium">{t("sourcesLabel")}:</span>{" "}
+              {historySourceUrls.map((url, i) => (
+                <span key={url}>
+                  {i > 0 && " · "}
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary-600 hover:text-primary-800 underline"
+                  >
+                    {sourceLabel(url)}
+                  </a>
+                </span>
+              ))}
+            </>
+          ) : (
+            isUnverified && <span>{t("disclaimerNoSource")}</span>
+          )}
+          {isUnverified && (
+            <>
+              {" — "}
+              <a
+                href={`mailto:info@tamilfoundation.org?subject=${encodeURIComponent(`History correction — ${schoolName}`)}`}
+                className="text-primary-600 hover:text-primary-800 underline"
+              >
+                {t("helpImprove")}
+              </a>
+            </>
+          )}
+          {historyUpdatedAt && !isUnverified && (
+            <>
+              {historySourceUrls.length > 0 ? " · " : ""}
+              {t("updatedFooter")}{" "}
+              {new Date(historyUpdatedAt).toLocaleDateString(
+                locale === "ms" ? "ms-MY" : locale === "ta" ? "ta-MY" : "en-MY",
+                { year: "numeric", month: "long", day: "numeric" },
+              )}
+            </>
+          )}
         </p>
-      )}
+      </div>
     </div>
   );
 }

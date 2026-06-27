@@ -153,13 +153,13 @@
     "emptyContactCta": "✉ Hubungi kami",
     "populatedHeading": "Tentang {name}",
     "statusVerified": "Disahkan",
-    "disclaimerLabel": "Diambil daripada sumber awam.",
-    "disclaimerBody": "Belum disahkan oleh pihak sekolah.",
-    "disclaimerCta": "Tahu lebih lanjut? Bantu perbaiki →",
+    "disclaimerNoSource": "Diambil daripada sumber awam",
+    "notVerified": "belum disahkan oleh pihak sekolah.",
+    "helpImprove": "Bantu perbaiki →",
     "fellBackToEnBody": "Versi dalam bahasa ini belum tersedia.",
     "fellBackToEnCta": "Sumbangkan satu →",
     "sourcesLabel": "Sumber",
-    "updatedFooter": "Dikemas kini oleh sekolah"
+    "updatedFooter": "Dikemas kini"
   },
   "stats": {
     "heading": "Metrik Utama Kebangsaan",
