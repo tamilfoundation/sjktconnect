@@ -38,7 +38,12 @@ export default function PhotoLightbox({
   schoolName,
 }: PhotoLightboxProps) {
   const slides = images.map((img) => {
-    const sourceLabel = SOURCE_LABELS[img.source] || img.source;
+    // For COMMUNITY uploads with a known contributor, show the contributor
+    // name instead of the generic "Community upload" label.
+    const sourceLabel =
+      img.source === "COMMUNITY" && img.uploaded_by_name
+        ? `Uploaded by ${img.uploaded_by_name}`
+        : SOURCE_LABELS[img.source] || img.source;
     const descriptionParts = [
       img.caption,
       img.attribution ? `${sourceLabel} — ${img.attribution}` : sourceLabel,

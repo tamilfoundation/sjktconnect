@@ -129,9 +129,16 @@ class SchoolImageSerializer(serializers.Serializer):
     is_primary = serializers.BooleanField()
     attribution = serializers.CharField()
     caption = serializers.CharField()
+    uploaded_by_name = serializers.SerializerMethodField()
 
     def get_image_url(self, obj):
         return obj.display_url
+
+    def get_uploaded_by_name(self, obj):
+        """Display name of the contributor for COMMUNITY uploads (None for harvested rows)."""
+        if obj.uploaded_by_id and obj.uploaded_by:
+            return obj.uploaded_by.display_name or None
+        return None
 
 
 class SchoolLeaderSerializer(serializers.ModelSerializer):

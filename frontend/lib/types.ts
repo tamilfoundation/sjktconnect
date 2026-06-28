@@ -29,6 +29,7 @@ export interface SchoolImageData {
   is_primary: boolean;
   attribution: string;
   caption: string;
+  uploaded_by_name?: string | null;
 }
 
 export interface SchoolLeader {
