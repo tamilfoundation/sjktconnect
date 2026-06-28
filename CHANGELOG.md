@@ -1,5 +1,17 @@
 # Changelog
 
+## Sprint 31.1 — Tamil backfill + Tamil-Wikipedia batch + command extension (2026-06-28)
+
+Follow-up to Sprint 31. Three pieces shipped same day:
+
+- **Tamil-Wikipedia sourced histories (20 schools)**: scraped + Gemini-restructured 20 more schools whose origin stories were richer on `ta.wikipedia.org` than on ms-wiki. 15 new full pushes + 4 partial (existing en/ms preserved when comparable; Tamil added) + 1 replace where the new source corrected a factual error (PBD4023 Ladang Byram founding year corrected 1948 → 1905, with named founder Francis Edward McGuire). Schools: KBD3094 (Saraswathy Sungai Petani — first end-to-end test 2026-06-27), MBD0061, ABD1092, ABD2159 (Kerajaan), RBD0053 (Kangar — only Tamil school in Perlis), ABD2175, ABD2161 (Sangeetha Saba replace), KBD4050, WBD0174 (San Peng), PBD4030, ABD6102 (St Teresa Taiping), CBD4051 (Indera Mahkota), ABD2160 (St Philomena), PBD2076 (Mak Mandin), ABD2163 (Methodist Buntong), BBD8458 (Vivekananda PJ), PBD4023 (Byram), and 4 Tamil-only adds: NBD4069 (Convent Seremban), BBD8454 (Puchong), NBD4070 (Lorong Java), plus PBD1082 Azad.
+- **Tamil backfill for the 67 ms-Wikipedia-sourced rows**: owner-approved policy flip — the original Sprint 31 rule was "Tamil intentionally NOT AI-generated; needs owner review" (per `tamil-style-guide.md`), but with all 87 populated rows showing en+ms only and zero owner-curated Tamil after a day live, the trade-off was reconsidered: AI Tamil now, status stays UNVERIFIED, owner / school admins flag any awkward Tamil at review. Gemini 2.5 Flash translated en + ms → 75-100w Tamil prose + 3-5 key date pills per row.
+- **`seed_school_histories` extended** to handle `history_ta` + `key_dates_ta` so future batches don't need the shell-patch workaround.
+
+**Coverage now: 87 / 528 schools (16.5%) — all 87 with full en + ms + ta + key dates + source URL.** All UNVERIFIED — awaiting school admin / SUPERADMIN review.
+
+Live: api `sjktconnect-api-00137-z5g` (no api deploy needed — schema unchanged from Sprint 31 close), web `sjktconnect-web-00148-59t`.
+
 ## Sprint 31 — Per-school history / origin story (closed 2026-06-27)
 
 **Goal**: every school detail page invited contributions for "History & Story" since Sprint 1.10, but 100% of the 528 entries were still blank. Owner wanted a public-source backfill (Wikipedia ms-wiki) so the section showed something while we wait for school-admin curation. Shipped end-to-end: schema, research, AI-restructure, display.

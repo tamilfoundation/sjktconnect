@@ -125,13 +125,19 @@ class Command(BaseCommand):
                 stats["skipped_no_content"] += 1
                 continue
 
-            # Build the per-locale history dict (skip empty strings)
+            # Build the per-locale history dict (skip empty strings).
+            # Sprint 31.1 (2026-06-28): Tamil now allowed too. Originally
+            # excluded per tamil-style-guide; owner-approved policy flip
+            # backfilled the ~70 ms-Wikipedia-sourced rows + future Tamil-
+            # Wikipedia sourced batches. All entries stay UNVERIFIED so
+            # owner / school admin can flag awkward Tamil.
             history = {}
             if entry.get("history_en", "").strip():
                 history["en"] = entry["history_en"].strip()
             if entry.get("history_ms", "").strip():
                 history["ms"] = entry["history_ms"].strip()
-            # Tamil intentionally not seeded (per tamil-style-guide rigour)
+            if entry.get("history_ta", "").strip():
+                history["ta"] = entry["history_ta"].strip()
 
             if not history:
                 stats["skipped_empty_after_clean"] += 1
@@ -143,12 +149,14 @@ class Command(BaseCommand):
                 key_dates["en"] = entry["key_dates_en"]
             if entry.get("key_dates_ms"):
                 key_dates["ms"] = entry["key_dates_ms"]
+            if entry.get("key_dates_ta"):
+                key_dates["ta"] = entry["key_dates_ta"]
 
             if dry_run:
+                locales = "+".join(sorted(history.keys()))
                 self.stdout.write(
                     f"  [DRY] {moe} {school.short_name[:45]:45} "
-                    f"+history({'en' if 'en' in history else ''}"
-                    f"{'+ms' if 'ms' in history else ''}) "
+                    f"+history({locales}) "
                     f"sources={len(source_urls)} "
                     f"key_dates={sum(len(v) for v in key_dates.values())}"
                 )

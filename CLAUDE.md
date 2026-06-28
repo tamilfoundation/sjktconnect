@@ -274,13 +274,15 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
-**Sprint 31 ✅ closed 2026-06-27 — Per-school history / origin story.** Schema (migrations 0015 + 0016) + 3-state SchoolHistory display with conditional placement (above School Details when populated) + bulk-import command + Gemini-restructured Wikipedia backfill for 72 / 528 schools (14%). All UNVERIFIED — awaiting school-admin review. Live: api `00137-z5g`, web `00145-tmc`. Retro at `docs/retrospective-sprint31.md`. Key lesson: never diagnose Next.js render via curl alone — `redirect()` returns a JS-only shell that curl reads as "empty" (now in `docs/lessons.md`).
+**Sprint 31.1 ✅ closed 2026-06-28 — Tamil-Wikipedia batch + Tamil backfill + command extension.** 20 more schools sourced from `ta.wikipedia.org` (15 new full + 4 Tamil-only adds + 1 replace where Tamil source corrected an ms-wiki factual error on PBD4023 Byram). 67 ms-Wikipedia-sourced rows backfilled with AI Tamil (owner-approved flip of the original "no AI Tamil" rule — status stays UNVERIFIED for review). `seed_school_histories` extended to accept ta fields. Coverage now **87 / 528 (16.5%) — all 87 with full en + ms + ta**. Live: api `00137-z5g` (unchanged), web `00148-59t`.
 
-### Post-Sprint-31 backlog (small-change-lane eligible)
+**Sprint 31 ✅ closed 2026-06-27 — Per-school history / origin story.** Schema (migrations 0015 + 0016) + 3-state SchoolHistory display with conditional placement (above School Details when populated) + bulk-import command + Gemini-restructured Wikipedia backfill for 72 / 528 schools (14%). Retro at `docs/retrospective-sprint31.md`. Key lesson: never diagnose Next.js render via curl alone — `redirect()` returns a JS-only shell that curl reads as "empty" (now in `docs/lessons.md`).
 
-- **More history coverage**: 389 schools still have stub Wikipedia articles. A future pass could try other sources (state Tamil education websites, news archive mining, alumni FB groups) — owner-driven, not scheduled.
-- **Tamil locale (`history` + `history_key_dates` ta keys)**: intentionally empty per `tamil-style-guide.md` — needs owner-curated translation, not Gemini. Park until requested.
-- **Add 2 pills-branch tests** to `SchoolHistory.test.tsx` (test file lost its pills coverage during the mid-sprint revert/restore — file restored from pre-pills commit). Small-change-lane.
+### Post-Sprint-31.1 backlog (small-change-lane eligible)
+
+- **More history coverage**: 389 schools still have stub or no Wikipedia articles. Future passes could try other sources (state Tamil education websites, news archive mining, alumni FB groups) — owner-driven, not scheduled.
+- **Tamil quality pass**: 87 schools now carry AI-translated Tamil (UNVERIFIED). Owner / school admins should sweep for awkward phrasing — flag via the existing edit flow, status auto-flips to SCHOOL_REVIEWED.
+- **Add 2 pills-branch tests** to `SchoolHistory.test.tsx` (test file lost its pills coverage during Sprint 31's mid-sprint revert/restore).
 
 **Sprint 29 ✅ closed 2026-06-26 — Security & Dependency Refresh.** Driven by the 2026-06-26 TD audit (`docs/tech-debt-audit-2026-06-26.md`). Closes TD-19 (Django 5.2.15 / Pillow 12.2 / cryptography 49 / lxml 6.1; ws/next-intl/postcss on the npm side), TD-20 (broadcast views now SUPERADMIN-gated via `SuperuserRequiredMixin`), TD-21 (revalidate route now requires `X-Revalidate-Token`; backend triggers via `schools/services/revalidation.py`), TD-22/23/25 (cleanups). TD-24 deferred to user (gcloud auth expired non-interactively — 1-line dashboard check post-deploy). 1436 backend (+12) + 367 frontend. Sprint 30 next.
 
@@ -335,12 +337,13 @@ The original 2026-05-11 roadmap had S27=Auth/Profile, S28=Egress R3, S29=Persona
 
 **Release + folder-move sequencing**: Sprint 24 closed without the v2.0 tag (deferred to a separate release workflow). v2.0 release notes will cover Recovery Cut (Sprint 23) + Quality Overhaul (Sprint 24) + Urgent/PW UI (Sprint 25) as one narrative. After S29 close, run `project-complete` workflow + move `Development/SJKTConnect/` → `Production/SJKTConnect/`.
 
-### Current codebase state (Sprint 31 closed, 2026-06-27)
+### Current codebase state (Sprint 31.1 follow-up, 2026-06-28)
 
-- **Prod API**: `sjktconnect-api-00137-z5g` (Sprint 31 — applied migrations schools/0015, 0016 on startup; serves 5 new history_* fields).
-- **Prod web**: `sjktconnect-web-00145-tmc` (Sprint 31 — 3-state SchoolHistory component, conditional placement, pills, single-line provenance footer).
+- **Prod API**: `sjktconnect-api-00137-z5g` (Sprint 31 schema — schools/0015 + 0016 with 5 history_* fields). Sprint 31.1 follow-up = no schema change.
+- **Prod web**: `sjktconnect-web-00148-59t` (Sprint 31 component + Sprint 31.1 ISR busts for fresh content).
 - **Tests**: 1442 backend (+18 Sprint 31) + 378 frontend (+11 Sprint 31).
-- **School history backfill**: 72 / 528 schools (14%) have UNVERIFIED Wikipedia-sourced history with en + ms paragraphs + key-date pills. 456 schools show the empty-state placeholder.
+- **School history backfill**: **87 / 528 schools (16.5%) — all 87 with en + ms + ta + key dates + source URL.** All UNVERIFIED. Sprint 31.1 owner-approved policy flip: AI Tamil now allowed (was originally "owner-only"); awkward Tamil flagged on review.
+- **`seed_school_histories` command**: extended Sprint 31.1 to accept `history_ta` + `key_dates_ta`; future batches don't need shell-patch workaround.
 - **Scheduler state**: ALL four enabled.
   - `sjktconnect-monthly-blast` **ENABLED** (`0 9 1 * *` MYT) — un-paused 2026-06-26; June 2026 blast auto-fires 1 Jul 09:00 MYT.
   - `sjktconnect-fortnightly-digest` ENABLED (weekly cron; 14-day coverage guard enforces fortnight cadence).
