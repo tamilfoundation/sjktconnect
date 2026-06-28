@@ -1,5 +1,6 @@
 """DRF serializers for School, Constituency, and DUN models."""
 
+import re
 from decimal import Decimal, ROUND_HALF_UP
 
 from rest_framework import serializers
@@ -135,10 +136,18 @@ class SchoolImageSerializer(serializers.Serializer):
         return obj.display_url
 
     def get_uploaded_by_name(self, obj):
-        """Display name of the contributor for COMMUNITY uploads (None for harvested rows)."""
-        if obj.uploaded_by_id and obj.uploaded_by:
-            return obj.uploaded_by.display_name or None
-        return None
+        """Display name of the contributor for COMMUNITY uploads (None for harvested rows).
+
+        Strips trailing ` KPM-<role>` suffix that MOE-DL Google accounts carry
+        (e.g. `KPM-Guru` for teachers, `KPM-Murid` for pupils) — that's an
+        organisational tag, not part of the human name.
+        """
+        if not (obj.uploaded_by_id and obj.uploaded_by):
+            return None
+        name = (obj.uploaded_by.display_name or "").strip()
+        if not name:
+            return None
+        return re.sub(r"\s+KPM-\S+\s*$", "", name).strip() or None
 
 
 class SchoolLeaderSerializer(serializers.ModelSerializer):

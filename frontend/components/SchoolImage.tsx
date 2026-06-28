@@ -114,10 +114,14 @@ export default function SchoolPhotoGallery({
           </div>
         )}
 
-        {/* Thumbnail strip overlaid at bottom-left */}
+        {/* Thumbnail strip overlaid at bottom-left. Shows up to 5; when
+            there are 6+ photos the "View all" overlay (above) lets users
+            jump into the lightbox. Before the bump to 5 (2026-06-28) a
+            school with exactly 5 photos had its 5th silently dropped —
+            the slice cut at 4 and the View-all overlay only fired at >5. */}
         {photoList.length > 1 && (
           <div className="absolute bottom-3 left-3 flex gap-2">
-            {photoList.slice(0, 4).map((img, i) => (
+            {photoList.slice(0, 5).map((img, i) => (
               <button
                 key={img.id || i}
                 onClick={(e) => {

@@ -10,6 +10,7 @@ export interface UserProfile {
   points: number;
   is_active: boolean;
   email: string;
+  pending_moderation_count?: number;
 }
 
 /** Send Google ID token to backend, get/create UserProfile */

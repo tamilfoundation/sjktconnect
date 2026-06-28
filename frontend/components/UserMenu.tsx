@@ -58,12 +58,14 @@ export default function UserMenu() {
   const avatarUrl = profile?.avatar_url || session.user?.image || "";
   const displayName = profile?.display_name || session.user?.name || "";
   const role = profile?.role || "USER";
+  const pendingCount = profile?.pending_moderation_count ?? 0;
 
   return (
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 text-sm"
+        className="relative flex items-center gap-2 text-sm"
+        aria-label={pendingCount > 0 ? `${pendingCount} pending review` : "Account menu"}
       >
         {avatarUrl ? (
           <img
@@ -76,6 +78,14 @@ export default function UserMenu() {
           <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-medium">
             {displayName.charAt(0).toUpperCase()}
           </div>
+        )}
+        {pendingCount > 0 && (
+          <span
+            className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[11px] font-semibold leading-[18px] text-center border-2 border-white"
+            aria-hidden="true"
+          >
+            {pendingCount > 99 ? "99+" : pendingCount}
+          </span>
         )}
       </button>
 
@@ -97,6 +107,18 @@ export default function UserMenu() {
           >
             {t("profile")}
           </Link>
+          {pendingCount > 0 && (
+            <Link
+              href="/dashboard/suggestions"
+              className="flex items-center justify-between px-4 py-2 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100"
+              onClick={() => setOpen(false)}
+            >
+              <span>{t("reviewPending")}</span>
+              <span className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full bg-red-600 text-white text-[11px] font-semibold">
+                {pendingCount > 99 ? "99+" : pendingCount}
+              </span>
+            </Link>
+          )}
           {(role === "MODERATOR" || role === "SUPERADMIN" || profile?.admin_school) && (
             <Link
               href="/dashboard"

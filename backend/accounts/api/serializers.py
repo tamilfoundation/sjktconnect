@@ -11,13 +11,14 @@ class GoogleAuthSerializer(serializers.Serializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     admin_school = serializers.SerializerMethodField()
     email = serializers.EmailField(source="user.email", read_only=True)
+    pending_moderation_count = serializers.SerializerMethodField()
 
     class Meta:
         model = UserProfile
         fields = [
             "id", "google_id", "display_name", "avatar_url",
             "role", "admin_school", "points", "is_active",
-            "email",
+            "email", "pending_moderation_count",
         ]
         read_only_fields = fields
 
@@ -28,6 +29,23 @@ class UserProfileSerializer(serializers.ModelSerializer):
                 "name": obj.admin_school.short_name,
             }
         return None
+
+    def get_pending_moderation_count(self, obj):
+        """PENDING Suggestion rows this user is empowered to review.
+
+        SUPERADMIN / MODERATOR see all; bound school admin sees only
+        their school's queue; plain USER returns 0 (badge stays hidden).
+        Drives the avatar badge + dropdown deep-link in UserMenu.
+        """
+        from community.models import Suggestion
+        if obj.role in ("SUPERADMIN", "MODERATOR"):
+            return Suggestion.objects.filter(status=Suggestion.Status.PENDING).count()
+        if obj.admin_school_id:
+            return Suggestion.objects.filter(
+                status=Suggestion.Status.PENDING,
+                school_id=obj.admin_school_id,
+            ).count()
+        return 0
 
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):

@@ -677,6 +677,7 @@
     "profile": "My Profile",
     "dashboard": "Dashboard",
     "userManagement": "User Management",
+    "reviewPending": "Review pending suggestions",
     "points": "points",
     "role_USER": "Member",
     "role_MODERATOR": "Moderator",
