@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { unstable_noStore as noStore } from "next/cache";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { fetchBriefs, fetchAllMentions, fetchMeetingReports } from "@/lib/api";
@@ -34,6 +35,17 @@ export default async function ParliamentWatchPage({ params }: PageProps) {
     fetchBriefs(),
     fetchAllMentions(),
   ]);
+
+  // Safeguard: if all three feeds came back empty, the api was almost
+  // certainly unreachable at build/fetch time (transient blip during a
+  // deploy, network hiccup). Don't bake that empty render into the 24h
+  // ISR cache — opt this request out of caching so the next visit
+  // re-fetches. Without this, one bad build poisons the page for a day
+  // and shows "0 meetings tracked" to subscribers even when the data
+  // is healthy (Sprint 31.x learned this the hard way).
+  if (meetingReports.length === 0 && briefs.length === 0 && mentions.length === 0) {
+    noStore();
+  }
 
   // Latest 4 briefs for the compact sitting summaries section
   const recentBriefs = briefs.slice(0, 4);
