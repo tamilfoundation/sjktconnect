@@ -148,7 +148,7 @@
   },
   "enrolmentTrend": {
     "title": "Student Enrolment Trend",
-    "source": "Source: MOE Risalah Maklumat KPM",
+    "source": "Source: MOE, {from} – {to}",
     "ariaLabel": "Student enrolment trend, {from} to {to}: {fromCount} to {toCount} pupils",
     "since": "since {year}"
   },

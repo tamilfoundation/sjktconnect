@@ -228,6 +228,15 @@ export default async function SchoolPage({ params }: PageProps) {
 
         {/* Right column: sidebar */}
         <div className="space-y-6">
+          {/* Enrolment trend chart — TOP of sidebar. The 8-year story is
+              the most distinctive data per school; SupportSchoolCard is
+              optional (many schools have no bank details) so the chart
+              earns the prime slot. Component returns null when < 2 history
+              points (legacy schools, brand-new rows). */}
+          {school.enrolment_history && school.enrolment_history.length >= 2 && (
+            <EnrolmentTrend history={school.enrolment_history} />
+          )}
+
           {/* Support This School */}
           <SupportSchoolCard
             bankName={school.bank_name}
@@ -235,18 +244,6 @@ export default async function SchoolPage({ params }: PageProps) {
             bankAccountName={school.bank_account_name}
             moeCode={school.moe_code}
           />
-
-          {/* Enrolment trend chart — sits between SupportSchoolCard and
-              Political Representation. The 8-year story is the most unique
-              data per school after the funding ask, so it earns the slot
-              above the (cross-school) political context. Component returns
-              null when < 2 history points (legacy schools, brand-new rows). */}
-          {school.enrolment_history && school.enrolment_history.length >= 2 && (
-            <EnrolmentTrend
-              history={school.enrolment_history}
-              currentStudents={school.enrolment ?? 0}
-            />
-          )}
 
           {/* Constituency & DUN card */}
           {school.constituency_code && (

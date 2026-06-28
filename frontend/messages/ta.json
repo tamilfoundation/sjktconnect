@@ -148,7 +148,7 @@
   },
   "enrolmentTrend": {
     "title": "மாணவர் சேர்க்கை போக்கு",
-    "source": "ஆதாரம்: கல்வி அமைச்சு (KPM)",
+    "source": "ஆதாரம்: கல்வி அமைச்சு, {from} – {to}",
     "ariaLabel": "மாணவர் சேர்க்கை போக்கு, {from} முதல் {to} வரை: {fromCount} இலிருந்து {toCount} மாணவர்கள்",
     "since": "{year} முதல்"
   },

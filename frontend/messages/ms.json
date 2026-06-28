@@ -148,7 +148,7 @@
   },
   "enrolmentTrend": {
     "title": "Trend Enrolmen Pelajar",
-    "source": "Sumber: Risalah Maklumat KPM",
+    "source": "Sumber: KPM, {from} – {to}",
     "ariaLabel": "Trend enrolmen pelajar, {from} hingga {to}: {fromCount} kepada {toCount} murid",
     "since": "sejak {year}"
   },

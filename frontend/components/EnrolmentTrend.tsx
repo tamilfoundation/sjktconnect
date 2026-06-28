@@ -17,7 +17,7 @@
  * component server-renderable.
  */
 
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 interface SnapshotPoint {
   date: string;     // ISO YYYY-MM-DD
@@ -26,7 +26,6 @@ interface SnapshotPoint {
 
 interface Props {
   history: SnapshotPoint[];
-  currentStudents: number;
 }
 
 const W = 300;
@@ -36,21 +35,25 @@ const PAD_R = 14;
 const PAD_T = 22;   // per-point value labels live here
 const PAD_B = 28;   // x-axis labels live here
 
-// Fixed time range so every school's X axis is comparable.
-const X_START = new Date("2018-01-01").getTime();
-const X_END = new Date("2026-12-31").getTime();
+// X axis fixed range: discrete year slots from 2018 to 2026. Data
+// points are positioned by their YEAR (not exact date) so the latest
+// 2026 value sits on the 2026 tick.
+const X_FIRST_YEAR = 2018;
+const X_LAST_YEAR = 2026;
 
-export default function EnrolmentTrend({ history, currentStudents }: Props) {
+export default function EnrolmentTrend({ history }: Props) {
   const t = useTranslations("enrolmentTrend");
+  const locale = useLocale();
 
-  // Append today's live count as the rightmost point if not already
-  // covered by the latest snapshot (within 30 days).
+  // Use the actual history as-is. No auto-append of today's date — the
+  // April 2026 snapshot IS the current value, so an auto-appended "today"
+  // would just stack a duplicate on the rightmost edge (owner feedback
+  // after the v1 chart shipped: "ignore Jan 2026, align with 2026 tick").
+  // For schools where the live `enrolment` has drifted away from the
+  // latest snapshot but no fresh snapshot has been imported, the latest
+  // snapshot still represents the most recently published MOE figure —
+  // which is what we should plot.
   const pts: SnapshotPoint[] = [...history];
-  const latest = pts[pts.length - 1];
-  const today = new Date().toISOString().slice(0, 10);
-  if (!latest || daysBetween(latest.date, today) > 30) {
-    pts.push({ date: today, students: currentStudents });
-  }
 
   if (pts.length < 2) return null;
 
@@ -63,13 +66,14 @@ export default function EnrolmentTrend({ history, currentStudents }: Props) {
   const rawMax = Math.max(...values);
   const { yMin, yMax, yTicks } = computeYTicks(rawMin, rawMax);
 
-  // X axis: yearly ticks 2018-2026.
+  // X axis: yearly ticks 2018-2026, evenly spaced.
   const xTicks: number[] = [];
-  for (let y = 2018; y <= 2026; y++) xTicks.push(y);
+  for (let y = X_FIRST_YEAR; y <= X_LAST_YEAR; y++) xTicks.push(y);
 
+  // Discrete-year positioning: each data point sits on its year's tick.
   const xOf = (iso: string) => {
-    const t_ = new Date(iso).getTime();
-    const frac = (t_ - X_START) / (X_END - X_START);
+    const y = parseInt(iso.slice(0, 4), 10);
+    const frac = (y - X_FIRST_YEAR) / (X_LAST_YEAR - X_FIRST_YEAR);
     return PAD_L + Math.max(0, Math.min(1, frac)) * innerW;
   };
   const yOf = (v: number) =>
@@ -202,7 +206,12 @@ export default function EnrolmentTrend({ history, currentStudents }: Props) {
         </svg>
 
         <div className="flex items-center justify-between text-xs mt-2 px-1">
-          <span className="text-gray-500">{t("source")}</span>
+          <span className="text-gray-500">
+            {t("source", {
+              from: yearOf(first.date),
+              to: formatMonthYear(last.date, locale),
+            })}
+          </span>
           <span className={`font-semibold ${deltaTextClass}`}>
             {deltaSign}{deltaPct}% {t("since", { year: yearOf(first.date) })}
           </span>
@@ -212,14 +221,22 @@ export default function EnrolmentTrend({ history, currentStudents }: Props) {
   );
 }
 
-function daysBetween(a: string, b: string): number {
-  return Math.abs(
-    Math.round((new Date(a).getTime() - new Date(b).getTime()) / 86400000),
-  );
-}
-
 function yearOf(iso: string): string {
   return iso.slice(0, 4);
+}
+
+/**
+ * Localised "Month YYYY" formatting via Intl.
+ * Falls back to "YYYY-MM" if the locale tag isn't recognised.
+ */
+function formatMonthYear(iso: string, locale: string): string {
+  const tag = locale === "ms" ? "ms-MY" : locale === "ta" ? "ta-MY" : "en-MY";
+  try {
+    return new Intl.DateTimeFormat(tag, { month: "long", year: "numeric" })
+      .format(new Date(iso));
+  } catch {
+    return iso.slice(0, 7);
+  }
 }
 
 /**
