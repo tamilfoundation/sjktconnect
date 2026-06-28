@@ -1,5 +1,45 @@
 # Changelog
 
+## Sprint 32 — Per-school enrolment trend + admin polish bundle (closed 2026-06-29)
+
+12 commits since Sprint 31.1. Started as a research question ("can we get historical enrolment data?"), turned into a full feature + a stack of operational fixes.
+
+### Headliner: per-school 8-year enrolment trend chart
+
+User found 4 historical MOE Risalah Maklumat snapshots in OneDrive (Jan 2018, Jan 2020, Sep 2023, Mar 2025); deep research located a 5th on archive.data.gov.my (30 Jun 2022 CSV). Combined with the live Apr 2026 snapshot = **6 per-school data points spanning 8 years**.
+
+- **New `SchoolEnrolmentSnapshot` model** (migration `schools/0017`): school FK + snapshot_date + students + source. Unique on (school, snapshot_date).
+- **`import_enrolment_snapshots` mgmt cmd**: --file <xlsx|csv> --date YYYY-MM-DD OR --json-bundle for batch. Auto-detects MOE schema drift across 2018→2025 (JENIS/LABEL = "Jenis Kebangsaan (T)" in 2018 / "SJKT" thereafter; MURID column renamed to ENROLMEN in 2023).
+- **3,152 enrolment snapshots imported** into prod (528 schools × 6 dates).
+- **`SchoolDetailSerializer.enrolment_history`** exposes oldest-first {date, students} for the FE.
+- **`EnrolmentTrend` component** — inline-SVG line chart, no chart-lib dep. Time-positioned X-axis (years 2018-2026, every-other-year labels), value-scaled Y-axis with auto-rounded gridlines + value labels, per-point numeric labels above each circle. Conditional colour: **emerald-600 line + 10% fill if Δ ≥ 0, rose-600 if Δ < 0.** Source line dynamic + localised ("Source: MOE, 2018 – April 2026"). Stitch-prototyped first (project 10588652759232271161, screen 6588ce9d2f4d4bedba0f9de0893d3a44) per CLAUDE.md mandate.
+- **Sidebar placement**: top of right column, above SupportSchoolCard. 6 design iterations on chart height (200→300→240→180) before settling on 300×180 viewBox (~330px tall card, just under SchoolDetails on most schools).
+
+### Operational fixes
+
+- **Hansard pipeline auto-retries late-publish (commit `aeea46a`)**. New `NO_PDF` HansardSitting status (migration `hansard/0012`) + `NoPdfAvailable` exception in downloader so non-sitting days don't pollute the FAILED log. New `--retry-failed-days=7` flag on `run_hansard_pipeline` (default on) — yesterday's FAILED/NO_PDF rows reset to PENDING before the morning cron, catches PDFs that posted after 8 AM. 145 historical false-FAILED rows backfilled to NO_PDF.
+- **Parliament Watch `noStore()` safeguard (commit `0a06f51`)** — fixed user-reported 0/0/0 stats on the Parliament Watch page. Root cause: a build-time SSR had hit an api blip, baked the empty result into the 24h ISR cache. Fix: when all 3 feeds (meetings + briefs + mentions) come back empty in the same render, opt out of caching so the next visit re-fetches.
+- **Admin direct photo upload (commit `2d3b1a0`)** — Sprint 14 documented this path but never built it. ImageManager only had reorder/delete/pin/caption; SUPERADMIN had no upload path because the community Suggest button is hidden for them. New `POST /api/v1/schools/<moe>/images/upload/` (IsPhotoApprover-gated, reuses `process_upload` validation), new upload row in ImageManager (file picker + caption + slot counter).
+- **Community-upload attribution (commits `4b486a5` + `bb7bb83`)** — PhotoLightbox now shows "Uploaded by {contributor name}" for COMMUNITY photos instead of generic "Community upload". MOE-DL Google account suffix (e.g. "KPM-Guru") stripped at the serializer.
+- **Pending-moderation badge on UserMenu (commit `bb7bb83`)** — red count badge on avatar + new red link in dropdown "Review pending suggestions · N" for SUPERADMIN / MODERATOR / bound school admin. Scoped per role: SUPERADMIN/MODERATOR see all PENDING; bound admin sees only their school's queue.
+- **5-photo strip dropout fixed (commit `bb7bb83`)** — SchoolPhotoGallery sliced to first 4 thumbnails + only showed the "View all" overlay at >5 photos, so a school with exactly 5 photos silently lost its 5th to the gap.
+- **Support card cleanup (commit `1c23ee5`)** — removed broken plain-text QR (Maybank app rejected with "Invalid QR Code [MB02]"; a real DuitNow QR needs a PayNet-issued merchant ID we can't generate unilaterally). Bank + Account Number now on one row (grid-cols-2), Account Name below. No instructional text.
+
+### Numbers
+
+- 12 commits across 2 days
+- 6 web deploys, 2 api deploys
+- 3,152 enrolment snapshots seeded
+- 1 new model + 2 migrations (schools/0017, hansard/0012)
+- 1 new mgmt command (`import_enrolment_snapshots`)
+- 2 new FE components (`EnrolmentTrend`)
+- Tests: unchanged at 1442 backend + 378 frontend. **No new tests written for Sprint 32 features** — flagged as test-debt for follow-up.
+
+### Live state at close
+
+- api `sjktconnect-api-00143-5ml` (no schema change since)
+- web `sjktconnect-web-00173-9mg` (latest fresh build with all 12 commits)
+
 ## Sprint 31.1 — Tamil backfill + Tamil-Wikipedia batch + command extension (2026-06-28)
 
 Follow-up to Sprint 31. Three pieces shipped same day:
