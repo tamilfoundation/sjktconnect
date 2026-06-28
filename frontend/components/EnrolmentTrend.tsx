@@ -28,17 +28,16 @@ interface Props {
   history: SnapshotPoint[];
 }
 
-// Aspect tuned to sit between the original 300x200 (rendered ~360px,
-// shorter than SchoolDetails ~500px) and 300x300 (rendered ~470px,
-// overshot tall schools by ~140px). 300x240 ratio + the card chrome
-// gives a card ~400px which matches the average SchoolDetails height
-// across the variable-row schools without overshooting the tall ones.
+// SVG aspect tuned by owner to keep the rendered chart card a touch
+// shorter than the SchoolDetails card on the left column. Earlier
+// values: 200 (slightly taller than details), 300 (way taller), 240
+// (slightly taller still). 180 brings it just under.
 const W = 300;
-const H = 240;
+const H = 180;
 const PAD_L = 38;   // y-axis labels live here
 const PAD_R = 14;
-const PAD_T = 24;   // per-point value labels live here
-const PAD_B = 30;   // x-axis labels live here
+const PAD_T = 22;   // per-point value labels live here
+const PAD_B = 28;   // x-axis labels live here
 
 // X axis fixed range: discrete year slots from 2018 to 2026. Data
 // points are positioned by their YEAR (not exact date) so the latest
