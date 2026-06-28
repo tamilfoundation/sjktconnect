@@ -758,6 +758,43 @@ export async function updateImageCaption(
 }
 
 /**
+ * Direct photo upload for SUPERADMIN / bound school admin.
+ * Skips the suggestion-queue moderation step — bytes land in SchoolImage
+ * immediately. Returns a typed error on slot_full (409) so the UI can
+ * prompt the admin to delete an existing photo first.
+ */
+export async function uploadSchoolImage(
+  moeCode: string,
+  file: File,
+  caption?: string,
+): Promise<{
+  id: number;
+  image_url: string;
+  source: string;
+  caption: string;
+  is_primary: boolean;
+  position: number;
+  uploaded_by_name: string;
+} | { error: true; slot_full?: boolean; duplicate?: boolean; detail: string }> {
+  const form = new FormData();
+  form.append("image", file);
+  if (caption) form.append("caption", caption);
+  const res = await fetch(
+    `${API_URL}/api/v1/schools/${moeCode}/images/upload/`,
+    { method: "POST", credentials: "include", body: form },
+  );
+  if (res.ok) return res.json();
+  let body: { detail?: string; code?: string } = {};
+  try { body = await res.json(); } catch { /* ignore */ }
+  return {
+    error: true,
+    slot_full: body.code === "slot_full",
+    duplicate: body.code === "duplicate",
+    detail: body.detail || `Upload failed (${res.status})`,
+  };
+}
+
+/**
  * Make this image the school's hero (is_primary=true).
  * Permission: SUPERADMIN or this school's admin (Sprint 14).
  */

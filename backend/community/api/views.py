@@ -206,6 +206,104 @@ def school_photo_upload_view(request, moe_code):
     )
 
 
+@api_view(["POST"])
+@parser_classes([MultiPartParser, FormParser])
+@permission_classes([IsProfileAuthenticated])
+def admin_image_upload_view(request, moe_code):
+    """Direct photo upload for SUPERADMIN or this school's bound admin.
+
+    Skips the Suggestion staging queue entirely — bytes go straight into
+    SchoolImage (source=COMMUNITY, uploaded_by=the admin). This is the
+    counterpart to school_photo_upload_view: that one is for community
+    users contributing to OTHER schools (suggestion + moderation flow);
+    this one is for users empowered to publish photos for THIS school.
+
+    Multipart fields:
+      image    — required, the file
+      caption  — optional, ≤200 chars
+
+    Validation: ≤5 MB, JPEG/PNG/WebP, ≥640×400. EXIF stripped, resized
+    to 1600px longest edge, pHash computed for dedup against existing
+    SchoolImage rows on the same school.
+
+    Returns 409 if school is at the 20-photo cap or a duplicate pHash
+    already exists.
+    """
+    school = get_object_or_404(School, moe_code=moe_code)
+    profile = request.user_profile
+
+    if not _is_photo_approver(profile, school.pk):
+        return Response(
+            {"detail": "Only SUPERADMIN or this school's admin can upload directly."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    existing_count = SchoolImage.objects.filter(school=school).count()
+    if existing_count >= PHOTO_CAP_PER_SCHOOL:
+        return Response(
+            {"detail": f"Photo slot full ({PHOTO_CAP_PER_SCHOOL}/{PHOTO_CAP_PER_SCHOOL}). "
+                       "Delete an existing photo first.",
+             "code": "slot_full"},
+            status=status.HTTP_409_CONFLICT,
+        )
+
+    upload = request.FILES.get("image")
+    if not upload:
+        return Response(
+            {"detail": "Field 'image' is required.", "code": "missing_image"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    raw = upload.read()
+    try:
+        processed = process_upload(raw)
+    except UploadValidationError as exc:
+        if exc.code == "too_large":
+            http_status = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+        elif exc.code == "unsupported_format":
+            http_status = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
+        else:
+            http_status = status.HTTP_400_BAD_REQUEST
+        return Response(
+            {"detail": exc.message, "code": exc.code},
+            status=http_status,
+        )
+
+    # No pHash dedup at SchoolImage level (the model doesn't carry pHash).
+    # An admin re-uploading the same file will create a duplicate row —
+    # they can spot-and-delete from the gallery if it bothers them.
+
+    max_position = (
+        SchoolImage.objects.filter(school=school)
+        .order_by("-position")
+        .values_list("position", flat=True)
+        .first()
+    ) or 0
+
+    image = SchoolImage(
+        school=school,
+        source=SchoolImage.Source.COMMUNITY,
+        position=max_position + 1,
+        uploaded_by=profile,
+        caption=(request.data.get("caption") or "")[:200],
+    )
+    image.image_file.save(
+        f"upload.{processed.extension}",
+        ContentFile(processed.bytes),
+        save=True,
+    )
+
+    return Response({
+        "id": image.id,
+        "image_url": image.display_url,
+        "source": image.source,
+        "caption": image.caption,
+        "is_primary": image.is_primary,
+        "position": image.position,
+        "uploaded_by_name": profile.display_name,
+    }, status=status.HTTP_201_CREATED)
+
+
 @api_view(["GET"])
 @permission_classes([IsProfileAuthenticated])
 def pending_suggestions_view(request):

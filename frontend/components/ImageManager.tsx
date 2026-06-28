@@ -8,6 +8,7 @@ import {
   pinSchoolImage,
   reorderSchoolImages,
   updateImageCaption,
+  uploadSchoolImage,
 } from "@/lib/api";
 import { SchoolImageData } from "@/lib/types";
 
@@ -39,6 +40,34 @@ export default function ImageManager({ moeCode }: ImageManagerProps) {
   const [saving, setSaving] = useState(false);
   const [orderChanged, setOrderChanged] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadCaption, setUploadCaption] = useState("");
+
+  const PHOTO_CAP = 20;
+  const atCap = images.length >= PHOTO_CAP;
+
+  const handleUpload = async () => {
+    if (!uploadFile) return;
+    setUploading(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const result = await uploadSchoolImage(moeCode, uploadFile, uploadCaption);
+      if ("error" in result) {
+        setError(result.detail);
+      } else {
+        setSuccessMessage(`Uploaded ${uploadFile.name}.`);
+        setUploadFile(null);
+        setUploadCaption("");
+        await loadImages();
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const loadImages = useCallback(async () => {
     try {
@@ -165,30 +194,71 @@ export default function ImageManager({ moeCode }: ImageManagerProps) {
     );
   }
 
-  if (error && images.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-red-600 mb-4">{error}</p>
+  const uploadRow = (
+    <div className="mb-6 p-4 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+          disabled={uploading || atCap}
+          className="text-sm flex-1 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 disabled:opacity-50"
+        />
+        <input
+          type="text"
+          value={uploadCaption}
+          onChange={(e) => setUploadCaption(e.target.value.slice(0, 200))}
+          placeholder="Caption (optional)"
+          disabled={uploading || atCap}
+          className="text-sm px-3 py-1.5 border border-gray-300 rounded flex-1 disabled:bg-gray-100"
+        />
         <button
-          onClick={loadImages}
-          className="text-sm text-primary-600 hover:underline"
+          onClick={handleUpload}
+          disabled={!uploadFile || uploading || atCap}
+          className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50 whitespace-nowrap"
         >
-          Retry
+          {uploading ? "Uploading…" : "Upload photo"}
         </button>
+      </div>
+      <p className="mt-2 text-xs text-gray-500">
+        {atCap
+          ? `Photo slot full (${images.length}/${PHOTO_CAP}). Delete a photo first.`
+          : `JPEG/PNG/WebP, ≤5 MB, ≥640×400. ${images.length}/${PHOTO_CAP} slots used.`}
+      </p>
+    </div>
+  );
+
+  if (error && images.length === 0 && !uploading) {
+    return (
+      <div>
+        {uploadRow}
+        <div className="text-center py-8">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={loadImages}
+            className="text-sm text-primary-600 hover:underline"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
 
   if (images.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
-        {t("noImages")}
+      <div>
+        {uploadRow}
+        <div className="text-center py-8 text-gray-500">
+          {t("noImages")}
+        </div>
       </div>
     );
   }
 
   return (
     <div>
+      {uploadRow}
       {/* Header bar */}
       <div className="flex items-center justify-between mb-4">
         <span className="text-sm text-gray-600">

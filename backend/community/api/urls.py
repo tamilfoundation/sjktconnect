@@ -1,6 +1,7 @@
 from django.urls import path
 
 from community.api.views import (
+    admin_image_upload_view,
     approve_suggestion_view,
     delete_image_view,
     pending_suggestions_view,
@@ -58,6 +59,11 @@ urlpatterns = [
         "schools/<str:moe_code>/images/<int:image_id>/",
         delete_image_view,
         name="delete-image",
+    ),
+    path(
+        "schools/<str:moe_code>/images/upload/",
+        admin_image_upload_view,
+        name="admin-image-upload",
     ),
     path(
         "schools/<str:moe_code>/images/",
