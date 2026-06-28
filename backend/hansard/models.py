@@ -11,6 +11,13 @@ class HansardSitting(models.Model):
         PROCESSING = "PROCESSING", "Processing"
         COMPLETED = "COMPLETED", "Completed"
         FAILED = "FAILED", "Failed"
+        # Sprint 31.x (2026-06-28): used when parlimen.gov.my returns a
+        # non-PDF placeholder (23-byte "File does not exist" body or HTML
+        # error page) — i.e. the date isn't a real sitting day (recess,
+        # weekend, or PDF not yet posted). Distinct from FAILED so the
+        # admin doesn't chase phantom "errors" that are really just
+        # discovery noise.
+        NO_PDF = "NO_PDF", "No PDF available"
 
     sitting_date = models.DateField(unique=True, db_index=True)
     meeting = models.ForeignKey(

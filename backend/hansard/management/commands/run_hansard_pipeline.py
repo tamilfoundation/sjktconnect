@@ -82,15 +82,34 @@ class Command(BaseCommand):
             action="store_true",
             help="Skip the Gemini AI analysis step.",
         )
+        parser.add_argument(
+            "--retry-failed-days",
+            type=int,
+            default=7,
+            help=(
+                "Before discovery, retry any FAILED or NO_PDF sittings from "
+                "the last N days (default 7). Catches PDFs that landed late "
+                "after the morning cron's first attempt. Set 0 to disable."
+            ),
+        )
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
         skip_calendar = options["skip_calendar"]
         skip_analysis = options["skip_analysis"]
+        retry_days = options["retry_failed_days"]
 
         if dry_run:
             self._dry_run(skip_calendar, skip_analysis)
             return
+
+        if retry_days > 0:
+            n = self._reset_recent_failures(retry_days)
+            if n:
+                self.stdout.write(self.style.WARNING(
+                    f"Reset {n} FAILED/NO_PDF sitting(s) from last {retry_days}d "
+                    f"back to PENDING for retry."
+                ))
 
         steps = self._build_steps(skip_calendar, skip_analysis)
 
@@ -131,6 +150,23 @@ class Command(BaseCommand):
         steps.append(("Compose Parliament Watch drafts", self._step_compose_parliament_watch))
 
         return steps
+
+    def _reset_recent_failures(self, days: int) -> int:
+        """Mark FAILED/NO_PDF rows from the last `days` back to PENDING.
+
+        Catches the case where the morning cron tried a date before
+        parlimen had posted the PDF (HTML/placeholder response → row
+        marked FAILED or NO_PDF), and the PDF is now available.
+        """
+        from datetime import timedelta
+        from django.utils import timezone as _tz
+        from hansard.models import HansardSitting
+        cutoff = _tz.localdate() - timedelta(days=days)
+        qs = HansardSitting.objects.filter(
+            sitting_date__gte=cutoff,
+            status__in=[HansardSitting.Status.FAILED, HansardSitting.Status.NO_PDF],
+        )
+        return qs.update(status=HansardSitting.Status.PENDING, error_message="")
 
     def _step_sync_calendar(self):
         return sync_calendar()

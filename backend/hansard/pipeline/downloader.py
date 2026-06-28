@@ -20,6 +20,19 @@ RETRY_DELAY_SECONDS = 5
 TIMEOUT_SECONDS = 120  # Hansard PDFs can be large (50+ pages)
 
 
+class NoPdfAvailable(Exception):
+    """Raised when the URL returns a non-PDF placeholder body.
+
+    parlimen.gov.my responds with a 23-byte ASCII body like
+    "File does not exist (3)" when the requested date isn't a real
+    sitting (recess, weekend, or PDF not yet posted that day). The
+    HTTP status is 200 + content-type application/octet-stream, so
+    only the response BODY tells us it's not a PDF. Distinguishing
+    this from a real download failure lets the caller mark the row
+    as NO_PDF (informational) instead of FAILED (actionable).
+    """
+
+
 def download_hansard(url: str, dest_dir: str | Path) -> Path:
     """Download a Hansard PDF from the given URL.
 
@@ -67,6 +80,21 @@ def download_hansard(url: str, dest_dir: str | Path) -> Path:
                     f.write(chunk)
 
             file_size = dest_path.stat().st_size
+
+            # Sanity-check the body before claiming success. A 23-byte
+            # "File does not exist" reply is the parlimen.gov.my placeholder
+            # for non-sitting dates; we treat those as NO_PDF, not as an
+            # actual download failure.
+            if file_size < 4096:
+                with open(dest_path, "rb") as f:
+                    head = f.read(512)
+                if not head.startswith(b"%PDF"):
+                    dest_path.unlink(missing_ok=True)
+                    snippet = head[:80].decode("ascii", errors="replace")
+                    raise NoPdfAvailable(
+                        f"Non-PDF response from {url} ({file_size} bytes): {snippet!r}"
+                    )
+
             logger.info("Downloaded %s (%d bytes)", dest_path.name, file_size)
             return dest_path
 

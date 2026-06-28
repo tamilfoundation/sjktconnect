@@ -23,7 +23,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from hansard.models import HansardMention, HansardSitting, SchoolAlias
-from hansard.pipeline.downloader import download_hansard
+from hansard.pipeline.downloader import NoPdfAvailable, download_hansard
 from hansard.pipeline.extractor import extract_text
 from hansard.pipeline.keywords import get_all_keywords
 from hansard.pipeline.matcher import match_mentions
@@ -160,6 +160,17 @@ class Command(BaseCommand):
             if catalogue:
                 self._print_variant_catalogue(matches)
 
+        except NoPdfAvailable as e:
+            # parlimen.gov.my returned a non-PDF placeholder — date isn't a
+            # real sitting day (recess / weekend / PDF not yet posted).
+            # Mark NO_PDF so admins don't chase it as an error; the daily
+            # cron's --retry-failed flag will pick it up again later in
+            # case the PDF lands the same day.
+            sitting.status = HansardSitting.Status.NO_PDF
+            sitting.error_message = str(e)[:500]
+            sitting.save(update_fields=["status", "error_message"])
+            self.stdout.write(self.style.WARNING(f"No PDF available for {sitting_date}: {e}"))
+            return
         except Exception as e:
             sitting.status = HansardSitting.Status.FAILED
             sitting.error_message = str(e)
