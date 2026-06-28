@@ -28,12 +28,16 @@ interface Props {
   history: SnapshotPoint[];
 }
 
+// 1:1 SVG aspect so the rendered card matches the height of the
+// SchoolDetails card on the left column (~470px typical). Earlier 1.5:1
+// (300x200) rendered too short alongside it. The extra vertical room
+// also lets the line breathe and exposes the trend more clearly.
 const W = 300;
-const H = 200;
-const PAD_L = 36;   // y-axis labels live here
+const H = 300;
+const PAD_L = 38;   // y-axis labels live here
 const PAD_R = 14;
-const PAD_T = 22;   // per-point value labels live here
-const PAD_B = 28;   // x-axis labels live here
+const PAD_T = 24;   // per-point value labels live here
+const PAD_B = 30;   // x-axis labels live here
 
 // X axis fixed range: discrete year slots from 2018 to 2026. Data
 // points are positioned by their YEAR (not exact date) so the latest
