@@ -147,6 +147,8 @@
     "constituenciesLabel": "Kawasan Parlimen"
   },
   "enrolmentTrend": {
+    "title": "Trend Enrolmen Pelajar",
+    "source": "Sumber: Risalah Maklumat KPM",
     "ariaLabel": "Trend enrolmen pelajar, {from} hingga {to}: {fromCount} kepada {toCount} murid",
     "since": "sejak {year}"
   },

@@ -174,16 +174,6 @@ export default async function SchoolPage({ params }: PageProps) {
             />
           </div>
 
-          {/* Enrolment trend sparkline — shows historical MOE Risalah
-              snapshots so a school's growth/decline is visible at a glance.
-              Component returns null when no history is imported. */}
-          {school.enrolment_history && school.enrolment_history.length >= 2 && (
-            <EnrolmentTrend
-              history={school.enrolment_history}
-              currentStudents={school.enrolment ?? 0}
-            />
-          )}
-
           {/* Preschool / Special Ed bar */}
           <div className="bg-primary-50 border border-primary-100 rounded-lg p-3 text-sm flex gap-4 justify-center text-primary-700">
             <div className="flex items-center gap-1.5">
@@ -245,6 +235,18 @@ export default async function SchoolPage({ params }: PageProps) {
             bankAccountName={school.bank_account_name}
             moeCode={school.moe_code}
           />
+
+          {/* Enrolment trend chart — sits between SupportSchoolCard and
+              Political Representation. The 8-year story is the most unique
+              data per school after the funding ask, so it earns the slot
+              above the (cross-school) political context. Component returns
+              null when < 2 history points (legacy schools, brand-new rows). */}
+          {school.enrolment_history && school.enrolment_history.length >= 2 && (
+            <EnrolmentTrend
+              history={school.enrolment_history}
+              currentStudents={school.enrolment ?? 0}
+            />
+          )}
 
           {/* Constituency & DUN card */}
           {school.constituency_code && (

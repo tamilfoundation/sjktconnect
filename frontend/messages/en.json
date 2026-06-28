@@ -147,6 +147,8 @@
     "constituenciesLabel": "Constituencies"
   },
   "enrolmentTrend": {
+    "title": "Student Enrolment Trend",
+    "source": "Source: MOE Risalah Maklumat KPM",
     "ariaLabel": "Student enrolment trend, {from} to {to}: {fromCount} to {toCount} pupils",
     "since": "since {year}"
   },
