@@ -28,12 +28,13 @@ interface Props {
   history: SnapshotPoint[];
 }
 
-// 1:1 SVG aspect so the rendered card matches the height of the
-// SchoolDetails card on the left column (~470px typical). Earlier 1.5:1
-// (300x200) rendered too short alongside it. The extra vertical room
-// also lets the line breathe and exposes the trend more clearly.
+// Aspect tuned to sit between the original 300x200 (rendered ~360px,
+// shorter than SchoolDetails ~500px) and 300x300 (rendered ~470px,
+// overshot tall schools by ~140px). 300x240 ratio + the card chrome
+// gives a card ~400px which matches the average SchoolDetails height
+// across the variable-row schools without overshooting the tall ones.
 const W = 300;
-const H = 300;
+const H = 240;
 const PAD_L = 38;   // y-axis labels live here
 const PAD_R = 14;
 const PAD_T = 24;   // per-point value labels live here
