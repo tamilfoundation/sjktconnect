@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * The DuitNow QR section was removed 2026-06-28 after owner-tested with
+ * Maybank app and got "Invalid QR Code [MB02]". The endpoint had been
+ * encoding plain text ("Bank: X\nAccount: Y\nName: Z"), not an EMVCo
+ * DuitNow payload — a real DuitNow QR needs a PayNet-issued merchant ID
+ * registered via each school's own bank, which we can't generate
+ * unilaterally. Replaced with an explicit DuitNow Transfer instruction
+ * so users can punch the account number into their banking app (which
+ * actually works for any Malaysian account).
+ */
+
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
@@ -14,7 +25,6 @@ export default function SupportSchoolCard({
   bankName,
   bankAccountNumber,
   bankAccountName,
-  moeCode,
 }: Props) {
   const t = useTranslations("schoolProfile");
   const [copied, setCopied] = useState(false);
@@ -27,9 +37,6 @@ export default function SupportSchoolCard({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
-  const qrUrl = `${apiBase}/api/v1/schools/${moeCode}/duitnow-qr/`;
-
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
       <div className="h-1 bg-green-500" />
@@ -38,38 +45,31 @@ export default function SupportSchoolCard({
           {t("supportSchool")}
         </h3>
 
-        <div className="space-y-2 text-sm">
-          <div>
-            <span className="text-gray-500">{t("bankName")}</span>
-            <p className="font-medium">{bankName}</p>
+        <div className="space-y-3 text-sm">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <span className="text-gray-500">{t("bankName")}</span>
+              <p className="font-medium">{bankName}</p>
+            </div>
+            <div>
+              <span className="text-gray-500">{t("accountNumber")}</span>
+              <div className="flex items-center gap-2">
+                <p className="font-mono font-medium">{bankAccountNumber}</p>
+                <button
+                  onClick={handleCopy}
+                  className="text-xs text-primary-600 hover:text-primary-800"
+                >
+                  {copied ? t("copied") : t("copy")}
+                </button>
+              </div>
+            </div>
           </div>
           <div>
             <span className="text-gray-500">{t("accountName")}</span>
             <p className="font-medium text-xs">{bankAccountName}</p>
           </div>
-          <div>
-            <span className="text-gray-500">{t("accountNumber")}</span>
-            <div className="flex items-center gap-2">
-              <p className="font-mono font-medium">{bankAccountNumber}</p>
-              <button
-                onClick={handleCopy}
-                className="text-xs text-primary-600 hover:text-primary-800"
-              >
-                {copied ? t("copied") : t("copy")}
-              </button>
-            </div>
-          </div>
         </div>
 
-        {/* DuitNow QR */}
-        <div className="mt-4 text-center">
-          <p className="text-xs text-gray-500 mb-2">{t("scanToDonate")}</p>
-          <img
-            src={qrUrl}
-            alt="DuitNow QR Code"
-            className="mx-auto w-40 h-40 border rounded"
-          />
-        </div>
       </div>
     </div>
   );
