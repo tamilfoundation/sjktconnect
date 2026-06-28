@@ -146,6 +146,10 @@
     "statesLabel": "States",
     "constituenciesLabel": "Constituencies"
   },
+  "enrolmentTrend": {
+    "ariaLabel": "Student enrolment trend, {from} to {to}: {fromCount} to {toCount} pupils",
+    "since": "since {year}"
+  },
   "schoolHistory": {
     "emptyHeading": "History",
     "emptyIntro": "Help us tell this school's story.",

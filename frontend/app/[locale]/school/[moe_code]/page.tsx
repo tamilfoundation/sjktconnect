@@ -24,6 +24,7 @@ import MentionsSection from "@/components/MentionsSection";
 import ConstituencySchools from "@/components/ConstituencySchools";
 import NewsWatchSection from "@/components/NewsWatchSection";
 import SchoolHistory from "@/components/SchoolHistory";
+import EnrolmentTrend from "@/components/EnrolmentTrend";
 import SupportSchoolCard from "@/components/SupportSchoolCard";
 import { Link } from "@/i18n/navigation";
 
@@ -172,6 +173,16 @@ export default async function SchoolPage({ params }: PageProps) {
               iconColor="text-yellow-500"
             />
           </div>
+
+          {/* Enrolment trend sparkline — shows historical MOE Risalah
+              snapshots so a school's growth/decline is visible at a glance.
+              Component returns null when no history is imported. */}
+          {school.enrolment_history && school.enrolment_history.length >= 2 && (
+            <EnrolmentTrend
+              history={school.enrolment_history}
+              currentStudents={school.enrolment ?? 0}
+            />
+          )}
 
           {/* Preschool / Special Ed bar */}
           <div className="bg-primary-50 border border-primary-100 rounded-lg p-3 text-sm flex gap-4 justify-center text-primary-700">

@@ -164,6 +164,35 @@ class School(models.Model):
         return f"{self.moe_code} {self.short_name}"
 
 
+class SchoolEnrolmentSnapshot(models.Model):
+    """One MOE Risalah Maklumat snapshot of a school's student count.
+
+    Each row is (school, snapshot_date, students) — populated by
+    `import_enrolment_snapshots` from historical MOE Risalah Excel files
+    (Jan 2018, Jan 2020, Jun 2022, Sep 2023, Mar 2025, ...) plus the
+    current count read from the live `School.enrolment` field at import
+    time. Used by the SchoolEnrolmentTrend sparkline on the public page.
+    """
+
+    school = models.ForeignKey(
+        School, on_delete=models.CASCADE, related_name="enrolment_snapshots"
+    )
+    snapshot_date = models.DateField(db_index=True)
+    students = models.IntegerField()
+    source = models.CharField(
+        max_length=100, blank=True, default="",
+        help_text="Origin file or 'live' for the current-DB snapshot.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["snapshot_date"]
+        unique_together = [("school", "snapshot_date")]
+
+    def __str__(self):
+        return f"{self.school.moe_code} {self.snapshot_date}: {self.students}"
+
+
 class SchoolLeader(models.Model):
     """Key leadership contacts for a school. Names are public; phone/email are private."""
 

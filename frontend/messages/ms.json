@@ -146,6 +146,10 @@
     "statesLabel": "Negeri",
     "constituenciesLabel": "Kawasan Parlimen"
   },
+  "enrolmentTrend": {
+    "ariaLabel": "Trend enrolmen pelajar, {from} hingga {to}: {fromCount} kepada {toCount} murid",
+    "since": "sejak {year}"
+  },
   "schoolHistory": {
     "emptyHeading": "Sejarah",
     "emptyIntro": "Bantu kami menceritakan kisah sekolah ini.",

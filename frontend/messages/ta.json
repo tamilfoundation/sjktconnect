@@ -146,6 +146,10 @@
     "statesLabel": "மாநிலங்கள்",
     "constituenciesLabel": "தொகுதிகள்"
   },
+  "enrolmentTrend": {
+    "ariaLabel": "மாணவர் சேர்க்கை போக்கு, {from} முதல் {to} வரை: {fromCount} இலிருந்து {toCount} மாணவர்கள்",
+    "since": "{year} முதல்"
+  },
   "schoolHistory": {
     "emptyHeading": "வரலாறு",
     "emptyIntro": "இந்தப் பள்ளியின் கதையைச் சொல்ல எங்களுக்கு உதவுங்கள்.",

@@ -268,6 +268,21 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
             "history_status",
             "history_updated_at",
             "history_key_dates",
+            "enrolment_history",
+        ]
+
+    enrolment_history = serializers.SerializerMethodField()
+
+    def get_enrolment_history(self, obj):
+        """List of {date, students} for the per-school enrolment sparkline.
+
+        Returns oldest-first so the FE can draw left-to-right without
+        sorting. Empty list when no snapshots have been imported yet.
+        """
+        snaps = obj.enrolment_snapshots.all().order_by("snapshot_date")
+        return [
+            {"date": s.snapshot_date.isoformat(), "students": s.students}
+            for s in snaps
         ]
 
     def get_is_claimed(self, obj):
