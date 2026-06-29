@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-06-29 — News-matcher fix: Sri/Seri + Plentong/Pleton
+
+Owner spotted that a BERNAMA news card (article 985, Madani Adoption funding for 4 Johor SJK(T) schools) had only 2 of its 4 school chips linked to MOE records. Investigation found two distinct matcher gaps:
+
+1. **"Bandar Sri Alam" vs MOE "Bandar Seri Alam"** (`JBD1029`) — the matcher had no Sri↔Seri romanisation swap. Both spell Tamil ஶ்ரீ.
+2. **"Ladang Sungai Pleton" vs MOE "Ladang Sg Plentong"** (`JBD1007`) — Gemini's transliteration of Tamil பிளென்டாங் dropped letters (Plent**ong**→Pleton); too far from any abbreviation rule to bridge textually.
+
+**Fixes**:
+- Added `"Sri": "Seri"` to `_ABBREV_MAP` in `newswatch/services/news_analyser.py` — the variant generator now produces both spellings for any "Sri/Seri" word in any school name. Also helps future "Sri Petaling"/"Seri Kembangan" type articles.
+- Migration `hansard/0013` adds 6 curated SchoolAlias rows (4 Plentong/Pleton variants for `JBD1007`; 2 Sri/Seri variants for `JBD1029` as belt-and-braces).
+- 2 new regression tests in `newswatch/tests/test_school_matching.py` (Sri/Seri swap path; Pleton alias path).
+- Ran `rematch_schools` across all articles with unmatched mentions — article 985 now resolves all 4 schools; no other articles were affected by these specific gaps.
+
 ## 2026-06-29 — Data correction: 2025-03 enrolment snapshot
 
 Owner spotted an inexplicable +2,928 bump in the 2025-03 national total (against a clear downward trend in every other year). Investigation confirmed: MOE's March 2025 Risalah file (`SenaraiSekolahWeb_Mac2025.xlsx`) folded preschool counts into the main `ENROLMEN` column while leaving the separate `ENROLMEN PRASEKOLAH` column empty (0 across all 528 schools — vs 7,936 across 267 schools in the 2023 file, which kept them separate). Every other year in our series uses primary-only counts.

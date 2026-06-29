@@ -409,6 +409,10 @@ _ABBREV_MAP = {
     "West": "Barat",
     "South": "Selatan",
     "North": "Utara",
+    # Tamil ஶ்ரீ romanises as either "Sri" or "Seri" in MOE rolls; treat
+    # them as interchangeable so e.g. article "Bandar Sri Alam" hits the
+    # MOE record "Bandar Seri Alam" (JBD1029).
+    "Sri": "Seri",
 }
 # Build reverse map too (Ldg → Ladang, Timur → East, etc.)
 _ABBREV_REVERSE = {v: k for k, v in _ABBREV_MAP.items()}

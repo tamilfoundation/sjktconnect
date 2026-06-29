@@ -232,3 +232,28 @@ class ScreenshotFailureRegressionTest(TestCase):
             {"name": "SJK(T) St. Theresa Convent", "moe_code": ""}
         ])
         self.assertEqual(resolved[0]["moe_code"], "ABD6102")
+
+    def test_bandar_sri_alam_resolves_via_sri_seri_swap(self):
+        # BERNAMA article 985 (Madani Adoption, 26 Jun 2026) named
+        # "Bandar Sri Alam"; MOE record is "Bandar Seri Alam".
+        # The Sri<->Seri swap in _ABBREV_MAP must let the variant
+        # generator produce "Bandar Seri Alam" and hit JBD1029 via
+        # Strategy 2 (SJK(T) + distinctive exact match) — no alias
+        # needed for this code path.
+        self._make_school("JBD1029", "SJK(T) Bandar Seri Alam")
+        resolved = _resolve_school_codes([
+            {"name": "SJK(T) Bandar Sri Alam", "moe_code": ""}
+        ])
+        self.assertEqual(resolved[0]["moe_code"], "JBD1029")
+
+    def test_ladang_sungai_pleton_resolves_via_alias(self):
+        # Same BERNAMA article 985: Gemini transliterated Tamil
+        # "பிளென்டாங்" as "Pleton" (dropped letters). The variant
+        # generator can't bridge that textually, so the curated
+        # SchoolAlias (migration 0013) is the only path.
+        school = self._make_school("JBD1007", "SJK(T) Ladang Sg Plentong")
+        self._seed_alias(school, "SJK(T) Ladang Sungai Pleton")
+        resolved = _resolve_school_codes([
+            {"name": "SJK(T) Ladang Sungai Pleton", "moe_code": ""}
+        ])
+        self.assertEqual(resolved[0]["moe_code"], "JBD1007")
