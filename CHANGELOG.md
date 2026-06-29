@@ -4,9 +4,9 @@
 
 Owner spotted an inexplicable +2,928 bump in the 2025-03 national total (against a clear downward trend in every other year). Investigation confirmed: MOE's March 2025 Risalah file (`SenaraiSekolahWeb_Mac2025.xlsx`) folded preschool counts into the main `ENROLMEN` column while leaving the separate `ENROLMEN PRASEKOLAH` column empty (0 across all 528 schools — vs 7,936 across 267 schools in the 2023 file, which kept them separate). Every other year in our series uses primary-only counts.
 
-**Correction**: for each school, subtracted its 2023 `ENROLMEN PRASEKOLAH` count from its 2025 `ENROLMEN` to back out the bundled preschool. Updated 528 rows of `SchoolEnrolmentSnapshot` for `snapshot_date=2025-03-01`. National total now reads **72,685** (was 80,621), which sits cleanly between 2023's 77,693 and 2026's 70,009.
+**Correction**: for each school, subtracted the **average of its 2023 and 2026 preschool counts** from its 2025 `ENROLMEN`. The average gives a midpoint estimate since 2023 was 18 months before the snapshot and 2026 was 13 months after. Updated 528 rows of `SchoolEnrolmentSnapshot` for `snapshot_date=2025-03-01`. National total now reads **72,716** (was 80,621), which sits cleanly between 2023's 77,693 and 2026's 70,009 — and the 8-year national series becomes cleanly monotonic-declining (81,430 → 80,568 → 79,309 → 77,693 → 72,716 → 70,009).
 
-Audit trail: each corrected row's `source` field now reads `"Mar2025 file (preschool stripped via 2023 file)"`.
+Audit trail: each corrected row's `source` field now reads `"Mar2025 raw minus avg(2023,2026) preschool"`.
 
 No code change — pure data fix. Chart will reflect on next ISR cache turn (≤24h) or next web deploy.
 
