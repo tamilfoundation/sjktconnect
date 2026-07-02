@@ -22,10 +22,22 @@ class BuildBodyTest(TestCase):
         self.assertEqual(result, "Short article text.")
 
     def test_long_body_truncated(self):
-        article = NewsArticle(body_text="A" * 5000)
+        # Limit is 8000 chars (was 3000 until 2026-06-29 — bumped after
+        # article 998 mentioned a second school at char 5,169).
+        article = NewsArticle(body_text="A" * 10000)
         result = _build_body(article)
-        self.assertEqual(len(result), 3003)  # 3000 + "..."
+        self.assertEqual(len(result), 8003)  # 8000 + "..."
         self.assertTrue(result.endswith("..."))
+
+    def test_body_under_limit_reaches_5000_char_mark(self):
+        # Regression: a 6,222-char opinion piece (article 998, The Star,
+        # 2026-07-01) named SJK(T) Ladang Changkat Kinding at char 5,169.
+        # The 3000-char cap silently dropped that mention. Ensure a
+        # school named around char 5,000 is now visible to Gemini.
+        body = "A" * 5000 + "SJK(T) Ladang Changkat Kinding" + "B" * 500
+        article = NewsArticle(body_text=body)
+        result = _build_body(article)
+        self.assertIn("SJK(T) Ladang Changkat Kinding", result)
 
     def test_whitespace_stripped(self):
         article = NewsArticle(body_text="  leading and trailing  ")

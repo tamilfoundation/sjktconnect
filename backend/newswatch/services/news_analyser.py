@@ -213,10 +213,14 @@ def is_blocklisted_url(url: str) -> bool:
 def _build_body(article):
     """Build a token-budgeted body from an article.
 
-    Uses title + first ~3000 chars of body text.
+    Uses title + first ~8000 chars of body text (~2000 tokens). Was 3000
+    until 2026-06-29 — an opinion piece (article 998, The Star, "Resolving
+    the land status of Tamil schools in Perak", 6,222 chars) mentioned a
+    second SJK(T) at char 5,169 that Gemini never saw. 8000 covers all
+    typical long-form pieces; cost impact is fractions of a cent per call.
     """
     body = article.body_text.strip()
-    max_chars = 3000
+    max_chars = 8000
     if len(body) > max_chars:
         body = body[:max_chars] + "..."
     return body

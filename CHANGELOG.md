@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-01 — News-analyser body-truncation bump 3000 → 8000
+
+Owner spotted that a The Star opinion piece (article 998, "Resolving the land status of Tamil schools in Perak", 6,222 chars) tagged only 1 of 2 SJK(T)s. Investigation: `_build_body` in `newswatch/services/news_analyser.py` truncated the body sent to Gemini at 3,000 chars; the second school (SJK(T) Ladang Changkat Kinding, `ABD2174`) was named at char 5,169 — Gemini literally never saw it.
+
+**Fix**: bumped `max_chars` to 8,000 (~2,000 tokens). Cost impact fractions of a cent per long-form article; typical news items are well under 3,000 chars so unaffected. Updated + added `BuildBodyTest` regression (schools named up to char 5,000+ must be visible). Re-analysed article 998 in prod — now correctly tags both schools; summary also expanded to acknowledge the second school and the wider policy call.
+
 ## 2026-06-29 — News-matcher fix: Sri/Seri + Plentong/Pleton
 
 Owner spotted that a BERNAMA news card (article 985, Madani Adoption funding for 4 Johor SJK(T) schools) had only 2 of its 4 school chips linked to MOE records. Investigation found two distinct matcher gaps:
