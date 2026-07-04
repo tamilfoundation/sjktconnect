@@ -44,6 +44,13 @@ if DATABASE_URL:
 else:
     raise ValueError("DATABASE_URL is required in production")
 
+# Brevo webhook HMAC secret — hard-required in prod (audit 2026-07-01).
+# Without it, forged webhook events can flip BroadcastRecipient engagement
+# fields and trigger auto-deactivate-after-N-hard-bounces on arbitrary subscribers.
+BREVO_WEBHOOK_SECRET = os.environ.get("BREVO_WEBHOOK_SECRET")
+if not BREVO_WEBHOOK_SECRET:
+    raise ValueError("BREVO_WEBHOOK_SECRET is required in production")
+
 # News Watch — Google Alerts RSS feed URLs (comma-separated env var)
 _rss_feeds = os.environ.get("NEWS_WATCH_RSS_FEEDS", "")
 NEWS_WATCH_RSS_FEEDS = [

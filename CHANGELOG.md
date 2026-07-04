@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-07-01 — Sprint 33.0 hygiene batch (audit follow-up)
+
+Quick-win bundle from the 2026-07-01 audit ([docs/audit-2026-07-01.md](docs/audit-2026-07-01.md)). 7 items, one deploy.
+
+1. **`BREVO_WEBHOOK_SECRET` hard-required in prod** ([backend/sjktconnect/settings/production.py](backend/sjktconnect/settings/production.py)). Missing/empty at boot → raises. Closes the forgery vector where unset-in-prod = anyone can mutate `BroadcastRecipient` engagement fields and trigger auto-deactivate-after-3-hard-bounces against arbitrary subscribers. **Owner action**: verify the env var is set on both `sjktconnect-api` and `sjktconnect-monthly-blast`/`sjktconnect-news-digest`/`sjktconnect-urgent-alerts` Cloud Run Jobs before the next deploy — otherwise boot will fail. CLAUDE.md env-var table updated: `Optional` → `Yes (prod)`.
+2. **DB indexes on 5 hot-path fields**. Migrations: `schools/0018` (`is_active`, `ppd`), `hansard/0014` (`review_status`, `mp_constituency`), `newswatch/0003` (`published_date`). Applied to prod DB pre-deploy.
+3. **Deleted 2 dead frontend components**: `frontend/components/StateFilter.tsx` (superseded by `MapFilterPanel`) + `frontend/components/MeetingReportsList.tsx` (superseded by `MeetingReportsGrid`) + `frontend/__tests__/components/StateFilter.test.tsx`. ~350 LOC removed.
+4. **`app/[locale]/error.tsx` + `not-found.tsx` root boundaries**. Trilingual (`errorBoundary` + `notFound` i18n namespaces added to en/ms/ta). Replaces Next's generic error page on any thrown fetch.
+5. **`▲/▼` glyph on `EnrolmentTrend`** trend indicator. Colour-blind-safe affordance next to the ±N% percentage.
+6. **Retired `URGENT_ALERT_REQUIRE_REVIEW` dormant flag**. The Sprint 25 flip made review-required the permanent behaviour; the auto-send `else` branch was dead. Removed from `settings/base.py` + `send_urgent_alerts.py` + refactored `test_send_urgent_alerts.py` (2 → 2 tests, same coverage).
+7. **Maps API key → Docker build-arg**. `frontend/Dockerfile` no longer ships a hardcoded API key literal; requires `--build-arg NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<key>` at build (or `--build-env-vars` on `gcloud run deploy`). CLAUDE.md production infra section updated with rotation steps.
+
+**Owner action still pending**: (a) rotate the exposed Maps key at Google Cloud Console — restrict new one to `*.tamilschool.org` referrer, revoke old only after new key is live; (b) set `BREVO_WEBHOOK_SECRET` env var on all backend-image Cloud Run services + jobs before the Sprint 33.0 deploy.
+
+Tests: 1,463 backend passed (1 pre-existing Sprint 32 downloader flake deselected). Frontend: 355/358 passed; 3 failures are pre-existing test-debt (SupportSchoolCard DuitNow QR removed in Sprint 32; SchoolHistory pills-branch coverage lost in Sprint 31 revert — both on the Sprint 33 test-debt catch-up list).
+
 ## 2026-07-01 — News-analyser body-truncation bump 3000 → 8000
 
 Owner spotted that a The Star opinion piece (article 998, "Resolving the land status of Tamil schools in Perak", 6,222 chars) tagged only 1 of 2 SJK(T)s. Investigation: `_build_body` in `newswatch/services/news_analyser.py` truncated the body sent to Gemini at 3,000 chars; the second school (SJK(T) Ladang Changkat Kinding, `ABD2174`) was named at char 5,169 — Gemini literally never saw it.

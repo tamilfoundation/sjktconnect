@@ -1,8 +1,9 @@
 """Tests for the send_urgent_alerts management command.
 
-Covers the dormant URGENT_ALERT_REQUIRE_REVIEW feature flag:
-- Flag off (default): Broadcast is created AND sent immediately.
-- Flag on: Broadcast is created as DRAFT and NOT sent.
+Urgent alerts ALWAYS go to admin review — the auto-send branch was
+retired 2026-07-01 (audit follow-up). Prior tests exercised both
+`URGENT_ALERT_REQUIRE_REVIEW` on/off states; only the DRAFT path
+remains.
 """
 
 from datetime import timedelta
@@ -10,7 +11,7 @@ from io import StringIO
 from unittest.mock import Mock, patch
 
 from django.core.management import call_command
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.utils import timezone
 
 from broadcasts.models import Broadcast
@@ -18,7 +19,7 @@ from newswatch.models import NewsArticle
 
 
 @patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
-class SendUrgentAlertsFlagTest(TestCase):
+class SendUrgentAlertsTest(TestCase):
     def setUp(self):
         self.article = NewsArticle.objects.create(
             url="https://example.com/closure",
@@ -47,22 +48,8 @@ class SendUrgentAlertsFlagTest(TestCase):
             mock_resp
         )
 
-    @override_settings(URGENT_ALERT_REQUIRE_REVIEW=False)
-    @patch("broadcasts.management.commands.send_urgent_alerts.send_broadcast")
     @patch("broadcasts.services.urgent_alert.genai")
-    def test_flag_off_sends_immediately(self, mock_genai, mock_send):
-        self._mock_gemini(mock_genai)
-
-        call_command("send_urgent_alerts", stdout=StringIO())
-
-        broadcast = Broadcast.objects.get(kind=Broadcast.Kind.URGENT_ALERT)
-        self.assertTrue(broadcast.subject.startswith("URGENT:"))
-        mock_send.assert_called_once_with(broadcast.pk)
-
-    @override_settings(URGENT_ALERT_REQUIRE_REVIEW=True)
-    @patch("broadcasts.management.commands.send_urgent_alerts.send_broadcast")
-    @patch("broadcasts.services.urgent_alert.genai")
-    def test_flag_on_creates_draft_and_skips_send(self, mock_genai, mock_send):
+    def test_creates_draft_and_skips_send(self, mock_genai):
         self._mock_gemini(mock_genai)
         out = StringIO()
 
@@ -70,13 +57,11 @@ class SendUrgentAlertsFlagTest(TestCase):
 
         broadcast = Broadcast.objects.get(kind=Broadcast.Kind.URGENT_ALERT)
         self.assertEqual(broadcast.status, Broadcast.Status.DRAFT)
-        mock_send.assert_not_called()
+        self.assertTrue(broadcast.subject.startswith("URGENT:"))
         self.assertIn("DRAFT for review", out.getvalue())
 
-    @override_settings(URGENT_ALERT_REQUIRE_REVIEW=False)
-    @patch("broadcasts.management.commands.send_urgent_alerts.send_broadcast")
     @patch("broadcasts.services.urgent_alert.genai")
-    def test_broadcast_has_urgent_alert_kind(self, mock_genai, mock_send):
+    def test_broadcast_has_urgent_alert_kind(self, mock_genai):
         self._mock_gemini(mock_genai)
 
         call_command("send_urgent_alerts", stdout=StringIO())

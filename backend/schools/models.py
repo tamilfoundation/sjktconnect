@@ -93,7 +93,7 @@ class School(models.Model):
     city = models.CharField(max_length=100, blank=True, default="")
     state = models.CharField(max_length=50, db_index=True)
     ppd = models.CharField(
-        max_length=100, blank=True, default="",
+        max_length=100, blank=True, default="", db_index=True,
         help_text="Pejabat Pendidikan Daerah (District Education Office)",
     )
     constituency = models.ForeignKey(
@@ -124,7 +124,7 @@ class School(models.Model):
     session_type = models.CharField(max_length=20, blank=True, default="")
     skm_eligible = models.BooleanField(default=False)
     location_type = models.CharField(max_length=50, blank=True, default="")
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True, db_index=True)
     claimed_at = models.DateTimeField(
         null=True, blank=True,
         help_text="When a school admin first claimed this page via @moe.edu.my sign-in",

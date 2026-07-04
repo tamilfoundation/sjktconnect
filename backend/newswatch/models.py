@@ -58,7 +58,7 @@ class NewsArticle(models.Model):
         help_text="Google Alerts feed title that surfaced this article",
     )
     published_date = models.DateTimeField(
-        null=True, blank=True,
+        null=True, blank=True, db_index=True,
         help_text="Article publication date from RSS or extraction",
     )
     body_text = models.TextField(

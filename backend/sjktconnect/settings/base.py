@@ -230,17 +230,10 @@ AUDIT_LOG_MODELS = [
 BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
-# Safety net for urgent alerts. When true, send_urgent_alerts creates
-# a DRAFT broadcast and does NOT auto-send — a moderator must approve
-# from /broadcast/ before it goes out. Default flipped to true in
-# Sprint 25 (2026-06-26) — urgent alerts were going out at the cron's
-# fire time (09:30 MYT) without admin sanity-check, which is the
-# wrong default for a "URGENT:" subject line that escapes the
-# fortnightly cadence. Set the env var to "false" only when you
-# deliberately want auto-send (e.g. a separately-throttled drill).
-URGENT_ALERT_REQUIRE_REVIEW = os.environ.get(
-    "URGENT_ALERT_REQUIRE_REVIEW", "true"
-).lower() == "true"
+# Urgent alerts always go to admin review — Sprint 25 flipped the
+# default in 2026-06-26 and the auto-send code path was retired
+# 2026-07-01 (audit follow-up). Kept as a note here so a future
+# `git log -S URGENT_ALERT_REQUIRE_REVIEW` finds the retirement.
 
 # Toyyib Pay
 TOYYIBPAY_BASE_URL = os.environ.get("TOYYIBPAY_BASE_URL", "https://toyyibpay.com")

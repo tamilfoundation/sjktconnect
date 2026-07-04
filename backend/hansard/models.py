@@ -63,7 +63,7 @@ class HansardMention(models.Model):
 
     # AI fields (populated in Sprint 0.4)
     mp_name = models.CharField(max_length=100, blank=True, default="")
-    mp_constituency = models.CharField(max_length=100, blank=True, default="")
+    mp_constituency = models.CharField(max_length=100, blank=True, default="", db_index=True)
     mp_party = models.CharField(max_length=100, blank=True, default="")
     mention_type = models.CharField(max_length=20, blank=True, default="")
     significance = models.IntegerField(null=True, blank=True)
@@ -77,7 +77,7 @@ class HansardMention(models.Model):
     pipeline_version = models.CharField(max_length=30, default="", blank=True)
 
     # Review fields (Sprint 0.5)
-    review_status = models.CharField(max_length=20, blank=True, default="PENDING")
+    review_status = models.CharField(max_length=20, blank=True, default="PENDING", db_index=True)
     reviewed_by = models.CharField(max_length=100, blank=True, default="")
     reviewed_at = models.DateTimeField(null=True, blank=True)
     review_notes = models.TextField(blank=True, default="")

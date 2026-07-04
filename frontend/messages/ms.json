@@ -14,6 +14,17 @@
     "noBoundaryData": "Data sempadan tidak tersedia",
     "somethingWrong": "Sesuatu tidak kena."
   },
+  "errorBoundary": {
+    "title": "Sesuatu tidak kena",
+    "description": "Halaman ini tidak dapat dimuatkan. Sila cuba semula, atau kembali ke halaman utama.",
+    "retry": "Cuba semula",
+    "home": "Ke halaman utama"
+  },
+  "notFound": {
+    "title": "Halaman tidak dijumpai",
+    "description": "Halaman yang anda cari tidak wujud atau telah dialihkan.",
+    "home": "Ke halaman utama"
+  },
   "header": {
     "title": "SJK(T) Connect",
     "schoolMap": "Peta Sekolah",

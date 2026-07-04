@@ -9,14 +9,12 @@ Usage:
     python manage.py send_urgent_alerts --dry-run
 """
 
-from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import strip_tags
 
 from broadcasts.models import Broadcast
-from broadcasts.services.sender import send_broadcast
 from broadcasts.services.urgent_alert import generate_urgent_alert
 from newswatch.models import NewsArticle
 
@@ -122,20 +120,14 @@ class Command(BaseCommand):
                 status=Broadcast.Status.DRAFT,
             )
 
-            if settings.URGENT_ALERT_REQUIRE_REVIEW:
-                self.stdout.write(
-                    self.style.WARNING(
-                        f"  Broadcast {broadcast.pk} created as DRAFT for review. "
-                        f"URGENT_ALERT_REQUIRE_REVIEW=true is set. "
-                        f"Approve via admin to send."
-                    )
-                )
-                continue
-
-            send_broadcast(broadcast.pk)
+            # Urgent alerts always go to admin review. The auto-send path
+            # was retired 2026-07-01 (audit follow-up) after Sprint 25
+            # flipped `URGENT_ALERT_REQUIRE_REVIEW` default to true; the
+            # else-branch was dead but still readable as opt-in.
             self.stdout.write(
-                self.style.SUCCESS(
-                    f"  Sent broadcast {broadcast.pk}: URGENT: {article.title[:60]}"
+                self.style.WARNING(
+                    f"  Broadcast {broadcast.pk} created as DRAFT for review. "
+                    f"Approve via admin to send."
                 )
             )
 

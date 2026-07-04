@@ -102,6 +102,8 @@ export default function EnrolmentTrend({ history }: Props) {
   const fill = improving ? "rgba(5, 150, 105, 0.10)" : "rgba(225, 29, 72, 0.10)";
   const deltaTextClass = improving ? "text-emerald-600" : "text-rose-600";
   const deltaSign = improving ? "+" : "";
+  // a11y: colour-blind-safe glyph next to the coloured percentage.
+  const deltaGlyph = improving ? "▲" : "▼";
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -216,7 +218,8 @@ export default function EnrolmentTrend({ history }: Props) {
               to: formatMonthYear(last.date, locale),
             })}
           </span>
-          <span className={`font-semibold ${deltaTextClass}`}>
+          <span className={`font-semibold ${deltaTextClass}`} aria-hidden={false}>
+            <span aria-hidden="true">{deltaGlyph} </span>
             {deltaSign}{deltaPct}% {t("since", { year: yearOf(first.date) })}
           </span>
         </div>

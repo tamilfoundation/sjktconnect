@@ -14,6 +14,17 @@
     "noBoundaryData": "No boundary data available",
     "somethingWrong": "Something went wrong."
   },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "description": "The page couldn't load. Please try again, or head back to the homepage.",
+    "retry": "Try again",
+    "home": "Go to homepage"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you're looking for doesn't exist or has been moved.",
+    "home": "Go to homepage"
+  },
   "header": {
     "title": "SJK(T) Connect",
     "schoolMap": "School Map",
