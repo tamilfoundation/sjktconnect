@@ -17,7 +17,7 @@ COPY . .
 # 2026-07-01: accept it as a build arg so it can be rotated without
 # committing a new value. Deploy with:
 #   gcloud run deploy sjktconnect-web ... \
-#     --build-env-vars NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<key>
+#     --set-build-env-vars NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<key>
 # For local builds the arg can be passed via `docker build --build-arg`.
 ARG NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 ENV NEXT_PUBLIC_API_URL=https://api.tamilschool.org
