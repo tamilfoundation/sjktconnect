@@ -15,8 +15,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Collect static files at build time with dummy env vars
+# Collect static files at build time with dummy env vars. Real values
+# for SECRET_KEY / DATABASE_URL / BREVO_WEBHOOK_SECRET come from Cloud
+# Run env at runtime; production.py raise-if-missing on those is fine
+# because we pass placeholder values here.
 RUN DATABASE_URL=sqlite:///tmp/db.sqlite3 SECRET_KEY=build-only-key \
+    BREVO_WEBHOOK_SECRET=build-only-secret \
     python manage.py collectstatic --noinput --settings=sjktconnect.settings.production
 
 CMD python manage.py migrate --noinput && \
