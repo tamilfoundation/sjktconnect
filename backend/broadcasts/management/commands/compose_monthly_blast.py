@@ -37,6 +37,56 @@ from broadcasts.services.topic_clusterer import (
 NEWS_TOP_N = 10
 
 
+def _promote_top_story(news_clusters, all_clusters, top_story_cluster_index):
+    """Promote the analyst's picked cluster to position #1 in shown news.
+
+    Audit 2026-07-05: fixes the coherence gap where the subject line +
+    executive summary named a story that never appeared in the "In The
+    News" section. `top_story_cluster_index` is a 0-based index into the
+    NON-OTHER clusters as they were presented to the analyst.
+
+    Behaviour:
+      - Missing / invalid / -1 index → return news_clusters unchanged
+        (backward compat, or "genuinely quiet month" signal).
+      - Picked cluster already at position #1 → return unchanged.
+      - Picked cluster elsewhere in the top-N → move to position #1.
+      - Picked cluster NOT in the top-N (ranked lower by hybrid score) →
+        insert at position #1 and drop the last one from the top-N so
+        the section size doesn't grow.
+    """
+    if top_story_cluster_index is None or top_story_cluster_index < 0:
+        return news_clusters
+
+    # Rebuild the non-Other cluster list in the order the analyst saw
+    # (matches _format_clusters ordering: preserved input order, skip Other).
+    ordered_non_other = [c for c in all_clusters if not c.get("is_other")]
+    if top_story_cluster_index >= len(ordered_non_other):
+        return news_clusters  # invalid index, leave the list alone
+    picked = ordered_non_other[top_story_cluster_index]
+
+    # Where is `picked` in the currently-shown news_clusters?
+    picked_lead_pk = getattr(picked.get("lead_article"), "pk", None)
+
+    def _same(c):
+        return (
+            c.get("lead_article") is picked.get("lead_article")
+            or (
+                picked_lead_pk is not None
+                and getattr(c.get("lead_article"), "pk", None) == picked_lead_pk
+            )
+        )
+
+    for i, c in enumerate(news_clusters):
+        if _same(c):
+            if i == 0:
+                return news_clusters  # already at top
+            reordered = [news_clusters[i]] + news_clusters[:i] + news_clusters[i+1:]
+            return reordered
+
+    # Not currently shown — insert at top, drop the tail to keep the size.
+    return [picked] + news_clusters[:-1] if news_clusters else [picked]
+
+
 class Command(BaseCommand):
     help = "Compose a Monthly Intelligence Blast as a DRAFT broadcast."
 
@@ -170,20 +220,12 @@ class Command(BaseCommand):
                 )
             return
 
-        # Try v2 analytical blast via Gemini.
-        # Sprint 24 #6 (LOCKED 2026-05-11): there is no v1 fallback. If
-        # Gemini fails, the compose aborts with a CommandError so the
-        # admin sees a clear failure instead of a half-quality digest.
-        analysis = generate_monthly_analysis(year, month, backfill_since=backfill_since)
-        if analysis is None:
-            raise CommandError(
-                "Monthly blast compose aborted: monthly_analyst returned None "
-                "(GEMINI_API_KEY missing, API failure, or invalid response). "
-                "Fix the underlying issue and rerun — Sprint 24 removed the "
-                "v1 fallback because a half-quality digest is worse than a "
-                "clean error."
-            )
-
+        # 2026-07-05: cluster news FIRST so the analyst has the actual
+        # story-list as context. Was: analyst ran independently and
+        # picked a top story that sometimes wasn't in the news section
+        # (June 2026: subject named "RM4.3M Ladang Rini" but that
+        # cluster ranked #8 and dropped out of the top-10 shown).
+        #
         # Sprint 24 task #2: cluster the approved news articles into
         # topic groups so a 46-article month reads as a small set of
         # named stories rather than a flat list. Fail-open inside the
@@ -201,6 +243,34 @@ class Command(BaseCommand):
             f"{data.get('news_total', 0)} approved articles -- "
             f"showing top {len(news_clusters)} as cards, "
             f"{news_remainder_count} article(s) rolled into footer"
+        )
+
+        # Try v2 analytical blast via Gemini.
+        # Sprint 24 #6 (LOCKED 2026-05-11): there is no v1 fallback. If
+        # Gemini fails, the compose aborts with a CommandError so the
+        # admin sees a clear failure instead of a half-quality digest.
+        # Pass all_clusters so the analyst picks its top story from a
+        # story the reader will actually see below.
+        analysis = generate_monthly_analysis(
+            year, month,
+            backfill_since=backfill_since,
+            news_clusters=all_clusters,
+        )
+        if analysis is None:
+            raise CommandError(
+                "Monthly blast compose aborted: monthly_analyst returned None "
+                "(GEMINI_API_KEY missing, API failure, or invalid response). "
+                "Fix the underlying issue and rerun — Sprint 24 removed the "
+                "v1 fallback because a half-quality digest is worse than a "
+                "clean error."
+            )
+
+        # 2026-07-05: honour top_story_cluster_index — promote the
+        # analyst's picked cluster to position #1 in the shown news
+        # cards. This guarantees the reader sees the same story in
+        # the subject line, executive summary, and top news card.
+        news_clusters = _promote_top_story(
+            news_clusters, all_clusters, analysis.get("top_story_cluster_index"),
         )
 
         # Sprint 23 + 24: extra context for v2 render. Surfaces the

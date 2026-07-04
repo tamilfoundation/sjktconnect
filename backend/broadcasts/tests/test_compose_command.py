@@ -538,3 +538,83 @@ class TestSprint24RenderSmoke:
         # scorecard fixture has no last_mention_date → falls back to
         # lifetime → section should NOT render.
         assert "Most Active MPs This Month" not in broadcast.html_content
+
+
+class TestPromoteTopStory:
+    """Unit tests for the _promote_top_story helper (audit 2026-07-05).
+
+    Closes the coherence gap where the subject line named a story that
+    never appeared in the "In The News" section (June 2026: RM4.3M
+    Ladang Rini was #8 in the clusters and dropped out of the top-10).
+    """
+
+    def _cluster(self, headline, article_pk, is_other=False):
+        # Minimal stub: `lead_article` is any object with a `.pk`
+        # attribute, since _promote_top_story compares by that.
+        class _A:
+            pk = article_pk
+        return {
+            "headline": headline, "lead_article": _A(), "is_other": is_other,
+        }
+
+    def test_missing_index_returns_unchanged(self):
+        from broadcasts.management.commands.compose_monthly_blast import _promote_top_story
+        news = [self._cluster("A", 1), self._cluster("B", 2)]
+        assert _promote_top_story(news, news, None) is news
+
+    def test_minus_one_returns_unchanged(self):
+        from broadcasts.management.commands.compose_monthly_blast import _promote_top_story
+        news = [self._cluster("A", 1), self._cluster("B", 2)]
+        assert _promote_top_story(news, news, -1) is news
+
+    def test_index_zero_when_picked_already_at_top_returns_unchanged(self):
+        from broadcasts.management.commands.compose_monthly_blast import _promote_top_story
+        c0, c1 = self._cluster("A", 1), self._cluster("B", 2)
+        news = [c0, c1]
+        result = _promote_top_story(news, news, 0)
+        assert result[0] is c0
+
+    def test_picked_elsewhere_in_shown_list_moves_to_top(self):
+        from broadcasts.management.commands.compose_monthly_blast import _promote_top_story
+        c0, c1, c2 = self._cluster("A", 1), self._cluster("B", 2), self._cluster("C", 3)
+        news = [c0, c1, c2]  # shown as-is
+        result = _promote_top_story(news, news, 2)  # promote C
+        assert [c["headline"] for c in result] == ["C", "A", "B"]
+
+    def test_picked_not_in_shown_list_inserted_at_top_drops_tail(self):
+        from broadcasts.management.commands.compose_monthly_blast import _promote_top_story
+        # 3 clusters shown, 4 total (analyst picked the 4th which is Ladang Rini)
+        c0, c1, c2, c3 = (
+            self._cluster("Vernacular commitment", 10),
+            self._cluster("Penang land", 11),
+            self._cluster("528 schools stats", 12),
+            self._cluster("RM4.3M Ladang Rini", 13),
+        )
+        news = [c0, c1, c2]  # top-3 shown
+        all_clusters = [c0, c1, c2, c3]  # 4 total
+        result = _promote_top_story(news, all_clusters, 3)
+        # c3 pinned to top, tail dropped so length is preserved.
+        assert len(result) == 3
+        assert result[0]["headline"] == "RM4.3M Ladang Rini"
+        # Tail dropped: c2 out.
+        assert result[1]["headline"] == "Vernacular commitment"
+        assert result[2]["headline"] == "Penang land"
+
+    def test_other_bucket_skipped_when_indexing(self):
+        """The `Other` bucket isn't shown as a card and must be skipped
+        when the analyst's index maps to real clusters."""
+        from broadcasts.management.commands.compose_monthly_blast import _promote_top_story
+        c0 = self._cluster("A", 1)
+        c1 = self._cluster("B", 2)
+        c_other = self._cluster("Other", 999, is_other=True)
+        c2 = self._cluster("C", 3)
+        # Analyst saw: 0=A, 1=B, 2=C (Other skipped in formatter)
+        all_clusters = [c0, c1, c_other, c2]
+        news = [c0, c1, c2]
+        result = _promote_top_story(news, all_clusters, 2)  # promote C
+        assert result[0]["headline"] == "C"
+
+    def test_invalid_index_beyond_range_returns_unchanged(self):
+        from broadcasts.management.commands.compose_monthly_blast import _promote_top_story
+        news = [self._cluster("A", 1)]
+        assert _promote_top_story(news, news, 99) is news

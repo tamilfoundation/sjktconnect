@@ -58,6 +58,21 @@ News articles (showing top {current_news_count} of {current_news_total}):
 Top MP scorecards{current_scorecard_qualifier}:
 {current_scorecard_text}
 
+--- NEWS STORIES (clustered) ---
+The individual articles above have been clustered into {news_cluster_count} \
+distinct stories. THESE are the stories the reader will see in the "In The \
+News" section of the email. Your executive_summary MUST be primarily about \
+one of these stories, chosen for newsworthiness (biggest funding, most \
+significant policy shift, most impactful for the community). If none of the \
+clusters is a genuinely big story and Parliament is quiet, say so plainly.
+
+{news_cluster_text}
+
+Return "top_story_cluster_index" as an integer: the 0-based index of the \
+cluster your executive_summary features. This is used to promote that \
+story to the top of the news section, ensuring subject line + summary + \
+news all point at the same story.
+
 --- PREVIOUS MONTH: {previous_month_label} ---
 Parliament mentions (showing top {previous_parliament_count} of {previous_parliament_total}):
 {previous_parliament_text}
@@ -132,7 +147,14 @@ phrasing like "Monthly update". Examples of good style: "Special ed coming to \
 Tamil schools in 2027" or "RM15.7M committed to SJK(T) infrastructure". \
 Counter-example to avoid: "Funding boost; new playground opens" — pick one. \
 If the month is genuinely quiet, return a calm honest line rather than \
-fabricating drama.
+fabricating drama. **The headline must be about the same story as your \
+executive_summary and top_story_cluster_index.**
+
+6. "top_story_cluster_index" (integer): The 0-based index of the news \
+cluster your executive_summary + headline are primarily about, using the \
+NEWS STORIES list above. This is required whenever news clusters are \
+present. If there are zero news clusters this month (a completely quiet \
+month), return -1.
 
 Rules:
 - Be specific: use names, amounts, dates, constituency names from the data.
@@ -218,6 +240,34 @@ def _format_meetings(queryset) -> str:
     return "\n".join(lines)
 
 
+def _format_clusters(clusters) -> str:
+    """Format news clusters as a numbered list for the analyst prompt.
+
+    Each line: "Cluster N: <headline> - K articles, relevance R, SENTIMENT
+    | <lead-article summary excerpt>". Skips the "Other" bucket — that
+    isn't a story the reader will see as a card.
+    """
+    if not clusters:
+        return "No news clusters this month."
+    lines = []
+    idx = 0
+    for c in clusters:
+        if c.get("is_other"):
+            continue
+        headline = c.get("headline", "") or "(no headline)"
+        n = c.get("article_count", 0)
+        rel = c.get("max_relevance", 0)
+        sentiment = c.get("sentiment_majority", "NEUTRAL")
+        summary = (c.get("story_summary", "") or "")[:220]
+        lines.append(
+            f"Cluster {idx}: {headline} - {n} article{'s' if n != 1 else ''}, "
+            f"relevance {rel}/5, {sentiment}"
+            f"{' | ' + summary if summary else ''}"
+        )
+        idx += 1
+    return "\n".join(lines) if lines else "No news clusters this month."
+
+
 def _previous_month(year: int, month: int) -> tuple[int, int]:
     """Return (year, month) for the month before the given one."""
     if month == 1:
@@ -246,6 +296,7 @@ def generate_monthly_analysis(
     year: int,
     month: int,
     backfill_since: date | None = None,
+    news_clusters: list | None = None,
 ) -> dict | None:
     """Generate analytical monthly content via Gemini.
 
@@ -258,16 +309,26 @@ def generate_monthly_analysis(
         backfill_since: Forwarded to aggregate_month — see its docstring.
             Sprint 18 added so a one-time digest can pull older briefs +
             meeting reports that prior digests missed.
+        news_clusters: List of clustered news stories from
+            topic_clusterer.cluster_news_articles(). When supplied, the
+            analyst is CONSTRAINED to pick its executive_summary top
+            story from these clusters, and returns a
+            `top_story_cluster_index` so the caller can promote that
+            cluster to position #1 in the "In The News" section. This
+            closes the coherence gap where the subject line named a
+            story that never appeared in the news list (audit 2026-07-05).
 
     Returns:
         dict with executive_summary, trend_lines, opportunity_watch,
-        school_spotlight, headline, by_the_numbers. None if API key missing,
-        generation fails, or response invalid.
+        school_spotlight, headline, top_story_cluster_index, by_the_numbers.
+        None if API key missing, generation fails, or response invalid.
 
-        Audit 2026-07-05: dropped `emerging_signals` and `fading_from_view`
+        Audit 2026-07-05a: dropped `emerging_signals` and `fading_from_view`
         after a reader-repetition audit found the two sections restated the
-        top story instead of surfacing distinct ones. The remaining sections
-        now carry an explicit no-story-reuse rule in the prompt.
+        top story instead of surfacing distinct ones.
+        Audit 2026-07-05b: added news_clusters constraint + top_story_
+        cluster_index return field so the subject line, executive_summary,
+        and top news card always point at the same story.
     """
     api_key = os.environ.get("GEMINI_API_KEY", "")
     if not api_key:
@@ -289,6 +350,10 @@ def generate_monthly_analysis(
     )
 
     sentiment = current_data.get("news_sentiment_breakdown") or {}
+    # Count non-Other clusters — Other is a rolled-up bucket, not a card.
+    real_clusters = [
+        c for c in (news_clusters or []) if not c.get("is_other")
+    ]
     prompt = ANALYST_PROMPT.format(
         current_month_label=current_month_label,
         current_parliament_count=len(list(current_data["parliament"])),
@@ -306,6 +371,8 @@ def generate_monthly_analysis(
         current_news_count=len(list(current_data["news"])),
         current_news_total=current_data.get("news_total", 0),
         current_news_text=_format_news(current_data["news"]),
+        news_cluster_count=len(real_clusters),
+        news_cluster_text=_format_clusters(news_clusters or []),
         current_sentiment_pos=sentiment.get("positive", 0),
         current_sentiment_neg=sentiment.get("negative", 0),
         current_sentiment_neu=sentiment.get("neutral", 0),
