@@ -499,10 +499,16 @@ def _wrap_broadcast_html(
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="x-apple-disable-message-reformatting">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
 </head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
-    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background-color: #ffffff; border-radius: 8px; padding: 30px; margin-bottom: 20px;">
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4; word-break: break-word;">
+    <!-- Mobile-fix 2026-07-04: outer padding trimmed from 20px to 10px so a
+         320px viewport leaves room for the inner card, and the inner card
+         padding cut from 30px to 20px so text isn't crammed against edges. -->
+    <div style="max-width: 600px; margin: 0 auto; padding: 10px;">
+        <div style="background-color: #ffffff; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
             {content}
         </div>
         <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
