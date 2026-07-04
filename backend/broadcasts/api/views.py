@@ -1,6 +1,5 @@
 """Brevo webhook endpoint for delivery event tracking."""
 
-import hashlib
 import hmac
 import logging
 import os
@@ -24,30 +23,26 @@ class BrevoWebhookView(APIView):
     Brevo sends JSON payloads for delivery events: delivered, opened,
     click, hard_bounce, soft_bounce, spam, unsubscribed.
 
-    Authentication: optional HMAC signature via BREVO_WEBHOOK_SECRET.
-    If the secret is set, requests without a valid signature are rejected.
+    Authentication: Bearer token via BREVO_WEBHOOK_SECRET. Audit 2026-07-01
+    switched from HMAC to Bearer — Brevo's outbound-webhook UI only exposes
+    "No authentication / Basic / Token" and does not sign the payload.
+    Requests without a matching Bearer token return 403.
     """
 
     permission_classes = [AllowAny]
-    authentication_classes = []  # No auth — Brevo can't send tokens
+    authentication_classes = []  # No DRF auth — token checked manually below
 
     def post(self, request):
-        # Verify HMAC signature if secret is configured
         webhook_secret = os.environ.get("BREVO_WEBHOOK_SECRET", "")
         if webhook_secret:
-            signature = request.headers.get("X-Sib-Signature", "")
-            if not signature:
-                logger.warning("Brevo webhook: missing signature header")
+            auth = request.headers.get("Authorization", "")
+            if not auth.startswith("Bearer "):
+                logger.warning("Brevo webhook: missing Bearer authorization")
                 return Response(status=status.HTTP_403_FORBIDDEN)
 
-            expected = hmac.new(
-                webhook_secret.encode(),
-                request.body,
-                hashlib.sha256,
-            ).hexdigest()
-
-            if not hmac.compare_digest(signature, expected):
-                logger.warning("Brevo webhook: invalid signature")
+            supplied = auth[len("Bearer "):].strip()
+            if not hmac.compare_digest(supplied, webhook_secret):
+                logger.warning("Brevo webhook: invalid Bearer token")
                 return Response(status=status.HTTP_403_FORBIDDEN)
 
         # Brevo may send a single event or a list

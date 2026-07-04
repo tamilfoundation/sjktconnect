@@ -256,8 +256,10 @@ class TestBrevoWebhookEndpoint:
         assert response.status_code == 200
         assert response.data["processed"] == 2
 
-    def test_no_auth_required(self):
-        """Webhook endpoint must be public (Brevo can't send tokens)."""
+    def test_no_auth_required_when_secret_unset(self):
+        """When BREVO_WEBHOOK_SECRET is unset (dev), the endpoint accepts
+        unsigned requests. In prod the settings guard makes it required
+        at boot."""
         response = self.client.post(
             self.url,
             data={"event": "delivered", "message-id": "unknown"},
@@ -265,15 +267,35 @@ class TestBrevoWebhookEndpoint:
         )
         assert response.status_code == 200
 
-    @pytest.mark.parametrize("secret_env", ["test-secret-key"])
-    def test_hmac_validation_rejects_bad_signature(self, secret_env, settings):
-        import os
+    def test_bearer_missing_rejected_when_secret_set(self):
         with pytest.MonkeyPatch.context() as mp:
-            mp.setenv("BREVO_WEBHOOK_SECRET", secret_env)
+            mp.setenv("BREVO_WEBHOOK_SECRET", "test-secret")
             response = self.client.post(
                 self.url,
                 data={"event": "delivered", "message-id": "endpoint-msg-1"},
                 format="json",
-                HTTP_X_SIB_SIGNATURE="invalid-signature",
             )
             assert response.status_code == 403
+
+    def test_bearer_wrong_token_rejected(self):
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setenv("BREVO_WEBHOOK_SECRET", "test-secret")
+            response = self.client.post(
+                self.url,
+                data={"event": "delivered", "message-id": "endpoint-msg-1"},
+                format="json",
+                HTTP_AUTHORIZATION="Bearer wrong-token",
+            )
+            assert response.status_code == 403
+
+    def test_bearer_matching_token_accepted(self):
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setenv("BREVO_WEBHOOK_SECRET", "test-secret")
+            response = self.client.post(
+                self.url,
+                data={"event": "delivered", "message-id": "endpoint-msg-1"},
+                format="json",
+                HTTP_AUTHORIZATION="Bearer test-secret",
+            )
+            assert response.status_code == 200
+            assert response.data["processed"] == 1
