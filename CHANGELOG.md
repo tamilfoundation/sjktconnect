@@ -14,7 +14,7 @@
 8. **CLAUDE.md doc drift** — `accounts` app description now names OAuth session + Sprint 11a Magic-link retirement; `URGENT_ALERT_REQUIRE_REVIEW` no longer described as "dormant" (it was flipped default-true in Sprint 25 and retired in Sprint 33.0); test count refreshed to reflect Sprint 33's real numbers.
 9. **Dead-branch cleanup** — dropped the vestigial `field.startswith("leadership_")` guard in `_apply_data_correction` (leadership editing moved to its own CRUD endpoints in Sprint 20; no `SUGGESTIBLE_FIELDS` entry starts with the prefix). Documented `SchoolImage.display_url`'s `image_url` fallback as test-only (Sprint 13 migrated 100% of prod rows).
 
-Live: api `sjktconnect-api-00147-XXX`, web `sjktconnect-web-00181-XXX`.
+Live: api `sjktconnect-api-00147-vtr`, web `sjktconnect-web-00182-n2d` (post-ISR-bust).
 
 ## 2026-07-01 — Sprint 33 sharp-edges bundle (audit follow-up)
 
