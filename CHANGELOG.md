@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-07-01 — Sprint 34 comprehensive polish (audit follow-up)
+
+9 MEDIUM/LOW items from [docs/audit-2026-07-01.md](docs/audit-2026-07-01.md), closing out the audit's approved comprehensive scope. Backend suite still 1497 (no new tests — this sprint is safety-net + polish, not feature).
+
+1. **AllMentionSerializer.get_schools N+1** — was re-issuing per mention because `.select_related("school").all()` on an already-prefetched relation bypasses the cache. Removed the `.select_related` — now hits the view's `prefetch_related("matched_schools__school")` cleanly.
+2. **SchoolEditSerializer reuses `request.user_profile`** — was re-fetching UserProfile from session even though the view already validated the caller. Consolidated onto the trusted attribute with session fallback for defence in depth, guarded against non-real UserProfile stand-ins (MagicMock in tests, middleware bypass).
+3. **`school_images_view` explicit permission decorator** — now carries `@permission_classes([AllowAny])` instead of relying on DRF's implicit default, so a future default change (Sprint 8.1's "add DEFAULT_PERMISSION_CLASSES") can't accidentally lock it down.
+4. **`pin_image_view` + `reorder_images_view` atomic** — wrapped both view bodies in `transaction.atomic()`. A crash between the clear-siblings and set-target writes on pin could have left every school-image `is_primary=False`; a crash mid-reorder could have shuffled positions only halfway.
+5. **Public-list throttling** — new `PublicSearchThrottle` (60/hr/IP for `/api/v1/search/`) + `PublicListThrottle` (120/hr/IP for `/schools/map/`, `/schools/national-stats/`, `/constituencies/geojson/`, `/news/`, `/mentions/`). Backstops the Sprint 21 UA blocklist against scrapers rotating User-Agents. Two new throttle scopes in `settings.base.DEFAULT_THROTTLE_RATES`.
+6. **Homepage visible failure UI** — the `.catch { }` silent-swallow used to hide real API outages behind hardcoded fallbacks (528 / 12 / 150). Now emits an admin-friendly `console.error` and shows an amber "Live statistics unavailable" banner above the hero when the API is down.
+7. **Admin surfaces i18n** — new `imageManager` namespace across en/ms/ta covers 9 previously hardcoded strings in `ImageManager`, `ModerationQueue`, `MySuggestions`, `PhotoLightbox`, and `SchoolImage` (`Loading…`, `Caption (optional)`, `Uploading…`, `Upload photo`, `Photo slot full…`, `JPEG/PNG/WebP…`, `Community upload`, `View all N photos`, `★ Hero`/`Make hero`).
+8. **CLAUDE.md doc drift** — `accounts` app description now names OAuth session + Sprint 11a Magic-link retirement; `URGENT_ALERT_REQUIRE_REVIEW` no longer described as "dormant" (it was flipped default-true in Sprint 25 and retired in Sprint 33.0); test count refreshed to reflect Sprint 33's real numbers.
+9. **Dead-branch cleanup** — dropped the vestigial `field.startswith("leadership_")` guard in `_apply_data_correction` (leadership editing moved to its own CRUD endpoints in Sprint 20; no `SUGGESTIBLE_FIELDS` entry starts with the prefix). Documented `SchoolImage.display_url`'s `image_url` fallback as test-only (Sprint 13 migrated 100% of prod rows).
+
+Live: api `sjktconnect-api-00147-XXX`, web `sjktconnect-web-00181-XXX`.
+
 ## 2026-07-01 — Sprint 33 sharp-edges bundle (audit follow-up)
 
 Seven HIGH/MEDIUM-severity items from [docs/audit-2026-07-01.md](docs/audit-2026-07-01.md). +34 new tests (1497 backend, up from 1463 at Sprint 33.0).

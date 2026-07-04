@@ -15,6 +15,7 @@ from parliament.api.serializers import (
     SittingBriefSerializer,
 )
 from parliament.models import MPScorecard, ParliamentaryMeeting, SittingBrief
+from schools.api.views import PublicListThrottle
 from schools.models import Constituency, School
 
 
@@ -69,6 +70,7 @@ class AllMentionsListView(ListAPIView):
     """
 
     serializer_class = AllMentionSerializer
+    throttle_classes = [PublicListThrottle]  # audit 2026-07-01
 
     def get_queryset(self):
         return (

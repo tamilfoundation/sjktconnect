@@ -1,19 +1,12 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import { Captions } from "yet-another-react-lightbox/plugins";
 import "yet-another-react-lightbox/plugins/captions.css";
 
 import { SchoolImageData } from "@/lib/types";
-
-const SOURCE_LABELS: Record<string, string> = {
-  SATELLITE: "Google Maps satellite",
-  PLACES: "Google Places",
-  STREET_VIEW: "Google Street View",
-  MANUAL: "Uploaded by admin",
-  COMMUNITY: "Community upload",
-};
 
 interface PhotoLightboxProps {
   open: boolean;
@@ -37,6 +30,15 @@ export default function PhotoLightbox({
   images,
   schoolName,
 }: PhotoLightboxProps) {
+  const tIm = useTranslations("imageManager");
+  const SOURCE_LABELS: Record<string, string> = {
+    SATELLITE: "Google Maps satellite",
+    PLACES: "Google Places",
+    STREET_VIEW: "Google Street View",
+    MANUAL: "Uploaded by admin",
+    COMMUNITY: tIm("communityUpload"),
+  };
+
   const slides = images.map((img) => {
     // For COMMUNITY uploads with a known contributor, show the contributor
     // name instead of the generic "Community upload" label.

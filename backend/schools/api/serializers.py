@@ -533,18 +533,31 @@ class SchoolEditSerializer(serializers.ModelSerializer):
         # Only SUPERADMINs may update GPS — school admins see the fields
         # as read-only badges (Sprint 5.4's batch-verified pins). The
         # frontend gates the UI, this guard is the trust boundary.
+        #
+        # Audit 2026-07-01: was re-fetching UserProfile via session lookup
+        # even though the view already validated the caller and attached
+        # `request.user_profile` (backend/schools/api/views.py:120). Two
+        # trust chains for the same fact would drift over time; consolidate
+        # onto the trusted one. Preserve session fallback for defence in
+        # depth if the middleware ever fails to attach the profile.
+        from accounts.models import UserProfile
+
         request = self.context.get("request")
-        profile_id = (
-            request.session.get("user_profile_id") if request else None
-        )
-        is_superadmin = False
-        if profile_id:
-            from accounts.models import UserProfile
-            try:
-                profile = UserProfile.objects.get(pk=profile_id)
-                is_superadmin = profile.role == "SUPERADMIN"
-            except UserProfile.DoesNotExist:
-                pass
+        profile = None
+        # Prefer the trusted attribute set by the view / IsProfileAuthenticated
+        # perm (must be a real UserProfile — guard against MagicMock/other
+        # test stand-ins that auto-populate arbitrary attributes).
+        candidate = getattr(request, "user_profile", None) if request else None
+        if isinstance(candidate, UserProfile):
+            profile = candidate
+        if profile is None and request is not None:
+            profile_id = request.session.get("user_profile_id")
+            if profile_id:
+                try:
+                    profile = UserProfile.objects.get(pk=profile_id)
+                except UserProfile.DoesNotExist:
+                    profile = None
+        is_superadmin = profile is not None and profile.role == "SUPERADMIN"
         if not is_superadmin:
             validated_data.pop("gps_lat", None)
             validated_data.pop("gps_lng", None)

@@ -20,6 +20,17 @@
     "retry": "Cuba semula",
     "home": "Ke halaman utama"
   },
+  "imageManager": {
+    "captionPlaceholder": "Kapsyen (pilihan)",
+    "uploading": "Memuat naik…",
+    "upload": "Muat naik foto",
+    "slotFull": "Slot foto penuh ({used}/{cap}). Padam satu foto dahulu.",
+    "uploadHelp": "JPEG/PNG/WebP, ≤5 MB, ≥640×400. {used}/{cap} slot digunakan.",
+    "communityUpload": "Muat naik komuniti",
+    "viewAll": "Lihat semua {count} foto",
+    "makeHero": "Jadikan utama",
+    "isHero": "★ Utama"
+  },
   "notFound": {
     "title": "Halaman tidak dijumpai",
     "description": "Halaman yang anda cari tidak wujud atau telah dialihkan.",

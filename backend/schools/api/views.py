@@ -16,8 +16,31 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework.throttling import AnonRateThrottle
+from rest_framework.throttling import AnonRateThrottle, SimpleRateThrottle
 from rest_framework.views import APIView
+
+
+class PublicSearchThrottle(SimpleRateThrottle):
+    """Audit 2026-07-01: search is the noisiest scrape target."""
+    scope = "public_search"
+
+    def get_cache_key(self, request, view):
+        return self.cache_format % {
+            "scope": self.scope,
+            "ident": self.get_ident(request),
+        }
+
+
+class PublicListThrottle(SimpleRateThrottle):
+    """Audit 2026-07-01: list/geojson/stats endpoints for anon visitors."""
+    scope = "public_list"
+
+    def get_cache_key(self, request, view):
+        return self.cache_format % {
+            "scope": self.scope,
+            "ident": self.get_ident(request),
+        }
+
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +124,8 @@ class SchoolMapView(APIView):
 
     Single non-paginated response (~50 KB vs ~550 KB from SchoolListView).
     """
+
+    throttle_classes = [PublicListThrottle]
 
     def get(self, request):
         schools = School.objects.filter(is_active=True).only(
@@ -394,6 +419,8 @@ class SearchView(APIView):
     Returns up to 10 results per category.
     """
 
+    throttle_classes = [PublicSearchThrottle]
+
     def get(self, request):
         q = request.query_params.get("q", "").strip()
         if len(q) < 2:
@@ -433,6 +460,8 @@ class SearchView(APIView):
 class NationalStatsView(APIView):
     """Return aggregate statistics for all active Tamil schools."""
 
+    throttle_classes = [PublicListThrottle]
+
     def get(self, request):
         schools = School.objects.filter(is_active=True)
         stats = schools.aggregate(
@@ -461,6 +490,8 @@ class NationalStatsView(APIView):
 
 class ConstituencyGeoJSONView(APIView):
     """Return all constituency boundaries as a GeoJSON FeatureCollection."""
+
+    throttle_classes = [PublicListThrottle]
 
     def get(self, request):
         constituencies = Constituency.objects.exclude(boundary_wkt="").only(

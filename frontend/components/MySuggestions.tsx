@@ -19,6 +19,7 @@ const typeLabels: Record<string, string> = {
 
 export default function MySuggestions() {
   const t = useTranslations("suggestions");
+  const tCommon = useTranslations("common");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,7 +32,7 @@ export default function MySuggestions() {
 
   if (loading) {
     return (
-      <div className="text-center text-gray-500 py-4">Loading...</div>
+      <div className="text-center text-gray-500 py-4">{tCommon("loading")}</div>
     );
   }
 

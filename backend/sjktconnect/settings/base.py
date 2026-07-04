@@ -210,6 +210,12 @@ REST_FRAMEWORK = {
         # Toyyib return-URL loops back here; even a bugged FE poll
         # shouldn't spam the endpoint.
         "donation_status": "30/hour",
+        # Sprint 34: bucket public list endpoints by IP. Scrapers
+        # rotating UAs slip past the Sprint 21 UA blocklist; a rate
+        # cap is the deterministic guard. Rates chosen to comfortably
+        # cover a real visitor's session while stopping bulk scraping.
+        "public_search": "60/hour",
+        "public_list": "120/hour",
     },
 }
 

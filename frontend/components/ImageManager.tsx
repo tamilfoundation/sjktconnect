@@ -34,6 +34,8 @@ interface ImageManagerProps {
 
 export default function ImageManager({ moeCode }: ImageManagerProps) {
   const t = useTranslations("suggestions");
+  const tIm = useTranslations("imageManager");
+  const tCommon = useTranslations("common");
   const [images, setImages] = useState<SchoolImageData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -190,7 +192,7 @@ export default function ImageManager({ moeCode }: ImageManagerProps) {
 
   if (loading) {
     return (
-      <div className="text-center py-12 text-gray-500">Loading...</div>
+      <div className="text-center py-12 text-gray-500">{tCommon("loading")}</div>
     );
   }
 
@@ -202,13 +204,15 @@ export default function ImageManager({ moeCode }: ImageManagerProps) {
           accept="image/jpeg,image/png,image/webp"
           onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
           disabled={uploading || atCap}
+          aria-label={tIm("upload")}
           className="text-sm flex-1 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 disabled:opacity-50"
         />
         <input
           type="text"
           value={uploadCaption}
           onChange={(e) => setUploadCaption(e.target.value.slice(0, 200))}
-          placeholder="Caption (optional)"
+          placeholder={tIm("captionPlaceholder")}
+          aria-label={tIm("captionPlaceholder")}
           disabled={uploading || atCap}
           className="text-sm px-3 py-1.5 border border-gray-300 rounded flex-1 disabled:bg-gray-100"
         />
@@ -217,13 +221,13 @@ export default function ImageManager({ moeCode }: ImageManagerProps) {
           disabled={!uploadFile || uploading || atCap}
           className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50 whitespace-nowrap"
         >
-          {uploading ? "Uploading…" : "Upload photo"}
+          {uploading ? tIm("uploading") : tIm("upload")}
         </button>
       </div>
       <p className="mt-2 text-xs text-gray-500">
         {atCap
-          ? `Photo slot full (${images.length}/${PHOTO_CAP}). Delete a photo first.`
-          : `JPEG/PNG/WebP, ≤5 MB, ≥640×400. ${images.length}/${PHOTO_CAP} slots used.`}
+          ? tIm("slotFull", { used: images.length, cap: PHOTO_CAP })
+          : tIm("uploadHelp", { used: images.length, cap: PHOTO_CAP })}
       </p>
     </div>
   );
@@ -238,7 +242,7 @@ export default function ImageManager({ moeCode }: ImageManagerProps) {
             onClick={loadImages}
             className="text-sm text-primary-600 hover:underline"
           >
-            Retry
+            {tCommon("retry")}
           </button>
         </div>
       </div>
@@ -411,7 +415,7 @@ export default function ImageManager({ moeCode }: ImageManagerProps) {
                   className="px-3 py-1 text-sm text-primary-700 hover:bg-primary-50 rounded disabled:opacity-40 disabled:cursor-not-allowed"
                   title="Make this the school's hero photo"
                 >
-                  {image.is_primary ? "★ Hero" : "Make hero"}
+                  {image.is_primary ? tIm("isHero") : tIm("makeHero")}
                 </button>
                 <button
                   onClick={() => handleDelete(image.id)}

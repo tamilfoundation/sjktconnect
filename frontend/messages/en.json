@@ -20,6 +20,17 @@
     "retry": "Try again",
     "home": "Go to homepage"
   },
+  "imageManager": {
+    "captionPlaceholder": "Caption (optional)",
+    "uploading": "Uploading…",
+    "upload": "Upload photo",
+    "slotFull": "Photo slot full ({used}/{cap}). Delete a photo first.",
+    "uploadHelp": "JPEG/PNG/WebP, ≤5 MB, ≥640×400. {used}/{cap} slots used.",
+    "communityUpload": "Community upload",
+    "viewAll": "View all {count} photos",
+    "makeHero": "Make hero",
+    "isHero": "★ Hero"
+  },
   "notFound": {
     "title": "Page not found",
     "description": "The page you're looking for doesn't exist or has been moved.",

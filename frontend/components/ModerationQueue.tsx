@@ -13,6 +13,7 @@ import { Suggestion } from "@/lib/types";
 
 export default function ModerationQueue() {
   const t = useTranslations("suggestions");
+  const tCommon = useTranslations("common");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [rejectingId, setRejectingId] = useState<number | null>(null);
@@ -74,7 +75,7 @@ export default function ModerationQueue() {
   };
 
   if (loading) {
-    return <div className="text-center text-gray-500 py-8">Loading...</div>;
+    return <div className="text-center text-gray-500 py-8">{tCommon("loading")}</div>;
   }
 
   if (suggestions.length === 0) {

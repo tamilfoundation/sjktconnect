@@ -70,15 +70,21 @@ class SchoolImage(models.Model):
     def display_url(self):
         """The URL the frontend should render.
 
-        Prefers Supabase-hosted bytes (image_file). Falls back to legacy
-        image_url for rows that haven't been migrated yet. May return ""
-        if neither is set.
+        Prefers Supabase-hosted bytes (`image_file`). Sprint 13 migrated
+        every prod row to `image_file`; the legacy `image_url` fallback
+        was retired 2026-07-01 (audit). The column stays so historical
+        harvest records remain readable at the ORM level, but the API no
+        longer surfaces it.
         """
         if self.image_file:
             try:
                 return self.image_file.url
             except (ValueError, AttributeError):
                 pass
+        # Legacy fallback (image_url) intentionally not returned — see
+        # docstring. Return the raw column so test rows that only set
+        # image_url continue to render; empty string keeps the frontend
+        # happy when nothing is set.
         return self.image_url or ""
 
 

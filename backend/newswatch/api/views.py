@@ -5,6 +5,7 @@ from rest_framework.pagination import PageNumberPagination
 
 from newswatch.api.serializers import NewsArticleSerializer
 from newswatch.models import NewsArticle
+from schools.api.views import PublicListThrottle
 
 
 class NewsListPagination(PageNumberPagination):
@@ -18,6 +19,7 @@ class NewsListView(ListAPIView):
     authentication_classes = []
     permission_classes = []
     pagination_class = NewsListPagination
+    throttle_classes = [PublicListThrottle]  # audit 2026-07-01
 
     def get_queryset(self):
         qs = NewsArticle.objects.filter(

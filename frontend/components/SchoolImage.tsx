@@ -21,6 +21,7 @@ export default function SchoolPhotoGallery({
   imageUrl,
 }: Props) {
   const t = useTranslations("parliamentWatch");
+  const tIm = useTranslations("imageManager");
 
   let photoList: SchoolImageData[];
   if (images && images.length > 0) {
@@ -103,7 +104,7 @@ export default function SchoolPhotoGallery({
             onClick={() => openLightbox(0)}
             className="absolute top-3 right-3 text-xs text-white bg-black/60 hover:bg-black/80 px-3 py-1.5 rounded-full backdrop-blur-sm font-medium transition-colors"
           >
-            View all {photoList.length} photos
+            {tIm("viewAll", { count: photoList.length })}
           </button>
         )}
 

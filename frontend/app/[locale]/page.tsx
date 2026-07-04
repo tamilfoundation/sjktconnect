@@ -16,13 +16,19 @@ export default async function HomePage({ params }: PageProps) {
   setRequestLocale(locale);
   let stats = null;
   let schools: Awaited<ReturnType<typeof fetchMapSchools>> = [];
+  let apiFailed = false;
   try {
     [stats, schools] = await Promise.all([
       fetchNationalStats(),
       fetchMapSchools(),
     ]);
-  } catch {
-    // API may not be available during build — render with fallback
+  } catch (err) {
+    // Audit 2026-07-01: previously an empty catch silently rendered the
+    // baseline 528/12/150 counts, hiding a real API outage from admin.
+    // Log to the server console (Cloud Run captures it) and flag the
+    // page so a visible banner tells visitors data is degraded.
+    apiFailed = true;
+    console.error("HomePage: API unavailable — rendering with fallback stats", err);
   }
 
   // Filter to schools with GPS coordinates on the server
@@ -30,6 +36,14 @@ export default async function HomePage({ params }: PageProps) {
 
   return (
     <>
+      {apiFailed && (
+        <div
+          role="status"
+          className="bg-amber-50 border-b border-amber-200 text-amber-900 text-sm text-center py-2 px-4"
+        >
+          Live statistics unavailable right now. Showing recent baseline numbers.
+        </div>
+      )}
       <HeroSection
         totalSchools={stats?.total_schools ?? 528}
         states={stats?.states ?? 12}

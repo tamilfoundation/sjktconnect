@@ -10,6 +10,7 @@ DATA_CORRECTION + NOTE keep the JSON flow they had since Sprint 8.2.
 """
 
 from django.core.files.base import ContentFile
+from django.db import transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -20,6 +21,7 @@ from rest_framework.decorators import (
     throttle_classes,
 )
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from accounts.permissions import IsProfileAuthenticated
@@ -391,8 +393,15 @@ def reject_suggestion_view(request, pk):
 
 
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def school_images_view(request, moe_code):
-    """List images for a school, ordered by position."""
+    """List images for a school, ordered by position.
+
+    Public by design — powers the school-page gallery for anonymous
+    visitors. Audit 2026-07-01: previously relied on the DRF default
+    `AllowAny` implicitly; now stated explicitly so a future default
+    change (see Sprint 34 note) can't accidentally lock this down.
+    """
     school = get_object_or_404(School, moe_code=moe_code)
     images = SchoolImage.objects.filter(school=school)
     data = [
@@ -422,8 +431,11 @@ def reorder_images_view(request, moe_code):
             status=status.HTTP_403_FORBIDDEN,
         )
     order = request.data.get("order", [])
-    for position, image_id in enumerate(order):
-        SchoolImage.objects.filter(pk=image_id, school=school).update(position=position)
+    # Audit 2026-07-01: wrap the N updates in a single txn so a mid-loop
+    # crash can't leave positions half-shuffled.
+    with transaction.atomic():
+        for position, image_id in enumerate(order):
+            SchoolImage.objects.filter(pk=image_id, school=school).update(position=position)
     return Response({"detail": "Images reordered."})
 
 
@@ -507,8 +519,12 @@ def pin_image_view(request, moe_code, image_id):
     except SchoolImage.DoesNotExist as exc:
         raise Http404 from exc
 
-    SchoolImage.objects.filter(school=school).exclude(pk=image.pk).update(is_primary=False)
-    if not image.is_primary:
-        image.is_primary = True
-        image.save(update_fields=["is_primary"])
+    # Audit 2026-07-01: two writes (clear siblings, set target) must land
+    # together — a crash between them could leave every image is_primary=
+    # False, and the school would render with no hero.
+    with transaction.atomic():
+        SchoolImage.objects.filter(school=school).exclude(pk=image.pk).update(is_primary=False)
+        if not image.is_primary:
+            image.is_primary = True
+            image.save(update_fields=["is_primary"])
     return Response({"detail": "Hero photo updated.", "id": image.pk})

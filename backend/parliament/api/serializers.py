@@ -75,9 +75,13 @@ class AllMentionSerializer(serializers.Serializer):
     schools = serializers.SerializerMethodField()
 
     def get_schools(self, obj):
+        # Audit 2026-07-01: the view prefetches `matched_schools__school`.
+        # Reading via `.select_related(...).all()` re-issues a query per
+        # mention because the modified queryset isn't the prefetch cache.
+        # Use `.all()` alone so the prefetch cache is hit.
         return [
             {"name": ms.school.name, "moe_code": ms.school.moe_code}
-            for ms in obj.matched_schools.select_related("school").all()
+            for ms in obj.matched_schools.all()
         ]
 
 

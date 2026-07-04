@@ -60,11 +60,15 @@ def reject_suggestion(suggestion, reviewer, reason=""):
 
 
 def _apply_data_correction(suggestion):
-    """Update the school field with the suggested value."""
+    """Update the school field with the suggested value.
+
+    Audit 2026-07-01: removed a `leadership_` prefix guard here — the
+    leadership-suggestion flow was retired when SchoolLeader got its
+    own CRUD endpoints (Sprint 20), and no field in SUGGESTIBLE_FIELDS
+    starts with "leadership_" anyway.
+    """
     school = suggestion.school
     field = suggestion.field_name
-    if field.startswith("leadership_"):
-        return
     if field in Suggestion.SUGGESTIBLE_FIELDS and hasattr(school, field):
         setattr(school, field, suggestion.suggested_value)
         school.save(update_fields=[field, "updated_at"])
