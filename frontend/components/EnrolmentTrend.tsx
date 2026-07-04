@@ -191,24 +191,30 @@ export default function EnrolmentTrend({ history }: Props) {
             strokeLinecap="round"
           />
 
-          {/* Data points + per-point value labels */}
-          {coords.map((c, i) => (
-            <g key={i}>
-              <circle cx={c.x} cy={c.y} r={i === coords.length - 1 ? 3 : 2.3} fill={stroke}>
-                <title>{`${c.date}: ${c.students.toLocaleString()}`}</title>
-              </circle>
-              <text
-                x={c.x}
-                y={c.y - 6}
-                fontSize="9"
-                fill="rgb(55, 65, 81)"
-                textAnchor="middle"
-                fontWeight="500"
-              >
-                {c.students}
-              </text>
-            </g>
-          ))}
+          {/* Data points + per-point value labels. Audit 2026-07-01:
+              at <sm we show only the endpoint values — the intermediate
+              per-point labels crowded at 375 px. */}
+          {coords.map((c, i) => {
+            const isEndpoint = i === 0 || i === coords.length - 1;
+            return (
+              <g key={i}>
+                <circle cx={c.x} cy={c.y} r={i === coords.length - 1 ? 3 : 2.3} fill={stroke}>
+                  <title>{`${c.date}: ${c.students.toLocaleString()}`}</title>
+                </circle>
+                <text
+                  x={c.x}
+                  y={c.y - 6}
+                  fontSize="9"
+                  fill="rgb(55, 65, 81)"
+                  textAnchor="middle"
+                  fontWeight="500"
+                  className={isEndpoint ? "" : "hidden sm:block"}
+                >
+                  {c.students}
+                </text>
+              </g>
+            );
+          })}
         </svg>
 
         <div className="flex items-center justify-between text-xs mt-2 px-1">

@@ -10,24 +10,42 @@ interface DonationStatus {
   amount?: number;
   donor_name?: string;
   order_id?: string;
+  donation_id?: string;
 }
 
 function ThankYouContent() {
   const t = useTranslations("donate");
   const searchParams = useSearchParams();
-  const orderId = searchParams.get("order_id") || "";
+  // Audit 2026-07-01: return-URL now uses `donation_id` (UUID) instead
+  // of the enumerable `order_id`. Fall back to legacy `order_id` for any
+  // Toyyib bill still in-flight from before the switchover.
+  const donationId = searchParams.get("donation_id") || "";
+  const legacyOrderId = searchParams.get("order_id") || "";
 
   const [donation, setDonation] = useState<DonationStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!orderId) {
+    if (!donationId && !legacyOrderId) {
       setLoading(false);
       return;
     }
 
     const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
-    fetch(`${apiBase}/api/v1/donations/${orderId}/status/`)
+    // New URL takes the UUID as a path segment. Legacy order_id was
+    // never wired to a working URL (the old FE built a nonsense path),
+    // so no fallback fetch — surfaces as "processing" via .catch below.
+    const url = donationId
+      ? `${apiBase}/api/v1/donations/status/${donationId}/`
+      : "";
+
+    if (!url) {
+      setDonation({ status: "processing", order_id: legacyOrderId });
+      setLoading(false);
+      return;
+    }
+
+    fetch(url)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch");
         return res.json();
@@ -37,10 +55,10 @@ function ThankYouContent() {
         setLoading(false);
       })
       .catch(() => {
-        setDonation({ status: "processing", order_id: orderId });
+        setDonation({ status: "processing", donation_id: donationId });
         setLoading(false);
       });
-  }, [orderId]);
+  }, [donationId, legacyOrderId]);
 
   if (loading) {
     return (
@@ -90,9 +108,9 @@ function ThankYouContent() {
               )}
             </p>
           )}
-          {(donation.order_id || orderId) && (
+          {(donation.order_id || legacyOrderId) && (
             <p className="text-sm text-gray-500">
-              {t("referenceId")}: {donation.order_id || orderId}
+              {t("referenceId")}: {donation.order_id || legacyOrderId}
             </p>
           )}
         </div>

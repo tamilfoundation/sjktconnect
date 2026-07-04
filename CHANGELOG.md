@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-07-01 — Sprint 33 sharp-edges bundle (audit follow-up)
+
+Seven HIGH/MEDIUM-severity items from [docs/audit-2026-07-01.md](docs/audit-2026-07-01.md). +34 new tests (1497 backend, up from 1463 at Sprint 33.0).
+
+1. **Image N+1 fix** — `SchoolListSerializer.get_image_url` was calling `.filter(is_primary=True).first()` per row, bypassing `prefetch_related("images")`. Replaced with a `Prefetch(to_attr="_primary_images")` object populated on the four hot-path views (list, detail, nested Constituency, nested DUN). `SchoolDetailSerializer` similarly reads prefetched `_all_images_sorted` + `_ordered_snapshots`. Query count on `/api/v1/schools/?state=X` for 10 schools drops from ~13 to 3; regression test locks the bound. Biggest single Supabase egress win in the audit.
+2. **Broadcast `UniqueConstraint`** — migration `broadcasts/0008` adds a partial unique index on `(kind, coverage_start_date, coverage_end_date)` where `status IN (SENT, SENDING)` AND both dates are non-null. DB-level backstop for the 2026-05-02 4-broadcast race that Sprint 23's app-layer duplicate-guard was designed to prevent. Verified pre-migration: no live rows violated (23 historical rows with null coverage dates untouched by the partial index).
+3. **`donation_status` → UUID + throttle** — audit HIGH: 6-hex `order_id` was trivially enumerable (donor name + amount leaked). Endpoint now takes the `Donation.id` UUID as a path segment, rate-limited to `30/hour/IP` via new `DonationStatusThrottle` (reuses Sprint 14 throttle pattern). Return-URL updated to `?donation_id=<uuid>` (Toyyib callback still keys off `order_id` — no breaking change there). Frontend `thank-you` page reads `donation_id`, retains `order_id` fallback for any in-flight Toyyib bill from before the switchover.
+4. **Orphan-image janitor** — new `janitor_orphan_images` mgmt cmd sweeps `Suggestion` rows in `APPROVED`/`REJECTED` state whose `pending_image` field still points at a Storage key. Optional `--sweep-untracked` also lists Supabase Storage for pending/ keys with no Suggestion row. Fixed the silent-except in `community/services.py` — Storage delete failures now log with a stacktrace and the janitor sweeps on next run. Added to `update_jobs.sh` job list. **Owner action needed at deploy**: create the Cloud Run Job + Scheduler entry (`0 3 * * 0` MYT weekly, per audit rec).
+5. **Email plain-text alternatives** — `strip_tags(html_content)` was being sent as the plain-text alternative to Brevo. Django's `strip_tags` removes tag delimiters but keeps `<style>` and `<script>` bodies — raw CSS rule text was landing in Gmail's plain-text pane, a known spam-score hit. New `broadcasts.services.text_alternative.html_to_text_alternative()` strips `<head>`, `<style>`, `<script>` blocks and collapses whitespace before falling back to `strip_tags`. Wired into all 5 composers (`compose_news_digest`, `compose_monthly_blast`, `compose_urgent_alert`, `compose_parliament_watch`, `send_urgent_alerts`).
+6. **`news_watch_urgent.html` CSS inlined** — Gmail mobile strips `<style>` blocks in `<head>`; every rule now lives in `style=""` attributes.
+7. **Sprint 32 test-debt catch-up** — audit item explicitly flagged: no tests for `admin_image_upload_view` (7 new tests: SUPERADMIN + bound admin allowed, MODERATOR + other-school admin + regular denied, slot-full 409, missing-image 400), `SchoolEnrolmentSnapshot` model + `enrolment_history` serializer (5 tests), `pending_moderation_count` scoping (4 tests covering SUPERADMIN/MODERATOR/bound admin/regular). Plus new `EnrolmentTrend` frontend tests (empty state / improving / declining / endpoint labels).
+8. **Mobile 375 px polish** — `SchoolImage` thumbnail strip: cap to 3 thumbs at <sm, drop dims to `w-16 h-12`; school-page `StatCard` grid: `grid-cols-1 sm:grid-cols-3`; `SupportSchoolCard` Bank/Account row: `grid-cols-1 sm:grid-cols-2`; `EnrolmentTrend` per-point value labels hidden at <sm except endpoints.
+
+**Owner action still pending at deploy**:
+- Set `BREVO_WEBHOOK_SECRET` on the 5 backend-image jobs (was only added to the api service in Sprint 33.0). Otherwise scheduled jobs boot-fail after Sprint 33 deploy.
+- Create Cloud Run Job `sjktconnect-janitor-orphan-images` + Cloud Scheduler entry `0 3 * * 0` MYT (Sunday 03:00) that executes it.
+
 ## 2026-07-01 — Sprint 33.0 hygiene batch (audit follow-up)
 
 Quick-win bundle from the 2026-07-01 audit ([docs/audit-2026-07-01.md](docs/audit-2026-07-01.md)). 7 items, one deploy.

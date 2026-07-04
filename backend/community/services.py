@@ -1,8 +1,12 @@
+import logging
+
 from django.core.files.base import ContentFile
 from django.db import transaction
 
 from community.models import Suggestion
 from outreach.models import SchoolImage
+
+logger = logging.getLogger(__name__)
 
 
 def approve_suggestion(suggestion, reviewer):
@@ -44,8 +48,13 @@ def reject_suggestion(suggestion, reviewer, reason=""):
             try:
                 suggestion.pending_image.delete(save=False)
             except Exception:  # noqa: BLE001
-                # Storage delete is best-effort; orphans get janitored later.
-                pass
+                # Storage delete is best-effort. Log so the janitor (Sprint 33
+                # weekly cron `janitor_orphan_images`) has a signal to sweep.
+                logger.exception(
+                    "reject_suggestion: failed to delete pending image %s "
+                    "for suggestion %s — janitor will retry",
+                    suggestion.pending_image.name, suggestion.pk,
+                )
         suggestion.save()
     return suggestion
 
@@ -106,5 +115,9 @@ def _apply_photo_upload(suggestion):
     try:
         suggestion.pending_image.delete(save=False)
     except Exception:  # noqa: BLE001
-        pass
+        logger.exception(
+            "_apply_photo_upload: failed to delete pending image %s "
+            "for suggestion %s after copy — janitor will retry",
+            suggestion.pending_image.name, suggestion.pk,
+        )
     suggestion.pending_image = None

@@ -3,13 +3,14 @@ import os
 
 from django.http import HttpResponse
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from donations.models import Donation
 from donations import services
 from .serializers import DonationCreateSerializer
+from .throttles import DonationStatusThrottle
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,10 @@ def create_donation(request):
 
     frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
     backend_url = request.build_absolute_uri("/")[:-1]
-    return_url = f"{frontend_url}/donate/thank-you?order_id={donation.order_id}"
+    # Audit 2026-07-01: return-URL uses the unguessable UUID pk instead of
+    # the enumerable order_id (SJKT-DON-YYYYMMDD-XXXXXX). Toyyib callback
+    # still keys off order_id server-side.
+    return_url = f"{frontend_url}/donate/thank-you?donation_id={donation.id}"
     callback_url = f"{backend_url}/api/v1/donations/callback/"
 
     try:
@@ -75,18 +79,22 @@ def toyyib_callback(request):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
-def donation_status(request):
-    """Check donation status by order_id."""
-    order_id = request.query_params.get("order_id")
-    if not order_id:
-        return Response({"error": "order_id required"}, status=400)
+@throttle_classes([DonationStatusThrottle])
+def donation_status(request, donation_id):
+    """Check donation status by unguessable UUID (audit 2026-07-01).
 
+    Was `?order_id=SJKT-DON-YYYYMMDD-XXXXXX` — 6-hex tail, trivially
+    enumerable, leaked donor name + amount to anyone iterating IDs.
+    Now `donation_id` is Donation.id (UUID4 — 128-bit random). Rate-
+    limited to 30/hour/IP to keep bugged FE polls or scrapers bounded.
+    """
     try:
-        donation = Donation.objects.get(order_id=order_id)
-    except Donation.DoesNotExist:
+        donation = Donation.objects.get(pk=donation_id)
+    except (Donation.DoesNotExist, ValueError):
         return Response({"error": "Not found"}, status=404)
 
     return Response({
+        "donation_id": str(donation.id),
         "order_id": donation.order_id,
         "amount": str(donation.amount),
         "status": donation.status,

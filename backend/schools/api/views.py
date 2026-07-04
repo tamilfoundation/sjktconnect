@@ -7,7 +7,7 @@ import re
 
 import qrcode
 import requests as http_requests
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Prefetch, Q, Sum
 from django.http import HttpResponse
 from django.utils import timezone
 
@@ -37,10 +37,31 @@ from schools.api.serializers import (
     SchoolListSerializer,
     SchoolMapSerializer,
 )
-from schools.models import Constituency, DUN, School, SchoolLeader
+from schools.models import Constituency, DUN, School, SchoolLeader, SchoolEnrolmentSnapshot
+from outreach.models import SchoolImage
 
 
 # --- School API ---
+
+# Sprint 33 audit fix: reusable Prefetch objects that populate a filtered
+# list on each School instance so serializers can read it without a per-row
+# .filter().first() lookup. Without these the SchoolListSerializer.get_image_url
+# path issues ~1 query per row on every 50-page list.
+_primary_image_prefetch = Prefetch(
+    "images",
+    queryset=SchoolImage.objects.filter(is_primary=True),
+    to_attr="_primary_images",
+)
+_all_images_prefetch = Prefetch(
+    "images",
+    queryset=SchoolImage.objects.order_by("-is_primary", "-created_at"),
+    to_attr="_all_images_sorted",
+)
+_enrolment_snapshots_prefetch = Prefetch(
+    "enrolment_snapshots",
+    queryset=SchoolEnrolmentSnapshot.objects.order_by("snapshot_date"),
+    to_attr="_ordered_snapshots",
+)
 
 
 class SchoolListView(ListAPIView):
@@ -52,7 +73,7 @@ class SchoolListView(ListAPIView):
     serializer_class = SchoolListSerializer
 
     def get_queryset(self):
-        qs = School.objects.select_related("constituency", "dun").prefetch_related("images").filter(is_active=True).defer("constituency__boundary_wkt", "dun__boundary_wkt")
+        qs = School.objects.select_related("constituency", "dun").prefetch_related(_primary_image_prefetch).filter(is_active=True).defer("constituency__boundary_wkt", "dun__boundary_wkt")
         state = self.request.query_params.get("state")
         ppd = self.request.query_params.get("ppd")
         constituency = self.request.query_params.get("constituency")
@@ -94,7 +115,12 @@ class SchoolDetailView(RetrieveAPIView):
     """Retrieve a single school by MOE code."""
 
     serializer_class = SchoolDetailSerializer
-    queryset = School.objects.select_related("constituency", "dun").prefetch_related("leaders").defer("constituency__boundary_wkt", "dun__boundary_wkt")
+    queryset = School.objects.select_related("constituency", "dun").prefetch_related(
+        "leaders",
+        _primary_image_prefetch,
+        _all_images_prefetch,
+        _enrolment_snapshots_prefetch,
+    ).defer("constituency__boundary_wkt", "dun__boundary_wkt")
     lookup_field = "moe_code"
 
 
@@ -315,7 +341,11 @@ class ConstituencyDetailView(RetrieveAPIView):
 
     serializer_class = ConstituencyDetailSerializer
     queryset = Constituency.objects.defer("boundary_wkt").prefetch_related(
-        "schools", "scorecards",
+        Prefetch(
+            "schools",
+            queryset=School.objects.prefetch_related(_primary_image_prefetch),
+        ),
+        "scorecards",
     )
     lookup_field = "code"
 
@@ -346,7 +376,12 @@ class DUNDetailView(RetrieveAPIView):
     """Retrieve a single DUN with nested schools."""
 
     serializer_class = DUNDetailSerializer
-    queryset = DUN.objects.select_related("constituency").prefetch_related("schools").defer("boundary_wkt", "constituency__boundary_wkt")
+    queryset = DUN.objects.select_related("constituency").prefetch_related(
+        Prefetch(
+            "schools",
+            queryset=School.objects.prefetch_related(_primary_image_prefetch),
+        ),
+    ).defer("boundary_wkt", "constituency__boundary_wkt")
 
 
 # --- Search API ---

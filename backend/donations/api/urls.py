@@ -5,5 +5,5 @@ from . import views
 urlpatterns = [
     path("", views.create_donation, name="create-donation"),
     path("callback/", views.toyyib_callback, name="toyyib-callback"),
-    path("status/", views.donation_status, name="donation-status"),
+    path("status/<uuid:donation_id>/", views.donation_status, name="donation-status"),
 ]

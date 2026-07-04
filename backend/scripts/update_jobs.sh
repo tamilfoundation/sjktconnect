@@ -39,6 +39,7 @@ JOBS=(
   sjktconnect-resume-sending
   sjktconnect-process-feedback
   sjktconnect-check-hansards
+  sjktconnect-janitor-orphan-images
 )
 
 DRY_RUN=0

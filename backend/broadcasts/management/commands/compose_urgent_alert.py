@@ -12,7 +12,7 @@ Usage:
 
 from django.core.management.base import BaseCommand
 from django.template.loader import render_to_string
-from django.utils.html import strip_tags
+from broadcasts.services.text_alternative import html_to_text_alternative
 
 from broadcasts.models import Broadcast
 from broadcasts.services.audience import get_filtered_subscribers
@@ -106,7 +106,7 @@ class Command(BaseCommand):
             },
         )
 
-        text_content = strip_tags(html_content)
+        text_content = html_to_text_alternative(html_content)
         subject = f"URGENT: {article.title}"
 
         if not options["force_duplicate"]:

@@ -46,7 +46,10 @@ export default function SupportSchoolCard({
         </h3>
 
         <div className="space-y-3 text-sm">
-          <div className="grid grid-cols-2 gap-3">
+          {/* Audit 2026-07-01: stack Bank / Account Number vertically at
+              <sm so a long bank name doesn't push the account number
+              off-screen at 375 px. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <span className="text-gray-500">{t("bankName")}</span>
               <p className="font-medium">{bankName}</p>

@@ -19,7 +19,7 @@ from datetime import datetime, time, timedelta
 from django.core.management.base import BaseCommand, CommandError
 from django.template.loader import render_to_string
 from django.utils import timezone
-from django.utils.html import strip_tags
+from broadcasts.services.text_alternative import html_to_text_alternative
 
 from broadcasts.models import Broadcast
 from broadcasts.services.audience import get_filtered_subscribers
@@ -266,7 +266,7 @@ class Command(BaseCommand):
         html_content = render_to_string(
             "broadcasts/news_watch_digest.html", template_context
         )
-        text_content = strip_tags(html_content)
+        text_content = html_to_text_alternative(html_content)
 
         if not options["force_duplicate"]:
             existing = check_duplicate(
@@ -302,7 +302,7 @@ class Command(BaseCommand):
                 "broadcasts/news_watch_digest.html", template_context
             )
             broadcast.html_content = html_content
-            broadcast.text_content = strip_tags(html_content)
+            broadcast.text_content = html_to_text_alternative(html_content)
             broadcast.save(update_fields=[
                 "hero_image", "html_content", "text_content", "updated_at",
             ])

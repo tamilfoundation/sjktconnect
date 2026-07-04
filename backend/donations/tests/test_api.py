@@ -135,29 +135,32 @@ class DonationStatusAPITest(TestCase):
         )
 
     def test_donation_status(self):
-        """GET with valid order_id returns donation data."""
+        """GET /status/<uuid>/ returns donation data (audit 2026-07-01
+        switched from ?order_id= query param to UUID path)."""
         response = self.client.get(
-            "/api/v1/donations/status/",
-            {"order_id": self.donation.order_id},
+            f"/api/v1/donations/status/{self.donation.id}/",
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["order_id"], self.donation.order_id)
+        self.assertEqual(response.data["donation_id"], str(self.donation.id))
         self.assertEqual(response.data["status"], "paid")
         self.assertEqual(response.data["amount"], "100.00")
         self.assertEqual(response.data["donor_name"], "Status Test")
 
-    def test_donation_status_not_found(self):
-        """Unknown order_id returns 404."""
+    def test_donation_status_unknown_uuid(self):
+        """Non-existent UUID returns 404."""
+        import uuid
         response = self.client.get(
-            "/api/v1/donations/status/",
-            {"order_id": "SJKT-DON-00000000-XXXXXX"},
+            f"/api/v1/donations/status/{uuid.uuid4()}/",
         )
         self.assertEqual(response.status_code, 404)
 
-    def test_donation_status_missing_param(self):
-        """Missing order_id returns 400."""
-        response = self.client.get("/api/v1/donations/status/")
-        self.assertEqual(response.status_code, 400)
+    def test_donation_status_malformed_uuid(self):
+        """Non-UUID path 404s (django URL resolver rejects)."""
+        response = self.client.get(
+            "/api/v1/donations/status/SJKT-DON-00000000-XXXXXX/",
+        )
+        self.assertEqual(response.status_code, 404)
 
 
 @override_settings(**TOYYIB_SETTINGS)

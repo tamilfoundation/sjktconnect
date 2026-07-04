@@ -117,8 +117,10 @@ export default function SchoolPhotoGallery({
         {/* Thumbnail strip overlaid at bottom-left. Shows up to 5; when
             there are 6+ photos the "View all" overlay (above) lets users
             jump into the lightbox. Before the bump to 5 (2026-06-28) a
-            school with exactly 5 photos had its 5th silently dropped —
-            the slice cut at 4 and the View-all overlay only fired at >5. */}
+            school with exactly 5 photos had its 5th silently dropped.
+            Audit 2026-07-01: below sm (375 px) thumbs 4-5 overflowed
+            the hero width. On xs viewports we cap to 3 visible; the
+            "View all" overlay still lets users see the rest.  */}
         {photoList.length > 1 && (
           <div className="absolute bottom-3 left-3 flex gap-2">
             {photoList.slice(0, 5).map((img, i) => (
@@ -131,7 +133,9 @@ export default function SchoolPhotoGallery({
                   setActiveIndex(i);
                 }}
                 onDoubleClick={() => openLightbox(i)}
-                className={`w-20 h-14 rounded-lg overflow-hidden flex-shrink-0 transition-all ${
+                className={`w-16 h-12 sm:w-20 sm:h-14 rounded-lg overflow-hidden flex-shrink-0 transition-all ${
+                  i >= 3 ? "hidden sm:block" : ""
+                } ${
                   i === activeIndex
                     ? "border-2 border-primary-500 opacity-100"
                     : "border border-white/50 opacity-70 hover:opacity-100"

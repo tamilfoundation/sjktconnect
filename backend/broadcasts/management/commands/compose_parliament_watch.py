@@ -16,7 +16,7 @@ from datetime import date
 
 from django.core.management.base import BaseCommand
 from django.template.loader import render_to_string
-from django.utils.html import strip_tags
+from broadcasts.services.text_alternative import html_to_text_alternative
 
 from broadcasts.models import Broadcast
 from broadcasts.services.audience import get_filtered_subscribers
@@ -200,7 +200,7 @@ class Command(BaseCommand):
         html_content = render_to_string(
             "broadcasts/parliament_watch.html", template_context
         )
-        text_content = strip_tags(html_content)
+        text_content = html_to_text_alternative(html_content)
 
         broadcast = Broadcast.objects.create(
             subject=f"Parliament Watch \u2014 {meeting.short_name}",
@@ -225,7 +225,7 @@ class Command(BaseCommand):
                 "broadcasts/parliament_watch.html", template_context
             )
             broadcast.html_content = html_content
-            broadcast.text_content = strip_tags(html_content)
+            broadcast.text_content = html_to_text_alternative(html_content)
             broadcast.save(update_fields=["html_content", "text_content"])
 
         self.stdout.write(

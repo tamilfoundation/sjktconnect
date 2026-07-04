@@ -154,8 +154,10 @@ export default async function SchoolPage({ params }: PageProps) {
             <SuggestButton moeCode={school.moe_code} />
           </div>
 
-          {/* 3 Stat cards with icons */}
-          <div className="grid grid-cols-3 gap-4 mb-4 mt-2">
+          {/* 3 Stat cards with icons. Audit 2026-07-01: single column
+              at <sm to stop the labels+values getting squished below
+              375 px. */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 mt-2">
             <StatCard
               label={t("studentsLabel")}
               value={school.enrolment ?? 0}

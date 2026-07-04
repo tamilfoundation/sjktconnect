@@ -3,6 +3,7 @@
 from datetime import date, timedelta
 
 import pytest
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from broadcasts.models import Broadcast
@@ -203,3 +204,76 @@ class TestFormatBlockMessage:
         msg = format_block_message(broadcast)
         assert "Urgent Alert" in msg
         assert "--force-duplicate" in msg
+
+
+@pytest.mark.django_db
+class TestUniqueCoverageConstraint:
+    """DB-level backstop (migration broadcasts/0008, audit 2026-07-01)
+    for the check-then-create race that caused the 2026-05-02 4-broadcast
+    incident. When two schedulers both pass the app-layer guard within
+    the check window, the DB rejects the second insert."""
+
+    def test_duplicate_sent_broadcast_raises_integrityerror(self):
+        Broadcast.objects.create(
+            subject="April digest",
+            kind=Broadcast.Kind.MONTHLY_BLAST,
+            coverage_start_date=date(2026, 4, 1),
+            coverage_end_date=date(2026, 4, 30),
+            status=Broadcast.Status.SENT,
+        )
+        with pytest.raises(IntegrityError), transaction.atomic():
+            Broadcast.objects.create(
+                subject="April digest (dup)",
+                kind=Broadcast.Kind.MONTHLY_BLAST,
+                coverage_start_date=date(2026, 4, 1),
+                coverage_end_date=date(2026, 4, 30),
+                status=Broadcast.Status.SENT,
+            )
+
+    def test_draft_status_bypasses_constraint(self):
+        """A DRAFT can coexist with a SENT for the same window —
+        allows re-composition after a failed send."""
+        Broadcast.objects.create(
+            subject="April digest",
+            kind=Broadcast.Kind.MONTHLY_BLAST,
+            coverage_start_date=date(2026, 4, 1),
+            coverage_end_date=date(2026, 4, 30),
+            status=Broadcast.Status.SENT,
+        )
+        Broadcast.objects.create(
+            subject="April digest (retry)",
+            kind=Broadcast.Kind.MONTHLY_BLAST,
+            coverage_start_date=date(2026, 4, 1),
+            coverage_end_date=date(2026, 4, 30),
+            status=Broadcast.Status.DRAFT,
+        )
+        assert Broadcast.objects.count() == 2
+
+    def test_null_coverage_bypasses_constraint(self):
+        """Historical rows with null coverage dates (pre-Sprint-24) don't
+        conflict — Postgres treats NULLs as distinct in unique indexes,
+        and the constraint additionally requires both dates non-null."""
+        for i in range(3):
+            Broadcast.objects.create(
+                subject=f"legacy urgent {i}",
+                kind=Broadcast.Kind.URGENT_ALERT,
+                status=Broadcast.Status.SENT,
+            )
+        assert Broadcast.objects.count() == 3
+
+    def test_different_kinds_dont_conflict(self):
+        Broadcast.objects.create(
+            subject="April digest",
+            kind=Broadcast.Kind.MONTHLY_BLAST,
+            coverage_start_date=date(2026, 4, 1),
+            coverage_end_date=date(2026, 4, 30),
+            status=Broadcast.Status.SENT,
+        )
+        Broadcast.objects.create(
+            subject="News digest 15-30 Apr",
+            kind=Broadcast.Kind.NEWS_DIGEST,
+            coverage_start_date=date(2026, 4, 1),
+            coverage_end_date=date(2026, 4, 30),
+            status=Broadcast.Status.SENT,
+        )
+        assert Broadcast.objects.count() == 2

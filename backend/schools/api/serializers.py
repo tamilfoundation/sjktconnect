@@ -87,8 +87,18 @@ class SchoolListSerializer(serializers.ModelSerializer):
         Uses display_url so Sprint 13-migrated rows (where the legacy
         image_url field is empty and bytes live in image_file via Supabase
         Storage) return the Supabase URL instead of an empty string.
+
+        Reads from `_primary_images` populated by the view's Prefetch
+        (audit 2026-07-01 fix — the previous .filter().first() bypassed
+        the prefetch cache and issued one query per row). Falls back
+        to the un-prefetched query for callers that don't wire the
+        Prefetch (tests, admin, ad-hoc scripts).
         """
-        primary = obj.images.filter(is_primary=True).first()
+        primaries = getattr(obj, "_primary_images", None)
+        if primaries is None:
+            primary = obj.images.filter(is_primary=True).first()
+        else:
+            primary = primaries[0] if primaries else None
         if primary:
             return primary.display_url or None
         return None
@@ -278,8 +288,13 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
 
         Returns oldest-first so the FE can draw left-to-right without
         sorting. Empty list when no snapshots have been imported yet.
+
+        Reads from `_ordered_snapshots` when the view prefetched them
+        (audit 2026-07-01 fix — was one query per SchoolDetail load).
         """
-        snaps = obj.enrolment_snapshots.all().order_by("snapshot_date")
+        snaps = getattr(obj, "_ordered_snapshots", None)
+        if snaps is None:
+            snaps = obj.enrolment_snapshots.all().order_by("snapshot_date")
         return [
             {"date": s.snapshot_date.isoformat(), "students": s.students}
             for s in snaps
@@ -298,16 +313,29 @@ class SchoolDetailSerializer(serializers.ModelSerializer):
 
         Sprint 13: prefers Supabase Storage (image_file.url) over the legacy
         image_url. SchoolImage.display_url encapsulates the fallback.
+
+        Reads from `_primary_images` populated by the view's Prefetch
+        (audit 2026-07-01 fix).
         """
-        primary = obj.images.filter(is_primary=True).first()
+        primaries = getattr(obj, "_primary_images", None)
+        if primaries is None:
+            primary = obj.images.filter(is_primary=True).first()
+        else:
+            primary = primaries[0] if primaries else None
         if primary:
             return primary.display_url or None
         return None
 
     def get_images(self, obj):
-        """Return all images for this school, primary first."""
-        qs = obj.images.order_by("-is_primary", "-created_at")
-        return SchoolImageSerializer(qs, many=True).data
+        """Return all images for this school, primary first.
+
+        Reads from `_all_images_sorted` populated by the view's Prefetch
+        (audit 2026-07-01 fix).
+        """
+        images = getattr(obj, "_all_images_sorted", None)
+        if images is None:
+            images = obj.images.order_by("-is_primary", "-created_at")
+        return SchoolImageSerializer(images, many=True).data
 
     def get_leaders(self, obj):
         """Return active leaders in display order (board_chair, headmaster, pta_chair, alumni_chair)."""

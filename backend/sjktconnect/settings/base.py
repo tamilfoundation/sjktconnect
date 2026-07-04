@@ -206,6 +206,10 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "photo_upload_user": "5/day",
         "photo_upload_school": "20/day",
+        # Audit 2026-07-01: rate-limit donation status polling by IP.
+        # Toyyib return-URL loops back here; even a bugged FE poll
+        # shouldn't spam the endpoint.
+        "donation_status": "30/hour",
     },
 }
 

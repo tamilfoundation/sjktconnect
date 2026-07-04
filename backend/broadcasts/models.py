@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 
 
 class Broadcast(models.Model):
@@ -61,6 +62,23 @@ class Broadcast(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [
+            # Audit 2026-07-01: DB-level guard against the 2026-05-02
+            # duplicate-blast race (4 rows for one coverage window).
+            # Application layer duplicate_guard.py still runs first; this
+            # backstops it when two schedulers land inside the check
+            # window. Non-null coverage dates only — historical rows
+            # without coverage tracking (pre-Sprint-24) are left alone.
+            models.UniqueConstraint(
+                fields=["kind", "coverage_start_date", "coverage_end_date"],
+                condition=Q(
+                    status__in=["SENT", "SENDING"],
+                    coverage_start_date__isnull=False,
+                    coverage_end_date__isnull=False,
+                ),
+                name="unique_broadcast_per_kind_coverage",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.subject} ({self.get_status_display()})"

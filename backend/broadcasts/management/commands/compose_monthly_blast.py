@@ -18,7 +18,7 @@ from datetime import date, datetime
 
 from django.core.management.base import BaseCommand, CommandError
 from django.template.loader import render_to_string
-from django.utils.html import strip_tags
+from broadcasts.services.text_alternative import html_to_text_alternative
 
 from broadcasts.models import Broadcast
 from broadcasts.services.blast_aggregator import aggregate_month
@@ -296,7 +296,7 @@ class Command(BaseCommand):
             ))
             return
 
-        text_content = strip_tags(html_content)
+        text_content = html_to_text_alternative(html_content)
 
         # Sprint 23: dynamic subject line from the LLM-generated
         # headline, falling back to the generic month label.
@@ -338,7 +338,7 @@ class Command(BaseCommand):
                 },
             )
             broadcast.html_content = html_content
-            broadcast.text_content = strip_tags(html_content)
+            broadcast.text_content = html_to_text_alternative(html_content)
             broadcast.save(update_fields=["html_content", "text_content"])
 
         self.stdout.write(

@@ -12,7 +12,7 @@ Usage:
 from django.core.management.base import BaseCommand
 from django.template.loader import render_to_string
 from django.utils import timezone
-from django.utils.html import strip_tags
+from broadcasts.services.text_alternative import html_to_text_alternative
 
 from broadcasts.models import Broadcast
 from broadcasts.services.urgent_alert import generate_urgent_alert
@@ -111,7 +111,7 @@ class Command(BaseCommand):
             broadcast = Broadcast.objects.create(
                 subject=f"URGENT: {article.title}",
                 html_content=html_content,
-                text_content=strip_tags(html_content),
+                text_content=html_to_text_alternative(html_content),
                 audience_filter={
                     "category": "NEWS_WATCH",
                     "subscribed_before": article.created_at.isoformat(),

@@ -313,3 +313,47 @@ class SearchAPITest(TestCase):
     def test_search_empty_query(self):
         resp = self.client.get("/api/v1/search/")
         assert resp.status_code == 400
+
+
+class SchoolListImageN1RegressionTest(TestCase):
+    """Audit 2026-07-01 fix: ensure the primary-image lookup uses the
+    Prefetch cache. Before the fix, SchoolListSerializer.get_image_url
+    called .filter(is_primary=True).first() on every row, adding ~1
+    query per school regardless of `prefetch_related("images")`.
+
+    This test seeds 10 schools with 3 images each and asserts the list
+    endpoint issues a bounded number of queries.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        from outreach.models import SchoolImage
+        for i in range(10):
+            s = School.objects.create(
+                moe_code=f"XBD{1000 + i}",
+                name=f"SJK(T) Test {i}",
+                short_name=f"SJK(T) Test {i}",
+                state="Selangor",
+                enrolment=100 + i,
+            )
+            for j in range(3):
+                SchoolImage.objects.create(
+                    school=s,
+                    image_url=f"https://example.com/{s.moe_code}-{j}.jpg",
+                    is_primary=(j == 0),
+                    position=j,
+                )
+
+    def test_list_query_count_bounded(self):
+        # Before the fix: pagination count + main list + prefetched images
+        # + 10 per-row primary-image lookups = 13. After the Prefetch fix:
+        # count + main list + prefetched primary images = 3. If this
+        # assertion trips higher, the Prefetch-through-serializer chain
+        # regressed to per-row queries.
+        with self.assertNumQueries(3):
+            resp = self.client.get("/api/v1/schools/?state=Selangor")
+        assert resp.status_code == 200
+        # Each result's image_url resolves to the primary image URL.
+        for row in resp.json()["results"]:
+            assert row["image_url"] is not None
+            assert row["image_url"].endswith("-0.jpg")
