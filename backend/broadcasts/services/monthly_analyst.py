@@ -66,52 +66,64 @@ News articles (showing top {previous_news_count} of {previous_news_total}):
 {previous_news_text}
 --- END DATA ---
 
+CRITICAL RULE — NO STORY REUSE
+Each specific story, school name, funding figure, or named MP may appear in
+AT MOST ONE analytical section below. If you cite it in `executive_summary`,
+it must NOT reappear in `trend_lines`, `opportunity_watch`, or
+`school_spotlight`. This forces the four sections to say four different
+things instead of four rephrasings of the top story. If a section has
+nothing distinct to say after this filter, return an empty array — do not
+pad with restatements.
+
 Analyse the data and return a JSON object with these keys:
 
-1. "executive_summary" (string): 3-4 sentences summarising the month. Compare \
-with previous month. Highlight the single most important development. Written \
-for a busy parent — clear, direct, no jargon. If Parliament was not in session, \
-say so explicitly rather than treating zero mentions as a signal.
+1. "executive_summary" (string): The single most important development this
+month, in 2-3 sentences. Name it once. Include the specifics (school, amount,
+MP, date). Compare with previous month IF the comparison is directly relevant.
+Written for a busy parent — clear, direct, no jargon. If Parliament was not
+in session, say so explicitly. This section OWNS the top story; nothing
+below may restate it.
 
-2. "trend_lines" (array of objects): Each trend has:
-   - "trend" (string): Short label (e.g. "Parliamentary attention")
+2. "trend_lines" (array of 2-4 objects): DIRECTIONAL statements about
+themes, not restatements of stories. Themes: media coverage volume,
+funding levels, parliamentary attention, community advocacy, infrastructure
+investment, student achievements, policy announcements, land title
+resolution. Each object:
+   - "trend" (string): The theme, not a story
    - "direction" (string): One of "up", "down", "stable", "new"
-   - "detail" (string): 1-2 sentences explaining the trend with specific \
-numbers or comparisons.
-   Include 2-4 trends.
-   RECESS: If Parliament was NOT in session this month, do NOT emit a \
-trend with direction="up" or "down" for parliamentary attention — zero \
-mentions during recess is structural, not a signal of declining focus. \
-Either omit the parliamentary trend entirely OR include it with \
-direction="stable" and detail noting the recess explicitly (e.g. \
-"Parliament in recess; next sitting expected MONTH YYYY.").
+   - "detail" (string): 1-2 sentences of DIRECTIONAL evidence: counts,
+     percentages, or "N-of-M pattern" statements. DO NOT name the top
+     story from `executive_summary` as the exemplar; if a theme was
+     driven mostly by one story that's already in the summary, either
+     skip that theme or find a different exemplar. Every trend must
+     stand on evidence beyond the single headline story.
+   RECESS: If Parliament was NOT in session this month, do NOT emit a
+   trend with direction="up" or "down" for parliamentary attention — zero
+   mentions during recess is structural, not a signal of declining focus.
+   Either omit the parliamentary trend entirely OR include it with
+   direction="stable" and detail noting the recess explicitly.
 
-3. "emerging_signals" (array of strings): 1-3 new patterns or developments \
-that appeared this month and deserve attention. Each 1-2 sentences. \
-RECESS: If Parliament was NOT in session, do NOT cite parliamentary \
-patterns as emerging signals — focus on news, NGO, private sector, or \
-community signals.
+3. "opportunity_watch" (array of 1-3 strings): FORWARD-LOOKING actions
+stakeholders can take in the next 4-6 weeks. Each 1-2 sentences. Every
+opportunity must:
+   - Name a specific person, deadline, event, or policy window
+   - Be actionable by school boards, parents, or NGOs
+   - NOT restate the top story or the trends — this section is about
+     what to DO next, not what already happened
+   RECESS: If Parliament is in recess, MP outreach in constituencies IS a
+   valid opportunity — name specific MPs from the scorecard data.
 
-4. "fading_from_view" (array of strings): 1-2 issues that were active before \
-but received less attention this month. Each 1-2 sentences. Can be empty. \
-RECESS: If Parliament was NOT in session, do NOT list parliamentary \
-discourse as "fading" — recess is structural, not a fade. A topic only \
-counts as fading if it was active in both months and dropped off; do not \
-compare a recess month against a sitting month for parliamentary topics.
-
-5. "opportunity_watch" (array of strings): 1-3 actionable opportunities \
-stakeholders should act on. Be specific — name people, deadlines, or events. \
-RECESS: If Parliament is in recess, MP outreach IS a valid opportunity — \
-MPs are most reachable in their constituencies during recess. Suggest \
-specific MPs (from the scorecard data) and what to raise with them.
-
-6. "school_spotlight" (object or null): If a specific school stood out this \
-month, include:
+4. "school_spotlight" (object or null): A HIDDEN GEM — a school with
+quiet progress that would otherwise go unnoticed. Explicitly NOT the
+school already named in `executive_summary`. Prefer schools with steady
+achievement, community initiative, or under-the-radar wins over the
+biggest-headline school of the month. Object shape:
    - "name" (string): School name
-   - "reason" (string): 1-2 sentences on why it stood out.
-   Set to null if no school was particularly notable.
+   - "reason" (string): 1-2 sentences on why it deserves attention that
+     it wouldn't get otherwise.
+   Set to null if no such quieter school stood out.
 
-7. "headline" (string): A short, punchy single-line headline (max 70 chars) \
+5. "headline" (string): A short, punchy single-line headline (max 70 chars) \
 capturing the most important news of the month, suitable for an email subject \
 line. **ONE story only — never join two stories with a semicolon, "and", "+" \
 or "&".** Lead with the single most newsworthy specific item (a policy \
@@ -124,7 +136,7 @@ fabricating drama.
 
 Rules:
 - Be specific: use names, amounts, dates, constituency names from the data.
-- Compare current vs previous month wherever possible.
+- Compare current vs previous month wherever it adds signal.
 - Write in British English.
 - Do not pad or use filler phrases.
 - If data is sparse, say so honestly — do not fabricate trends or counts.
@@ -248,9 +260,14 @@ def generate_monthly_analysis(
             meeting reports that prior digests missed.
 
     Returns:
-        dict with executive_summary, trend_lines, emerging_signals,
-        fading_from_view, opportunity_watch, school_spotlight, by_the_numbers.
-        None if API key missing, generation fails, or response invalid.
+        dict with executive_summary, trend_lines, opportunity_watch,
+        school_spotlight, headline, by_the_numbers. None if API key missing,
+        generation fails, or response invalid.
+
+        Audit 2026-07-05: dropped `emerging_signals` and `fading_from_view`
+        after a reader-repetition audit found the two sections restated the
+        top story instead of surfacing distinct ones. The remaining sections
+        now carry an explicit no-story-reuse rule in the prompt.
     """
     api_key = os.environ.get("GEMINI_API_KEY", "")
     if not api_key:

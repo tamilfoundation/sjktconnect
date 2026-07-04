@@ -85,35 +85,10 @@
   {% endfor %}
   {% endif %}
 
-  <!-- Emerging Signals -->
-  {% if analysis.emerging_signals %}
-  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Emerging Signals</div>
-  <table width="100%" cellpadding="0" cellspacing="0">
-    {% for signal in analysis.emerging_signals %}
-    <tr>
-      <td style="width: 24px; vertical-align: top; padding: 10px 0;">
-        <div style="width: 10px; height: 10px; border-radius: 50%; background: #22c55e; margin-top: 4px;"></div>
-      </td>
-      <td style="padding: 10px 0; font-size: 14px; color: #374151; border-bottom: 1px solid #f3f4f6;">{{ signal }}</td>
-    </tr>
-    {% endfor %}
-  </table>
-  {% endif %}
-
-  <!-- Fading From View -->
-  {% if analysis.fading_from_view %}
-  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Fading From View</div>
-  <table width="100%" cellpadding="0" cellspacing="0">
-    {% for item in analysis.fading_from_view %}
-    <tr>
-      <td style="width: 24px; vertical-align: top; padding: 10px 0;">
-        <div style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444; margin-top: 4px;"></div>
-      </td>
-      <td style="padding: 10px 0; font-size: 14px; color: #374151; border-bottom: 1px solid #f3f4f6;">{{ item }}</td>
-    </tr>
-    {% endfor %}
-  </table>
-  {% endif %}
+  <!-- Emerging Signals + Fading From View sections retired 2026-07-05
+       after a reader-repetition audit found both restated the top story
+       already carried in Executive Summary. The Gemini prompt now
+       enforces no-story-reuse across the remaining sections. -->
 
   <!-- Opportunity Watch -->
   {% if analysis.opportunity_watch %}

@@ -33,8 +33,6 @@ def _stub_analysis():
         "trend_lines": [
             {"trend": "Test trend", "direction": "up", "detail": "Up 10%."}
         ],
-        "emerging_signals": ["Test signal."],
-        "fading_from_view": [],
         "opportunity_watch": ["Test opportunity."],
         "school_spotlight": None,
         "headline": "",

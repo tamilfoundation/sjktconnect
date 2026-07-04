@@ -28,12 +28,12 @@ def _aggregate_stub(**overrides):
     return base
 
 
-# A valid Gemini response per the Sprint 23 prompt schema (no by_the_numbers).
+# A valid Gemini response per the 2026-07-05 prompt schema — no
+# emerging_signals / fading_from_view (both retired after a repetition
+# audit found they restated the top story).
 _VALID_RESPONSE = (
     '{"executive_summary": "Quiet month.", '
     '"trend_lines": [{"trend": "Mentions declining", "direction": "down", "detail": "Down 20%."}], '
-    '"emerging_signals": ["Teacher shortage mentioned."], '
-    '"fading_from_view": ["Transport fading."], '
     '"opportunity_watch": ["MP X opened door."], '
     '"school_spotlight": {"name": "SJK(T) Ladang Bikam", "reason": "Most mentioned."}, '
     '"headline": "Special ed coming to Tamil schools in 2027"}'
@@ -55,11 +55,13 @@ class MonthlyAnalystTest(TestCase):
 
         self.assertIn("executive_summary", result)
         self.assertIn("trend_lines", result)
-        self.assertIn("emerging_signals", result)
-        self.assertIn("fading_from_view", result)
         self.assertIn("opportunity_watch", result)
+        self.assertIn("school_spotlight", result)
         self.assertIn("by_the_numbers", result)
         self.assertIn("headline", result)
+        # Retired 2026-07-05 — must not resurface.
+        self.assertNotIn("emerging_signals", result)
+        self.assertNotIn("fading_from_view", result)
 
     @patch("broadcasts.services.monthly_analyst.aggregate_month")
     @patch("broadcasts.services.monthly_analyst.genai")
@@ -92,7 +94,6 @@ class MonthlyAnalystTest(TestCase):
         # LLM returns by_the_numbers with 999 — should be overwritten by 42.
         mock_response.text = (
             '{"executive_summary": "t", "trend_lines": [], '
-            '"emerging_signals": [], "fading_from_view": [], '
             '"opportunity_watch": [], "school_spotlight": null, '
             '"headline": "Test headline", '
             '"by_the_numbers": {"news_articles": 999, "parliament_mentions": 999, '
@@ -142,9 +143,9 @@ class MonthlyAnalystTest(TestCase):
     @patch("broadcasts.services.monthly_analyst.genai")
     def test_recess_clauses_present_in_all_sections(self, mock_genai, mock_agg):
         """Sprint 24 #1: recess instruction must appear in every section
-        that produced false signals in the April 2026 render audit
-        (trend_lines, emerging_signals, fading_from_view, opportunity_watch),
-        not only in executive_summary.
+        that produced false signals in the April 2026 render audit.
+        Adjusted 2026-07-05 after emerging_signals + fading_from_view were
+        retired — only trend_lines + opportunity_watch remain.
         """
         mock_agg.return_value = _aggregate_stub(parliament_was_in_session=False)
         mock_response = Mock()
@@ -159,32 +160,19 @@ class MonthlyAnalystTest(TestCase):
         # Session state must be wired through accurately.
         self.assertIn("Parliament was not in session", prompt)
 
-        # Each of the four sections must carry its own RECESS clause.
-        # The string appears once per section (4 total) plus the
-        # pre-existing executive_summary clause uses a different phrasing
-        # ("If Parliament was not in session, say so explicitly").
+        # Each of the remaining two sections must carry its own RECESS
+        # clause. (The executive_summary clause uses a different phrasing:
+        # "say so explicitly".)
         recess_clause_count = prompt.count("RECESS:")
         self.assertEqual(
-            recess_clause_count, 4,
-            f"Expected 4 RECESS clauses (trend_lines, emerging_signals, "
-            f"fading_from_view, opportunity_watch); got {recess_clause_count}"
+            recess_clause_count, 2,
+            f"Expected 2 RECESS clauses (trend_lines, opportunity_watch); "
+            f"got {recess_clause_count}"
         )
 
         # Per-section anchor phrases — proves each section got its
-        # tailored guidance, not just a generic copy-paste.
-        self.assertIn(
-            'do NOT emit a trend with direction="up" or "down" for parliamentary attention',
-            prompt,
-        )
-        self.assertIn(
-            "do NOT cite parliamentary patterns as emerging signals",
-            prompt,
-        )
-        self.assertIn(
-            'do NOT list parliamentary discourse as "fading"',
-            prompt,
-        )
-        self.assertIn(
-            "MP outreach IS a valid opportunity",
-            prompt,
-        )
+        # tailored guidance, not just a generic copy-paste. Adjusted
+        # 2026-07-05 after emerging_signals + fading_from_view were retired
+        # and the prompt was reflowed with hard line breaks.
+        self.assertIn('direction="up" or "down" for parliamentary attention', prompt)
+        self.assertIn("MP outreach in constituencies IS a", prompt)
