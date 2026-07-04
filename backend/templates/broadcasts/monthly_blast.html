@@ -198,28 +198,23 @@
   {% endif %}
   {% endif %}
 
-  <!-- Schools mentioned this month, grouped by state (Sprint 24 #3) -->
+  <!-- Schools mentioned this month, grouped by state (Sprint 24 #3).
+       2026-07-05: restructured from a 2-column table (state | schools) into
+       a stacked list -- state heading on top, school links flow below. The
+       2-column shape fought for width on mobile even after nowrap was
+       dropped; stacking gives the school-name row the full container width
+       and never has to negotiate with a narrow state column. -->
   {% if schools_by_state %}
   <a id="schools-section"></a>
   <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Schools In The Spotlight &mdash; {{ schools_mentioned_total }} School{{ schools_mentioned_total|pluralize }}</div>
-  <table width="100%" cellpadding="6" cellspacing="0" style="border-collapse: collapse; font-size: 14px;">
-    <tr style="background: #f9fafb; color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
-      <th align="left" valign="top" style="padding: 10px 12px; width: 30%;">State</th>
-      <th align="left" valign="top" style="padding: 10px 12px;">Schools</th>
-    </tr>
-    {% for state, schools in schools_by_state.items %}
-    <tr style="border-top: 1px solid #f3f4f6;">
-      {# Mobile-fix 2026-07-04: dropped `white-space: nowrap` on both the
-         state cell AND the school links. The nowrap on N chained school
-         links per row was forcing rows to span 800-1200px, which stretched
-         the whole email past the phone viewport (see docs/lessons.md). #}
-      <td valign="top" style="padding: 10px 12px; font-weight: 600; word-break: keep-all;">{{ state }} <span style="color: #9ca3af; font-weight: 400; font-size: 12px;">({{ schools|length }})</span></td>
-      <td valign="top" style="padding: 10px 12px; color: #4b5563; font-size: 13px; line-height: 1.7; word-break: break-word;">
-        {% for s in schools %}<a href="https://tamilschool.org/en/school/{{ s.moe_code }}" style="color: #7c3aed; text-decoration: none;">{{ s.short_name|default:s.name }}</a>{% if not forloop.last %}<span style="color: #d1d5db;"> &middot; </span>{% endif %}{% endfor %}
-      </td>
-    </tr>
-    {% endfor %}
-  </table>
+  {% for state, schools in schools_by_state.items %}
+  <div style="margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid #f3f4f6;">
+    <div style="font-weight: 700; color: #1f2937; font-size: 14px; margin-bottom: 6px;">{{ state }} <span style="color: #9ca3af; font-weight: 400; font-size: 12px;">({{ schools|length }})</span></div>
+    <div style="color: #4b5563; font-size: 13px; line-height: 1.7; word-break: break-word;">
+      {% for s in schools %}<a href="https://tamilschool.org/en/school/{{ s.moe_code }}" style="color: #7c3aed; text-decoration: none;">{{ s.short_name|default:s.name }}</a>{% if not forloop.last %}<span style="color: #d1d5db;"> &middot; </span>{% endif %}{% endfor %}
+    </div>
+  </div>
+  {% endfor %}
   <div style="font-size: 12px; color: #9ca3af; margin-top: 8px;">Click a school name to open its profile on tamilschool.org.</div>
   {% endif %}
 
