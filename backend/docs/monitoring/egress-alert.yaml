@@ -1,0 +1,70 @@
+# Alert policy: SJK(T) Connect — Daily Egress > 800 MB
+#
+# Fires when either sjktconnect-api or sjktconnect-web response bytes
+# summed over a rolling 24h window exceed 800 MB. Baseline (per 2026-07-04
+# audit) is ~200 MB/day combined, so 800 MB on either service is a clear
+# anomaly — either a viral surge or a scraper crawl.
+#
+# NOT a perfect proxy for Supabase egress (which is billed separately by
+# Supabase and can't be queried from GCP), but our api mostly proxies
+# Supabase data, so a spike here ≈ a spike there.
+#
+# Uses MQL because the log-based metrics are DISTRIBUTION-typed (from
+# httpRequest.responseSize) and can't be sum-aggregated with the
+# filter-based condition syntax; MQL's .sum() cleanly rolls up the
+# distribution sums.
+#
+# Two conditions with combiner=OR because the two metrics have different
+# value column names (MQL union requires matching schemas).
+#
+# Notification: email to admin@tamilfoundation.org.
+#
+# Apply with:
+#   gcloud alpha monitoring policies create \
+#     --account admin@tamilfoundation.org --project sjktconnect \
+#     --policy-from-file backend/docs/monitoring/egress-alert.yaml
+
+displayName: "SJK(T) Connect — Daily Egress > 800 MB"
+combiner: OR
+conditions:
+  - displayName: "api+web daily-equivalent response bytes > 800 MB"
+    # 6-hour buckets, threshold 200 MB (= 800 MB/day sustained). GCP MQL
+    # alerts can only query 24h back, so we can't align delta(1d)
+    # directly; sustained 200 MB per 6h is the equivalent trigger.
+    conditionMonitoringQueryLanguage:
+      query: |
+        { fetch cloud_run_revision
+            :: 'logging.googleapis.com/user/sjktconnect_api_egress_per_route'
+          | align delta(6h) | every 6h | group_by [], sum(val())
+        ; fetch cloud_run_revision
+            :: 'logging.googleapis.com/user/sjktconnect_web_egress_per_route'
+          | align delta(6h) | every 6h | group_by [], sum(val()) }
+        | join
+        | value val(0) + val(1)
+        | condition val() > 200e6 'By'
+      duration: 0s
+      trigger:
+        count: 1
+notificationChannels:
+  - projects/sjktconnect/notificationChannels/5279094837891825431
+alertStrategy:
+  autoClose: 604800s
+documentation:
+  content: |
+    Response bytes served by sjktconnect-api or sjktconnect-web
+    exceeded 800 MB in a 1-day window.
+
+    Baseline (per 2026-07-04 audit): ~200 MB/day.
+    Sprint 33 image-N+1 fix: expected to keep this near baseline.
+    Sprint 34 throttles: expected to cap scraper-driven surges.
+
+    Investigate:
+    1. Supabase egress chart at app.supabase.com/project/kafuxsinrbqafvarckxu/settings/billing/usage
+    2. Cloud Monitoring dashboard f1722366-2df9-4446-9941-7cda5c019615
+       (per-route + per-UA breakdown)
+    3. If one UA dominates → add to UserAgentBlockMiddleware
+       (backend/core/middleware.py)
+    4. If a legitimate viral moment → no action needed, wave will decay
+
+    See docs/audit-2026-07-01.md and docs/tech-debt.md TD-06.
+  mimeType: text/markdown

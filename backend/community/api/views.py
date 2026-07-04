@@ -9,11 +9,15 @@ Sprint 14 reworked PHOTO_UPLOAD to a multipart flow:
 DATA_CORRECTION + NOTE keep the JSON flow they had since Sprint 8.2.
 """
 
+import logging
+
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+
+logger = logging.getLogger(__name__)
 from rest_framework.decorators import (
     api_view,
     parser_classes,
@@ -451,14 +455,20 @@ def delete_image_view(request, moe_code, image_id):
             status=status.HTTP_403_FORBIDDEN,
         )
     image = get_object_or_404(SchoolImage, pk=image_id, school=school)
+    key = image.image_file.name if image.image_file else ""
     if image.image_file:
         # Best-effort: remove the file from Supabase. If the storage delete
         # fails (e.g. transient network), the DB row still goes — the
-        # orphaned file will be cleaned up by a future janitor command.
+        # janitor's `schools/` sweep (Sprint 33 follow-up 2026-07-04) picks
+        # up the orphan on its next weekly run.
         try:
             image.image_file.delete(save=False)
         except Exception:  # noqa: BLE001
-            pass
+            logger.exception(
+                "delete_image_view: Storage delete failed for image %s "
+                "(school=%s, key=%s) — janitor will retry",
+                image.pk, school.moe_code, key,
+            )
     image.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 

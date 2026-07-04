@@ -88,3 +88,99 @@ class JanitorOrphanImagesTest(TestCase):
         out = StringIO()
         call_command("janitor_orphan_images", stdout=out)
         self.assertIn("0 deleted", out.getvalue())
+
+
+class JanitorSchoolsUntrackedSweepTest(TestCase):
+    """2026-07-04 follow-up: sweep `schools/` for keys with no SchoolImage
+    row. Covers the delete_image_view Storage-blip case (silent-except
+    fix landed in the same commit)."""
+
+    def setUp(self):
+        from schools.models import Constituency, School
+        from outreach.models import SchoolImage
+        self.constituency = Constituency.objects.create(
+            code="P140", name="Segamat", state="Johor",
+        )
+        self.school = School.objects.create(
+            moe_code="JBD0050", name="SJK(T) Test",
+            short_name="SJK(T) Test", state="Johor",
+            constituency=self.constituency,
+        )
+        # One live SchoolImage (its key MUST NOT be deleted).
+        SchoolImage.objects.create(
+            school=self.school,
+            image_file="schools/JBD0050/live.jpg",
+            source="COMMUNITY",
+        )
+        # Test uses a mock S3 client — real bucket isn't touched.
+        self.deleted_keys = []
+
+    def _mock_s3(self, keys_in_storage):
+        """Return a mock S3 client that filters keys by the Prefix arg.
+
+        The janitor calls list_objects_v2 twice — once for pending/, once
+        for schools/. Each invocation must only see keys under its prefix.
+        """
+        from unittest.mock import MagicMock
+        client = MagicMock()
+
+        def paginator_paginate(**kwargs):
+            prefix = kwargs.get("Prefix", "")
+            matching = [k for k in keys_in_storage if k.startswith(prefix)]
+            return [{"Contents": [{"Key": k} for k in matching]}]
+
+        paginator = MagicMock()
+        paginator.paginate.side_effect = paginator_paginate
+        client.get_paginator.return_value = paginator
+        client.delete_object.side_effect = lambda Bucket, Key: self.deleted_keys.append(Key)
+        return client
+
+    def test_sweep_deletes_untracked_key_keeps_live(self):
+        from unittest.mock import patch
+        client = self._mock_s3(keys_in_storage=[
+            "schools/JBD0050/live.jpg",       # DB-tracked — must keep
+            "schools/JBD0050/orphan.jpg",     # untracked — must delete
+        ])
+        out = StringIO()
+        with patch(
+            "community.management.commands.janitor_orphan_images.Command._get_s3",
+            return_value=(client, "test-bucket"),
+        ):
+            call_command(
+                "janitor_orphan_images", "--sweep-untracked", stdout=out,
+            )
+        # Live key kept; orphan deleted.
+        self.assertEqual(self.deleted_keys, ["schools/JBD0050/orphan.jpg"])
+        self.assertIn("Untracked schools/ orphans: 1 deleted", out.getvalue())
+
+    def test_dry_run_deletes_nothing_in_untracked_sweep(self):
+        from unittest.mock import patch
+        client = self._mock_s3(keys_in_storage=[
+            "schools/JBD0050/orphan.jpg",
+        ])
+        out = StringIO()
+        with patch(
+            "community.management.commands.janitor_orphan_images.Command._get_s3",
+            return_value=(client, "test-bucket"),
+        ):
+            call_command(
+                "janitor_orphan_images", "--sweep-untracked", "--dry-run",
+                stdout=out,
+            )
+        self.assertEqual(self.deleted_keys, [])
+        self.assertIn("dry-run", out.getvalue())
+
+    def test_missing_credentials_skips_gracefully(self):
+        """No SUPABASE_STORAGE_* env → warn and skip, don't crash."""
+        from unittest.mock import patch
+        out = StringIO()
+        with patch(
+            "community.management.commands.janitor_orphan_images.Command._get_s3",
+            return_value=(None, None),
+        ):
+            call_command(
+                "janitor_orphan_images", "--sweep-untracked", stdout=out,
+            )
+        self.assertIn(
+            "Supabase Storage credentials not configured", out.getvalue(),
+        )
