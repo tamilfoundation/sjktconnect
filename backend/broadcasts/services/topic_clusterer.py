@@ -10,7 +10,8 @@ required keys, return all articles in a single "Other" bucket so the
 compose pipeline never breaks because of clustering.
 
 Wired into compose_monthly_blast between aggregator and template render.
-The output shape is consumed by monthly_blast_v2.html (Sprint 24 task #4).
+The output shape is consumed by monthly_blast.html (Sprint 24 task #4;
+renamed from monthly_blast_v2.html on 2026-07-01 — no v1 sibling existed).
 """
 
 import json

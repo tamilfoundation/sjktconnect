@@ -245,7 +245,7 @@ class Command(BaseCommand):
         else:
             preview_hero_url = None
         html_content = render_to_string(
-            "broadcasts/monthly_blast_v2.html",
+            "broadcasts/monthly_blast.html",
             {
                 "month_label": month_label,
                 "analysis": analysis,
@@ -322,7 +322,7 @@ class Command(BaseCommand):
             )
             hero_url = f"{backend_url}/api/v1/broadcasts/{broadcast.pk}/hero-image/"
             html_content = render_to_string(
-                "broadcasts/monthly_blast_v2.html",
+                "broadcasts/monthly_blast.html",
                 {
                     "month_label": month_label,
                     "analysis": analysis,
