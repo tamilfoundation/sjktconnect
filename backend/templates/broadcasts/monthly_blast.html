@@ -1,13 +1,23 @@
 {% load tz %}
 <div style="font-family: Georgia, serif; color: #1a1a1a; line-height: 1.6; max-width: 640px; margin: 0 auto; word-break: break-word;">
 
-  <!-- Header. Mobile-fix 2026-07-04: dropped `letter-spacing: -0.5px`
-       (compressed "Monthly Intelligence Blast" past viewport on some
-       Android Gmail widths) and reduced font-size to 22px so the
-       heading always fits at 320px viewport. -->
+  <!-- Header. 2026-07-05: two-column top row -- brand wordmark on the
+       left, bold month/year on the right (matches a letterhead pattern).
+       Newsletter title H1 below, spanning full width.
+       Mobile-fix 2026-07-04: dropped `letter-spacing: -0.5px` and
+       reduced font-size to 22px so the heading fits at 320px viewport. -->
   <div style="border-bottom: 3px solid #2563eb; padding-bottom: 16px; margin-bottom: 24px;">
-    <h1 style="font-size: 22px; margin: 0 0 4px 0; color: #2563eb;">Monthly Intelligence Blast</h1>
-    <div style="font-size: 14px; color: #666;">{{ month_label }}</div>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 10px;">
+      <tr>
+        <td style="vertical-align: middle;">
+          <span style="font-size: 18px; font-weight: 700; color: #2563eb;">SJK(T) Connect</span>
+        </td>
+        <td style="vertical-align: middle; text-align: right;">
+          <span style="font-size: 14px; font-weight: 700; color: #1f2937;">{{ month_label }}</span>
+        </td>
+      </tr>
+    </table>
+    <h1 style="font-size: 22px; margin: 0; color: #2563eb;">Monthly Intelligence Blast</h1>
   </div>
 
   {% if hero_image_url %}<img src="{{ hero_image_url }}" style="width:100%;max-height:300px;object-fit:cover;border-radius:4px;margin-bottom:20px;" alt="Monthly Intelligence Blast illustration">{% endif %}
