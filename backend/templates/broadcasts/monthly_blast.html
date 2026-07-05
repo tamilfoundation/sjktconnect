@@ -5,8 +5,8 @@
        (compressed "Monthly Intelligence Blast" past viewport on some
        Android Gmail widths) and reduced font-size to 22px so the
        heading always fits at 320px viewport. -->
-  <div style="border-bottom: 3px solid #7c3aed; padding-bottom: 16px; margin-bottom: 24px;">
-    <h1 style="font-size: 22px; margin: 0 0 4px 0; color: #7c3aed;">Monthly Intelligence Blast</h1>
+  <div style="border-bottom: 3px solid #2563eb; padding-bottom: 16px; margin-bottom: 24px;">
+    <h1 style="font-size: 22px; margin: 0 0 4px 0; color: #2563eb;">Monthly Intelligence Blast</h1>
     <div style="font-size: 14px; color: #666;">{{ month_label }}</div>
   </div>
 
@@ -14,7 +14,7 @@
 
   <!-- Executive Summary -->
   {% if analysis.executive_summary %}
-  <div style="font-size: 16px; line-height: 1.7; margin-bottom: 32px; padding: 20px; background: #f5f3ff; border-left: 4px solid #7c3aed; border-radius: 0 4px 4px 0; color: #374151;">
+  <div style="font-size: 16px; line-height: 1.7; margin-bottom: 32px; padding: 20px; background: #eff6ff; border-left: 4px solid #2563eb; border-radius: 0 4px 4px 0; color: #374151;">
     {{ analysis.executive_summary }}
   </div>
   {% endif %}
@@ -27,13 +27,13 @@
   <table width="100%" cellpadding="0" cellspacing="0" style="margin: 28px 0; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb;">
     <tr>
       <td style="text-align: center; padding: 20px 8px; width: 50%;">
-        <div style="font-size: 34px; font-weight: bold; color: #7c3aed; line-height: 1;">{{ analysis.by_the_numbers.parliament_mentions|default:"0" }}</div>
+        <div style="font-size: 34px; font-weight: bold; color: #2563eb; line-height: 1;">{{ analysis.by_the_numbers.parliament_mentions|default:"0" }}</div>
         <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin-top: 6px;">Parliament Mentions</div>
         <div style="font-size: 10px; color: #d1d5db; margin-top: 4px; font-style: italic;">in Hansard this month</div>
       </td>
       <td style="text-align: center; padding: 20px 8px; width: 50%;">
         <a href="#news-section" style="text-decoration: none; color: inherit;">
-          <div style="font-size: 34px; font-weight: bold; color: #7c3aed; line-height: 1;">{{ analysis.by_the_numbers.news_articles|default:"0" }}</div>
+          <div style="font-size: 34px; font-weight: bold; color: #2563eb; line-height: 1;">{{ analysis.by_the_numbers.news_articles|default:"0" }}</div>
           <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin-top: 6px;">News Articles</div>
           <div style="font-size: 10px; color: #d1d5db; margin-top: 4px; font-style: italic;">approved &amp; relevant</div>
         </a>
@@ -42,13 +42,13 @@
     <tr>
       <td style="text-align: center; padding: 20px 8px; width: 50%; border-top: 1px solid #f3f4f6;">
         <a href="#schools-section" style="text-decoration: none; color: inherit;">
-          <div style="font-size: 34px; font-weight: bold; color: #7c3aed; line-height: 1;">{{ analysis.by_the_numbers.schools_affected|default:"0" }}</div>
+          <div style="font-size: 34px; font-weight: bold; color: #2563eb; line-height: 1;">{{ analysis.by_the_numbers.schools_affected|default:"0" }}</div>
           <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin-top: 6px;">Schools in the News</div>
           <div style="font-size: 10px; color: #d1d5db; margin-top: 4px; font-style: italic;">unique, news + Hansard</div>
         </a>
       </td>
       <td style="text-align: center; padding: 20px 8px; width: 50%; border-top: 1px solid #f3f4f6;">
-        <div style="font-size: 34px; font-weight: bold; color: #7c3aed; line-height: 1;">{{ analysis.by_the_numbers.sentiment_positive|default:"0" }}</div>
+        <div style="font-size: 34px; font-weight: bold; color: #2563eb; line-height: 1;">{{ analysis.by_the_numbers.sentiment_positive|default:"0" }}</div>
         <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin-top: 6px;">Positive Stories</div>
         <div style="font-size: 10px; color: #d1d5db; margin-top: 4px; font-style: italic;">of {{ analysis.by_the_numbers.news_articles|default:"0" }} news items</div>
       </td>
@@ -65,7 +65,7 @@
 
   <!-- Trend Lines -->
   {% if analysis.trend_lines %}
-  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Trend Lines</div>
+  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #2563eb; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Trend Lines</div>
   {% for trend in analysis.trend_lines %}
   <div style="margin-bottom: 18px; padding: 16px; background: #f9fafb; border-radius: 6px;">
     <div style="margin-bottom: 6px;">
@@ -92,7 +92,7 @@
 
   <!-- Opportunity Watch -->
   {% if analysis.opportunity_watch %}
-  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Opportunity Watch</div>
+  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #2563eb; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Opportunity Watch</div>
   <table width="100%" cellpadding="0" cellspacing="0">
     {% for opp in analysis.opportunity_watch %}
     <tr>
@@ -115,7 +115,7 @@
 
   <!-- Parliament Reports (Sprint 18) -->
   {% if meeting_reports %}
-  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Parliament Meeting Reports</div>
+  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #2563eb; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Parliament Meeting Reports</div>
   {% for m in meeting_reports %}
   <div style="margin-bottom: 16px; padding: 16px; background: #f9fafb; border-radius: 6px;">
     <div style="font-weight: bold; font-size: 15px; margin-bottom: 4px;">
@@ -123,14 +123,14 @@
     </div>
     <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">{{ m.start_date|date:"d M" }} &rarr; {{ m.end_date|date:"d M Y" }}</div>
     {% if m.executive_summary %}<div style="font-size: 14px; color: #4b5563;">{{ m.executive_summary|truncatewords:50 }}</div>{% endif %}
-    <div style="margin-top: 10px;"><a href="https://tamilschool.org/en/parliament-watch/{{ m.pk }}" style="font-size: 13px; color: #7c3aed; text-decoration: none; font-weight: 600;">Read full report &rarr;</a></div>
+    <div style="margin-top: 10px;"><a href="https://tamilschool.org/en/parliament-watch/{{ m.pk }}" style="font-size: 13px; color: #2563eb; text-decoration: none; font-weight: 600;">Read full report &rarr;</a></div>
   </div>
   {% endfor %}
   {% endif %}
 
   <!-- Sitting Briefs (Sprint 23: now with inline excerpts) -->
   {% if briefs %}
-  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Sitting Summaries</div>
+  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #2563eb; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Sitting Summaries</div>
   {% for b in briefs %}
   <div style="margin-bottom: 16px; padding: 14px 16px; background: #f9fafb; border-radius: 6px;">
     <div style="font-size: 12px; color: #9ca3af; margin-bottom: 4px;">{{ b.sitting.sitting_date|date:"d M Y" }}</div>
@@ -142,7 +142,7 @@
     {% elif b.summary_html %}
     <div style="font-size: 13px; color: #4b5563; line-height: 1.5;">{{ b.summary_html|striptags|truncatewords:40 }}</div>
     {% endif %}
-    <div style="margin-top: 8px;"><a href="https://tamilschool.org/en/parliament-watch/sittings/{{ b.sitting.pk }}" style="font-size: 12px; color: #7c3aed; text-decoration: none; font-weight: 600;">Read brief &rarr;</a></div>
+    <div style="margin-top: 8px;"><a href="https://tamilschool.org/en/parliament-watch/sittings/{{ b.sitting.pk }}" style="font-size: 12px; color: #2563eb; text-decoration: none; font-weight: 600;">Read brief &rarr;</a></div>
   </div>
   {% endfor %}
   {% endif %}
@@ -150,7 +150,7 @@
   <!-- News Coverage (Sprint 24 #10b: one card per story, top 10 by hybrid score) -->
   {% if news_clusters %}
   <a id="news-section"></a>
-  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">In The News &mdash; {{ news_total }} Article{{ news_total|pluralize }}, {{ news_clusters|length }} Top Stor{{ news_clusters|length|pluralize:"y,ies" }}</div>
+  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #2563eb; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">In The News &mdash; {{ news_total }} Article{{ news_total|pluralize }}, {{ news_clusters|length }} Top Stor{{ news_clusters|length|pluralize:"y,ies" }}</div>
   {% for cluster in news_clusters %}
   <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #f3f4f6;">
     <div style="font-size: 11px; color: #9ca3af; margin-bottom: 4px;">
@@ -167,9 +167,9 @@
   </div>
   {% endfor %}
   {% if news_remainder_count > 0 %}
-  <div style="margin-top: 12px; font-size: 12px; color: #6b7280; font-style: italic;">Plus {{ news_remainder_count }} other article{{ news_remainder_count|pluralize }} this month &mdash; <a href="https://tamilschool.org/en/news" style="color: #7c3aed; text-decoration: none;">see all on tamilschool.org &rarr;</a></div>
+  <div style="margin-top: 12px; font-size: 12px; color: #6b7280; font-style: italic;">Plus {{ news_remainder_count }} other article{{ news_remainder_count|pluralize }} this month &mdash; <a href="https://tamilschool.org/en/news" style="color: #2563eb; text-decoration: none;">see all on tamilschool.org &rarr;</a></div>
   {% elif news_total > 0 %}
-  <div style="margin-top: 12px; font-size: 12px; color: #9ca3af; font-style: italic;"><a href="https://tamilschool.org/en/news" style="color: #7c3aed; text-decoration: none;">See all news on tamilschool.org &rarr;</a></div>
+  <div style="margin-top: 12px; font-size: 12px; color: #9ca3af; font-style: italic;"><a href="https://tamilschool.org/en/news" style="color: #2563eb; text-decoration: none;">See all news on tamilschool.org &rarr;</a></div>
   {% endif %}
   {% endif %}
 
@@ -181,12 +181,12 @@
        and never has to negotiate with a narrow state column. -->
   {% if schools_by_state %}
   <a id="schools-section"></a>
-  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Schools In The Spotlight &mdash; {{ schools_mentioned_total }} School{{ schools_mentioned_total|pluralize }}</div>
+  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #2563eb; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Schools In The Spotlight &mdash; {{ schools_mentioned_total }} School{{ schools_mentioned_total|pluralize }}</div>
   {% for state, schools in schools_by_state.items %}
   <div style="margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid #f3f4f6;">
     <div style="font-weight: 700; color: #1f2937; font-size: 14px; margin-bottom: 6px;">{{ state }} <span style="color: #9ca3af; font-weight: 400; font-size: 12px;">({{ schools|length }})</span></div>
     <div style="color: #4b5563; font-size: 13px; line-height: 1.7; word-break: break-word;">
-      {% for s in schools %}<a href="https://tamilschool.org/en/school/{{ s.moe_code }}" style="color: #7c3aed; text-decoration: none;">{{ s.short_name|default:s.name }}</a>{% if not forloop.last %}<span style="color: #d1d5db;"> &middot; </span>{% endif %}{% endfor %}
+      {% for s in schools %}<a href="https://tamilschool.org/en/school/{{ s.moe_code }}" style="color: #2563eb; text-decoration: none;">{{ s.short_name|default:s.name }}</a>{% if not forloop.last %}<span style="color: #d1d5db;"> &middot; </span>{% endif %}{% endfor %}
     </div>
   </div>
   {% endfor %}
@@ -195,14 +195,14 @@
 
   <!-- Active MP Scorecards (Sprint 24 #4d: suppressed when on lifetime fallback) -->
   {% if scorecards and not scorecards_are_lifetime_fallback %}
-  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Most Active MPs This Month</div>
+  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #2563eb; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Most Active MPs This Month</div>
   <table width="100%" cellpadding="0" cellspacing="0">
     {% for sc in scorecards %}
     <tr>
       <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
         <div style="font-size: 14px; font-weight: 600; color: #1f2937;">{{ sc.mp_name }}</div>
         <div style="font-size: 12px; color: #6b7280;">
-          {% if sc.constituency %}<a href="https://tamilschool.org/en/constituency/{{ sc.constituency.code }}" style="color: #7c3aed; text-decoration: none;">{{ sc.constituency.name }}</a> &middot; {% endif %}{{ sc.total_mentions }} mention{{ sc.total_mentions|pluralize }} this month, {{ sc.substantive_mentions }} substantive
+          {% if sc.constituency %}<a href="https://tamilschool.org/en/constituency/{{ sc.constituency.code }}" style="color: #2563eb; text-decoration: none;">{{ sc.constituency.name }}</a> &middot; {% endif %}{{ sc.total_mentions }} mention{{ sc.total_mentions|pluralize }} this month, {{ sc.substantive_mentions }} substantive
         </div>
       </td>
     </tr>
@@ -214,20 +214,20 @@
        Mobile-fix 2026-07-04: was 3-column (33.33% each); shrunk unreadably
        at 320px. Restructured as horizontal-icon-plus-text cards, each on
        its own row -- bigger tap target, no column-width fight. -->
-  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin: 36px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Take Action</div>
-  {% with cta_style="display: block; padding: 16px 18px; background: #ffffff; border: 1px solid #e5e7eb; border-left: 3px solid #7c3aed; border-radius: 4px; text-decoration: none; margin-bottom: 10px;" %}
+  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #2563eb; margin: 36px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Take Action</div>
+  {% with cta_style="display: block; padding: 16px 18px; background: #ffffff; border: 1px solid #e5e7eb; border-left: 3px solid #2563eb; border-radius: 4px; text-decoration: none; margin-bottom: 10px;" %}
   <a href="{{ donate_url|default:'https://tamilschool.org/donate' }}" style="{{ cta_style }}">
-    <span style="font-size: 20px; color: #7c3aed; margin-right: 12px; vertical-align: middle;">&#x2764;</span>
+    <span style="font-size: 20px; color: #2563eb; margin-right: 12px; vertical-align: middle;">&#x2764;</span>
     <span style="font-size: 15px; font-weight: 700; color: #1f2937; vertical-align: middle;">Donate</span>
     <span style="font-size: 13px; color: #6b7280; vertical-align: middle;"> &middot; Tamil Foundation</span>
   </a>
   <a href="{{ share_url }}" style="{{ cta_style }}">
-    <span style="font-size: 20px; color: #7c3aed; margin-right: 12px; vertical-align: middle;">&#x2709;</span>
+    <span style="font-size: 20px; color: #2563eb; margin-right: 12px; vertical-align: middle;">&#x2709;</span>
     <span style="font-size: 15px; font-weight: 700; color: #1f2937; vertical-align: middle;">Forward</span>
     <span style="font-size: 13px; color: #6b7280; vertical-align: middle;"> &middot; To a friend</span>
   </a>
   <a href="{{ mp_activity_url|default:'https://tamilschool.org/en/constituencies' }}" style="{{ cta_style }}">
-    <span style="font-size: 20px; color: #7c3aed; margin-right: 12px; vertical-align: middle;">&#x2691;</span>
+    <span style="font-size: 20px; color: #2563eb; margin-right: 12px; vertical-align: middle;">&#x2691;</span>
     <span style="font-size: 15px; font-weight: 700; color: #1f2937; vertical-align: middle;">Your MP</span>
     <span style="font-size: 13px; color: #6b7280; vertical-align: middle;"> &middot; Check activity</span>
   </a>
