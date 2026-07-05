@@ -213,32 +213,30 @@
   </table>
   {% endif %}
 
-  <!-- Calls to Action (Sprint 24 #10g: unified editorial cards).
-       Mobile-fix 2026-07-04: was 3-column (33.33% each); shrunk unreadably
-       at 320px. Restructured as horizontal-icon-plus-text cards, each on
-       its own row -- bigger tap target, no column-width fight. -->
-  <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #2563eb; margin: 36px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Take Action</div>
-  {# Palette 2026-07-05: cards flipped to navy background with white
-     text -- reads as primary CTA buttons on the site, and picks up the
-     visual rhythm of the navy By-The-Numbers bar above. #}
-  {% with cta_style="display: block; padding: 16px 18px; background: #1e3a8a; border-radius: 4px; text-decoration: none; margin-bottom: 10px;" %}
-  <a href="{{ donate_url|default:'https://tamilschool.org/donate' }}" style="{{ cta_style }}">
-    <span style="font-size: 20px; color: #ffffff; margin-right: 12px; vertical-align: middle;">&#x2764;</span>
-    <span style="font-size: 15px; font-weight: 700; color: #ffffff; vertical-align: middle;">Donate</span>
-    <span style="font-size: 13px; color: #93c5fd; vertical-align: middle;"> &middot; Tamil Foundation</span>
-  </a>
-  <a href="{{ share_url }}" style="{{ cta_style }}">
-    <span style="font-size: 20px; color: #ffffff; margin-right: 12px; vertical-align: middle;">&#x2709;</span>
-    <span style="font-size: 15px; font-weight: 700; color: #ffffff; vertical-align: middle;">Forward</span>
-    <span style="font-size: 13px; color: #93c5fd; vertical-align: middle;"> &middot; To a friend</span>
-  </a>
-  <a href="{{ mp_activity_url|default:'https://tamilschool.org/en/constituencies' }}" style="{{ cta_style }}">
-    <span style="font-size: 20px; color: #ffffff; margin-right: 12px; vertical-align: middle;">&#x2691;</span>
-    <span style="font-size: 15px; font-weight: 700; color: #ffffff; vertical-align: middle;">Your MP</span>
-    <span style="font-size: 13px; color: #93c5fd; vertical-align: middle;"> &middot; Check activity</span>
-  </a>
-  {% endwith %}
-  <div style="margin-bottom: 24px;"></div>
+  <!-- Take Action panel. 2026-07-05: entire section wrapped in a navy
+       panel so the header + CTAs read as one solid anchor block.
+       Inner CTAs use a slightly lighter navy (blue-800) so tap targets
+       stay visually distinct against the blue-900 wrapper. -->
+  <div style="margin: 36px 0 24px 0; background: #1e3a8a; border-radius: 6px; padding: 20px 20px 12px 20px;">
+    <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #ffffff; padding-bottom: 12px; border-bottom: 1px solid #1e40af; font-weight: bold; margin-bottom: 14px;">Take Action</div>
+    {% with cta_style="display: block; padding: 14px 16px; background: #1e40af; border-radius: 4px; text-decoration: none; margin-bottom: 8px;" %}
+    <a href="{{ donate_url|default:'https://tamilschool.org/donate' }}" style="{{ cta_style }}">
+      <span style="font-size: 20px; color: #ffffff; margin-right: 12px; vertical-align: middle;">&#x2764;</span>
+      <span style="font-size: 15px; font-weight: 700; color: #ffffff; vertical-align: middle;">Donate</span>
+      <span style="font-size: 13px; color: #bfdbfe; vertical-align: middle;"> &middot; Tamil Foundation</span>
+    </a>
+    <a href="{{ share_url }}" style="{{ cta_style }}">
+      <span style="font-size: 20px; color: #ffffff; margin-right: 12px; vertical-align: middle;">&#x2709;</span>
+      <span style="font-size: 15px; font-weight: 700; color: #ffffff; vertical-align: middle;">Forward</span>
+      <span style="font-size: 13px; color: #bfdbfe; vertical-align: middle;"> &middot; To a friend</span>
+    </a>
+    <a href="{{ mp_activity_url|default:'https://tamilschool.org/en/constituencies' }}" style="{{ cta_style }}">
+      <span style="font-size: 20px; color: #ffffff; margin-right: 12px; vertical-align: middle;">&#x2691;</span>
+      <span style="font-size: 15px; font-weight: 700; color: #ffffff; vertical-align: middle;">Your MP</span>
+      <span style="font-size: 13px; color: #bfdbfe; vertical-align: middle;"> &middot; Check activity</span>
+    </a>
+    {% endwith %}
+  </div>
 
   <!-- Footer -->
   <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 13px; color: #9ca3af; text-align: center;">

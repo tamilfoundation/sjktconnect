@@ -511,19 +511,21 @@ def _wrap_broadcast_html(
         <div style="background-color: #ffffff; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
             {content}
         </div>
-        <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
-            <p>SJK(T) Connect &mdash; Tamil School Intelligence &amp; Advocacy Platform</p>
+        <!-- 2026-07-05: footer inverted to navy panel to match the Take
+             Action anchor above, giving the email a solid navy close. -->
+        <div style="background: #1e3a8a; border-radius: 8px; text-align: center; padding: 24px 20px; color: #bfdbfe; font-size: 12px; line-height: 1.6;">
+            <p style="margin: 0 0 12px 0; color: #ffffff; font-weight: 600;">SJK(T) Connect &mdash; Tamil School Intelligence &amp; Advocacy Platform</p>
             <p style="margin: 12px 0;">
-                <a href="{donate}" style="color: #2563eb; text-decoration: none; font-weight: 600;">Donate to Tamil Foundation</a>
+                <a href="{donate}" style="color: #ffffff; text-decoration: none; font-weight: 600;">Donate to Tamil Foundation</a>
                 &nbsp;&middot;&nbsp;
-                <a href="{forward}" style="color: #2563eb; text-decoration: none; font-weight: 600;">Forward to a friend</a>
+                <a href="{forward}" style="color: #ffffff; text-decoration: none; font-weight: 600;">Forward to a friend</a>
             </p>
-            <p>
-                <a href="{prefs}" style="color: #666; text-decoration: underline;">Manage Preferences</a>
+            <p style="margin: 12px 0;">
+                <a href="{prefs}" style="color: #bfdbfe; text-decoration: underline;">Manage Preferences</a>
                 &nbsp;&middot;&nbsp;
-                <a href="{unsub}" style="color: #666; text-decoration: underline;">Unsubscribe</a>
+                <a href="{unsub}" style="color: #bfdbfe; text-decoration: underline;">Unsubscribe</a>
             </p>
-            <p>An initiative of Malaysian Tamil Educational Research &amp; Development Foundation (Tamil Foundation)</p>
+            <p style="margin: 12px 0 0 0; color: #93c5fd;">An initiative of Malaysian Tamil Educational Research &amp; Development Foundation (Tamil Foundation)</p>
         </div>
     </div>
 </body>
