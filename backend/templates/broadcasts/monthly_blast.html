@@ -1,4 +1,4 @@
-{% load tz school_urls %}
+{% load tz school_urls mp_links %}
 <div style="font-family: Georgia, serif; color: #1a1a1a; line-height: 1.6; max-width: 640px; margin: 0 auto; word-break: break-word;">
 
   <!-- Header. 2026-07-05: two-column top row -- brand wordmark on the
@@ -25,7 +25,7 @@
   <!-- Executive Summary -->
   {% if analysis.executive_summary %}
   <div style="font-size: 16px; line-height: 1.7; margin-bottom: 32px; padding: 20px; background: #eff6ff; border-left: 4px solid #2563eb; border-radius: 0 4px 4px 0; color: #374151;">
-    {{ analysis.executive_summary }}
+    {{ analysis.executive_summary|linkify_mps }}
   </div>
   {% endif %}
 
@@ -93,7 +93,7 @@
       <span style="display: inline-block; font-size: 11px; padding: 2px 10px; border-radius: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 8px; vertical-align: middle; background: #f3f4f6; color: #374151;">stable</span>
       {% endif %}
     </div>
-    <div style="font-size: 14px; color: #4b5563;">{{ trend.detail }}</div>
+    <div style="font-size: 14px; color: #4b5563;">{{ trend.detail|linkify_mps }}</div>
   </div>
   {% endfor %}
   {% endif %}
@@ -112,7 +112,7 @@
       <td style="width: 24px; vertical-align: top; padding: 10px 0;">
         <div style="width: 10px; height: 10px; border-radius: 50%; background: #3b82f6; margin-top: 4px;"></div>
       </td>
-      <td style="padding: 10px 0; font-size: 14px; color: #374151; border-bottom: 1px solid #f3f4f6;">{{ opp }}</td>
+      <td style="padding: 10px 0; font-size: 14px; color: #374151; border-bottom: 1px solid #f3f4f6;">{{ opp|linkify_mps }}</td>
     </tr>
     {% endfor %}
   </table>
@@ -122,7 +122,7 @@
   {% if analysis.school_spotlight %}
   <div style="margin: 28px 0; padding: 20px; background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 0 4px 4px 0;">
     <div style="font-weight: bold; font-size: 16px; color: #92400e; margin-bottom: 6px;">School Spotlight: {{ analysis.school_spotlight.name }}</div>
-    <p style="margin: 0; font-size: 14px; color: #78350f;">{{ analysis.school_spotlight.reason }}</p>
+    <p style="margin: 0; font-size: 14px; color: #78350f;">{{ analysis.school_spotlight.reason|linkify_mps }}</p>
   </div>
   {% endif %}
 
@@ -135,7 +135,7 @@
       <a href="https://tamilschool.org/en/parliament-watch/{{ m.pk }}" style="color: #1f2937; text-decoration: none;">{{ m.short_name }}</a>
     </div>
     <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">{{ m.start_date|date:"d M" }} &rarr; {{ m.end_date|date:"d M Y" }}</div>
-    {% if m.executive_summary %}<div style="font-size: 14px; color: #4b5563;">{{ m.executive_summary|truncatewords:50 }}</div>{% endif %}
+    {% if m.executive_summary %}<div style="font-size: 14px; color: #4b5563;">{{ m.executive_summary|truncatewords:50|linkify_mps }}</div>{% endif %}
     <div style="margin-top: 10px;"><a href="https://tamilschool.org/en/parliament-watch/{{ m.pk }}" style="font-size: 13px; color: #2563eb; text-decoration: none; font-weight: 600;">Read full report &rarr;</a></div>
   </div>
   {% endfor %}
@@ -151,9 +151,9 @@
       <a href="https://tamilschool.org/en/parliament-watch/sittings/{{ b.sitting.pk }}" style="font-size: 15px; color: #1f2937; font-weight: 600; text-decoration: none;">{{ b.title }}</a>
     </div>
     {% if b.social_post_text %}
-    <div style="font-size: 13px; color: #4b5563; line-height: 1.5;">{{ b.social_post_text }}</div>
+    <div style="font-size: 13px; color: #4b5563; line-height: 1.5;">{{ b.social_post_text|linkify_mps }}</div>
     {% elif b.summary_html %}
-    <div style="font-size: 13px; color: #4b5563; line-height: 1.5;">{{ b.summary_html|striptags|truncatewords:40 }}</div>
+    <div style="font-size: 13px; color: #4b5563; line-height: 1.5;">{{ b.summary_html|striptags|truncatewords:40|linkify_mps }}</div>
     {% endif %}
     <div style="margin-top: 8px;"><a href="https://tamilschool.org/en/parliament-watch/sittings/{{ b.sitting.pk }}" style="font-size: 12px; color: #2563eb; text-decoration: none; font-weight: 600;">Read brief &rarr;</a></div>
   </div>
