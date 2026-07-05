@@ -22,35 +22,38 @@
   <!-- By The Numbers (Sprint 23: deterministic counts + captions + click-throughs).
        Mobile-fix 2026-07-04: rebuilt as 2 rows × 2 cells so each stat gets
        ~half the viewport at 320-400px. 4-col at 25% squeezed the 36px
-       numbers into unreadable columns on Android Gmail. -->
+       numbers into unreadable columns on Android Gmail.
+       Palette 2026-07-05: inverted to navy background with white numbers +
+       light-blue labels -- reads as an authoritative dashboard stat bar
+       and matches the site's blue-900 hero. -->
   {% if analysis.by_the_numbers %}
-  <table width="100%" cellpadding="0" cellspacing="0" style="margin: 28px 0; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin: 28px 0; background: #1e3a8a; border-radius: 6px;">
     <tr>
       <td style="text-align: center; padding: 20px 8px; width: 50%;">
-        <div style="font-size: 34px; font-weight: bold; color: #2563eb; line-height: 1;">{{ analysis.by_the_numbers.parliament_mentions|default:"0" }}</div>
-        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin-top: 6px;">Parliament Mentions</div>
-        <div style="font-size: 10px; color: #d1d5db; margin-top: 4px; font-style: italic;">in Hansard this month</div>
+        <div style="font-size: 34px; font-weight: bold; color: #ffffff; line-height: 1;">{{ analysis.by_the_numbers.parliament_mentions|default:"0" }}</div>
+        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #dbeafe; margin-top: 6px;">Parliament Mentions</div>
+        <div style="font-size: 10px; color: #93c5fd; margin-top: 4px; font-style: italic;">in Hansard this month</div>
       </td>
       <td style="text-align: center; padding: 20px 8px; width: 50%;">
         <a href="#news-section" style="text-decoration: none; color: inherit;">
-          <div style="font-size: 34px; font-weight: bold; color: #2563eb; line-height: 1;">{{ analysis.by_the_numbers.news_articles|default:"0" }}</div>
-          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin-top: 6px;">News Articles</div>
-          <div style="font-size: 10px; color: #d1d5db; margin-top: 4px; font-style: italic;">approved &amp; relevant</div>
+          <div style="font-size: 34px; font-weight: bold; color: #ffffff; line-height: 1;">{{ analysis.by_the_numbers.news_articles|default:"0" }}</div>
+          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #dbeafe; margin-top: 6px;">News Articles</div>
+          <div style="font-size: 10px; color: #93c5fd; margin-top: 4px; font-style: italic;">approved &amp; relevant</div>
         </a>
       </td>
     </tr>
     <tr>
-      <td style="text-align: center; padding: 20px 8px; width: 50%; border-top: 1px solid #f3f4f6;">
+      <td style="text-align: center; padding: 20px 8px; width: 50%; border-top: 1px solid #1e40af;">
         <a href="#schools-section" style="text-decoration: none; color: inherit;">
-          <div style="font-size: 34px; font-weight: bold; color: #2563eb; line-height: 1;">{{ analysis.by_the_numbers.schools_affected|default:"0" }}</div>
-          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin-top: 6px;">Schools in the News</div>
-          <div style="font-size: 10px; color: #d1d5db; margin-top: 4px; font-style: italic;">unique, news + Hansard</div>
+          <div style="font-size: 34px; font-weight: bold; color: #ffffff; line-height: 1;">{{ analysis.by_the_numbers.schools_affected|default:"0" }}</div>
+          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #dbeafe; margin-top: 6px;">Schools in the News</div>
+          <div style="font-size: 10px; color: #93c5fd; margin-top: 4px; font-style: italic;">unique, news + Hansard</div>
         </a>
       </td>
-      <td style="text-align: center; padding: 20px 8px; width: 50%; border-top: 1px solid #f3f4f6;">
-        <div style="font-size: 34px; font-weight: bold; color: #2563eb; line-height: 1;">{{ analysis.by_the_numbers.sentiment_positive|default:"0" }}</div>
-        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin-top: 6px;">Positive Stories</div>
-        <div style="font-size: 10px; color: #d1d5db; margin-top: 4px; font-style: italic;">of {{ analysis.by_the_numbers.news_articles|default:"0" }} news items</div>
+      <td style="text-align: center; padding: 20px 8px; width: 50%; border-top: 1px solid #1e40af;">
+        <div style="font-size: 34px; font-weight: bold; color: #ffffff; line-height: 1;">{{ analysis.by_the_numbers.sentiment_positive|default:"0" }}</div>
+        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #dbeafe; margin-top: 6px;">Positive Stories</div>
+        <div style="font-size: 10px; color: #93c5fd; margin-top: 4px; font-style: italic;">of {{ analysis.by_the_numbers.news_articles|default:"0" }} news items</div>
       </td>
     </tr>
   </table>
@@ -215,21 +218,24 @@
        at 320px. Restructured as horizontal-icon-plus-text cards, each on
        its own row -- bigger tap target, no column-width fight. -->
   <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #2563eb; margin: 36px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Take Action</div>
-  {% with cta_style="display: block; padding: 16px 18px; background: #ffffff; border: 1px solid #e5e7eb; border-left: 3px solid #2563eb; border-radius: 4px; text-decoration: none; margin-bottom: 10px;" %}
+  {# Palette 2026-07-05: cards flipped to navy background with white
+     text -- reads as primary CTA buttons on the site, and picks up the
+     visual rhythm of the navy By-The-Numbers bar above. #}
+  {% with cta_style="display: block; padding: 16px 18px; background: #1e3a8a; border-radius: 4px; text-decoration: none; margin-bottom: 10px;" %}
   <a href="{{ donate_url|default:'https://tamilschool.org/donate' }}" style="{{ cta_style }}">
-    <span style="font-size: 20px; color: #2563eb; margin-right: 12px; vertical-align: middle;">&#x2764;</span>
-    <span style="font-size: 15px; font-weight: 700; color: #1f2937; vertical-align: middle;">Donate</span>
-    <span style="font-size: 13px; color: #6b7280; vertical-align: middle;"> &middot; Tamil Foundation</span>
+    <span style="font-size: 20px; color: #ffffff; margin-right: 12px; vertical-align: middle;">&#x2764;</span>
+    <span style="font-size: 15px; font-weight: 700; color: #ffffff; vertical-align: middle;">Donate</span>
+    <span style="font-size: 13px; color: #93c5fd; vertical-align: middle;"> &middot; Tamil Foundation</span>
   </a>
   <a href="{{ share_url }}" style="{{ cta_style }}">
-    <span style="font-size: 20px; color: #2563eb; margin-right: 12px; vertical-align: middle;">&#x2709;</span>
-    <span style="font-size: 15px; font-weight: 700; color: #1f2937; vertical-align: middle;">Forward</span>
-    <span style="font-size: 13px; color: #6b7280; vertical-align: middle;"> &middot; To a friend</span>
+    <span style="font-size: 20px; color: #ffffff; margin-right: 12px; vertical-align: middle;">&#x2709;</span>
+    <span style="font-size: 15px; font-weight: 700; color: #ffffff; vertical-align: middle;">Forward</span>
+    <span style="font-size: 13px; color: #93c5fd; vertical-align: middle;"> &middot; To a friend</span>
   </a>
   <a href="{{ mp_activity_url|default:'https://tamilschool.org/en/constituencies' }}" style="{{ cta_style }}">
-    <span style="font-size: 20px; color: #2563eb; margin-right: 12px; vertical-align: middle;">&#x2691;</span>
-    <span style="font-size: 15px; font-weight: 700; color: #1f2937; vertical-align: middle;">Your MP</span>
-    <span style="font-size: 13px; color: #6b7280; vertical-align: middle;"> &middot; Check activity</span>
+    <span style="font-size: 20px; color: #ffffff; margin-right: 12px; vertical-align: middle;">&#x2691;</span>
+    <span style="font-size: 15px; font-weight: 700; color: #ffffff; vertical-align: middle;">Your MP</span>
+    <span style="font-size: 13px; color: #93c5fd; vertical-align: middle;"> &middot; Check activity</span>
   </a>
   {% endwith %}
   <div style="margin-bottom: 24px;"></div>
