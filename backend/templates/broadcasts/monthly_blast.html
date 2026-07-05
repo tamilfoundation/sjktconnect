@@ -213,29 +213,35 @@
   </table>
   {% endif %}
 
-  <!-- Take Action panel. 2026-07-05: entire section wrapped in a navy
-       panel so the header + CTAs read as one solid anchor block.
-       Inner CTAs use a slightly lighter navy (blue-800) so tap targets
-       stay visually distinct against the blue-900 wrapper. -->
+  <!-- Take Action panel. 2026-07-05: matches the site hero button style
+       -- 1 solid white primary (Donate, the highest-priority ask for a
+       nonprofit) + 2 outlined white-on-navy secondaries. Buttons are
+       centred and share the same border-box footprint so they line up
+       even though only Donate has a filled background. -->
   <div style="margin: 36px 0 24px 0; background: #1e3a8a; border-radius: 6px; padding: 20px 20px 12px 20px;">
-    <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #ffffff; padding-bottom: 12px; border-bottom: 1px solid #1e40af; font-weight: bold; margin-bottom: 14px;">Take Action</div>
-    {% with cta_style="display: block; padding: 14px 16px; background: #1e40af; border-radius: 4px; text-decoration: none; margin-bottom: 8px;" %}
-    <a href="{{ donate_url|default:'https://tamilschool.org/donate' }}" style="{{ cta_style }}">
-      <span style="font-size: 20px; color: #ffffff; margin-right: 12px; vertical-align: middle;">&#x2764;</span>
-      <span style="font-size: 15px; font-weight: 700; color: #ffffff; vertical-align: middle;">Donate</span>
-      <span style="font-size: 13px; color: #bfdbfe; vertical-align: middle;"> &middot; Tamil Foundation</span>
+    <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #ffffff; padding-bottom: 12px; border-bottom: 1px solid #1e40af; font-weight: bold; margin-bottom: 16px;">Take Action</div>
+
+    <!-- Donate: solid white primary button. Border is white too so it
+         shares the same footprint as the outlined buttons below. -->
+    <a href="{{ donate_url|default:'https://tamilschool.org/donate' }}" style="display: block; padding: 14px 18px; background: #ffffff; border: 2px solid #ffffff; border-radius: 8px; text-decoration: none; margin-bottom: 10px; text-align: center;">
+      <span style="font-size: 18px; color: #1e3a8a; margin-right: 8px; vertical-align: middle;">&#x2764;</span>
+      <span style="font-size: 15px; font-weight: 700; color: #1e3a8a; vertical-align: middle;">Donate</span>
+      <span style="font-size: 13px; color: #6b7280; vertical-align: middle;"> &middot; Tamil Foundation</span>
     </a>
-    <a href="{{ share_url }}" style="{{ cta_style }}">
-      <span style="font-size: 20px; color: #ffffff; margin-right: 12px; vertical-align: middle;">&#x2709;</span>
+
+    <!-- Forward: outlined secondary. -->
+    <a href="{{ share_url }}" style="display: block; padding: 14px 18px; background: #1e3a8a; border: 2px solid #ffffff; border-radius: 8px; text-decoration: none; margin-bottom: 10px; text-align: center;">
+      <span style="font-size: 18px; color: #ffffff; margin-right: 8px; vertical-align: middle;">&#x2709;</span>
       <span style="font-size: 15px; font-weight: 700; color: #ffffff; vertical-align: middle;">Forward</span>
       <span style="font-size: 13px; color: #bfdbfe; vertical-align: middle;"> &middot; To a friend</span>
     </a>
-    <a href="{{ mp_activity_url|default:'https://tamilschool.org/en/constituencies' }}" style="{{ cta_style }}">
-      <span style="font-size: 20px; color: #ffffff; margin-right: 12px; vertical-align: middle;">&#x2691;</span>
+
+    <!-- Your MP: outlined secondary. -->
+    <a href="{{ mp_activity_url|default:'https://tamilschool.org/en/constituencies' }}" style="display: block; padding: 14px 18px; background: #1e3a8a; border: 2px solid #ffffff; border-radius: 8px; text-decoration: none; margin-bottom: 10px; text-align: center;">
+      <span style="font-size: 18px; color: #ffffff; margin-right: 8px; vertical-align: middle;">&#x2691;</span>
       <span style="font-size: 15px; font-weight: 700; color: #ffffff; vertical-align: middle;">Your MP</span>
       <span style="font-size: 13px; color: #bfdbfe; vertical-align: middle;"> &middot; Check activity</span>
     </a>
-    {% endwith %}
   </div>
 
   <!-- Footer -->
