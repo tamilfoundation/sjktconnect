@@ -2,12 +2,45 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { AdvancedMarker, InfoWindow, Pin } from "@vis.gl/react-google-maps";
+import { InfoWindow, useMap } from "@vis.gl/react-google-maps";
+import { MarkerClusterer, type Renderer } from "@googlemaps/markerclusterer";
 import { Link } from "@/i18n/navigation";
 import { School } from "@/lib/types";
 import { fetchSchoolDetail } from "@/lib/api";
 import { schoolPath } from "@/lib/urls";
 import { ColourMode } from "./MapFilterPanel";
+
+// Cluster bubble in the site's navy palette. Size scales with sqrt(count)
+// so a 50-school KL cluster reads visually heavier than a 5-school Perlis
+// cluster without becoming unreadable at extreme counts.
+const clusterRenderer: Renderer = {
+  render: ({ count, position }) => {
+    const size = Math.min(64, 30 + Math.sqrt(count) * 5);
+    const div = document.createElement("div");
+    div.style.cssText = [
+      "background:#2563eb",
+      "color:#fff",
+      "border:3px solid rgba(255,255,255,0.9)",
+      "border-radius:50%",
+      `width:${size}px`,
+      `height:${size}px`,
+      "display:flex",
+      "align-items:center",
+      "justify-content:center",
+      "font-weight:700",
+      "font-family:Arial,sans-serif",
+      `font-size:${size >= 48 ? 15 : 13}px`,
+      "box-shadow:0 2px 8px rgba(0,0,0,0.25)",
+      "cursor:pointer",
+    ].join(";");
+    div.textContent = String(count);
+    return new google.maps.marker.AdvancedMarkerElement({
+      position,
+      content: div,
+      zIndex: 1000 + count,
+    });
+  },
+};
 
 interface SchoolMarkersProps {
   schools: School[];
@@ -73,6 +106,7 @@ export default function SchoolMarkers({
 }: SchoolMarkersProps) {
   const t = useTranslations("mapInfoWindow");
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
+  const map = useMap();
 
   const handleClose = useCallback(() => setSelectedSchool(null), []);
 
@@ -80,6 +114,54 @@ export default function SchoolMarkers({
     () => schools.filter((s) => s.gps_lat !== null && s.gps_lng !== null),
     [schools]
   );
+
+  // Single effect owns the entire pin lifecycle: build raw
+  // AdvancedMarkerElements with PinElement content, wire click handlers,
+  // hand the list to MarkerClusterer, clean up on filter change / unmount.
+  //
+  // v1 (2026-07-06) tried the ref-callback-into-state pattern with vis.gl's
+  // <AdvancedMarker> component -- caused a re-render storm that crashed on
+  // first mount. Going straight to the raw google.maps.marker APIs is what
+  // the clusterer docs actually demonstrate and avoids that trap entirely.
+  useEffect(() => {
+    if (!map) return;
+    if (typeof google === "undefined" || !google.maps?.marker?.PinElement) {
+      return;
+    }
+
+    const markers: google.maps.marker.AdvancedMarkerElement[] = [];
+    visibleSchools.forEach((school) => {
+      const colours = getPinColour(school, colourMode, enrolmentThreshold);
+      const pin = new google.maps.marker.PinElement({
+        background: colours.background,
+        borderColor: colours.border,
+        glyphColor: "#fff",
+      });
+      const marker = new google.maps.marker.AdvancedMarkerElement({
+        position: {
+          lat: Number(school.gps_lat),
+          lng: Number(school.gps_lng),
+        },
+        title: school.short_name || school.name,
+        content: pin.element,
+      });
+      marker.addListener("click", () => setSelectedSchool(school));
+      markers.push(marker);
+    });
+
+    const clusterer = new MarkerClusterer({
+      map,
+      markers,
+      renderer: clusterRenderer,
+    });
+
+    return () => {
+      clusterer.clearMarkers();
+      markers.forEach((m) => {
+        m.map = null;
+      });
+    };
+  }, [map, visibleSchools, colourMode, enrolmentThreshold]);
 
   // Lazy-load full school detail (image_url, teacher_count, grade) when an
   // InfoWindow opens. The /schools/map/ endpoint returns only ~10 fields per
@@ -106,24 +188,9 @@ export default function SchoolMarkers({
 
   return (
     <>
-      {visibleSchools.map((school) => {
-        const colours = getPinColour(school, colourMode, enrolmentThreshold);
-        return (
-          <AdvancedMarker
-            key={school.moe_code}
-            position={{ lat: Number(school.gps_lat), lng: Number(school.gps_lng) }}
-            title={school.short_name || school.name}
-            onClick={() => setSelectedSchool(school)}
-          >
-            <Pin
-              background={colours.background}
-              glyphColor="#fff"
-              borderColor={colours.border}
-            />
-          </AdvancedMarker>
-        );
-      })}
-
+      {/* Markers are created imperatively in the effect above and handed
+          to MarkerClusterer -- no <AdvancedMarker> JSX here. Only the
+          InfoWindow stays declarative. */}
       {selectedSchool && (
         <InfoWindow
           position={{
