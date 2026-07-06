@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { InfoWindow, useMap } from "@vis.gl/react-google-maps";
+import { InfoWindow, useMap, useMapsLibrary } from "@vis.gl/react-google-maps";
 import { MarkerClusterer, type Renderer } from "@googlemaps/markerclusterer";
 import { Link } from "@/i18n/navigation";
 import { School } from "@/lib/types";
@@ -107,6 +107,10 @@ export default function SchoolMarkers({
   const t = useTranslations("mapInfoWindow");
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
   const map = useMap();
+  // Explicitly trigger the marker library load. Without a JSX <AdvancedMarker>
+  // in the tree, vis.gl doesn't auto-load it and `google.maps.marker.*` stays
+  // undefined -- v2 shipped without this and silently rendered zero pins.
+  const markerLib = useMapsLibrary("marker");
 
   const handleClose = useCallback(() => setSelectedSchool(null), []);
 
@@ -124,20 +128,17 @@ export default function SchoolMarkers({
   // first mount. Going straight to the raw google.maps.marker APIs is what
   // the clusterer docs actually demonstrate and avoids that trap entirely.
   useEffect(() => {
-    if (!map) return;
-    if (typeof google === "undefined" || !google.maps?.marker?.PinElement) {
-      return;
-    }
+    if (!map || !markerLib) return;
 
     const markers: google.maps.marker.AdvancedMarkerElement[] = [];
     visibleSchools.forEach((school) => {
       const colours = getPinColour(school, colourMode, enrolmentThreshold);
-      const pin = new google.maps.marker.PinElement({
+      const pin = new markerLib.PinElement({
         background: colours.background,
         borderColor: colours.border,
         glyphColor: "#fff",
       });
-      const marker = new google.maps.marker.AdvancedMarkerElement({
+      const marker = new markerLib.AdvancedMarkerElement({
         position: {
           lat: Number(school.gps_lat),
           lng: Number(school.gps_lng),
@@ -161,7 +162,7 @@ export default function SchoolMarkers({
         m.map = null;
       });
     };
-  }, [map, visibleSchools, colourMode, enrolmentThreshold]);
+  }, [map, markerLib, visibleSchools, colourMode, enrolmentThreshold]);
 
   // Lazy-load full school detail (image_url, teacher_count, grade) when an
   // InfoWindow opens. The /schools/map/ endpoint returns only ~10 fields per
