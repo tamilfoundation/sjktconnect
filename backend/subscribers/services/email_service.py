@@ -117,7 +117,7 @@ def _build_confirmation_html(name, preferences_url, unsubscribe_url):
                 &nbsp;&middot;&nbsp;
                 <a href="%s" style="color: #666; text-decoration: underline;">Unsubscribe</a>
             </p>
-            <p>An initiative of the Malaysian Community Education Foundation (MCEF)</p>
+            <p>An initiative of Malaysian Tamil Educational Research &amp; Development Foundation (Tamil Foundation)</p>
         </div>
     </div>
 </body>

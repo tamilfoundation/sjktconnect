@@ -465,10 +465,19 @@ def send_test(broadcast_id, recipient_emails):
 # with a prefilled subject so a one-tap share works in any mail client.
 DEFAULT_DONATE_URL = "https://tamilschool.org/donate"
 DEFAULT_FORWARD_URL = (
-    "mailto:?subject=Tamil%20Schools%20Intelligence%20Blast"
-    "&body=Have%20a%20look%20at%20this%20month%27s%20digest"
-    "%20from%20tamilschool.org"
+    "mailto:?subject=Tamil%20Schools%20News%20Blast"
+    "&body=Have%20a%20look%20at%20this%20news%20blast"
+    "%20from%20tamilschool.org%0A%0A"
+    "Open%20the%20latest%20blast%3A%20"
+    "https%3A%2F%2Ftamilschool.org%2Fen%2Fnews"
 )
+# NOTE (2026-07-05, owner ask): the request was "attach the newsletter"
+# so the recipient forwards the actual email. RFC 6068 mailto: does NOT
+# support attachments -- browsers/mail clients drop any `attachment=`
+# param. The pragmatic substitute: link back to the live news page in
+# the mailto body so the recipient can open + share the stories. A
+# proper "View this email in your browser" pattern needs a public
+# broadcast-view URL (backlog item).
 
 
 def _wrap_broadcast_html(

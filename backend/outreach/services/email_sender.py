@@ -124,7 +124,7 @@ def _build_outreach_html(school: School, school_url: str, claim_url: str) -> str
         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
         <p style="color: #999; font-size: 12px;">
             SJK(T) Connect &mdash; Tamil School Intelligence &amp; Advocacy Platform<br>
-            An initiative of the Malaysian Community Education Foundation (MCEF)
+            An initiative of Malaysian Tamil Educational Research &amp; Development Foundation (Tamil Foundation)
         </p>
     </div>
     """
