@@ -14,6 +14,7 @@ Usage:
 from datetime import timedelta
 
 from django.core.management.base import BaseCommand, CommandError
+from django.db.models import Max
 from django.utils import timezone
 
 from broadcasts.models import Broadcast, BroadcastRecipient
@@ -25,6 +26,34 @@ from broadcasts.services.sender import resume_broadcast
 # alert has multiple chances to fire (2026-06-11 incident: four digests
 # sat FAILED for five weeks while every job involved kept exiting 0).
 FAILED_SWEEP_DAYS = 7
+
+# Minimum time between drain passes on the SAME broadcast. Prevents the
+# 2026-07-05 double-send: fortnightly-digest cron fires at 09:00 MYT and
+# resume-sending fires at 10:00 MYT the same day, so both crons touched
+# the same broadcast an hour apart and drained today's full Brevo quota
+# in one calendar day instead of spreading across two.
+#
+# 20h (not 24h) gives a small forgiveness margin so a drain that fired
+# at 10:00 yesterday still runs at 10:00 today — the cron cadence itself
+# jitters by a few minutes so a strict 24h would silently skip the
+# intended daily drain every other day.
+MIN_HOURS_BETWEEN_BATCHES = 20
+
+
+def _hours_since_last_batch(broadcast):
+    """Return hours since the most recent recipient was marked SENT.
+
+    Returns None when no recipient has ever been sent (fresh broadcast
+    with initial send failed, or manually flipped to SENDING) -- callers
+    should treat None as "no recent batch, safe to drain".
+    """
+    latest = broadcast.recipients.filter(
+        status=BroadcastRecipient.DeliveryStatus.SENT,
+        sent_at__isnull=False,
+    ).aggregate(latest=Max("sent_at"))["latest"]
+    if latest is None:
+        return None
+    return (timezone.now() - latest).total_seconds() / 3600.0
 
 
 class Command(BaseCommand):
@@ -79,6 +108,17 @@ class Command(BaseCommand):
                 f"Broadcast {broadcast.pk} ({broadcast.subject[:50]}): "
                 f"{sent}/{total} sent, {pending} pending"
             )
+
+            hours_since = _hours_since_last_batch(broadcast)
+            if hours_since is not None and hours_since < MIN_HOURS_BETWEEN_BATCHES:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"  Skipping — last batch was {hours_since:.1f}h ago "
+                        f"(< {MIN_HOURS_BETWEEN_BATCHES}h min gap). "
+                        f"Drains on next daily run."
+                    )
+                )
+                continue
 
             if dry_run:
                 to_send = min(pending, batch_size)
