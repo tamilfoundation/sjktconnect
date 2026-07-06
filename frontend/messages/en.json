@@ -203,7 +203,7 @@
     "apiKeyInstructions": "Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your .env.local file.",
     "loadingSchools": "Loading 528 schools...",
     "failedToLoad": "Failed to load schools",
-    "searchPlaceholder": "Search schools or constituencies...",
+    "searchPlaceholder": "Search schools...",
     "searchLabel": "Search schools",
     "clearSearch": "Clear search",
     "schoolsCount": "Schools ({count})",

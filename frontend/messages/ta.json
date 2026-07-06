@@ -203,7 +203,7 @@
     "apiKeyInstructions": ".env.local கோப்பில் NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ஐ அமைக்கவும்.",
     "loadingSchools": "528 பள்ளிகளை ஏற்றுகிறது...",
     "failedToLoad": "பள்ளிகளை ஏற்ற இயலவில்லை",
-    "searchPlaceholder": "பள்ளிகள் அல்லது தொகுதிகளைத் தேடு...",
+    "searchPlaceholder": "பள்ளிகளைத் தேடு...",
     "searchLabel": "பள்ளிகளைத் தேடு",
     "clearSearch": "தேடலை அழி",
     "schoolsCount": "பள்ளிகள் ({count})",

@@ -203,7 +203,7 @@
     "apiKeyInstructions": "Tetapkan NEXT_PUBLIC_GOOGLE_MAPS_API_KEY dalam fail .env.local anda.",
     "loadingSchools": "Memuatkan 528 sekolah...",
     "failedToLoad": "Gagal memuatkan sekolah",
-    "searchPlaceholder": "Cari sekolah atau kawasan parlimen...",
+    "searchPlaceholder": "Cari sekolah...",
     "searchLabel": "Cari sekolah",
     "clearSearch": "Padam carian",
     "schoolsCount": "Sekolah ({count})",

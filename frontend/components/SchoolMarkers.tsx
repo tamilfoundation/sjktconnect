@@ -199,8 +199,13 @@ export default function SchoolMarkers({
             lng: Number(selectedSchool.gps_lng),
           }}
           onCloseClick={handleClose}
+          maxWidth={320}
         >
-          <div style={{ width: 280 }}>
+          {/* Responsive width: 280 on desktop, shrinks on narrow viewports
+              so the InfoWindow chrome (close button + arrow tail + Google's
+              own padding) has ~80px of headroom and doesn't force a
+              horizontal scroll on 320-375px mobile viewports. */}
+          <div style={{ width: "min(280px, calc(100vw - 80px))" }}>
             {/* School image or placeholder */}
             {selectedSchool.image_url ? (
               <img
