@@ -2,12 +2,45 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { AdvancedMarker, InfoWindow, Pin } from "@vis.gl/react-google-maps";
+import { AdvancedMarker, InfoWindow, Pin, useMap } from "@vis.gl/react-google-maps";
+import { MarkerClusterer, type Renderer } from "@googlemaps/markerclusterer";
 import { Link } from "@/i18n/navigation";
 import { School } from "@/lib/types";
 import { fetchSchoolDetail } from "@/lib/api";
 import { schoolPath } from "@/lib/urls";
 import { ColourMode } from "./MapFilterPanel";
+
+// Cluster bubble in the site's navy palette (matches monthly-blast By The
+// Numbers panel + hero). Size scales with count so a 50-school cluster in
+// KL reads visually heavier than a 5-school one in Perlis.
+const clusterRenderer: Renderer = {
+  render: ({ count, position }) => {
+    const size = Math.min(64, 30 + Math.sqrt(count) * 5);
+    const div = document.createElement("div");
+    div.style.cssText = [
+      "background:#2563eb",
+      "color:#fff",
+      "border:3px solid rgba(255,255,255,0.9)",
+      "border-radius:50%",
+      `width:${size}px`,
+      `height:${size}px`,
+      "display:flex",
+      "align-items:center",
+      "justify-content:center",
+      "font-weight:700",
+      "font-family:Arial,sans-serif",
+      `font-size:${size >= 48 ? 15 : 13}px`,
+      "box-shadow:0 2px 8px rgba(0,0,0,0.25)",
+      "cursor:pointer",
+    ].join(";");
+    div.textContent = String(count);
+    return new google.maps.marker.AdvancedMarkerElement({
+      position,
+      content: div,
+      zIndex: 1000 + count,
+    });
+  },
+};
 
 interface SchoolMarkersProps {
   schools: School[];
@@ -73,6 +106,45 @@ export default function SchoolMarkers({
 }: SchoolMarkersProps) {
   const t = useTranslations("mapInfoWindow");
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
+  const map = useMap();
+
+  // MarkerClusterer wiring. Every AdvancedMarker registers itself via a
+  // ref callback into `markerRefs` (a dict keyed by moe_code). When that
+  // set changes -- or the map first becomes available -- we (re)build the
+  // clusterer with the current marker list. Rebuild is cheap: the
+  // clusterer's own DOM is scrubbed and re-added on each pass.
+  //
+  // Owner-flagged 2026-07-05: 528 raw pins at country zoom read as a jumble;
+  // clustering collapses them into count bubbles that expand on zoom-in.
+  const [markerRefs, setMarkerRefs] = useState<
+    Record<string, google.maps.marker.AdvancedMarkerElement>
+  >({});
+
+  const setMarkerRef = useCallback(
+    (marker: google.maps.marker.AdvancedMarkerElement | null, key: string) => {
+      setMarkerRefs((prev) => {
+        if (marker && prev[key] === marker) return prev;
+        if (!marker && !prev[key]) return prev;
+        const next = { ...prev };
+        if (marker) next[key] = marker;
+        else delete next[key];
+        return next;
+      });
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!map) return;
+    const clusterer = new MarkerClusterer({
+      map,
+      markers: Object.values(markerRefs),
+      renderer: clusterRenderer,
+    });
+    return () => {
+      clusterer.clearMarkers();
+    };
+  }, [map, markerRefs]);
 
   const handleClose = useCallback(() => setSelectedSchool(null), []);
 
@@ -111,6 +183,7 @@ export default function SchoolMarkers({
         return (
           <AdvancedMarker
             key={school.moe_code}
+            ref={(m) => setMarkerRef(m, school.moe_code)}
             position={{ lat: Number(school.gps_lat), lng: Number(school.gps_lng) }}
             title={school.short_name || school.name}
             onClick={() => setSelectedSchool(school)}
