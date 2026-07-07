@@ -1,5 +1,95 @@
 # Changelog
 
+## 2026-07-07 — Sprint 36 site-quality omnibus: canonical names + map cluster + alias-driven search
+
+Two-day polish sprint (14 commits, api `00159` → `00161-wx2`, web `00182` → `00191-mhb`) covering three unrelated owner-flagged threads that all mattered but none warranted a standalone sprint:
+
+### Tamil Foundation canonical-name rename (7 commits)
+
+Owner spotted that the SJKTConnect email footers still attributed the platform to **"Malaysian Community Education Foundation (MCEF)"** — a separate organisation that is NOT a Tamil Foundation alias. Fixed across the whole surface with the owner-authoritative canonical trilingual set:
+
+- **EN**: `Tamil Foundation` (short) / `Malaysian Tamil Educational Research and Development Foundation` (legal long)
+- **MS**: `Yayasan Tamil` / `Yayasan Penyelidikan dan Pembangunan Pendidikan Tamil Malaysia`
+- **TA**: `தமிழ் அறவாரியம்` / `மலேசியத் தமிழ்க்கல்வி ஆய்வு, மேம்பாட்டு அறவாரியம்`
+
+Pattern for use: legal / attribution contexts (`Built by`, `operated by`, `property of`) use the long form with the short form in parens on first mention; later in-doc references use just the short form. Applied to:
+- Backend email templates: `outreach/email_sender.py`, `subscribers/email_service.py`, `broadcasts/services/sender.py`
+- Donate page (`donate.subtitle` in en/ms/ta)
+- About page (`whatWeDoP2`, `aboutTFTitle`, `aboutTFBody`)
+- Privacy + Terms (`privacyIntroBody`, `termsIPBody`, `termsLiabilityBody`)
+
+Zero `"Tamil Foundation Malaysia"` or `"Malaysian Community Education Foundation"` strings remain in the codebase. Canonical names saved as `memory/tamil_foundation_canonical_names.md` so I don't drift.
+
+**Owner-set Tamil style rules** applied while sweeping — captured in the canonical-names memory:
+- Use `பண்பாடு` (Tamil-origin), never `கலாச்சாரம்` (Sanskrit loan) — swept `aboutTFBody`.
+- Avoid `மற்றும்` in authored Tamil copy — use comma-enumeration closed with `ஆகியன` (things) / `ஆகியோர்` (people), or `-um`/`-kkum` suffixes for two-item pairs. **All 16 authored uses** in `ta.json` retired (the `"and"` i18n-key value at line 479 kept as safety fallback since no code callsites were found).
+- Use short-form only for the org name in Tamil (`தமிழ் அறவாரியம்`); no long-form-first-with-alias-in-parens pattern (EN/MS use that pattern; TA reads short-only).
+
+**Malay style rule**: always use `Pertubuhan` / `pertubuhan`, never `Organisasi` (I got the direction backwards on the first pass; owner-corrected).
+
+### Newsletter improvements (2 commits)
+
+1. **News-Watch fortnightly digest** now carries the same **letterhead header** as the monthly blast (`SJK(T) Connect` wordmark on the left, bold period on the right, `News Watch` H1 below, 3px navy bottom border). Both bulk emails now share one identity.
+2. **`Forward to a friend`** mailto copy: subject changed from "Tamil Schools Intelligence Blast" → "Tamil Schools News Blast"; body from "this month's digest" → "this news blast" + a link back to `/en/news`. Note: RFC 6068 `mailto:` doesn't support attachments — the pragmatic substitute for the owner's ask is a link to the live news page. A proper "view in browser" pattern remains a backlog item.
+
+### Resume-sending guard against same-day double-drain (1 commit)
+
+Owner reported that a fortnightly digest was drained 250 emails at 09:08 MYT and then another 50 at 10:01 MYT, exhausting the Brevo 300/day quota in one calendar day instead of the two-day drip pattern owner expected. Investigation traced this to `sjktconnect-fortnightly-digest` firing at 09:00 MYT + `sjktconnect-resume-sending` firing at 10:00 MYT — same broadcast touched by both crons within an hour. **Fix**: `resume_sending` now skips broadcasts whose latest recipient `sent_at` is less than `MIN_HOURS_BETWEEN_BATCHES` (20h) ago. 20h chosen over 24h to survive cron jitter. Broadcasts with no SENT recipient yet (compose crashed before first batch) still drain — the guard only kicks in once ≥1 batch has actually gone out. +4 tests → 12 in `test_resume_sending.py`.
+
+### Map marker clustering — v1 crash, v2 empty pins, v2.1 works (5 commits)
+
+Owner-flagged: 528 raw pins on the country/state map read as an unreadable jumble. `@googlemaps/markerclusterer` was already in `package.json` from Sprint 1.3 but had never been wired — CLAUDE.md's claim `"528 school pins + clustering"` was stale.
+
+- **v1** (reverted): wired via vis.gl `<AdvancedMarker>` + `ref` callback → `setState({...prev, [key]: marker})` pattern. Crashed the map page on first mount because vis.gl re-instantiates the underlying element on every parent render, so the `prev[key] === marker` guard never held → 528 state updates → React error boundary triggered → `Something went wrong` shown.
+- **v2**: rewrote with raw `google.maps.marker.AdvancedMarkerElement` + `PinElement` in a single `useEffect`. Skipped vis.gl's JSX `<AdvancedMarker>` entirely; effect owns the whole lifecycle. **Deployed and shipped zero pins** because removing the vis.gl JSX also removed the auto-load trigger for `google.maps.marker.*` — my defensive guard silently no-op'd the whole effect.
+- **v2.1** (LIVE): added `useMapsLibrary("marker")` from vis.gl to explicitly trigger the library load, gated the effect on `markerLib` being non-null, use `markerLib.PinElement` / `markerLib.AdvancedMarkerElement` from the returned namespace object.
+
+**Live behaviour**: at country zoom, 528 pins collapse into ~10-20 navy circles with counts scaled by `sqrt(count)`. Clicking a cluster zooms in and expands. Individual pins retain their filter colours; only cluster bubbles are uniformly navy (site-brand `#2563eb`).
+
+Two lessons added to `docs/lessons.md`: (a) don't pair `<AdvancedMarker>` + ref-callback-into-state with clusterer, (b) when swapping vis.gl JSX for raw Maps API calls, always audit which libraries were being auto-loaded by the JSX you removed and replace each with `useMapsLibrary` — silent-empty bugs are worse than crashes.
+
+### Map InfoWindow mobile responsiveness + search placeholder (1 commit)
+
+Two mobile-viewport fixes:
+1. **InfoWindow horizontal-scroll bug** on 320-375px viewports. Inner div was `width: 280` — combined with Google InfoWindow's own chrome + close button it overflowed. Now `width: min(280px, calc(100vw - 80px))` keeps the desktop layout unchanged and shrinks on narrow viewports. Added `maxWidth={320}` on the InfoWindow itself as belt-and-braces.
+2. **Search placeholder** simplified from "Search schools or constituencies..." to "Search schools..." across en/ms/ta. Owner doesn't want constituency search surfaced yet even though the backend + SearchBox still return constituency results (placeholder is UX-only).
+
+### Alias-driven search + name_tamil + variant map (1 commit)
+
+Public `/api/v1/search/` was querying `School.name/short_name/moe_code` via raw `icontains`, ignoring the 1500+ `SchoolAlias` rows already generated for Hansard + news matching. Users typing `"Sri Alam"` didn't find `"Seri Alam"`; typing `"Bahagian 4"` didn't find `"Bhg 4"`; typing Tamil script found nothing at all.
+
+**SearchView rewritten** with ranked buckets:
+1. `moe_code` direct match (highest confidence — an exact code lookup lands the target at position 1)
+2. Strong alias match (`OFFICIAL` / `SHORT` — canonical MOE names)
+3. Direct `name` / `short_name` match (belt-and-braces if aliases stale)
+4. `name_tamil` match (Tamil-script users — the only path that hits this field)
+5. Weak alias match (`COMMON` / `MALAY` / `HANSARD` variants)
+
+Cap 10 results total, dedupe across buckets, `moe_code` sort within a bucket for determinism.
+
+**Alias generator extended** with 8 common Malay abbreviation ↔ full-form pairs (`Sri`/`Seri`, `Bkt`/`Bukit`, `Tmn`/`Taman`, `Jln`/`Jalan`, `Kg`/`Kampung`, `Sg`/`Sungai`, `St`/`Saint`, `Ldg`/`Ladang`). Every school with one of these tokens now emits the swapped variant as a `COMMON` alias. Sprint 27's hand-migration for Sri/Seri (only 2 schools) becomes belt-and-braces — the generator now covers all 528 systematically.
+
+**Post-deploy re-seed** ran on prod via `gcloud run jobs execute sjktconnect-check-hansards --args=python --args=manage.py --args=seed_aliases`:
+```
+Generating aliases for 528 schools...
+Done! 597 aliases created, 3050 already existed.
+Total aliases in DB: 4182
+```
+
+**Live verified**: `?q=Sri+Alam` returns `JBD1029 SJK(T) Bandar Seri Alam`; `?q=Sungai+Muar` returns `JBD7068 SJK(T) Ladang Sg Muar`; `?q=Bahagian+4` returns `NBD4079 SJK(T) Ladang Labu Bhg 4`.
+
+**Backlog (Part B)**: after ~1 week of live search traffic, add a `SearchLog` model to identify zero-result queries → owner adds targeted aliases for real user pain. Deferred until we see actual patterns.
+
+### Numbers
+
+- **Commits**: 14
+- **Deploys**: 3 api (`00160-mlv`, `00160`, `00161-wx2`), 6 web revisions (`00183` → `00191-mhb`)
+- **Tests**: 1519 → 1528 backend (+9 from resume-sending guard + search-alias tests) + 366 frontend (unchanged)
+- **Prod aliases table**: 3050 → 4182 (+597 fresh variant rows)
+- **Zero-string sweeps**: no `"Tamil Foundation Malaysia"`, no `"MCEF"`, no `"organisasi"` (Malay), no authored `மற்றும்` (Tamil), no `கலாச்சாரம்` (Tamil About page) remain.
+
+Retro at `docs/retrospective-sprint36.md`.
+
 ## 2026-07-05 — Sprint 35 monthly-blast quality overhaul
 
 Post-audit polish sweep on the monthly blast — the audit surfaced no defect here, but the June 2026 blast landed in owner's Gmail with three real reader problems: (a) headline clipped horizontally on Android Gmail, (b) same story repeated across Executive Summary / Emerging Signals / Fading From View / opportunity list before the reader ever reached the news card, (c) analytical top-story didn't match the story pinned at position #1 in the news section. Then a design pass to align with the site palette + hero button style, and two link-quality fixes.
