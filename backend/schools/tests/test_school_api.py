@@ -315,6 +315,93 @@ class SearchAPITest(TestCase):
         assert resp.status_code == 400
 
 
+class SearchAliasTest(TestCase):
+    """Search now queries SchoolAlias so a name spelt in a community-common
+    form (Sri/Seri, Bkt/Bukit, Sungai/Sg) finds the school even when the
+    MOE canonical short_name uses the other form. Also covers Tamil-script
+    search via School.name_tamil."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from hansard.models import SchoolAlias
+        from hansard.management.commands.seed_aliases import (
+            generate_aliases_for_school,
+        )
+
+        cls.constituency = Constituency.objects.create(
+            code="P140", name="Segamat", state="Johor",
+        )
+        # Seri Alam (MOE canonical spelling with "Seri")
+        cls.seri = School.objects.create(
+            moe_code="JBD1029",
+            name="SJK(T) BANDAR SERI ALAM",
+            short_name="SJK(T) Bandar Seri Alam",
+            state="Johor",
+            constituency=cls.constituency,
+        )
+        # Sg Muar (MOE canonical spelling with abbreviated "Sg")
+        cls.sg_muar = School.objects.create(
+            moe_code="JBD7068",
+            name="SJK(T) LADANG SG MUAR",
+            short_name="SJK(T) Ladang Sg Muar",
+            state="Johor",
+            constituency=cls.constituency,
+        )
+        # School with Tamil name populated
+        cls.tamil_school = School.objects.create(
+            moe_code="JBD9999",
+            name="SJK(T) TEST TAMIL",
+            short_name="SJK(T) Test Tamil",
+            name_tamil="தமிழ்ச் சோதனை பள்ளி",
+            state="Johor",
+            constituency=cls.constituency,
+        )
+
+        # Seed aliases for the three test schools -- exercises the
+        # extended variant map (Sri↔Seri, Sungai↔Sg).
+        for school in (cls.seri, cls.sg_muar, cls.tamil_school):
+            for alias_dict in generate_aliases_for_school(school):
+                SchoolAlias.objects.create(school=school, **alias_dict)
+
+    def test_search_finds_via_sri_seri_variant(self):
+        """Searching 'Sri Alam' should surface the school whose MOE name
+        uses 'Seri Alam' -- via the Sri↔Seri alias-generator bridge."""
+        resp = self.client.get("/api/v1/search/?q=Sri Alam")
+        assert resp.status_code == 200
+        codes = [s["moe_code"] for s in resp.json()["schools"]]
+        assert "JBD1029" in codes
+
+    def test_search_finds_via_sungai_sg_variant(self):
+        """Searching 'Sungai Muar' should find the MOE-canonical 'Sg Muar'."""
+        resp = self.client.get("/api/v1/search/?q=Sungai Muar")
+        assert resp.status_code == 200
+        codes = [s["moe_code"] for s in resp.json()["schools"]]
+        assert "JBD7068" in codes
+
+    def test_search_finds_via_tamil_script(self):
+        """Tamil-script queries reach through School.name_tamil directly."""
+        resp = self.client.get("/api/v1/search/?q=சோதனை")
+        assert resp.status_code == 200
+        codes = [s["moe_code"] for s in resp.json()["schools"]]
+        assert "JBD9999" in codes
+
+    def test_search_canonical_name_still_works(self):
+        """Regression: the pre-alias direct-name search behaviour must
+        still hit -- searching 'Seri Alam' (canonical) still finds the
+        Seri Alam school."""
+        resp = self.client.get("/api/v1/search/?q=Seri Alam")
+        assert resp.status_code == 200
+        codes = [s["moe_code"] for s in resp.json()["schools"]]
+        assert "JBD1029" in codes
+
+    def test_search_moe_code_ranked_first(self):
+        """A moe_code match ranks above name-alias matches so an exact
+        code lookup lands the target school in position 1."""
+        resp = self.client.get("/api/v1/search/?q=JBD7068")
+        codes = [s["moe_code"] for s in resp.json()["schools"]]
+        assert codes[0] == "JBD7068"
+
+
 class SchoolListImageN1RegressionTest(TestCase):
     """Audit 2026-07-01 fix: ensure the primary-image lookup uses the
     Prefetch cache. Before the fix, SchoolListSerializer.get_image_url

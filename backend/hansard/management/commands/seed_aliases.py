@@ -154,6 +154,35 @@ def generate_aliases_for_school(school: School) -> list[dict]:
             )
             add(variant, SchoolAlias.AliasType.COMMON)
 
+    # 9. Common Malay abbreviation ↔ full-form bridge. Journalists, news
+    # cards, community writeups, and search-box users routinely swap
+    # abbreviated ↔ spelled-out forms of common place-name particles. MOE's
+    # canonical short_name uses one form; the wild spelling is often the
+    # other. Without alias coverage, a user searching "Sungai Muar" won't
+    # find "SJK(T) Ladang Sg Muar", and "Sri Alam" won't find "Seri Alam".
+    #
+    # For each variant pair, if the current base_text contains one form on
+    # a word boundary, emit the swapped variant. Applied to short_name +
+    # prefix-stripped short_name; the base MOE `name` field is ALL CAPS
+    # and doesn't benefit from this transformation.
+    _VARIANT_PAIRS = [
+        ("Sri", "Seri"),      # Sanskrit ↔ Malay spelling of the honorific
+        ("Bkt", "Bukit"),     # abbreviated ↔ full: hill
+        ("Tmn", "Taman"),     # abbreviated ↔ full: garden / township
+        ("Jln", "Jalan"),     # abbreviated ↔ full: road
+        ("Kg", "Kampung"),    # abbreviated ↔ full: village
+        ("Sg", "Sungai"),     # abbreviated ↔ full: river
+        ("St", "Saint"),      # anglicised ↔ full: saint (mission schools)
+        ("Ldg", "Ladang"),    # abbreviated ↔ full: estate / plantation
+    ]
+    for base in list(candidates):
+        for canonical, full in _VARIANT_PAIRS:
+            for a, b in [(canonical, full), (full, canonical)]:
+                pattern = re.compile(rf"\b{re.escape(a)}\b", re.IGNORECASE)
+                if pattern.search(base):
+                    variant = pattern.sub(b, base)
+                    add(variant, SchoolAlias.AliasType.COMMON)
+
     return aliases
 
 

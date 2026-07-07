@@ -61,6 +61,8 @@ from schools.api.serializers import (
     SchoolMapSerializer,
 )
 from schools.models import Constituency, DUN, School, SchoolLeader, SchoolEnrolmentSnapshot
+from hansard.models import SchoolAlias
+from hansard.management.commands.seed_aliases import normalize_alias
 from outreach.models import SchoolImage
 
 
@@ -426,28 +428,96 @@ class SearchView(APIView):
         if len(q) < 2:
             return Response({"error": "Query must be at least 2 characters"}, status=400)
 
-        # Normalise query: "SJKT" -> also search "SJK(T)" and vice versa
-        q_normalised = re.sub(r"[()]", "", q)  # strip parentheses
-        school_q = (
-            Q(name__icontains=q) | Q(short_name__icontains=q) | Q(moe_code__icontains=q)
-        )
-        if q_normalised != q:
-            school_q |= Q(name__icontains=q_normalised) | Q(short_name__icontains=q_normalised)
-        elif "sjkt" in q.lower():
-            # "SJKT" should also match "SJK(T)"
-            q_with_parens = q.lower().replace("sjkt", "SJK(T)")
-            school_q |= Q(name__icontains=q_with_parens) | Q(short_name__icontains=q_with_parens)
+        # Normalise for alias lookup (matches how aliases are stored:
+        # lowercased, whitespace collapsed). Direct-column matches use the raw
+        # `q` because ILIKE is case-insensitive anyway.
+        q_norm = normalize_alias(q)
 
-        schools = School.objects.filter(
-            school_q, is_active=True,
-        ).select_related("constituency")[:10]
+        # ── 1. moe_code direct match (highest confidence). ─────────────
+        moe_code_hits = set(
+            School.objects.filter(
+                moe_code__icontains=q, is_active=True,
+            ).values_list("moe_code", flat=True)
+        )
+
+        # ── 1b. Direct name / short_name match. Belt-and-braces so search
+        # keeps working if the alias table is stale or a school was created
+        # without the seed_aliases pass being re-run. Same substring
+        # semantics as before this refactor. ─────────────────────────────
+        direct_name_hits = set(
+            School.objects.filter(
+                Q(name__icontains=q) | Q(short_name__icontains=q),
+                is_active=True,
+            ).values_list("moe_code", flat=True)
+        )
+
+        # ── 2. Alias table match. Covers OFFICIAL / SHORT / MALAY /
+        # COMMON / HANSARD variants for every school -- 1500+ rows generated
+        # by seed_aliases plus the hand-curated spelling migrations
+        # (Sri/Seri, Kathumba, Jawa Lane, KKB, etc.). Rank OFFICIAL / SHORT
+        # (canonical MOE names) higher than the community/matcher variants
+        # so "Ladang Bikam" surfaces before an obscure Hansard-only spelling
+        # of another school that happens to contain "Bikam". ─────────────
+        alias_rows = list(
+            SchoolAlias.objects.filter(
+                alias_normalized__icontains=q_norm, school__is_active=True,
+            ).values("school_id", "alias_type")
+        )
+        strong_types = {
+            SchoolAlias.AliasType.OFFICIAL,
+            SchoolAlias.AliasType.SHORT,
+        }
+        strong_alias_ids = {
+            r["school_id"] for r in alias_rows if r["alias_type"] in strong_types
+        }
+        weak_alias_ids = {
+            r["school_id"] for r in alias_rows if r["alias_type"] not in strong_types
+        }
+
+        # ── 3. name_tamil direct match. Tamil-script queries (e.g. Tamil-
+        # speaking users) can't reach through the Latin-only alias table --
+        # this direct path is the only surface that hits School.name_tamil. ─
+        tamil_hits = set(
+            School.objects.filter(
+                name_tamil__icontains=q, is_active=True,
+            ).exclude(name_tamil="").values_list("moe_code", flat=True)
+        )
+
+        # ── Rank + dedupe. moe_code > canonical-alias > direct-name >
+        # tamil > community-alias. Within a bucket, sort by moe_code for
+        # deterministic ordering (so paginated tests can rely on a stable
+        # result set). ────────────────────────────────────────────────
+        ranked: list[str] = []
+        seen: set[str] = set()
+        for bucket in (
+            moe_code_hits,
+            strong_alias_ids,
+            direct_name_hits,
+            tamil_hits,
+            weak_alias_ids,
+        ):
+            for pk in sorted(bucket):
+                if pk in seen or len(ranked) >= 10:
+                    continue
+                seen.add(pk)
+                ranked.append(pk)
+            if len(ranked) >= 10:
+                break
+
+        schools_by_pk = {
+            s.moe_code: s
+            for s in School.objects.filter(
+                moe_code__in=ranked, is_active=True,
+            ).select_related("constituency")
+        }
+        schools_ordered = [schools_by_pk[m] for m in ranked if m in schools_by_pk]
 
         constituencies = Constituency.objects.filter(
             Q(name__icontains=q) | Q(code__icontains=q) | Q(mp_name__icontains=q)
         )[:10]
 
         return Response({
-            "schools": SchoolListSerializer(schools, many=True).data,
+            "schools": SchoolListSerializer(schools_ordered, many=True).data,
             "constituencies": ConstituencyListSerializer(
                 constituencies.annotate(
                     school_count=Count("schools", filter=Q(schools__is_active=True))
