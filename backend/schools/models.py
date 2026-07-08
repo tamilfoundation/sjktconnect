@@ -211,6 +211,14 @@ class SchoolLeader(models.Model):
     phone = models.CharField(max_length=30, blank=True, default="")
     email = models.EmailField(blank=True, default="")
     is_active = models.BooleanField(default=True)
+    data_source = models.CharField(
+        max_length=50, blank=True, default="",
+        help_text="Origin of this record (e.g., TF_2018 for Tamil Foundation 2018)",
+    )
+    data_source_date = models.DateField(
+        null=True, blank=True,
+        help_text="When this data was collected",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

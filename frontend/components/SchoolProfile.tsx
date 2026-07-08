@@ -85,15 +85,22 @@ export default function SchoolProfile({ school }: SchoolProfileProps) {
         </div>
         <div className="p-6">
           {school.leaders && school.leaders.length > 0 ? (
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
-              {school.leaders.map((leader) => (
-                <LeaderRow
-                  key={leader.role}
-                  role={leader.role_display}
-                  name={leader.name}
-                />
-              ))}
-            </dl>
+            <>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                {school.leaders.map((leader) => (
+                  <LeaderRow
+                    key={leader.role}
+                    role={leader.role_display}
+                    name={leader.name}
+                  />
+                ))}
+              </dl>
+              {school.leaders.some((l) => l.data_source) && (
+                <div style={{ fontSize: "12px", color: "#999", marginTop: "12px", borderTop: "1px solid #eee", paddingTop: "8px" }}>
+                  Data source: {school.leaders[0].data_source === "TF_2018" ? "Tamil Foundation, 2018" : school.leaders[0].data_source}
+                </div>
+              )}
+            </>
           ) : (
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
               <LeaderRow role={t("headmaster")} name={t("notAvailable")} />

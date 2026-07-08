@@ -161,13 +161,16 @@ class SchoolImageSerializer(serializers.Serializer):
 
 
 class SchoolLeaderSerializer(serializers.ModelSerializer):
-    """Public leader info — name and role only. Phone/email are private."""
+    """Public leader info — name and role only. Phone/email are private.
+
+    Includes data_source and data_source_date for attribution (e.g., "Tamil Foundation, 2018").
+    """
 
     role_display = serializers.CharField(source="get_role_display", read_only=True)
 
     class Meta:
         model = SchoolLeader
-        fields = ["role", "role_display", "name"]
+        fields = ["role", "role_display", "name", "data_source", "data_source_date"]
 
 
 class SchoolLeaderAdminSerializer(serializers.ModelSerializer):

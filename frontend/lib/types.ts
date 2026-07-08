@@ -36,6 +36,8 @@ export interface SchoolLeader {
   role: string;
   role_display: string;
   name: string;
+  data_source?: string;
+  data_source_date?: string | null;
 }
 
 export interface SchoolDetail extends School {
