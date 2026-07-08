@@ -97,7 +97,6 @@ class Command(BaseCommand):
 
         # Prepare email subject and body
         subject = "Introducing SJK(T) Connect - Tamil School Intelligence"
-        html_message = render_to_string('broadcasts/welcome_governance_2018.html', {})
 
         # Get Brevo API key
         api_key = os.environ.get("BREVO_API_KEY")
@@ -109,6 +108,12 @@ class Command(BaseCommand):
 
         try:
             for subscriber in subscribers:
+                # Render template with subscriber's name
+                html_message = render_to_string(
+                    'broadcasts/welcome_governance_2018.html',
+                    {"name": subscriber.name or ""}
+                )
+
                 # Build Brevo API request
                 payload = {
                     "sender": {"name": SENDER_NAME, "email": SENDER_EMAIL},
