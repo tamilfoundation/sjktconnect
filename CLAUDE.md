@@ -274,6 +274,8 @@ gcloud run jobs execute sjktconnect-check-hansards --region asia-southeast1
 
 ## Next Sprint
 
+**TF 2018 Governance Data Integration ✅ closed 2026-07-09 — One-day unplanned task.** Imported Tamil Foundation 2018 legacy governance records (1,149 school leadership records + 537 newsletter subscribers) with personalized welcome email campaign. Backend: non-destructive import (website data precedence), Brevo API direct (no SMTP), `get_or_create` race-condition handling. Frontend: data-source attribution footer on school profile. Shipped batch 1 (250 emails, 2m36s). Batch 2 (250) + Batch 3 (37) queued for 2026-07-10+. Technical decisions logged in CHANGELOG. See `memory/tf_2018_governance_import.md` for resumption guide.
+
 **Sprint 36 ✅ closed 2026-07-07 — Site-quality omnibus: canonical names + map cluster + alias-driven search.** 14 commits across 2 days, 3 api + 6 web deploys. Three unrelated threads bundled: (a) Tamil Foundation canonical-name rename across emails + About/Privacy/Terms in en/ms/ta, MCEF purged, owner-set Tamil + Malay style rules applied; (b) map clustering finally wired (dep since Sprint 1.3, never enabled) via raw `AdvancedMarkerElement` + `PinElement` + `useMapsLibrary("marker")` after two failed attempts; (c) SearchView rewritten to query the `SchoolAlias` table with ranked buckets, alias generator extended with 8 Malay abbrev pairs → prod re-seed added 597 fresh variant rows (3050 → 4182 total). +11 tests → 1519 backend. Retro at `docs/retrospective-sprint36.md`.
 
 ### Post-Sprint-36 backlog

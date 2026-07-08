@@ -1,5 +1,46 @@
 # Changelog
 
+## 2026-07-09 — Tamil Foundation 2018 governance data integration
+
+One-day task: integrated legacy governance records (Tamil Foundation 2018) into school leadership sections and newsletter subscriber list. Shipped 250 governance leader welcome emails with personalized greetings.
+
+### School Leadership — 1,149 records from 4 governance datasets
+
+Imported headmaster, board chair, PTA chair, and alumni chair records from Tamil Foundation 2018 datasets. Non-destructive import: website data takes absolute precedence; legacy records only fill empty role slots. All records attributed to "Tamil Foundation, 2018" for auditability.
+
+- **Backend:** New management command `import_legacy_school_leaders.py` with dry-run + pilot modes
+- **Schema:** Added `data_source` and `data_source_date` fields to SchoolLeader model
+- **Frontend:** Attribution footer "Data source: Tamil Foundation, 2018" displays on school profile when leadership data originates from legacy import
+- **Data normalization:** Phone numbers standardized to `+60-12 553 7375` format; names to Title Case with proper titles (Mr., Dr., Dato', etc.)
+- **Result:** 526 schools matched by MOE code; 1,149 records created; 3 schools skipped (no legacy data); 23 records skipped (existing website data preserved)
+
+### Newsletter — 537 new governance leader subscribers
+
+Extracted unique emails from 4 governance role datasets. Deduplication logic handles individuals with multiple roles (e.g., Headmaster + Board Chair). Subscribers tagged with role abbreviations (HM, BC, PTA, AC) for segmentation.
+
+- **Backend:** New management command `import_legacy_newsletter.py` with dedup + race-condition handling
+- **Model:** Subscriber records marked `source="BULK_IMPORT"`, `source_tag="TF_2018_HM_BC"` etc. (role-based)
+- **Opt-in:** Silent opt-in for governance leaders (no confirmation email; respects existing preferences)
+- **Result:** 565 unique emails extracted; 508 already subscribed; 537 new records created via `get_or_create()`
+
+### Welcome Email Campaign — Batch 1 (250 of 287)
+
+Shipped personalized governance leader welcome emails via Brevo transactional API.
+
+- **Template:** `welcome_governance_2018.html` with personalized greeting ("Dear {{ name }}")
+- **Content:** Explains opt-in context (Tamil Foundation events, National School Board Conference); outlines SJK(T) Connect value (News Watch, Urgent Alerts, Monthly Blast, Parliamentary Mentions); includes unsubscribe link
+- **Send mechanism:** New management command `send_governance_welcome_email.py` using Brevo API directly (avoids SMTP config issues)
+- **Batch control:** `--limit 250` flag respects Brevo free tier (300/day quota)
+- **Execution:** Cloud Run job completed successfully in 2m36s; no errors
+- **Status:** 250 emails sent; 287 remaining for batches 2–3
+
+### Technical decisions
+
+1. **Brevo API over Django mail backend:** Direct API avoids SMTP dependency; works in any environment (local dev, Cloud Run)
+2. **Personalized greetings:** Template uses subscriber name (fallback to "School Leader" if empty) for personal touch
+3. **Role abbreviations:** Source tag uses HM/BC/PTA/AC to fit 50-char Subscriber.source_tag field limit
+4. **Non-destructive import:** Legacy data never overwrites website data; conditional `create()` logic only fills empty slots
+
 ## 2026-07-07 — Sprint 36 site-quality omnibus: canonical names + map cluster + alias-driven search
 
 Two-day polish sprint (14 commits, api `00159` → `00161-wx2`, web `00182` → `00191-mhb`) covering three unrelated owner-flagged threads that all mattered but none warranted a standalone sprint:

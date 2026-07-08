@@ -909,3 +909,33 @@
 **Trade-offs:** Will need to do the 5.2 → 6.0 jump eventually. Carrying a minor LTS upgrade burden vs. carrying a major upgrade burden — same total work, just deferred. Acceptable.
 
 **Revisit if:** Django 5.2 LTS announces EOL <12 months away, OR a Django 6+ feature becomes load-bearing for a new sprint.
+
+## Brevo Direct API over Django Mail Backend for Governance Emails — TF 2018 Data, 2026-07-09
+
+**Decision:** Use Brevo transactional email API directly instead of Django's mail backend (SMTP) for the governance leader welcome campaign.
+
+**Alternatives considered:**
+1. **Django EmailMultiAlternatives + SMTP (traditional)** — familiar pattern, built-in. Requires SMTP server running locally and configured on Cloud Run.
+2. **Django with Email Template Backend** — same SMTP dependency, no new code path.
+3. **Brevo API direct (chosen)** — avoid SMTP config; works in any environment (local dev, Cloud Run).
+
+**Rationale:** Earlier attempts to send via Django mail encountered two problems: (a) local dev lacks SMTP, requiring workarounds for testing; (b) Cloud Run job failures due to missing BREVO_WEBHOOK_SECRET (production settings require it even when not sending emails). Brevo API direct sidesteps both — no SMTP needed, simpler env var footprint for jobs, more reliable for transactional sends.
+
+**Trade-offs:** Direct API adds external dependency (`requests` library already in use for other APIs). Must handle Brevo-specific HTTP status codes (429 for quota, 400 for invalid email format, etc.). Slightly more code vs. Django's abstraction.
+
+**Revisit if:** We add a separate, simpler email service that doesn't require Brevo API key (e.g. system notifications to admins via AWS SES), or if Brevo API becomes a bottleneck.
+
+## Non-Destructive Governance Data Import — TF 2018 Data, 2026-07-09
+
+**Decision:** Legacy governance records only fill empty role slots. Website data takes absolute precedence; never overwrite existing school leadership info.
+
+**Alternatives considered:**
+1. **Full import with overwrite flag** — bulk replace old data with fresh 2018 data. Simpler merge logic.
+2. **Conditional merge (chosen)** — for each school/role, only create a SchoolLeader record if one doesn't already exist.
+3. **Separate versioning table** — track both website + legacy data in parallel with edit history. Over-engineered for this one-time import.
+
+**Rationale:** Schools may have already claimed their profile and entered current admin info via the website. Overwriting would discard that work. Non-destructive import respects school autonomy while backfilling gaps from legacy data. Per user requirement: "website data > legacy data".
+
+**Trade-offs:** Some schools with outdated admin records in the website won't get 2018 updates (they're stuck with old data). Accepted per user — schools can always edit their profile to update to current staff.
+
+**Revisit if:** A future batch import needs to selectively refresh certain fields (e.g. phone numbers) while preserving name/role; then a "merge with updated_at precedence" strategy might apply instead of "all-or-nothing create".
