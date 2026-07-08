@@ -1,20 +1,24 @@
 """
 Django management command: Send welcome emails to governance leader subscribers
 
-Sends welcome email to TF_2018 governance leader subscribers who haven't
-yet received it.
+Sends welcome email to TF_2018 governance leader subscribers via Brevo API.
 
 Usage:
   python manage.py send_governance_welcome_email --dry-run
   python manage.py send_governance_welcome_email --limit 300
 """
 
+import os
+import requests
 from django.core.management.base import BaseCommand
-from django.core.mail import send_mass_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 
 from subscribers.models import Subscriber
+
+BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
+SENDER_EMAIL = "noreply@tamilschool.org"
+SENDER_NAME = "SJK(T) Connect"
 
 
 class Command(BaseCommand):
@@ -86,39 +90,64 @@ class Command(BaseCommand):
         self.stdout.write("To send, run without --dry-run flag")
 
     def _send_emails(self, subscribers, total_count):
-        """Actually send the welcome emails."""
+        """Actually send the welcome emails via Brevo API."""
         self.stdout.write("\n" + "=" * 100)
         self.stdout.write("SENDING EMAILS")
         self.stdout.write("=" * 100)
 
         # Prepare email subject and body
         subject = "Introducing SJK(T) Connect - Tamil School Intelligence"
-
-        # Render template
         html_message = render_to_string('broadcasts/welcome_governance_2018.html', {})
 
-        # Send emails using EmailMultiAlternatives
+        # Get Brevo API key
+        api_key = os.environ.get("BREVO_API_KEY")
+        if not api_key:
+            raise ValueError("BREVO_API_KEY environment variable is required")
+
         sent_count = 0
+        failed_count = 0
+
         try:
             for subscriber in subscribers:
-                msg = EmailMultiAlternatives(
-                    subject,
-                    "",  # Plain text version (empty, using HTML)
-                    settings.DEFAULT_FROM_EMAIL,
-                    [subscriber.email]
-                )
-                msg.attach_alternative(html_message, "text/html")
-                msg.send(fail_silently=False)
-                sent_count += 1
+                # Build Brevo API request
+                payload = {
+                    "sender": {"name": SENDER_NAME, "email": SENDER_EMAIL},
+                    "to": [{"email": subscriber.email, "name": subscriber.name or ""}],
+                    "subject": subject,
+                    "htmlContent": html_message,
+                }
 
-                if sent_count % 100 == 0:
-                    self.stdout.write(f"  Sent {sent_count} emails...")
+                headers = {
+                    "api-key": api_key,
+                    "Content-Type": "application/json",
+                }
+
+                # Send via Brevo
+                response = requests.post(
+                    BREVO_API_URL,
+                    json=payload,
+                    headers=headers,
+                    timeout=10
+                )
+
+                if response.status_code in (200, 201):
+                    sent_count += 1
+                    if sent_count % 50 == 0:
+                        self.stdout.write(f"  Sent {sent_count} emails...")
+                else:
+                    failed_count += 1
+                    self.stdout.write(
+                        f"  WARNING: Failed to send to {subscriber.email} "
+                        f"(status {response.status_code})"
+                    )
 
             self.stdout.write("\n" + "=" * 100)
-            self.stdout.write("EMAILS SENT SUCCESSFULLY")
+            self.stdout.write("EMAILS SENT")
             self.stdout.write("=" * 100)
             self.stdout.write(f"\nEmails sent: {sent_count}")
-            self.stdout.write(f"Total remaining to send: {total_count - sent_count}")
+            if failed_count > 0:
+                self.stdout.write(f"Failed: {failed_count}")
+            self.stdout.write(f"Total remaining: {total_count - sent_count}")
             self.stdout.write(f"Subject: {subject}")
 
         except Exception as e:
