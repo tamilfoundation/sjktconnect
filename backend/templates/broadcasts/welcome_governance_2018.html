@@ -27,7 +27,7 @@
         <div class="content">
             <p>Dear {% if name %}{{ name }}{% else %}School Leader{% endif %},</p>
 
-            <p>You are receiving this email because you would have participated in Tamil Foundation events — including the National School Board Conference — and have been a school leader as a Headmaster, Board Chairman, PTA Chairman, or Alumni Association Chairman. If your involvement with Tamil schools has changed, or you prefer not to receive these emails, you can unsubscribe or update your preferences at any time.</p>
+            <p>You are receiving this email because you were/are a school leader{% if school_name %} at {{ school_name }}{% endif %}{% if primary_governance_role %} as a {{ primary_governance_role }}{% endif %} and would have participated in Tamil Foundation events — including the National School Board Conference. If your involvement with Tamil schools has changed, or you prefer not to receive these emails, you can unsubscribe or update your preferences at any time.</p>
 
             <h2>We are excited to share SJK(T) Connect</h2>
 
@@ -63,11 +63,6 @@
 
             <p>Best regards,<br>
             <strong>The SJK(T) Connect Team</strong></p>
-
-            <div class="footer">
-                <p>Data source: Tamil Foundation, 2018</p>
-                <p>This email was sent to you because you are a school leader in Malaysia's Tamil school network.</p>
-            </div>
         </div>
     </div>
 </body>

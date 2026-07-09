@@ -56,10 +56,42 @@ def is_valid_email(email):
 
 
 def normalize_name(name_str):
-    """Normalize name to Title Case."""
+    """Convert name to Title Case with proper title formatting (Mr., Ms., Dr., etc.)."""
     if not name_str:
         return ""
-    return str(name_str).strip().title()
+
+    name_str = str(name_str).strip()
+
+    # Common titles to handle
+    titles = [
+        'datuk', 'dato', 'datin', 'sir', 'madam', 'professor', 'prof',
+        'dr', 'mr', 'ms', 'mrs', 'mdm', 'miss', 'en', 'puan',
+    ]
+
+    # Split into words
+    words = name_str.split()
+    if not words:
+        return ""
+
+    # Check if first word is a title
+    first_lower = words[0].lower().rstrip('.')
+
+    if first_lower in titles:
+        title = words[0].lower()
+        # Add period if not present
+        if not title.endswith('.'):
+            title = title + '.'
+        # Title case the title
+        title = title[0].upper() + title[1:]
+
+        # Title case the rest of the name
+        rest = ' '.join(words[1:])
+        rest_titlecase = rest.title()
+
+        return f"{title} {rest_titlecase}"
+    else:
+        # No title, just title case everything
+        return name_str.title()
 
 
 class Command(BaseCommand):
@@ -82,15 +114,20 @@ class Command(BaseCommand):
         )
         self.stdout.write("=" * 100)
 
+        # Load schools lookup (MOE code -> school name)
+        self.stdout.write("\nLoading schools dataset for names...")
+        schools_lookup = self._load_schools_lookup()
+        self.stdout.write(f"  Found {len(schools_lookup)} schools in legacy data")
+
         # Load all 4 datasets
         self.stdout.write("\nLoading governance datasets...")
-        all_records = {}  # email -> {name, roles, org}
+        all_records = {}  # email -> {name, roles, org, school_name, primary_role}
 
         for role_key, (filename, sheet_name, role_display, role_abbr) in ROLE_MAPPING.items():
             self.stdout.write(f"  Loading {role_display}...")
-            records = self._load_dataset(filename, sheet_name)
+            records = self._load_dataset(filename, sheet_name, schools_lookup)
 
-            for name, email in records:
+            for name, email, school_name in records:
                 if not is_valid_email(email):
                     continue
 
@@ -99,6 +136,8 @@ class Command(BaseCommand):
                     all_records[email_lower] = {
                         'name': name,
                         'email': email,
+                        'school_name': school_name,  # Primary (first) school
+                        'primary_role': role_display,  # Primary (first) role
                         'roles': [],
                         'role_abbrs': [],
                     }
@@ -127,8 +166,40 @@ class Command(BaseCommand):
         else:
             self._commit_import(new_subscribers)
 
-    def _load_dataset(self, filename, sheet_name):
-        """Load staff dataset and extract name + email pairs."""
+    def _load_schools_lookup(self):
+        """Load schools dataset to map staff name -> school name."""
+        filepath = LEGACY_DATA_PATH / "பள்ளிகள் - Last view used.xlsx"
+        if not filepath.exists():
+            raise CommandError(f"File not found: {filepath}")
+
+        wb = openpyxl.load_workbook(filepath, data_only=True)
+        ws = wb["பள்ளிகள்"]
+
+        # Build name -> school_name lookup (staff name -> list of schools)
+        lookup = {}  # {staff_name: school_name}  (primary school only)
+
+        # Columns for different roles: 35=HM, 39=BC, 36=PTA, 37=Alumni
+        ROLE_COLUMNS = [35, 36, 37, 39]
+
+        for row_idx in range(2, ws.max_row + 1):
+            school_name = ws.cell(row_idx, 4).value  # Column 4 = School name
+
+            if not school_name:
+                continue
+
+            # Check each role column for a staff name
+            for col_idx in ROLE_COLUMNS:
+                staff_name = ws.cell(row_idx, col_idx).value
+                if staff_name:
+                    # Map staff name to school (only track first/primary school)
+                    if staff_name not in lookup:
+                        lookup[staff_name] = school_name
+
+        wb.close()
+        return lookup
+
+    def _load_dataset(self, filename, sheet_name, schools_lookup):
+        """Load staff dataset and extract name + email + school name triplets."""
         filepath = LEGACY_DATA_PATH / filename
         if not filepath.exists():
             raise CommandError(f"File not found: {filepath}")
@@ -146,8 +217,11 @@ class Command(BaseCommand):
             # Pick first available email
             email = email_work or email_home or email_other
 
+            # Get school name by looking up staff name in schools
+            school_name = schools_lookup.get(name, "")
+
             if name and email:
-                records.append((name, email))
+                records.append((name, email, school_name))
 
         wb.close()
         return records
@@ -166,10 +240,14 @@ class Command(BaseCommand):
         self.stdout.write("\nSample of new subscribers (first 10):")
         for i, (email, data) in enumerate(list(new_subscribers.items())[:10], 1):
             roles_str = " + ".join(data['roles'])
+            primary_role = data.get('primary_role', '(unknown)')
             source_tag = f"TF_2018_{('_').join(data.get('role_abbrs', []))}"
-            self.stdout.write(f"\n  {i}. {data['name']}")
+            normalized_name = normalize_name(data['name'])
+            self.stdout.write(f"\n  {i}. {normalized_name}")
             self.stdout.write(f"     Email: {email}")
-            self.stdout.write(f"     Roles: {roles_str}")
+            self.stdout.write(f"     School: {data.get('school_name', '(unknown)')}")
+            self.stdout.write(f"     Primary role: {primary_role}")
+            self.stdout.write(f"     All roles: {roles_str}")
             self.stdout.write(f"     Source tag: {source_tag}")
 
         # Summary
@@ -203,6 +281,8 @@ class Command(BaseCommand):
                 defaults={
                     'name': normalize_name(data['name']),
                     'organisation': "",  # Not available in legacy data
+                    'school_name': data.get('school_name', ""),
+                    'primary_governance_role': data.get('primary_role', ""),
                     'source': "BULK_IMPORT",
                     'source_tag': source_tag,
                     'is_active': True,

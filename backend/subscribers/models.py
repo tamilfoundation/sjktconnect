@@ -15,6 +15,14 @@ class Subscriber(models.Model):
     email = models.EmailField(unique=True, db_index=True)
     name = models.CharField(max_length=200, blank=True, default="")
     organisation = models.CharField(max_length=300, blank=True, default="")
+    school_name = models.CharField(
+        max_length=300, blank=True, default="",
+        help_text="School they are associated with (if applicable).",
+    )
+    primary_governance_role = models.CharField(
+        max_length=100, blank=True, default="",
+        help_text="Primary role: Headmaster, Board Chairman, PTA Chairman, or Alumni Chairman.",
+    )
     is_active = models.BooleanField(
         default=True,
         help_text="False when unsubscribed.",
