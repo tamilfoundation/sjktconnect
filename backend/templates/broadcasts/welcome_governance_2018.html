@@ -63,6 +63,17 @@
 
             <p>Best regards,<br>
             <strong>The SJK(T) Connect Team</strong></p>
+
+            {% if unsubscribe_url %}
+            <div class="footer">
+                <p>
+                    <a href="{{ preferences_url }}" style="color: #1e40af;">Manage Preferences</a>
+                    &middot;
+                    <a href="{{ unsubscribe_url }}" style="color: #1e40af;">Unsubscribe</a>
+                </p>
+                <p>An initiative of Malaysian Tamil Educational Research &amp; Development Foundation (Tamil Foundation)</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 </body>
