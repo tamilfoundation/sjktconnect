@@ -40,6 +40,11 @@ class HansardSitting(models.Model):
         db_index=True,
     )
     error_message = models.TextField(blank=True, default="")
+    # Timestamp of the last Kamar Khas (Special Chamber) ingestion attempt for
+    # this date. NULL = never checked. Set once KKDR-*.pdf has been fetched +
+    # searched (even if it yielded 0 mentions or no PDF) so the daily pipeline
+    # doesn't re-download + re-analyse (repeated Gemini cost) every run.
+    kamar_khas_checked_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -52,8 +57,20 @@ class HansardSitting(models.Model):
 class HansardMention(models.Model):
     """A single mention of Tamil school keywords found in a Hansard sitting."""
 
+    class Chamber(models.TextChoices):
+        MAIN = "MAIN", "Dewan Rakyat"
+        KAMAR_KHAS = "KAMAR_KHAS", "Kamar Khas (Special Chamber)"
+
     sitting = models.ForeignKey(
         HansardSitting, on_delete=models.CASCADE, related_name="mentions"
+    )
+    # Which document this mention came from. The main Dewan Rakyat Hansard
+    # (DR-*.pdf) and the Special Chamber / Kamar Khas Hansard (KKDR-*.pdf-N)
+    # are separate PDFs for the same sitting date; most Tamil-school debate
+    # happens in Kamar Khas. Both attach to the one sitting row (Option A).
+    chamber = models.CharField(
+        max_length=20, choices=Chamber.choices,
+        default=Chamber.MAIN, db_index=True,
     )
     page_number = models.IntegerField(null=True, blank=True)
     verbatim_quote = models.TextField()

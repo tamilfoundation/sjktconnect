@@ -139,6 +139,7 @@ class Command(BaseCommand):
             steps.append(("Sync calendar", self._step_sync_calendar))
 
         steps.append(("Check new Hansards", self._step_check_new_hansards))
+        steps.append(("Ingest Kamar Khas", self._step_process_kamar_khas))
         steps.append(("Match mentions", self._step_match_mentions))
 
         if not skip_analysis:
@@ -185,6 +186,35 @@ class Command(BaseCommand):
     def _step_check_new_hansards(self):
         call_command("check_new_hansards", auto_process=True)
         return "done"
+
+    def _step_process_kamar_khas(self):
+        """Fetch Special-Chamber (KKDR-*.pdf) Hansards for recently-completed
+        sittings not yet checked. Runs BEFORE match/analyse so its mentions
+        flow through the same enrichment + brief generation this run.
+        Idempotent via kamar_khas_checked_at, so it never re-analyses (no
+        repeated Gemini cost); bounded to the last 30 days for the daily run.
+        """
+        from datetime import timedelta
+        from django.utils import timezone as _tz
+        from hansard.models import HansardSitting
+        from hansard.pipeline.kamar_khas import process_kamar_khas
+        cutoff = _tz.localdate() - timedelta(days=30)
+        pending = list(HansardSitting.objects.filter(
+            status=HansardSitting.Status.COMPLETED,
+            kamar_khas_checked_at__isnull=True,
+            sitting_date__gte=cutoff,
+        ).order_by("sitting_date"))
+        parts = mentions = 0
+        for s in pending:
+            try:
+                r = process_kamar_khas(s)
+                parts += r["parts"]
+                mentions += r["mentions"]
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(
+                    f"    Kamar Khas {s.sitting_date} failed: {e}"
+                ))
+        return {"sittings": len(pending), "parts": parts, "mentions": mentions}
 
     def _step_match_mentions(self):
         return run_matching()
