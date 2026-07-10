@@ -37,7 +37,7 @@ class TestGetQuota:
         assert quota["remaining"] == DEFAULT_DAILY_QUOTA
 
     @patch("broadcasts.services.brevo_quota.requests.get")
-    def test_production_mode_returns_remaining_300_when_unused(
+    def test_production_mode_returns_full_quota_when_unused(
         self, mock_get, _ok_account_response
     ):
         mock_get.return_value = _ok_account_response

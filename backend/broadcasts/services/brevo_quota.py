@@ -22,7 +22,14 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 BREVO_ACCOUNT_URL = "https://api.brevo.com/v3/account"
-DEFAULT_DAILY_QUOTA = 300
+# Brevo free tier hard-caps at 300 transactional sends/day, and that 300 is
+# SHARED across broadcasts AND utility mail (welcome, contact replies,
+# unsubscribe/preferences confirmations). We cap our *broadcast* budget at
+# 275 so a large drip-feeding digest can never consume the whole day and
+# starve a new subscriber's welcome email — ~25/day stays reserved for
+# transactional utility mail. Override with BREVO_DAILY_QUOTA if the Brevo
+# plan changes (e.g. a paid tier raises the true cap).
+DEFAULT_DAILY_QUOTA = 275
 
 
 class BrevoQuotaError(Exception):
@@ -35,8 +42,9 @@ def get_quota() -> dict:
     Shape: ``{daily_quota: int, used_today: int, remaining: int,
     dev_mode: bool}``.
 
-    ``daily_quota`` defaults to 300 (free-tier) and can be overridden
-    via the ``BREVO_DAILY_QUOTA`` env var.
+    ``daily_quota`` defaults to 275 (free-tier's 300 minus a ~25/day
+    reserve for utility mail) and can be overridden via the
+    ``BREVO_DAILY_QUOTA`` env var.
 
     ``used_today`` counts our own ``BroadcastRecipient`` rows with
     ``sent_at`` in the current calendar day (timezone-aware) and a
