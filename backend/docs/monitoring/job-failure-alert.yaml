@@ -1,7 +1,7 @@
 displayName: SJK(T) Connect — Cloud Run Job Failures
 documentation:
   content: |
-    A Cloud Run job in the sjktconnect project has failed 2+ times in 24h.
+    A Cloud Run job in the sjktconnect project has a failed execution.
 
     Most common causes:
       1. Job image is stale relative to the DB schema (e.g. Sprint 19 dropped
@@ -31,8 +31,13 @@ conditions:
           crossSeriesReducer: REDUCE_SUM
           groupByFields:
             - resource.label.job_name
+      # Fire on ANY failed execution (sum > 0). The previous threshold of 1
+      # (i.e. >=2 in the hour) could NEVER trip for a once-daily job — it runs
+      # at most once per hour, so a single failed run never reached 2. That
+      # blind spot hid the 2026-07 check-hansards OOM, which failed daily for
+      # ~11 days with no alert. Any failed execution is now surfaced.
       comparison: COMPARISON_GT
-      thresholdValue: 1
+      thresholdValue: 0
       duration: 0s
       trigger:
         count: 1
