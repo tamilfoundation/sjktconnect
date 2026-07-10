@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-10 — Kamar Khas (Special Chamber) Hansard ingestion
+
+Discovered while fixing the OOM (below): the June session showed zero Tamil-school activity because **the entire debate happens in the Kamar Khas / Special Chamber**, published as a separate `KKDR-<date>-N.pdf` the pipeline never fetched (it only downloaded main-chamber `DR-*.pdf`). The main-chamber "SJK" hits were all "SJKP" (a housing scheme) — the searcher was correct; the content simply wasn't being fetched.
+
+- **New:** `HansardMention.chamber` (MAIN / KAMAR_KHAS), `HansardSitting.kamar_khas_checked_at` (idempotency guard — daily runs never re-download/re-analyse, so no repeated Gemini cost), `hansard/pipeline/kamar_khas.py`, `process_kamar_khas` backfill command, and a pipeline step (runs before match/analyse so KK mentions flow through enrichment + briefs). Migration `hansard/0015`. +5 tests.
+- **Backfilled 22 Jun→9 Jul:** 22 Jun yielded **11 real Tamil-school mentions** (Ganabatirau's SJK(T) teacher-shortage questions + the Deputy Minister's commitments); all 11 Gemini-analysed; a brief was generated (`"11 Tamil School Mentions in Parliament — 22 June 2026"`). Other Kamar Khas days verified genuinely 0 (different topics). The brief is DRAFT/AMBER pending editorial review before publishing.
+- **Also:** raised the `check-hansards` job **task-timeout 600s → 1800s** — the added Kamar Khas + analysis work pushed the full pipeline past 10 min. (Its retry made the alert-worthy failure visible now that the alert threshold is fixed too.)
+
 ## 2026-07-10 — Hansard pipeline OOM fix (Parliament Watch unblocked)
 
 The `check-hansards` job had been **failing silently every day since ~8 July**, freezing Parliament Watch. Root cause: the PDF extractor looped `page.extract_text()` without flushing pdfplumber's per-page cache, so a 122-page Hansard (1.1 MB on disk) peaked at **642 MB** and OOM-killed the 512 MB Cloud Run job mid-extraction. The container SIGKILL isn't catchable in Python, and the pipeline swallows per-step errors + Cloud Run retried-and-"succeeded", so the failure was invisible.
