@@ -28,7 +28,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 
 const LOCALES = ["en", "ta", "ms"] as const;
-const VALID_TYPES = new Set(["school"]);
+const VALID_TYPES = new Set(["school", "parliament"]);
 
 export async function POST(req: NextRequest) {
   // TD-21 auth gate. Env var must be set on Cloud Run for prod
@@ -58,13 +58,21 @@ export async function POST(req: NextRequest) {
   if (!type || !VALID_TYPES.has(type)) {
     return NextResponse.json({ error: "invalid_type" }, { status: 400 });
   }
-  if (!key || typeof key !== "string" || !/^[A-Z0-9]{3,10}$/.test(key)) {
-    return NextResponse.json({ error: "invalid_key" }, { status: 400 });
-  }
-  // Slug is optional but validated when present — same alphabet as
-  // schoolPath() output (lowercase letters, digits, hyphens).
-  if (slug !== undefined && (typeof slug !== "string" || !/^[a-z0-9-]{3,200}$/.test(slug))) {
-    return NextResponse.json({ error: "invalid_slug" }, { status: 400 });
+  if (type === "school") {
+    if (!key || typeof key !== "string" || !/^[A-Z0-9]{3,10}$/.test(key)) {
+      return NextResponse.json({ error: "invalid_key" }, { status: 400 });
+    }
+    // Slug is optional but validated when present — same alphabet as
+    // schoolPath() output (lowercase letters, digits, hyphens).
+    if (slug !== undefined && (typeof slug !== "string" || !/^[a-z0-9-]{3,200}$/.test(slug))) {
+      return NextResponse.json({ error: "invalid_slug" }, { status: 400 });
+    }
+  } else if (type === "parliament") {
+    // key = numeric SittingBrief id, optional. When present we also bust
+    // that brief's detail page; the two list pages are always refreshed.
+    if (key !== undefined && (typeof key !== "string" || !/^[0-9]{1,7}$/.test(key))) {
+      return NextResponse.json({ error: "invalid_key" }, { status: 400 });
+    }
   }
 
   const paths: string[] = [];
@@ -80,6 +88,18 @@ export async function POST(req: NextRequest) {
       // the literal slug is the only thing that actually busts it.
       if (slug) {
         paths.push(`/${locale}/school/${slug}`);
+      }
+    }
+  } else if (type === "parliament") {
+    // A published sitting brief must surface on both cached list pages
+    // (home + full list); include the brief's own detail page when a
+    // numeric id is supplied. These are static/literal routes, so
+    // revalidatePath busts them directly (no dynamic-segment caveat).
+    for (const locale of LOCALES) {
+      paths.push(`/${locale}/parliament-watch`);
+      paths.push(`/${locale}/parliament-watch/sittings`);
+      if (key) {
+        paths.push(`/${locale}/parliament-watch/sittings/${key}`);
       }
     }
   }

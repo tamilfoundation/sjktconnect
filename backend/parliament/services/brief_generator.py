@@ -169,6 +169,12 @@ def generate_brief(sitting):
         brief.summary_html = linked
         brief.save(update_fields=["summary_html", "updated_at"])
 
+    # If the quality loop auto-published this brief, refresh the cached
+    # Parliament Watch list pages so it appears immediately.
+    if brief.is_published:
+        from parliament.services.revalidation import trigger_brief_revalidate
+        trigger_brief_revalidate(brief)
+
     logger.info(
         "Brief generated for sitting %s: %s mentions",
         sitting.sitting_date, mentions.count(),

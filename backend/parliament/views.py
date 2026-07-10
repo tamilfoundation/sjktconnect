@@ -133,6 +133,10 @@ class PublishBriefView(LoginRequiredMixin, View):
                 "Brief for %s published by %s",
                 sitting.sitting_date, request.user,
             )
+            # Refresh the cached Parliament Watch list pages so the newly
+            # published brief appears immediately (not on the 24h ISR cycle).
+            from parliament.services.revalidation import trigger_brief_revalidate
+            trigger_brief_revalidate(brief)
         return redirect("parliament:sitting-review", sitting_pk=sitting.pk)
 
 
