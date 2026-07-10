@@ -28,6 +28,11 @@ class Broadcast(models.Model):
         URGENT_ALERT = "URGENT_ALERT", "Urgent Alert"
         MONTHLY_BLAST = "MONTHLY_BLAST", "Monthly Blast"
         PARLIAMENT_WATCH = "PARLIAMENT_WATCH", "Parliament Watch"
+        # One-off welcome/onboarding email to a freshly-imported opted-in
+        # segment (parents, alumni, donors...). Carries null coverage dates,
+        # so the unique_broadcast_per_kind_coverage constraint does not apply
+        # and multiple segments can each receive their own welcome.
+        WELCOME = "WELCOME", "Welcome"
         OTHER = "OTHER", "Other"
 
     subject = models.CharField(max_length=300)

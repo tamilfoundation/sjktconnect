@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-07-10 — Reusable email-batch onboarding + Brevo quota reserve
+
+Turned the one-off, fragile governance-send approach into a **reusable, self-cleaning pipeline** for onboarding any opted-in email segment (parents, alumni, donors, event attendees), built on the tracked Broadcast system. Also reconciled and completed the governance campaign and tightened the daily send budget.
+
+### New: generic "onboard an email batch" capability
+- **`import_email_batch` command** — imports any CSV (`email` + optional `name`) under a `--source-tag`, **creates all 3 newsletter preferences at import time** (fixes the "active but subscribed to nothing" orphan bug), is idempotent, dedups case-insensitively, and **never resurrects a previously-unsubscribed address** (consent stays).
+- **`WELCOME` broadcast kind** (migration `broadcasts/0009`) — null coverage dates, so multiple segments can each get their own welcome without tripping the per-kind-coverage unique constraint.
+- **`source_tag` audience filter** — targets one imported batch exactly.
+- **`compose_welcome_broadcast` command** + generic `welcome_generic.html` body — creates a DRAFT welcome for a segment; released via the normal `send_broadcast` path, which drip-feeds under the daily cap, tracks delivery, adds unsubscribe links, and **auto-deactivates hard bounces** — everything the old isolated send couldn't do.
+- Deleted 4 superseded one-off governance scripts.
+- +10 tests (import + source_tag filter + compose); full broadcasts+subscribers suites green (434).
+
+### Brevo daily quota: 300 → 275
+- `DEFAULT_DAILY_QUOTA` cut to 275 so a large drip-feeding digest can't starve transactional/utility mail (welcome, contact replies). Override via `BREVO_DAILY_QUOTA`.
+
+### Governance campaign reconciled + completed
+- Verified against Brevo + prod DB: all 537 TF_2018 subscribers sent the intro (409 delivered, 107 hard-bounced). Sent the final 54 never-emailed Board Chairmen by explicit address (not offset). Deactivated 48 hard-bounced-but-still-active addresses. Enrolled the 131 preference-less actives into all newsletters. Added the missing unsubscribe footer to the governance template.
+
 ## 2026-07-09 — Tamil Foundation 2018 governance data integration
 
 One-day task: integrated legacy governance records (Tamil Foundation 2018) into school leadership sections and newsletter subscriber list. Shipped 250 governance leader welcome emails with personalized greetings.

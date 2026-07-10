@@ -59,6 +59,14 @@ def get_filtered_subscribers(filter_dict: dict) -> QuerySet[Subscriber]:
     if source:
         qs = qs.filter(source=source)
 
+    # Source-tag filter — targets one imported batch/segment exactly
+    # (e.g. "TF_PARENTS_2026"). Used by welcome broadcasts to reach a
+    # single onboarding cohort. Exact match, so each import should stamp
+    # a single, stable source_tag on its whole batch.
+    source_tag = filter_dict.get("source_tag", "")
+    if source_tag:
+        qs = qs.filter(source_tag=source_tag)
+
     # School-based filters — build a School queryset first
     school_filters = {}
     state = filter_dict.get("state", "")
