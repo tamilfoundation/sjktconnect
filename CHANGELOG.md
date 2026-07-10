@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-10 — Hansard pipeline OOM fix (Parliament Watch unblocked)
+
+The `check-hansards` job had been **failing silently every day since ~8 July**, freezing Parliament Watch. Root cause: the PDF extractor looped `page.extract_text()` without flushing pdfplumber's per-page cache, so a 122-page Hansard (1.1 MB on disk) peaked at **642 MB** and OOM-killed the 512 MB Cloud Run job mid-extraction. The container SIGKILL isn't catchable in Python, and the pipeline swallows per-step errors + Cloud Run retried-and-"succeeded", so the failure was invisible.
+
+- **Fix:** `page.flush_cache()` per page in `hansard/pipeline/extractor.py` → peak drops 642 MB → **~11 MB** (56×, measured).
+- **Resilience:** `_reset_recent_failures` now recovers stuck `PROCESSING` sittings of any age (previously only FAILED/NO_PDF, so a mid-processing crash orphaned the sitting forever — 29/30 Jun sat stuck 10+ days).
+- **Headroom:** check-hansards job memory 512 MB → **2 GB**.
+- **Verified:** re-ran the pipeline — all June/July sittings now process cleanly (0 stuck); no OOM. +2 regression tests (22 hansard tests green).
+- **Discovered (separate follow-up):** the June main-chamber (`DR-*.pdf`) sittings genuinely contain **no SJK(T) mentions** (the searcher is correct — the "SJK" hits are "SJKP", a housing scheme). The Tamil-school debate is in the **Kamar Khas (Special Chamber)** Hansard, which the pipeline does not fetch. Capturing it needs a new discovery/download path (Kamar Khas URL pattern TBD) — scoped as a future feature, not part of this fix.
+
 ## 2026-07-10 — Reusable email-batch onboarding + Brevo quota reserve
 
 Turned the one-off, fragile governance-send approach into a **reusable, self-cleaning pipeline** for onboarding any opted-in email segment (parents, alumni, donors, event attendees), built on the tracked Broadcast system. Also reconciled and completed the governance campaign and tightened the daily send budget.
