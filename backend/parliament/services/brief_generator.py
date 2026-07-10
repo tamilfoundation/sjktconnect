@@ -161,6 +161,14 @@ def generate_brief(sitting):
     # Quality evaluation loop
     _run_brief_quality_loop(brief, mentions)
 
+    # Final transform: hyperlink every mentioned school in the brief body to
+    # its school page (runs last so the quality loop can't strip the links).
+    from parliament.services.brief_linkify import linkify_schools
+    linked = linkify_schools(brief.summary_html, sitting)
+    if linked != brief.summary_html:
+        brief.summary_html = linked
+        brief.save(update_fields=["summary_html", "updated_at"])
+
     logger.info(
         "Brief generated for sitting %s: %s mentions",
         sitting.sitting_date, mentions.count(),
