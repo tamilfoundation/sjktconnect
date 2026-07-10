@@ -107,8 +107,8 @@ class Command(BaseCommand):
             n = self._reset_recent_failures(retry_days)
             if n:
                 self.stdout.write(self.style.WARNING(
-                    f"Reset {n} FAILED/NO_PDF sitting(s) from last {retry_days}d "
-                    f"back to PENDING for retry."
+                    f"Reset {n} stuck-PROCESSING / recent FAILED/NO_PDF "
+                    f"sitting(s) back to PENDING for retry."
                 ))
 
         steps = self._build_steps(skip_calendar, skip_analysis)
@@ -152,21 +152,32 @@ class Command(BaseCommand):
         return steps
 
     def _reset_recent_failures(self, days: int) -> int:
-        """Mark FAILED/NO_PDF rows from the last `days` back to PENDING.
+        """Reset stuck/failed sittings back to PENDING so they retry.
 
-        Catches the case where the morning cron tried a date before
-        parlimen had posted the PDF (HTML/placeholder response → row
-        marked FAILED or NO_PDF), and the PDF is now available.
+        Two cases:
+        - **Stuck PROCESSING (any age):** a previous run died mid-extraction
+          (e.g. the 2026-07 OOM crash). The pipeline is single-threaded and
+          this runs at start-of-run, so any PROCESSING row is necessarily
+          stale — reset it regardless of age so a crash can never orphan a
+          sitting permanently (before this fix, 29/30 Jun sat stuck for days).
+        - **Recent FAILED/NO_PDF (last `days`):** the morning cron tried a
+          date before parlimen posted the PDF; the PDF may be up now.
         """
         from datetime import timedelta
         from django.utils import timezone as _tz
         from hansard.models import HansardSitting
+
+        stale_processing = HansardSitting.objects.filter(
+            status=HansardSitting.Status.PROCESSING,
+        ).update(status=HansardSitting.Status.PENDING, error_message="")
+
         cutoff = _tz.localdate() - timedelta(days=days)
-        qs = HansardSitting.objects.filter(
+        recent_failed = HansardSitting.objects.filter(
             sitting_date__gte=cutoff,
             status__in=[HansardSitting.Status.FAILED, HansardSitting.Status.NO_PDF],
-        )
-        return qs.update(status=HansardSitting.Status.PENDING, error_message="")
+        ).update(status=HansardSitting.Status.PENDING, error_message="")
+
+        return stale_processing + recent_failed
 
     def _step_sync_calendar(self):
         return sync_calendar()

@@ -44,6 +44,18 @@ def extract_text(pdf_path: str | Path) -> list[tuple[int, str]]:
             text = page.extract_text() or ""
             pages.append((i, text))
 
+            # CRITICAL: release pdfplumber's per-page object cache. Without
+            # this, pdfminer retains every parsed page in memory (~5 MB/page),
+            # so a 122-page Hansard peaks at ~640 MB and OOM-kills the 512 MB
+            # Cloud Run job mid-extraction (2026-07 check-hansards incident:
+            # failed daily, orphaned the June session). Flushing keeps peak
+            # ~11 MB. See docs/lessons.md.
+            page.flush_cache()
+            try:
+                page.get_textmap.cache_clear()
+            except Exception:
+                pass
+
             if i % 20 == 0:
                 logger.info("  Processed %d/%d pages", i, total)
 
