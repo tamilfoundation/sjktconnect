@@ -540,6 +540,33 @@ def _generate_name_variants(distinctive):
         if ldg_form not in variants:
             variants.append(ldg_form)
 
+    # Bhg ⇔ Bahagian ⇔ Div ⇔ Division bridge. MOE's canonical short_name uses
+    # "Bhg N"; journalists write whichever of the four they prefer. Sprint 27/28
+    # patched this per-school in the alias table (migration hansard/0010), but
+    # that migration only covered the spelled-out "Division" — The Star's
+    # abbreviated "SJK(T) Ladang Labu Div 4" still failed to resolve and shipped
+    # as an unlinked grey chip. Bridging here fixes every school with one of
+    # these words, in all four spellings, without needing an alias row each.
+    # The trailing "." is captured so it can be dropped on swap — "Div. 4"
+    # must reach the canonical "Bhg 4", not "Bhg. 4".
+    bhg_match = re.search(
+        r"\b(Bhg|Bahagian|Div|Division)(\.?)\s+"
+        r"(\d+|IV|III|II|I|Empat|Lima|Tiga|Dua|Satu)\b",
+        distinctive,
+        re.IGNORECASE,
+    )
+    if bhg_match:
+        for synonym in ("Bhg", "Bahagian", "Div", "Division"):
+            if synonym.lower() == bhg_match.group(1).lower():
+                continue
+            swapped = (
+                distinctive[: bhg_match.start(1)]
+                + synonym
+                + distinctive[bhg_match.end(2) :]
+            )
+            if swapped not in variants:
+                variants.append(swapped)
+
     # Split compound words: "Springhill" → "Spring Hill", "Greenfield" → "Green Field"
     # Try inserting a space at each position in long words (≥8 chars, both
     # halves ≥3 chars) to handle joined/split spelling variants.

@@ -88,6 +88,22 @@ class VariantGeneratorBracketAndLadangTest(TestCase):
         self.assertIn("Ladang West Country", variants)
         self.assertIn("Ldg West Country", variants)
 
+    def test_bhg_yields_all_other_spellings(self):
+        variants = _generate_name_variants("Ladang Labu Bhg 4")
+        for expected in ("Ladang Labu Bahagian 4", "Ladang Labu Div 4",
+                         "Ladang Labu Division 4"):
+            self.assertIn(expected, variants)
+
+    def test_div_yields_canonical_bhg_spelling(self):
+        variants = _generate_name_variants("Ladang Labu Div 4")
+        self.assertIn("Ladang Labu Bhg 4", variants)
+
+    def test_bhg_bridge_ignores_unnumbered_words(self):
+        # "Division" here is part of a place name, not a section number —
+        # swapping it would invent a school that doesn't exist.
+        variants = _generate_name_variants("Kemuning Kru Division")
+        self.assertNotIn("Kemuning Kru Bhg", variants)
+
     def test_already_ladang_prefixed_does_not_double_prefix(self):
         variants = _generate_name_variants("Ladang Boh 1")
         self.assertNotIn("Ladang Ladang Boh 1", variants)
@@ -245,6 +261,28 @@ class ScreenshotFailureRegressionTest(TestCase):
             {"name": "SJK(T) Bandar Sri Alam", "moe_code": ""}
         ])
         self.assertEqual(resolved[0]["moe_code"], "JBD1029")
+
+    def test_ladang_labu_div_4_resolves_without_an_alias(self):
+        # The Star article 1096 (14 Jul 2026) wrote "SJK(T) Ladang Labu
+        # Div 4". Migration hansard/0010 seeded the spelled-out
+        # "Division 4" alias but not the abbreviation, so this shipped
+        # with an empty moe_code — a dead grey chip on the news card.
+        # The Bhg/Bahagian/Div/Division bridge in the variant generator
+        # must reach the canonical short_name with no alias row at all.
+        self._make_school("NBD4079", "SJK(T) Ladang Labu Bhg 4")
+        resolved = _resolve_school_codes([
+            {"name": "SJK(T) Ladang Labu Div 4", "moe_code": ""}
+        ])
+        self.assertEqual(resolved[0]["moe_code"], "NBD4079")
+
+    def test_ladang_labu_all_bhg_spellings_resolve(self):
+        self._make_school("NBD4079", "SJK(T) Ladang Labu Bhg 4")
+        for spelling in ("Bhg", "Bahagian", "Div", "Division", "Div."):
+            with self.subTest(spelling=spelling):
+                resolved = _resolve_school_codes([
+                    {"name": f"SJK(T) Ladang Labu {spelling} 4", "moe_code": ""}
+                ])
+                self.assertEqual(resolved[0]["moe_code"], "NBD4079")
 
     def test_ladang_sungai_pleton_resolves_via_alias(self):
         # Same BERNAMA article 985: Gemini transliterated Tamil

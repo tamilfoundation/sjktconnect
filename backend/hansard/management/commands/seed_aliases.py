@@ -134,11 +134,16 @@ def generate_aliases_for_school(school: School) -> list[dict]:
     if stripped and stripped != (school.short_name or ""):
         candidates.append(stripped)
 
+    # "Div" added 2026-07-23 — the abbreviation was missing, so The Star's
+    # "SJK(T) Ladang Labu Div 4" resolved to nothing. The news matcher now
+    # bridges these spellings at match time too (news_analyser
+    # `_generate_name_variants`), so alias rows are no longer the only path.
     _BHG_RE = re.compile(
-        r"\b(Bhg|Bahagian|Division)\s+(\d+|IV|III|II|I|Empat|Lima|Tiga|Dua|Satu)\b",
+        r"\b(Bhg|Bahagian|Div|Division)\.?\s+"
+        r"(\d+|IV|III|II|I|Empat|Lima|Tiga|Dua|Satu)\b",
         re.IGNORECASE,
     )
-    _BHG_SYNONYMS = ["Bhg", "Bahagian", "Division"]
+    _BHG_SYNONYMS = ["Bhg", "Bahagian", "Div", "Division"]
     for base in list(candidates):
         match = _BHG_RE.search(base)
         if not match:

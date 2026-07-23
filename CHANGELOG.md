@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07-23 — "Div 4" school mentions never resolved (small-change lane)
+
+Owner spotted The Star's "Tamil schools hailed for cleanliness and language skills" (article 1096) rendering `SJK(T) Ladang Labu Div 4` as a dead grey chip instead of a blue school link. Two sibling articles about the same event resolved to NBD4079 correctly; this one stored `moe_code: ""`.
+
+Cause: the `Bhg ⇔ Bahagian ⇔ Division` bridge added in Sprint 27/28 lives only in `seed_aliases` (alias-generation time) and covers just the **spelled-out** "Division". The Star wrote the abbreviation "Div", which matched nothing. Migration `hansard/0010`'s own docstring had flagged the systemic fix as a deferred follow-up.
+
+- **Fix:** the bridge now runs at *match* time, in `news_analyser._generate_name_variants`, spanning all four spellings (`Bhg` / `Bahagian` / `Div` / `Division`, with or without a trailing full stop). "Div 4" now reaches the canonical `SJK(T) Ladang Labu Bhg 4` by exact match — **no alias row needed**, and every school with one of these words is covered rather than one school at a time.
+- **Also:** added `Div` to `seed_aliases._BHG_SYNONYMS` so future seeding agrees.
+- **Guard:** the bridge only fires on a *numbered* section (`Div 4`, `Bahagian IV`). "Kemuning Kru Division" — where "Division" is part of the place name — is deliberately left alone, with a test pinning that.
+- **Tests:** +5 (3 variant-generator, 2 end-to-end incl. all five spellings). 1555 backend passing.
+- **Post-deploy:** `rematch_schools` (default mode; only touches mentions with an empty `moe_code`) to re-resolve article 1096 and any siblings.
+
 ## 2026-07-23 — News dates rendered a day early (small-change lane)
 
 Owner reported the News page looked like it had stopped updating. Investigation cleared the pipeline — the last daily run inserted four articles at 08:30 MYT on 22 July, and all three locales were serving them correctly. The staleness was a **display bug**: `formatDate` called `toLocaleDateString` with no `timeZone`, so server-rendered pages used the Cloud Run runtime zone (UTC) instead of Malaysia. Every article published between 00:00 and 08:00 MYT showed the previous day — the top story, published 21 July 07:59 MYT, was labelled "20 July 2026", making the page read up to a day staler than it was.
