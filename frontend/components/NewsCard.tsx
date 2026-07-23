@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { NewsArticle } from "@/lib/types";
 import { schoolPath } from "@/lib/urls";
+import { formatDate } from "@/lib/dates";
 
 interface Props {
   article: NewsArticle;
@@ -16,12 +17,6 @@ function sentimentColour(sentiment: string): string {
     case "MIXED": return "bg-yellow-100 text-yellow-800";
     default: return "bg-gray-100 text-gray-700";
   }
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
 
 /** Strip trailing source name from title (e.g. " - bernama", " - The Star | Malaysia") */

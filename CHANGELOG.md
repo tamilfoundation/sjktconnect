@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-23 — News dates rendered a day early (small-change lane)
+
+Owner reported the News page looked like it had stopped updating. Investigation cleared the pipeline — the last daily run inserted four articles at 08:30 MYT on 22 July, and all three locales were serving them correctly. The staleness was a **display bug**: `formatDate` called `toLocaleDateString` with no `timeZone`, so server-rendered pages used the Cloud Run runtime zone (UTC) instead of Malaysia. Every article published between 00:00 and 08:00 MYT showed the previous day — the top story, published 21 July 07:59 MYT, was labelled "20 July 2026", making the page read up to a day staler than it was.
+
+- **Fix:** new `frontend/lib/dates.ts` with a shared `formatDate()` that pins `timeZone: "Asia/Kuala_Lumpur"`. `NewsCard` and `NewsWatchSection` (which each carried a verbatim copy of the buggy helper) now import it.
+- **Guardrail:** `jest.config.js` pins `process.env.TZ = "UTC"` so the suite matches the Cloud Run runtime. Running tests in the developer's local zone (MYT) is why this never failed a test.
+- **Tests:** new `__tests__/lib/dates.test.ts` (5 tests) including the exact regression case. 373 frontend passing (was 368).
+- **Not covered:** `ModerationQueue`, `MySuggestions` and the school-edit page format `created_at` / `claimed_at` timestamps with the same ambient-zone bug. All are logged-in admin surfaces — logged as a follow-up rather than widened into this fix.
+
 ## 2026-07-10 — Kamar Khas (Special Chamber) Hansard ingestion
 
 Discovered while fixing the OOM (below): the June session showed zero Tamil-school activity because **the entire debate happens in the Kamar Khas / Special Chamber**, published as a separate `KKDR-<date>-N.pdf` the pipeline never fetched (it only downloaded main-chamber `DR-*.pdf`). The main-chamber "SJK" hits were all "SJKP" (a housing scheme) — the searcher was correct; the content simply wasn't being fetched.

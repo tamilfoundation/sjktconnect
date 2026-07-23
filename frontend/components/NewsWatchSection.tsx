@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { NewsArticle } from "@/lib/types";
+import { formatDate } from "@/lib/dates";
 import PaginationBar from "./PaginationBar";
 
 interface Props {
@@ -21,16 +22,6 @@ function sentimentColour(sentiment: string): string {
     default:
       return "bg-gray-100 text-gray-700";
   }
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
 }
 
 export default function NewsWatchSection({ articles }: Props) {

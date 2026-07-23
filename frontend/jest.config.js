@@ -1,3 +1,8 @@
+// Pin the suite to UTC so it matches the Cloud Run runtime. Date formatting
+// must name its own timeZone (see lib/dates.ts); running tests in the
+// developer's local zone hid the 2026-07-23 news date bug.
+process.env.TZ = "UTC";
+
 /** @type {import('jest').Config} */
 module.exports = {
   testEnvironment: "jsdom",
